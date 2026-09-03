@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+:root { --ink:#12221d; --forest:#173c31; --lime:#d4f44d; --cream:#f5f2ea; --line:#d9ded7; --muted:#63706a; }
+@theme inline { --font-sans:"Geist","Geist Fallback",ui-sans-serif,system-ui,sans-serif; --font-mono:"Geist Mono","Geist Mono Fallback",ui-monospace,monospace; }
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { margin:0; background:#fbfcfa; color:var(--ink); font-family:var(--font-geist-sans),Arial,sans-serif; }
+button,input,select { font:inherit; }
+button,a { -webkit-tap-highlight-color:transparent; }
+.dot-grid { background-image:radial-gradient(rgba(212,244,77,.2) 1px,transparent 1px); background-size:24px 24px; }
+.part-visual { background:radial-gradient(circle at 68% 30%,rgba(212,244,77,.24),transparent 28%),linear-gradient(135deg,#e8ebe5 0%,#cfd7d1 52%,#f4f2eb 100%); }
+@keyframes fade-up { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+.animate-in { animation:fade-up .45s ease-out both; }
