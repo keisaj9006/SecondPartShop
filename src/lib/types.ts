@@ -1,2 +1,12 @@
-export type Condition = "New" | "Reconditioned" | "Used";
-export type Listing = { id:string; slug:string; title:string; category:string; price:number; condition:Condition; code:string; oem:string; compatibility:string[]; seller:{ name:string; location:string; verified:boolean; rating:number }; stock:number; dispatch:string; accent:string; };
+export type UserRole="buyer"|"seller"|"admin";
+export type PartCondition="new"|"reconditioned"|"used";
+export type ListingStatus="draft"|"active"|"reserved"|"sold"|"archived";
+export type Profile={id:string;role:UserRole;displayName:string;phone:string|null};
+export type Seller={id:string;ownerId:string|null;businessName:string;slug:string;location:string;postcode:string|null;description:string;verified:boolean};
+export type Category={id:string;name:string;slug:string};
+export type Vehicle={id:string;make:string;model:string;generation:string;year:number;engine:string;engineCode:string|null;gearboxFamily:string;gearboxCode:string};
+export type ListingImage={id:string;url:string;alt:string;position:number};
+export type Fitment={vehicle:Vehicle;notes:string|null};
+export type Listing={id:string;sellerId:string;categoryId:string;slug:string;title:string;description:string;manufacturer:string|null;partNumber:string|null;oemNumber:string|null;gearboxFamily:string;gearboxCode:string;condition:PartCondition;pricePence:number;stock:number;status:ListingStatus;dispatchDays:number;category:Category;seller:Seller;images:ListingImage[];fitments:Fitment[]};
+export type MarketplaceFilters={query?:string;category?:string;condition?:PartCondition;gearboxFamily?:string;gearboxCode?:string;minPrice?:number;maxPrice?:number;vehicle?:string;ids?:string[]};
+export type ActionState={status:"idle"|"success"|"error";message?:string;fieldErrors?:Record<string,string>};

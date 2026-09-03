@@ -1,0 +1,5 @@
+"use server";
+import { revalidatePath } from "next/cache";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth";
+export async function toggleSavedPart(partId:string){const user=await getCurrentUser();if(!user)return {ok:false,authRequired:true,saved:false,message:"Sign in to save parts."};const supabase=await createSupabaseServerClient();const {data}=await supabase.from("saved_parts").select("part_id").eq("profile_id",user.id).eq("part_id",partId).maybeSingle();if(data){const {error}=await supabase.from("saved_parts").delete().eq("profile_id",user.id).eq("part_id",partId);if(error)return {ok:false,authRequired:false,saved:true,message:error.message};revalidatePath("/saved");revalidatePath("/");return {ok:true,authRequired:false,saved:false};}const {error}=await supabase.from("saved_parts").insert({profile_id:user.id,part_id:partId});if(error)return {ok:false,authRequired:false,saved:false,message:error.message};revalidatePath("/saved");revalidatePath("/");return {ok:true,authRequired:false,saved:true};}
