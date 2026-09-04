@@ -2,21 +2,26 @@ import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { VehicleCatalogueSelection } from "@/lib/types";
 
+export type CatalogueModelOption={make:string;modelFamily:string};
 export type CatalogueVariant={id:string;make:string;modelFamily:string;variant:string;bodyType:string|null};
+export type CatalogueVariantOption={id:string;variant:string};
 export type CatalogueEngine={fuelType:string;engineSizeSimple:number|null;engineSizeDesc:string|null};
 
-export async function getCatalogueMakes(){
+export async function getCatalogueModelMap():Promise<CatalogueModelOption[]>{
  const supabase=await createSupabaseServerClient();
- const {data,error}=await supabase.rpc("vehicle_catalogue_makes");
+ const {data,error}=await supabase.rpc("vehicle_catalogue_model_map");
  if(error)throw error;
- return (data??[]).map(row=>row.make);
+ return (data??[]).map(row=>({make:row.make,modelFamily:row.model_family}));
+}
+
+export async function getCatalogueMakes(){
+ const map=await getCatalogueModelMap();
+ return [...new Set(map.map(row=>row.make))];
 }
 
 export async function getCatalogueModels(make:string){
- const supabase=await createSupabaseServerClient();
- const {data,error}=await supabase.rpc("vehicle_catalogue_models",{p_make:make});
- if(error)throw error;
- return (data??[]).map(row=>row.model_family);
+ const map=await getCatalogueModelMap();
+ return map.filter(row=>row.make===make).map(row=>row.modelFamily);
 }
 
 export async function getCatalogueVariants(make:string,modelFamily:string):Promise<CatalogueVariant[]>{
@@ -31,6 +36,20 @@ export async function getCatalogueYears(variantId:string){
  const {data,error}=await supabase.from("vehicle_catalogue_years").select("year_first_used").eq("variant_id",variantId).order("year_first_used",{ascending:false});
  if(error)throw error;
  return (data??[]).map(row=>row.year_first_used);
+}
+
+export async function getCatalogueYearsForModel(make:string,modelFamily:string){
+ const supabase=await createSupabaseServerClient();
+ const {data,error}=await supabase.rpc("vehicle_catalogue_years_for_model",{p_make:make,p_model:modelFamily});
+ if(error)throw error;
+ return (data??[]).map(row=>row.year_first_used);
+}
+
+export async function getCatalogueVariantsForModelYear(make:string,modelFamily:string,year:number):Promise<CatalogueVariantOption[]>{
+ const supabase=await createSupabaseServerClient();
+ const {data,error}=await supabase.rpc("vehicle_catalogue_variants_for_model_year",{p_make:make,p_model:modelFamily,p_year:year});
+ if(error)throw error;
+ return (data??[]).map(row=>({id:row.id,variant:row.variant}));
 }
 
 export async function getCatalogueEngines(variantId:string):Promise<CatalogueEngine[]>{
@@ -65,4 +84,32 @@ export async function getCatalogueSelection(variantId:string,year:number,fuelTyp
   if(!engineRows?.length)return null;
  }
  return {variantId:variant.id,make:variant.make,modelFamily:variant.model_family,variant:variant.variant,year,fuelType:fuelType??null,engineSizeSimple:engineSizeSimple??null};
+}
+
+const normalizeVehicleName=(value:string)=>value.toUpperCase().replace(/[^A-Z0-9]+/g," ").trim();
+const fuelComparable=(value:string)=>normalizeVehicleName(value).replace("BATTERY ELECTRIC","ELECTRIC").replace("HYBRID ELECTRIC","HYBRID");
+
+export async function matchRegistrationToCatalogue(vehicle:{make:string;model:string;year?:number;fuelType?:string;engineSizeSimple?:number|null}){
+ const modelMap=await getCatalogueModelMap();
+ const makeKey=normalizeVehicleName(vehicle.make);
+ const modelKey=normalizeVehicleName(vehicle.model);
+ const makeOptions=[...new Set(modelMap.map(row=>row.make))];
+ const matchedMake=makeOptions.find(make=>normalizeVehicleName(make)===makeKey);
+ if(!matchedMake)return {make:null,modelFamily:null,variants:[] as CatalogueVariantOption[]};
+ const modelOptions=modelMap.filter(row=>row.make===matchedMake).map(row=>row.modelFamily);
+ const exact=modelOptions.find(model=>normalizeVehicleName(model)===modelKey);
+ const close=exact??modelOptions.find(model=>normalizeVehicleName(model).includes(modelKey)||modelKey.includes(normalizeVehicleName(model)));
+ if(!close||!vehicle.year)return {make:matchedMake,modelFamily:close??null,variants:[] as CatalogueVariantOption[]};
+ let variants=await getCatalogueVariantsForModelYear(matchedMake,close,vehicle.year);
+ if((vehicle.fuelType||vehicle.engineSizeSimple)&&variants.length){
+  const supabase=await createSupabaseServerClient();
+  const variantIds=variants.map(item=>item.id);
+  let query=supabase.from("vehicle_catalogue_engines").select("variant_id,fuel_type,engine_size_simple").in("variant_id",variantIds);
+  if(vehicle.engineSizeSimple)query=query.eq("engine_size_simple",vehicle.engineSizeSimple);
+  const {data,error}=await query;
+  if(error)throw error;
+  const matchingIds=new Set((data??[]).filter(row=>!vehicle.fuelType||fuelComparable(row.fuel_type)===fuelComparable(vehicle.fuelType)).map(row=>row.variant_id));
+  if(matchingIds.size)variants=variants.filter(item=>matchingIds.has(item.id));
+ }
+ return {make:matchedMake,modelFamily:close,variants};
 }
