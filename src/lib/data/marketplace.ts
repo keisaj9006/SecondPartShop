@@ -23,7 +23,14 @@ const failure=<T>(data:T,message:string,configured=true):DataResult<T>=>({data,e
 export async function getListings(filters:MarketplaceFilters={}):Promise<DataResult<Listing[]>>{
  if(!isSupabaseConfigured())return failure([],"Connect Supabase to load marketplace data.",false);
  const supabase=await createSupabaseServerClient();
- let query=supabase.from("parts").select(selectListing(Boolean(filters.vehicle))).eq("status","active").order("created_at",{ascending:false});
+ let vehiclePartIds:string[]|undefined;
+ if(filters.vehicle){
+  const {data:fitmentRows,error:fitmentError}=await supabase.from("part_fitments").select("part_id").eq("vehicle_id",filters.vehicle);
+  if(fitmentError)return failure([],fitmentError.message);
+  vehiclePartIds=[...new Set((fitmentRows??[]).map(row=>row.part_id))];
+  if(!vehiclePartIds.length)return {data:[],error:null,configured:true};
+ }
+ let query=supabase.from("parts").select(selectListing()).eq("status","active").order("created_at",{ascending:false});
  if(filters.query){const q=filters.query.trim().replace(/[,%()]/g," ");query=query.or(`title.ilike.%${q}%,oem_number.ilike.%${q}%,part_number.ilike.%${q}%,gearbox_code.ilike.%${q}%,gearbox_family.ilike.%${q}%`);}
  if(filters.category)query=query.eq("category_id",filters.category);
  if(filters.condition)query=query.eq("condition",filters.condition);
@@ -31,7 +38,7 @@ export async function getListings(filters:MarketplaceFilters={}):Promise<DataRes
  if(filters.gearboxCode)query=query.ilike("gearbox_code",`%${filters.gearboxCode}%`);
  if(Number.isFinite(filters.minPrice))query=query.gte("price_pence",Math.round((filters.minPrice??0)*100));
  if(Number.isFinite(filters.maxPrice))query=query.lte("price_pence",Math.round((filters.maxPrice??0)*100));
- if(filters.vehicle)query=query.eq("part_fitments.vehicle_id",filters.vehicle);
+ if(vehiclePartIds)query=query.in("id",vehiclePartIds);
  if(filters.ids?.length)query=query.in("id",filters.ids);
  const {data,error}=await query;
  if(error)return failure([],error.message);
