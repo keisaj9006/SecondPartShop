@@ -127,6 +127,57 @@ export type Database = {
           },
         ]
       }
+      part_catalogue_fitments: {
+        Row: {
+          created_at: string
+          engine_size_simple: number | null
+          fuel_type: string | null
+          id: string
+          notes: string | null
+          part_id: string
+          variant_id: string
+          year_from: number | null
+          year_to: number | null
+        }
+        Insert: {
+          created_at?: string
+          engine_size_simple?: number | null
+          fuel_type?: string | null
+          id?: string
+          notes?: string | null
+          part_id: string
+          variant_id: string
+          year_from?: number | null
+          year_to?: number | null
+        }
+        Update: {
+          created_at?: string
+          engine_size_simple?: number | null
+          fuel_type?: string | null
+          id?: string
+          notes?: string | null
+          part_id?: string
+          variant_id?: string
+          year_from?: number | null
+          year_to?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "part_catalogue_fitments_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "part_catalogue_fitments_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_catalogue_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       part_fitments: {
         Row: {
           notes: string | null
