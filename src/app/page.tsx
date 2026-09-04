@@ -1,7 +1,7 @@
 import { Header } from "@/components/header";
 import { MarketplaceHome } from "@/components/marketplace-home";
 import { getCategories,getFilterOptions,getListings,getSavedPartIds,getVehicles } from "@/lib/data/marketplace";
-import { getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
+import { getCatalogueModelMap,getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
 import { getCurrentUser } from "@/lib/auth";
 import type { MarketplaceFilters,PartCondition } from "@/lib/types";
 export const dynamic="force-dynamic";
@@ -35,11 +35,12 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   catalogueFuel:selectedCatalogue?.fuelType??undefined,
   catalogueEngineSize:selectedCatalogue?.engineSizeSimple??undefined
  };
- const [result,vehicles,options,savedIds]=await Promise.all([
+ const [result,vehicles,options,savedIds,catalogueModels]=await Promise.all([
   getListings(filters),
   getVehicles(),
   getFilterOptions(),
-  user?getSavedPartIds(user.id):Promise.resolve([])
+  user?getSavedPartIds(user.id):Promise.resolve([]),
+  getCatalogueModelMap()
  ]);
- return <><Header/><MarketplaceHome listings={result.data} categories={categories} vehicles={vehicles} families={options.families} codes={options.codes} filters={filters} selectedCatalogue={selectedCatalogue} savedIds={savedIds} error={result.error} configured={result.configured}/><footer className="border-t border-black/10 px-4 py-8 text-sm text-[#63706a]"><div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 sm:flex-row"><span>© 2026 SecondPart Ltd.</span><span>Built for the UK automotive trade.</span></div></footer></>;
+ return <><Header/><MarketplaceHome listings={result.data} categories={categories} vehicles={vehicles} catalogueModels={catalogueModels} families={options.families} codes={options.codes} filters={filters} selectedCatalogue={selectedCatalogue} savedIds={savedIds} error={result.error} configured={result.configured}/><footer className="border-t border-black/10 px-4 py-8 text-sm text-[#63706a]"><div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 sm:flex-row"><span>© 2026 SecondPart Ltd.</span><span>Built for the UK automotive trade.</span></div></footer></>;
 }
