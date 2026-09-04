@@ -620,7 +620,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      import_vehicle_catalogue_batch: {
+        Args: {
+          p_engines?: Json
+          p_provider: string
+          p_variants?: Json
+          p_years?: Json
+        }
+        Returns: Json
+      }
     }
     Enums: {
       listing_status: "draft" | "active" | "reserved" | "sold" | "archived"
