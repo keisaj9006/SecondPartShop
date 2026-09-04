@@ -7,6 +7,7 @@ export type Seller={id:string;ownerId:string|null;businessName:string;slug:strin
 export type Category={id:string;name:string;slug:string;isTransmissionRelated:boolean};
 export type Vehicle={id:string;make:string;model:string;generation:string;year:number;engine:string;engineCode:string|null;fuelType:string|null;gearboxFamily:string|null;gearboxCode:string|null;dataStatus:VehicleDataStatus;sourceReference:string|null};
 export type VehicleCatalogueSelection={variantId:string;make:string;modelFamily:string;variant:string;year:number;fuelType:string|null;engineSizeSimple:number|null};
+export type VehicleCatalogueModelOption={make:string;modelFamily:string};
 export type ListingImage={id:string;url:string;alt:string;position:number};
 export type Fitment={vehicle:Vehicle;notes:string|null};
 export type Listing={id:string;sellerId:string;categoryId:string;slug:string;title:string;description:string;manufacturer:string|null;partNumber:string|null;oemNumber:string|null;gearboxFamily:string|null;gearboxCode:string|null;condition:PartCondition;pricePence:number;stock:number;status:ListingStatus;dispatchDays:number;category:Category;seller:Seller;images:ListingImage[];fitments:Fitment[]};
