@@ -693,6 +693,7 @@ export type Database = {
           model_family: string
         }[]
       }
+      vehicle_catalogue_model_map_json: { Args: never; Returns: Json }
       vehicle_catalogue_models: {
         Args: { p_make: string }
         Returns: {
