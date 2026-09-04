@@ -23,12 +23,29 @@ const failure=<T>(data:T,message:string,configured=true):DataResult<T>=>({data,e
 export async function getListings(filters:MarketplaceFilters={}):Promise<DataResult<Listing[]>>{
  if(!isSupabaseConfigured())return failure([],"Connect Supabase to load marketplace data.",false);
  const supabase=await createSupabaseServerClient();
- let vehiclePartIds:string[]|undefined;
+ let fitmentPartIds:string[]|undefined;
  if(filters.vehicle){
   const {data:fitmentRows,error:fitmentError}=await supabase.from("part_fitments").select("part_id").eq("vehicle_id",filters.vehicle);
   if(fitmentError)return failure([],fitmentError.message);
-  vehiclePartIds=[...new Set((fitmentRows??[]).map(row=>row.part_id))];
-  if(!vehiclePartIds.length)return {data:[],error:null,configured:true};
+  fitmentPartIds=[...new Set((fitmentRows??[]).map(row=>row.part_id))];
+  if(!fitmentPartIds.length)return {data:[],error:null,configured:true};
+ }
+ if(filters.catalogueVariant){
+  const {data:catalogueRows,error:catalogueError}=await supabase.from("part_catalogue_fitments").select("part_id,year_from,year_to,fuel_type,engine_size_simple").eq("variant_id",filters.catalogueVariant);
+  if(catalogueError)return failure([],catalogueError.message);
+  const matching=(catalogueRows??[]).filter(row=>{
+   if(filters.catalogueYear!==undefined){
+    if(row.year_from!==null&&filters.catalogueYear<row.year_from)return false;
+    if(row.year_to!==null&&filters.catalogueYear>row.year_to)return false;
+   }
+   if(filters.catalogueFuel&&row.fuel_type&&row.fuel_type.toUpperCase()!==filters.catalogueFuel.toUpperCase())return false;
+   if(filters.catalogueEngineSize!==undefined&&row.engine_size_simple!==null&&row.engine_size_simple!==filters.catalogueEngineSize)return false;
+   return true;
+  });
+  const catalogueIds=[...new Set(matching.map(row=>row.part_id))];
+  if(!catalogueIds.length)return {data:[],error:null,configured:true};
+  fitmentPartIds=fitmentPartIds?fitmentPartIds.filter(id=>catalogueIds.includes(id)):catalogueIds;
+  if(!fitmentPartIds.length)return {data:[],error:null,configured:true};
  }
  let query=supabase.from("parts").select(selectListing()).eq("status","active").order("created_at",{ascending:false});
  if(filters.query){const q=filters.query.trim().replace(/[,%()]/g," ");query=query.or(`title.ilike.%${q}%,oem_number.ilike.%${q}%,part_number.ilike.%${q}%,gearbox_code.ilike.%${q}%,gearbox_family.ilike.%${q}%`);}
@@ -38,7 +55,7 @@ export async function getListings(filters:MarketplaceFilters={}):Promise<DataRes
  if(filters.gearboxCode)query=query.ilike("gearbox_code",`%${filters.gearboxCode}%`);
  if(Number.isFinite(filters.minPrice))query=query.gte("price_pence",Math.round((filters.minPrice??0)*100));
  if(Number.isFinite(filters.maxPrice))query=query.lte("price_pence",Math.round((filters.maxPrice??0)*100));
- if(vehiclePartIds)query=query.in("id",vehiclePartIds);
+ if(fitmentPartIds)query=query.in("id",fitmentPartIds);
  if(filters.ids?.length)query=query.in("id",filters.ids);
  const {data,error}=await query;
  if(error)return failure([],error.message);
