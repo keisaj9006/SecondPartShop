@@ -33,7 +33,7 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
  const [years,setYears]=useState<number[]>([]);
  const [engines,setEngines]=useState<CatalogueEngine[]>([]);
  const [catalogueError,setCatalogueError]=useState("");
- const [detailsLoading,setDetailsLoading]=useState(false);
+ const [detailsLoading,setDetailsLoading]=useState(Boolean(selectedCatalogue?.variantId));
  const [make,setMake]=useState(selectedCatalogue?.make??"");
  const [model,setModel]=useState(selectedCatalogue?.modelFamily??"");
  const [variantId,setVariantId]=useState(selectedCatalogue?.variantId??"");
@@ -47,30 +47,26 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
  },[]);
 
  useEffect(()=>{
-  if(!make){setModels([]);return;}
+  if(!make)return;
   const controller=new AbortController();
-  setCatalogueError("");
   void getItems<string>(`/api/vehicle-catalogue?level=models&make=${encodeURIComponent(make)}`,controller.signal).then(setModels).catch(error=>{if(error instanceof Error&&error.name!=="AbortError")setCatalogueError(error.message);});
   return()=>controller.abort();
  },[make]);
 
  useEffect(()=>{
-  if(!make||!model){setVariants([]);return;}
+  if(!make||!model)return;
   const controller=new AbortController();
-  setCatalogueError("");
   void getItems<CatalogueVariant>(`/api/vehicle-catalogue?level=variants&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`,controller.signal).then(setVariants).catch(error=>{if(error instanceof Error&&error.name!=="AbortError")setCatalogueError(error.message);});
   return()=>controller.abort();
  },[make,model]);
 
  useEffect(()=>{
-  if(!variantId){setYears([]);setEngines([]);setDetailsLoading(false);return;}
+  if(!variantId)return;
   const controller=new AbortController();
-  setDetailsLoading(true);
-  setCatalogueError("");
   void Promise.all([
    getItems<number>(`/api/vehicle-catalogue?level=years&variantId=${encodeURIComponent(variantId)}`,controller.signal),
    getItems<CatalogueEngine>(`/api/vehicle-catalogue?level=engines&variantId=${encodeURIComponent(variantId)}`,controller.signal)
-  ]).then(([yearItems,engineItems])=>{setYears(yearItems);setEngines(engineItems);}).catch(error=>{if(error instanceof Error&&error.name!=="AbortError")setCatalogueError(error.message);}).finally(()=>setDetailsLoading(false));
+  ]).then(([yearItems,engineItems])=>{setYears(yearItems);setEngines(engineItems);setDetailsLoading(false);}).catch(error=>{if(error instanceof Error&&error.name!=="AbortError"){setCatalogueError(error.message);setDetailsLoading(false);}});
   return()=>controller.abort();
  },[variantId]);
 
@@ -153,9 +149,9 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
   <div className="my-4 flex items-center gap-3 text-xs font-bold uppercase tracking-[.12em] text-[#7b847f]"><span className="h-px flex-1 bg-black/10"/><span>or choose manually</span><span className="h-px flex-1 bg-black/10"/></div>
 
   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-   <select aria-label="Make" className={control} value={make} onChange={e=>{setMake(e.target.value);setModel("");setVariantId("");setYear("");setCatalogueEngine("");}}><option value="">Make</option>{makes.map(value=><option key={value} value={value}>{nameLabel(value)}</option>)}</select>
-   <select aria-label="Model" className={control} value={model} disabled={!make} onChange={e=>{setModel(e.target.value);setVariantId("");setYear("");setCatalogueEngine("");}}><option value="">Model</option>{models.map(value=><option key={value} value={value}>{nameLabel(value)}</option>)}</select>
-   <select aria-label="Exact variant" className={control} value={variantId} disabled={!model} onChange={e=>{setVariantId(e.target.value);setYear("");setCatalogueEngine("");}}><option value="">Exact variant</option>{variants.map(item=><option key={item.id} value={item.id}>{item.variant}</option>)}</select>
+   <select aria-label="Make" className={control} value={make} onChange={e=>{setMake(e.target.value);setModel("");setModels([]);setVariantId("");setVariants([]);setYears([]);setEngines([]);setYear("");setCatalogueEngine("");setDetailsLoading(false);setCatalogueError("");}}><option value="">Make</option>{makes.map(value=><option key={value} value={value}>{nameLabel(value)}</option>)}</select>
+   <select aria-label="Model" className={control} value={model} disabled={!make} onChange={e=>{setModel(e.target.value);setVariantId("");setVariants([]);setYears([]);setEngines([]);setYear("");setCatalogueEngine("");setDetailsLoading(false);setCatalogueError("");}}><option value="">Model</option>{models.map(value=><option key={value} value={value}>{nameLabel(value)}</option>)}</select>
+   <select aria-label="Exact variant" className={control} value={variantId} disabled={!model} onChange={e=>{const value=e.target.value;setVariantId(value);setYears([]);setEngines([]);setYear("");setCatalogueEngine("");setDetailsLoading(Boolean(value));setCatalogueError("");}}><option value="">Exact variant</option>{variants.map(item=><option key={item.id} value={item.id}>{item.variant}</option>)}</select>
    <select aria-label="Year" className={control} value={year} disabled={!variantId||detailsLoading} onChange={e=>setYear(e.target.value)}><option value="">{detailsLoading?"Loading…":"Year"}</option>{years.map(value=><option key={value} value={value}>{value}</option>)}</select>
    <select aria-label="Engine and fuel" className={`${control} col-span-2 sm:col-span-2`} value={catalogueEngine} disabled={!variantId||detailsLoading||engines.length===0} onChange={e=>setCatalogueEngine(e.target.value)}>
     <option value="">{detailsLoading?"Loading…":engines.length?"Engine / fuel":"Engine data unavailable"}</option>
