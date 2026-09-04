@@ -17,18 +17,21 @@ export type Database = {
       categories: {
         Row: {
           id: string
+          is_transmission_related: boolean
           name: string
           parent_id: string | null
           slug: string
         }
         Insert: {
           id?: string
+          is_transmission_related?: boolean
           name: string
           parent_id?: string | null
           slug: string
         }
         Update: {
           id?: string
+          is_transmission_related?: boolean
           name?: string
           parent_id?: string | null
           slug?: string
@@ -128,16 +131,19 @@ export type Database = {
         Row: {
           notes: string | null
           part_id: string
+          transmission_id: string | null
           vehicle_id: string
         }
         Insert: {
           notes?: string | null
           part_id: string
+          transmission_id?: string | null
           vehicle_id: string
         }
         Update: {
           notes?: string | null
           part_id?: string
+          transmission_id?: string | null
           vehicle_id?: string
         }
         Relationships: [
@@ -146,6 +152,13 @@ export type Database = {
             columns: ["part_id"]
             isOneToOne: false
             referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "part_fitments_transmission_id_fkey"
+            columns: ["transmission_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_transmissions"
             referencedColumns: ["id"]
           },
           {
@@ -199,8 +212,8 @@ export type Database = {
           created_at: string
           description: string
           dispatch_days: number
-          gearbox_code: string
-          gearbox_family: string
+          gearbox_code: string | null
+          gearbox_family: string | null
           id: string
           manufacturer: string | null
           oem_number: string | null
@@ -219,8 +232,8 @@ export type Database = {
           created_at?: string
           description: string
           dispatch_days?: number
-          gearbox_code: string
-          gearbox_family: string
+          gearbox_code?: string | null
+          gearbox_family?: string | null
           id?: string
           manufacturer?: string | null
           oem_number?: string | null
@@ -239,8 +252,8 @@ export type Database = {
           created_at?: string
           description?: string
           dispatch_days?: number
-          gearbox_code?: string
-          gearbox_family?: string
+          gearbox_code?: string | null
+          gearbox_family?: string | null
           id?: string
           manufacturer?: string | null
           oem_number?: string | null
@@ -377,38 +390,88 @@ export type Database = {
           },
         ]
       }
+      vehicle_transmissions: {
+        Row: {
+          code: string
+          created_at: string
+          data_status: Database["public"]["Enums"]["vehicle_data_status"]
+          family: string
+          id: string
+          source_reference: string | null
+          transmission_type: string | null
+          vehicle_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          data_status?: Database["public"]["Enums"]["vehicle_data_status"]
+          family: string
+          id?: string
+          source_reference?: string | null
+          transmission_type?: string | null
+          vehicle_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          data_status?: Database["public"]["Enums"]["vehicle_data_status"]
+          family?: string
+          id?: string
+          source_reference?: string | null
+          transmission_type?: string | null
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_transmissions_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicles: {
         Row: {
+          data_status: Database["public"]["Enums"]["vehicle_data_status"]
           engine: string
           engine_code: string | null
-          gearbox_code: string
-          gearbox_family: string
+          fuel_type: string | null
+          gearbox_code: string | null
+          gearbox_family: string | null
           generation: string
           id: string
           make: string
           model: string
+          source_reference: string | null
           year: number
         }
         Insert: {
+          data_status?: Database["public"]["Enums"]["vehicle_data_status"]
           engine: string
           engine_code?: string | null
-          gearbox_code: string
-          gearbox_family: string
+          fuel_type?: string | null
+          gearbox_code?: string | null
+          gearbox_family?: string | null
           generation: string
           id?: string
           make: string
           model: string
+          source_reference?: string | null
           year: number
         }
         Update: {
+          data_status?: Database["public"]["Enums"]["vehicle_data_status"]
           engine?: string
           engine_code?: string | null
-          gearbox_code?: string
-          gearbox_family?: string
+          fuel_type?: string | null
+          gearbox_code?: string | null
+          gearbox_family?: string | null
           generation?: string
           id?: string
           make?: string
           model?: string
+          source_reference?: string | null
           year?: number
         }
         Relationships: []
@@ -424,6 +487,7 @@ export type Database = {
       listing_status: "draft" | "active" | "reserved" | "sold" | "archived"
       part_condition: "new" | "reconditioned" | "used"
       user_role: "buyer" | "seller" | "admin"
+      vehicle_data_status: "verified" | "qa_seed" | "external_import"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -554,7 +618,7 @@ export const Constants = {
       listing_status: ["draft", "active", "reserved", "sold", "archived"],
       part_condition: ["new", "reconditioned", "used"],
       user_role: ["buyer", "seller", "admin"],
+      vehicle_data_status: ["verified", "qa_seed", "external_import"],
     },
   },
 } as const
-
