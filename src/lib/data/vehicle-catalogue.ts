@@ -6,16 +6,16 @@ export type CatalogueEngine={fuelType:string;engineSizeSimple:number|null;engine
 
 export async function getCatalogueMakes(){
  const supabase=await createSupabaseServerClient();
- const {data,error}=await supabase.from("vehicle_catalogue_variants").select("make").eq("body_type","Cars").order("make");
+ const {data,error}=await supabase.rpc("vehicle_catalogue_makes");
  if(error)throw error;
- return [...new Set((data??[]).map(row=>row.make))];
+ return (data??[]).map(row=>row.make);
 }
 
 export async function getCatalogueModels(make:string){
  const supabase=await createSupabaseServerClient();
- const {data,error}=await supabase.from("vehicle_catalogue_variants").select("model_family").eq("body_type","Cars").eq("make",make).order("model_family");
+ const {data,error}=await supabase.rpc("vehicle_catalogue_models",{p_make:make});
  if(error)throw error;
- return [...new Set((data??[]).map(row=>row.model_family))];
+ return (data??[]).map(row=>row.model_family);
 }
 
 export async function getCatalogueVariants(make:string,modelFamily:string):Promise<CatalogueVariant[]>{
