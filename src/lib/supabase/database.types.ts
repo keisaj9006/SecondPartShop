@@ -629,6 +629,18 @@ export type Database = {
         }
         Returns: Json
       }
+      vehicle_catalogue_makes: {
+        Args: never
+        Returns: {
+          make: string
+        }[]
+      }
+      vehicle_catalogue_models: {
+        Args: { p_make: string }
+        Returns: {
+          model_family: string
+        }[]
+      }
     }
     Enums: {
       listing_status: "draft" | "active" | "reserved" | "sold" | "archived"
