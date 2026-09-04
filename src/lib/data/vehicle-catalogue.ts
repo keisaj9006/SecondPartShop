@@ -9,9 +9,14 @@ export type CatalogueEngine={fuelType:string;engineSizeSimple:number|null;engine
 
 export async function getCatalogueModelMap():Promise<CatalogueModelOption[]>{
  const supabase=await createSupabaseServerClient();
- const {data,error}=await supabase.rpc("vehicle_catalogue_model_map");
+ const {data,error}=await supabase.rpc("vehicle_catalogue_model_map_json");
  if(error)throw error;
- return (data??[]).map(row=>({make:row.make,modelFamily:row.model_family}));
+ if(!Array.isArray(data))return [];
+ return data.flatMap(item=>{
+  if(typeof item!=="object"||item===null||Array.isArray(item))return [];
+  const row=item as {make?:unknown;modelFamily?:unknown};
+  return typeof row.make==="string"&&typeof row.modelFamily==="string"?[{make:row.make,modelFamily:row.modelFamily}]:[];
+ });
 }
 
 export async function getCatalogueMakes(){
