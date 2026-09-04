@@ -390,6 +390,145 @@ export type Database = {
           },
         ]
       }
+      vehicle_catalogue_engines: {
+        Row: {
+          engine_size_desc: string | null
+          engine_size_simple: number | null
+          fuel_type: string
+          id: string
+          source_reference: string
+          variant_id: string
+        }
+        Insert: {
+          engine_size_desc?: string | null
+          engine_size_simple?: number | null
+          fuel_type: string
+          id?: string
+          source_reference: string
+          variant_id: string
+        }
+        Update: {
+          engine_size_desc?: string | null
+          engine_size_simple?: number | null
+          fuel_type?: string
+          id?: string
+          source_reference?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_catalogue_engines_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_catalogue_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicle_catalogue_imports: {
+        Row: {
+          dataset: string
+          id: string
+          imported_at: string
+          imported_rows: number | null
+          notes: string | null
+          provider: string
+          source_published_at: string | null
+          source_url: string
+        }
+        Insert: {
+          dataset: string
+          id?: string
+          imported_at?: string
+          imported_rows?: number | null
+          notes?: string | null
+          provider: string
+          source_published_at?: string | null
+          source_url: string
+        }
+        Update: {
+          dataset?: string
+          id?: string
+          imported_at?: string
+          imported_rows?: number | null
+          notes?: string | null
+          provider?: string
+          source_published_at?: string | null
+          source_url?: string
+        }
+        Relationships: []
+      }
+      vehicle_catalogue_variants: {
+        Row: {
+          body_type: string | null
+          created_at: string
+          data_status: Database["public"]["Enums"]["vehicle_data_status"]
+          id: string
+          make: string
+          model_family: string
+          provider: string
+          provider_key: string
+          source_reference: string
+          source_updated_at: string | null
+          updated_at: string
+          variant: string
+        }
+        Insert: {
+          body_type?: string | null
+          created_at?: string
+          data_status?: Database["public"]["Enums"]["vehicle_data_status"]
+          id?: string
+          make: string
+          model_family: string
+          provider: string
+          provider_key: string
+          source_reference: string
+          source_updated_at?: string | null
+          updated_at?: string
+          variant: string
+        }
+        Update: {
+          body_type?: string | null
+          created_at?: string
+          data_status?: Database["public"]["Enums"]["vehicle_data_status"]
+          id?: string
+          make?: string
+          model_family?: string
+          provider?: string
+          provider_key?: string
+          source_reference?: string
+          source_updated_at?: string | null
+          updated_at?: string
+          variant?: string
+        }
+        Relationships: []
+      }
+      vehicle_catalogue_years: {
+        Row: {
+          source_reference: string
+          variant_id: string
+          year_first_used: number
+        }
+        Insert: {
+          source_reference: string
+          variant_id: string
+          year_first_used: number
+        }
+        Update: {
+          source_reference?: string
+          variant_id?: string
+          year_first_used?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_catalogue_years_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_catalogue_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicle_transmissions: {
         Row: {
           code: string
