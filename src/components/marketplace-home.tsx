@@ -1,10 +1,10 @@
 import { BadgeCheck,Search,ShieldCheck,Sparkles,Truck } from "lucide-react";
-import type { Category,Listing,MarketplaceFilters,Vehicle,VehicleCatalogueSelection } from "@/lib/types";
+import type { Category,Listing,MarketplaceFilters,Vehicle,VehicleCatalogueModelOption,VehicleCatalogueSelection } from "@/lib/types";
 import { ProductCard } from "./product-card";
 import { VehicleSelector } from "./vehicle-selector";
 import { MarketplaceFiltersPanel } from "./marketplace-filters";
 
-export function MarketplaceHome({listings,categories,vehicles,families,codes,filters,selectedCatalogue,savedIds,error,configured}:{listings:Listing[];categories:Category[];vehicles:Vehicle[];families:string[];codes:string[];filters:MarketplaceFilters;selectedCatalogue:VehicleCatalogueSelection|null;savedIds:string[];error:string|null;configured:boolean}){
+export function MarketplaceHome({listings,categories,vehicles,catalogueModels,families,codes,filters,selectedCatalogue,savedIds,error,configured}:{listings:Listing[];categories:Category[];vehicles:Vehicle[];catalogueModels:VehicleCatalogueModelOption[];families:string[];codes:string[];filters:MarketplaceFilters;selectedCatalogue:VehicleCatalogueSelection|null;savedIds:string[];error:string|null;configured:boolean}){
  const selected=vehicles.find(v=>v.id===filters.vehicle);
  const baseParams=Object.fromEntries(Object.entries({q:filters.query,category:filters.category,condition:filters.condition,family:filters.gearboxFamily,code:filters.gearboxCode,min:filters.minPrice?.toString(),max:filters.maxPrice?.toString()}).filter((entry):entry is [string,string]=>Boolean(entry[1])));
  return <main>
@@ -18,8 +18,8 @@ export function MarketplaceHome({listings,categories,vehicles,families,codes,fil
     </div>
     <div className="animate-in rounded-[28px] bg-[#f5f2ea] p-5 text-[#12221d] shadow-2xl [animation-delay:120ms] sm:p-7">
      <p className="text-sm font-black">Find parts compatible with your vehicle</p>
-     <p className="mb-4 mt-1 text-sm text-[#63706a]">Use your registration when lookup is connected, or choose make, model, exact variant, year and engine manually.</p>
-     <VehicleSelector vehicles={vehicles} selectedId={filters.vehicle} selectedCatalogue={selectedCatalogue} baseParams={baseParams}/>
+     <p className="mb-4 mt-1 text-sm text-[#63706a]">Use your registration for the fastest match, or choose make, model, year, version and engine manually.</p>
+     <VehicleSelector vehicles={vehicles} catalogueModels={catalogueModels} selectedId={filters.vehicle} selectedCatalogue={selectedCatalogue} baseParams={baseParams}/>
      {selectedCatalogue&&<p className="mt-4 rounded-xl bg-[#e8eee9] p-3 text-sm font-semibold">Selected: {selectedCatalogue.make} {selectedCatalogue.modelFamily} — {selectedCatalogue.variant}, {selectedCatalogue.year}{selectedCatalogue.fuelType?` · ${selectedCatalogue.fuelType}`:""}{selectedCatalogue.engineSizeSimple?` · ${selectedCatalogue.engineSizeSimple}cc`:""}</p>}
      {selected&&<p className="mt-4 rounded-xl bg-[#e8eee9] p-3 text-sm font-semibold">QA compatibility vehicle: {selected.make} {selected.model} {selected.generation}, {selected.year}, {selected.engine}{selected.fuelType?` · ${selected.fuelType}`:""}</p>}
     </div>
