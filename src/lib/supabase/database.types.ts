@@ -686,10 +686,30 @@ export type Database = {
           make: string
         }[]
       }
+      vehicle_catalogue_model_map: {
+        Args: never
+        Returns: {
+          make: string
+          model_family: string
+        }[]
+      }
       vehicle_catalogue_models: {
         Args: { p_make: string }
         Returns: {
           model_family: string
+        }[]
+      }
+      vehicle_catalogue_variants_for_model_year: {
+        Args: { p_make: string; p_model: string; p_year: number }
+        Returns: {
+          id: string
+          variant: string
+        }[]
+      }
+      vehicle_catalogue_years_for_model: {
+        Args: { p_make: string; p_model: string }
+        Returns: {
+          year_first_used: number
         }[]
       }
     }
