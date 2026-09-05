@@ -3,13 +3,14 @@ import Link from "next/link";
 import { ArrowLeft,Check,MapPin,ShieldCheck,Truck } from "lucide-react";
 import { CompatibilityBadge } from "@/components/compatibility-badge";
 import { Header } from "@/components/header";
-import { ProductImage } from "@/components/product-image";
+import { ProductGallery } from "@/components/product-gallery";
 import { SaveButton } from "@/components/save-button";
 import { getCurrentUser } from "@/lib/auth";
 import { getPartCompatibility } from "@/lib/data/compatibility";
 import { getListingBySlug,getSavedPartIds,getVehicles } from "@/lib/data/marketplace";
 import { getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
 import type { MarketplaceFilters } from "@/lib/types";
+import { testingStatusLabel,warrantyLabel } from "@/lib/listing-trust";
 
 export const dynamic="force-dynamic";
 
@@ -54,7 +55,7 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
  return <><Header/><main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
   <Link href={backHref} className="mb-6 inline-flex items-center gap-2 text-sm font-bold"><ArrowLeft size={16}/>Back to results</Link>
   <div className="grid gap-8 lg:grid-cols-[1.05fr_.95fr]">
-   <div className="min-h-[520px] overflow-hidden rounded-[28px] border border-black/10"><ProductImage url={item.images[0]?.url} alt={item.images[0]?.alt??item.title}/></div>
+   <ProductGallery images={item.images} alt={item.title}/>
    <div>
     <div className="flex flex-wrap gap-2"><span className="rounded-full bg-[#e8eee9] px-3 py-1 text-xs font-bold capitalize">{item.condition}</span><span className="rounded-full bg-[#e8eee9] px-3 py-1 text-xs font-bold">{item.stock} in stock</span>{compatibility&&<CompatibilityBadge info={compatibility}/>}</div>
     <h1 className="mt-5 text-4xl font-black tracking-[-.045em]">{item.title}</h1>
@@ -68,7 +69,7 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
     </section>}
 
     <dl className="mt-6 grid grid-cols-2 gap-3 rounded-2xl bg-[#eef1eb] p-4 text-sm"><div><dt className="text-[#63706a]">OE/OEM number</dt><dd className="font-bold">{item.oemNumber??"Not supplied"}</dd></div><div><dt className="text-[#63706a]">Part number</dt><dd className="font-bold">{item.partNumber??"Not supplied"}</dd></div><div><dt className="text-[#63706a]">Manufacturer</dt><dd className="font-bold">{item.manufacturer??"Not supplied"}</dd></div><div><dt className="text-[#63706a]">Dispatch</dt><dd className="font-bold">{item.dispatchDays===0?"Same day":`${item.dispatchDays} working day${item.dispatchDays===1?"":"s"}`}</dd></div></dl>
-    <p className="mt-5 leading-7 text-[#63706a]">{item.description}</p>
+    <section className="mt-6 rounded-2xl border border-black/10 bg-white p-5"><p className="text-xs font-black uppercase tracking-[.14em] text-[#287154]">Part condition & seller evidence</p><dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2"><div><dt className="text-[#63706a]">Condition</dt><dd className="font-black capitalize">{item.condition}</dd></div><div><dt className="text-[#63706a]">Testing</dt><dd className="font-black">{testingStatusLabel(item.testingStatus)}</dd></div><div><dt className="text-[#63706a]">Seller warranty</dt><dd className="font-black">{warrantyLabel(item.warrantyDays)}</dd></div><div><dt className="text-[#63706a]">Photos</dt><dd className="font-black">{item.images.length} real product photo{item.images.length===1?"":"s"}</dd></div></dl>{item.conditionNotes&&<div className="mt-4 rounded-xl bg-[#f8f7f2] p-3 text-sm"><p className="font-black">Condition notes</p><p className="mt-1 leading-6 text-[#63706a]">{item.conditionNotes}</p></div>}{item.damageNotes&&<div className="mt-3 rounded-xl bg-amber-50 p-3 text-sm"><p className="font-black text-amber-900">Visible damage / wear disclosed by seller</p><p className="mt-1 leading-6 text-amber-900/80">{item.damageNotes}</p></div>}</section><p className="mt-5 leading-7 text-[#63706a]">{item.description}</p>
 
     {item.category.isTransmissionRelated&&(item.gearboxFamily||item.gearboxCode)&&<details className="mt-5 rounded-2xl border border-black/10 bg-white p-4"><summary className="cursor-pointer text-sm font-black">Technical details</summary><dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">{item.gearboxFamily&&<div><dt className="text-[#63706a]">Transmission family</dt><dd className="font-mono font-bold">{item.gearboxFamily}</dd></div>}{item.gearboxCode&&<div><dt className="text-[#63706a]">Transmission code</dt><dd className="font-mono font-bold">{item.gearboxCode}</dd></div>}</dl></details>}
 
