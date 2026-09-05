@@ -19,5 +19,6 @@ export async function submitMarketplaceReport(_previous:ActionState,formData:For
  if(partError||!part)return {status:"error",message:"This listing is no longer available to report."};
  const {error}=await supabase.from("marketplace_reports").insert({reporter_id:user.id,part_id:part.id,seller_id:part.seller_id,reason,details});
  if(error)return {status:"error",message:"We could not submit the report right now."};
- redirect(safeReturnTo(formData.get("returnTo"))+"?reported=1");
+ const target=safeReturnTo(formData.get("returnTo"));
+ redirect(target+(target.includes("?")?"&":"?")+"reported=1");
 }
