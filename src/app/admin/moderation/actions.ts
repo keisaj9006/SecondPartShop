@@ -8,7 +8,7 @@ export async function reviewSellerVerification(formData:FormData){
  await requireAdmin("/admin/moderation");
  const requestId=String(formData.get("requestId")??"");
  const decision=String(formData.get("decision")??"");
- const note=String(formData.get("note")??"").trim().slice(0,500)||null;
+ const note=String(formData.get("note")??"").trim().slice(0,500)||undefined;
  if(!requestId||!["approve","reject"].includes(decision))return;
  const supabase=await createSupabaseServerClient();
  const {error}=await supabase.rpc("admin_review_seller_verification",{p_request_id:requestId,p_approve:decision==="approve",p_review_note:note});
