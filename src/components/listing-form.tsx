@@ -15,14 +15,15 @@ const selectableDescendants=(node:CategoryNode|null)=>{
  return result;
 };
 
-export function ListingForm({categories,donors,defaultDonorId,initialCatalogueFitments=[],listing}:{categories:Category[];donors:DonorVehicle[];defaultDonorId?:string;initialCatalogueFitments?:CatalogueFitmentSelection[];listing?:Listing}){
+export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defaultCategoryId,initialCatalogueFitments=[],listing}:{categories:Category[];donors:DonorVehicle[];defaultDonorId?:string;defaultTitle?:string;defaultCategoryId?:string;initialCatalogueFitments?:CatalogueFitmentSelection[];listing?:Listing}){
  const handler=listing?updateListing:createListing;
  const [state,action,pending]=useActionState(handler,initial);
  const tree=useMemo(()=>buildCategoryTree(categories),[categories]);
- const initialPath=useMemo(()=>listing?getCategoryAncestors(categories,listing.categoryId):[],[categories,listing]);
+ const initialCategoryId=listing?.categoryId??defaultCategoryId??"";
+ const initialPath=useMemo(()=>initialCategoryId?getCategoryAncestors(categories,initialCategoryId):[],[categories,initialCategoryId]);
  const [departmentId,setDepartmentId]=useState(initialPath[0]?.id??"");
  const [groupId,setGroupId]=useState(initialPath[1]?.id??"");
- const [categoryId,setCategoryId]=useState(listing?.categoryId??"");
+ const [categoryId,setCategoryId]=useState(initialCategoryId);
  const department=tree.find(item=>item.id===departmentId)??null;
  const groups=department?.children??[];
  const group=groups.find(item=>item.id===groupId)??null;
@@ -43,7 +44,7 @@ export function ListingForm({categories,donors,defaultDonorId,initialCatalogueFi
   {listing&&<input type="hidden" name="partId" value={listing.id}/>}
   <input type="hidden" name="categoryId" value={categoryId}/>
 
-  <label className="text-sm font-bold lg:col-span-2">Listing title<input required minLength={5} name="title" defaultValue={listing?.title} className={input} placeholder="e.g. Golf Mk7 LED headlight"/></label>
+  <label className="text-sm font-bold lg:col-span-2">Listing title<input required minLength={5} name="title" defaultValue={listing?.title??defaultTitle} className={input} placeholder="e.g. Golf Mk7 LED headlight"/></label>
   <label className="text-sm font-bold lg:col-span-2">Description<textarea required minLength={20} rows={5} name="description" defaultValue={listing?.description} className={input} placeholder="Describe condition, testing and what is included."/></label>
   <label className="text-sm font-bold lg:col-span-2">Donor vehicle <span className="font-normal text-[#63706a]">(optional)</span><select name="donorVehicleId" defaultValue={listing?.donorVehicleId??defaultDonorId??""} className={input}><option value="">Not linked to a donor vehicle</option>{donors.map(donor=><option key={donor.id} value={donor.id}>{donor.registration?donor.registration+" · ":""}{donor.make} {donor.model} · {donor.year}{donor.engineSizeSimple?" · "+donor.engineSizeSimple+"cc":""}</option>)}</select><small className="mt-2 block font-normal text-[#63706a]">Reuse one donor across many listings instead of re-entering the same vehicle details. <a href="/dashboard/donors" className="font-bold underline">Manage donor vehicles</a>.</small></label>
 
