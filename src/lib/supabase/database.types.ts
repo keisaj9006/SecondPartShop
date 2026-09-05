@@ -1229,6 +1229,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_review_seller_verification: {
+        Args: {
+          p_approve: boolean
+          p_request_id: string
+          p_review_note?: string
+        }
+        Returns: undefined
+      }
+      admin_update_marketplace_report: {
+        Args: { p_report_id: string; p_status: string }
+        Returns: undefined
+      }
       category_descendant_ids: {
         Args: { p_category_id: string }
         Returns: {
