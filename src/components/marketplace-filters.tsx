@@ -7,6 +7,7 @@ export function MarketplaceFiltersPanel({filters}:{filters:MarketplaceFilters}){
  if(filters.query)preserved.set("q",filters.query);
  if(filters.category)preserved.set("category",filters.category);
  if(filters.vehicle)preserved.set("vehicle",filters.vehicle);
+ if(filters.vehicleRegistration)preserved.set("vr",filters.vehicleRegistration);
  if(filters.catalogueVariant)preserved.set("cv",filters.catalogueVariant);
  if(filters.catalogueYear!==undefined)preserved.set("cy",String(filters.catalogueYear));
  if(filters.catalogueFuel)preserved.set("cf",filters.catalogueFuel);
@@ -16,6 +17,7 @@ export function MarketplaceFiltersPanel({filters}:{filters:MarketplaceFilters}){
   {filters.query&&<input type="hidden" name="q" value={filters.query}/>}
   {filters.category&&<input type="hidden" name="category" value={filters.category}/>}
   {filters.vehicle&&<input type="hidden" name="vehicle" value={filters.vehicle}/>}
+  {filters.vehicleRegistration&&<input type="hidden" name="vr" value={filters.vehicleRegistration}/>}
   {filters.catalogueVariant&&<input type="hidden" name="cv" value={filters.catalogueVariant}/>}
   {filters.catalogueYear!==undefined&&<input type="hidden" name="cy" value={filters.catalogueYear}/>}
   {filters.catalogueFuel&&<input type="hidden" name="cf" value={filters.catalogueFuel}/>}
