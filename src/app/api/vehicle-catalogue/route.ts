@@ -9,7 +9,7 @@ export async function GET(request:Request){
  const {searchParams}=new URL(request.url);
  const level=clean(searchParams.get("level"));
  try{
-  if(level==="makes")return NextResponse.json({items:await getCatalogueMakes()},{headers:{"cache-control":"public, max-age=1800"}});
+  if(level==="makes")return NextResponse.json({items:await getCatalogueMakes()},{headers:{"cache-control":"public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800"}});
   if(level==="models"){const make=clean(searchParams.get("make"));if(!make)return NextResponse.json({message:"Make is required."},{status:400});return NextResponse.json({items:await getCatalogueModels(make)},{headers:{"cache-control":"public, max-age=1800"}});}
   if(level==="years-model"){const make=clean(searchParams.get("make"));const model=clean(searchParams.get("model"));if(!make||!model)return NextResponse.json({message:"Make and model are required."},{status:400});return NextResponse.json({items:await getCatalogueYearsForModel(make,model)},{headers:{"cache-control":"public, max-age=1800"}});}
   if(level==="variants-year"){const make=clean(searchParams.get("make"));const model=clean(searchParams.get("model"));const year=yearValue(searchParams.get("year"));if(!make||!model||!year)return NextResponse.json({message:"Make, model and year are required."},{status:400});return NextResponse.json({items:await getCatalogueVariantsForModelYear(make,model,year)},{headers:{"cache-control":"public, max-age=1800"}});}
