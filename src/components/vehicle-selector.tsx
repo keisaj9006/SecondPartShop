@@ -32,10 +32,23 @@ const fuelLabel=(value:string)=>value.toLowerCase().replace(/(^|[\s(-])\p{L}/gu,
 const engineKey=(engine:Pick<CatalogueEngine,"fuelType"|"engineSizeSimple">)=>`${engine.fuelType}\u001f${engine.engineSizeSimple??""}`;
 
 async function getItems<T>(url:string,signal?:AbortSignal):Promise<T[]>{
- const response=await fetch(url,{signal});
- const payload=await response.json() as ApiPayload<T>;
- if(!response.ok)throw new Error(payload.message??"Vehicle catalogue is unavailable.");
- return payload.items??[];
+ const controller=new AbortController();
+ let timedOut=false;
+ const abort=()=>controller.abort();
+ signal?.addEventListener("abort",abort,{once:true});
+ const timer=window.setTimeout(()=>{timedOut=true;controller.abort();},8000);
+ try{
+  const response=await fetch(url,{signal:controller.signal});
+  const payload=await response.json() as ApiPayload<T>;
+  if(!response.ok)throw new Error(payload.message??"Vehicle catalogue is unavailable.");
+  return payload.items??[];
+ }catch(error){
+  if(timedOut)throw new Error("Vehicle options are taking too long to load. Please try again.");
+  throw error;
+ }finally{
+  window.clearTimeout(timer);
+  signal?.removeEventListener("abort",abort);
+ }
 }
 
 function SearchableVehicleSelect({value,options,placeholder,disabled,onChange}:{value:string;options:{value:string;label:string}[];placeholder:string;disabled?:boolean;onChange:(value:string)=>void}){
