@@ -74,7 +74,8 @@ export function SellerCompatibilityEditor({initialFitments=[]}:{initialFitments?
 
  const selectedVariant=variants.find(item=>item.id===variantId)??null;
  const selectedEngine=useMemo(()=>engines.find(item=>engineKey(item.fuelType,item.engineSizeSimple)===engine)??null,[engines,engine]);
- const canAdd=Boolean(make&&model&&year&&variantId&&confirmed&&fitments.length<20);
+ const engineRequired=engines.length>0;
+ const canAdd=Boolean(make&&model&&year&&variantId&&(!engineRequired||engine)&&confirmed&&fitments.length<20);
 
  const addFitment=()=>{
   if(!canAdd||!selectedVariant)return;
@@ -114,7 +115,7 @@ export function SellerCompatibilityEditor({initialFitments=[]}:{initialFitments?
     <label className="text-sm font-bold">Model<select value={model} onChange={event=>void chooseModel(event.target.value)} className={input} disabled={!make||loading==="models"}><option value="">{loading==="models"?"Loading models…":"Choose model"}</option>{models.map(item=><option key={item} value={item}>{item}</option>)}</select></label>
     <label className="text-sm font-bold">Year<select value={year} onChange={event=>void chooseYear(event.target.value)} className={input} disabled={!model||loading==="years"}><option value="">{loading==="years"?"Loading years…":"Choose year"}</option>{years.map(item=><option key={item} value={String(item)}>{item}</option>)}</select></label>
     <label className="text-sm font-bold md:col-span-2">Version / derivative<select value={variantId} onChange={event=>void chooseVariant(event.target.value)} className={input} disabled={!year||loading==="variants"}><option value="">{loading==="variants"?"Loading versions…":"Choose exact version"}</option>{variants.map(item=><option key={item.id} value={item.id}>{item.variant}</option>)}</select></label>
-    <label className="text-sm font-bold">Engine / fuel<select value={engine} onChange={event=>{setEngine(event.target.value);setConfirmed(false);}} className={input} disabled={!variantId||loading==="engines"}><option value="">{loading==="engines"?"Loading engines…":"Any recorded engine"}</option>{engines.map(item=><option key={engineKey(item.fuelType,item.engineSizeSimple)} value={engineKey(item.fuelType,item.engineSizeSimple)}>{item.engineSizeSimple?item.engineSizeSimple+"cc · ":""}{item.fuelType}</option>)}</select></label>
+    <label className="text-sm font-bold">Engine / fuel<select value={engine} onChange={event=>{setEngine(event.target.value);setConfirmed(false);}} className={input} disabled={!variantId||loading==="engines"}><option value="">{loading==="engines"?"Loading engines…":engines.length?"Choose exact engine / fuel":"No engine data available"}</option>{engines.map(item=><option key={engineKey(item.fuelType,item.engineSizeSimple)} value={engineKey(item.fuelType,item.engineSizeSimple)}>{item.engineSizeSimple?item.engineSizeSimple+"cc · ":""}{item.fuelType}</option>)}</select></label>
     <label className="text-sm font-bold md:col-span-2 lg:col-span-3">Fitment notes <span className="font-normal text-[#63706a]">(optional)</span><input value={notes} onChange={event=>setNotes(event.target.value)} maxLength={300} className={input} placeholder="e.g. Confirm OE number before ordering if vehicle has optional lighting pack."/></label>
    </div>
 
