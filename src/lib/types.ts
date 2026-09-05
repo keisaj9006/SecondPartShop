@@ -11,6 +11,7 @@ export type Category={id:string;parentId:string|null;name:string;slug:string;isT
 export type Vehicle={id:string;make:string;model:string;generation:string;year:number;engine:string;engineCode:string|null;fuelType:string|null;gearboxFamily:string|null;gearboxCode:string|null;dataStatus:VehicleDataStatus;sourceReference:string|null};
 export type VehicleCatalogueSelection={variantId:string;make:string;modelFamily:string;variant:string;year:number;fuelType:string|null;engineSizeSimple:number|null};
 export type VehicleCatalogueModelOption={make:string;modelFamily:string};
+export type CatalogueFitmentSelection={id?:string;variantId:string;make:string;modelFamily:string;variant:string;year:number;fuelType:string|null;engineSizeSimple:number|null;notes:string|null};
 export type GarageVehicle={id:string;catalogueVariantId:string;registration:string|null;year:number;fuelType:string|null;engineSizeSimple:number|null;nickname:string|null;make:string;modelFamily:string;variant:string;createdAt:string};
 export type PartRequest={id:string;queryText:string;oemNumber:string|null;notes:string|null;status:"open"|"closed";registration:string|null;year:number|null;fuelType:string|null;engineSizeSimple:number|null;createdAt:string;categoryName:string|null;vehicleLabel:string|null};
 export type DonorVehicle={id:string;sellerId:string;registration:string|null;make:string;model:string;variant:string|null;year:number;fuelType:string|null;engineSizeSimple:number|null;colour:string|null;notes:string|null;createdAt:string};
