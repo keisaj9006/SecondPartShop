@@ -28,3 +28,15 @@ export async function updateMarketplaceReport(formData:FormData){
  if(error)throw error;
  revalidatePath("/admin/moderation");
 }
+
+
+export async function updateSupportRequest(formData:FormData){
+ await requireAdmin("/admin/moderation");
+ const requestId=String(formData.get("requestId")??"");
+ const status=String(formData.get("status")??"");
+ if(!requestId||!["in_progress","closed"].includes(status))return;
+ const supabase=await createSupabaseServerClient();
+ const {error}=await supabase.from("support_requests").update({status,updated_at:new Date().toISOString()}).eq("id",requestId);
+ if(error)throw error;
+ revalidatePath("/admin/moderation");
+}
