@@ -12,6 +12,7 @@ export type Vehicle={id:string;make:string;model:string;generation:string;year:n
 export type VehicleCatalogueSelection={variantId:string;make:string;modelFamily:string;variant:string;year:number;fuelType:string|null;engineSizeSimple:number|null};
 export type VehicleCatalogueModelOption={make:string;modelFamily:string};
 export type GarageVehicle={id:string;catalogueVariantId:string;registration:string|null;year:number;fuelType:string|null;engineSizeSimple:number|null;nickname:string|null;make:string;modelFamily:string;variant:string;createdAt:string};
+export type PartRequest={id:string;queryText:string;oemNumber:string|null;notes:string|null;status:"open"|"closed";registration:string|null;year:number|null;fuelType:string|null;engineSizeSimple:number|null;createdAt:string;categoryName:string|null;vehicleLabel:string|null};
 export type ListingImage={id:string;url:string;alt:string;position:number};
 export type Fitment={vehicle:Vehicle;notes:string|null};
 export type Listing={id:string;sellerId:string;categoryId:string;slug:string;title:string;description:string;manufacturer:string|null;partNumber:string|null;oemNumber:string|null;gearboxFamily:string|null;gearboxCode:string|null;condition:PartCondition;pricePence:number;stock:number;status:ListingStatus;dispatchDays:number;testingStatus:PartTestingStatus;warrantyDays:number;conditionNotes:string|null;damageNotes:string|null;category:Category;seller:Seller;images:ListingImage[];fitments:Fitment[];compatibility?:CompatibilityInfo|null};
