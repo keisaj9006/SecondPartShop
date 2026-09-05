@@ -12,6 +12,7 @@ export function OfferGroupCard({group,contextQuery=""}:{group:OfferGroup;context
  const params=new URLSearchParams(contextQuery);
  params.set("number",group.number);
  params.set("kind",group.kind);
+ if(group.kind==="part"&&first.manufacturer)params.set("manufacturer",first.manufacturer);
  const href=`/compare?${params.toString()}`;
  const bestCompatibility=group.listings.find(item=>item.compatibility?.level==="confirmed")?.compatibility??group.listings.find(item=>item.compatibility?.level==="family_match")?.compatibility??null;
  return <article className="group overflow-hidden rounded-[22px] border-2 border-[#173c31]/15 bg-white transition hover:-translate-y-1 hover:shadow-[0_18px_50px_rgba(18,34,29,.12)]">
