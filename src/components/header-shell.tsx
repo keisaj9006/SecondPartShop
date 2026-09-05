@@ -3,7 +3,7 @@
 import { useEffect,useRef,useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown,Heart,Menu,Search,UserRound,Wrench,X } from "lucide-react";
+import { CarFront,ChevronDown,Heart,Menu,Search,UserRound,Wrench,X } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import { CategoryBrowser } from "@/components/category-browser";
 import type { Category } from "@/lib/types";
@@ -43,7 +43,7 @@ export function HeaderShell({categories,user,displayName,seller}:{categories:Cat
    </nav>
    <div className="flex items-center gap-1">
     <Link aria-label="Search" href="/#marketplace" className="rounded-full p-2.5 hover:bg-black/5"><Search size={19}/></Link>
-    <Link aria-label="Saved parts" href="/saved" className="rounded-full p-2.5 hover:bg-black/5"><Heart size={19}/></Link>
+    <Link aria-label="Saved parts" href="/saved" className="rounded-full p-2.5 hover:bg-black/5"><Heart size={19}/></Link>{user&&<Link aria-label="SecondPart Garage" href="/garage" className="rounded-full p-2.5 hover:bg-black/5"><CarFront size={19}/></Link>}
     {seller&&<Link aria-label="Seller dashboard" href="/dashboard" className="rounded-full p-2.5 hover:bg-black/5"><Wrench size={19}/></Link>}
     {user?<><Link href="/account" className="ml-1 hidden items-center gap-2 rounded-full border border-black/15 px-4 py-2 text-sm font-semibold sm:flex"><UserRound size={17}/>{displayName??"Account"}</Link><form action={signOut}><button className="hidden px-2 text-xs font-bold underline sm:block" type="submit">Sign out</button></form></>:<Link href="/account" className="ml-1 hidden items-center gap-2 rounded-full border border-black/15 px-4 py-2 text-sm font-semibold sm:flex"><UserRound size={17}/>Sign in</Link>}
     <button type="button" aria-label={mobileOpen?"Close navigation":"Open navigation"} onClick={()=>{setMobileOpen(value=>!value);setCategoriesOpen(false);setMobileCategories(false);}} className="rounded-full p-2.5 md:hidden">{mobileOpen?<X size={21}/>:<Menu size={21}/>}</button>
@@ -60,7 +60,7 @@ export function HeaderShell({categories,user,displayName,seller}:{categories:Cat
     <Link className="rounded-xl px-3 py-3 hover:bg-black/5" href="/#marketplace" onClick={()=>setMobileOpen(false)}>Browse parts</Link>
     <Link className="rounded-xl px-3 py-3 hover:bg-black/5" href="/sellers" onClick={()=>setMobileOpen(false)}>Sellers</Link>
     <Link className="rounded-xl px-3 py-3 hover:bg-black/5" href={seller?"/dashboard":"/sell"} onClick={()=>setMobileOpen(false)}>{seller?"Seller dashboard":"Sell a part"}</Link>
-    <Link className="rounded-xl px-3 py-3 hover:bg-black/5" href="/saved" onClick={()=>setMobileOpen(false)}>Saved parts</Link>
+    <Link className="rounded-xl px-3 py-3 hover:bg-black/5" href="/saved" onClick={()=>setMobileOpen(false)}>Saved parts</Link>{user&&<Link className="rounded-xl px-3 py-3 hover:bg-black/5" href="/garage" onClick={()=>setMobileOpen(false)}>SecondPart Garage</Link>}
     <Link className="rounded-xl px-3 py-3 hover:bg-black/5" href="/account" onClick={()=>setMobileOpen(false)}>{user?"Account":"Sign in"}</Link>
     {user&&<form action={signOut}><button className="w-full rounded-xl px-3 py-3 text-left hover:bg-black/5">Sign out</button></form>}
    </nav>:<div><button type="button" onClick={()=>setMobileCategories(false)} className="mb-4 text-sm font-bold underline">Back to navigation</button><CategoryBrowser categories={categories} onSelect={selectCategory}/></div>}
