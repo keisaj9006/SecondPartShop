@@ -25,7 +25,7 @@ export function ListingForm({categories,vehicles,listing}:{categories:Category[]
  const department=tree.find(item=>item.id===departmentId)??null;
  const groups=department?.children??[];
  const group=groups.find(item=>item.id===groupId)??null;
- const partTypes=useMemo(()=>selectableDescendants(group),[group]);
+ const partTypes=selectableDescendants(group);
  const selected=new Set(listing?.fitments.map(f=>f.vehicle.id)??[]);
  const selectedCategory=categories.find(category=>category.id===categoryId);
  const transmissionRelated=Boolean(selectedCategory?.isTransmissionRelated);
