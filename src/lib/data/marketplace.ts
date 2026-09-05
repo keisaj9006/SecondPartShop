@@ -2,6 +2,7 @@ import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { getCategoryPath } from "@/lib/category-tree";
+import { getCompatibilityMap } from "@/lib/data/compatibility";
 import type { Category,Fitment,Listing,ListingImage,MarketplaceFilters,SearchSuggestionGroups,Seller,Vehicle,VehicleDataStatus } from "@/lib/types";
 
 export type DataResult<T>={data:T;error:string|null;configured:boolean};
@@ -27,24 +28,14 @@ export async function getListings(filters:MarketplaceFilters={}):Promise<DataRes
  if(!isSupabaseConfigured())return failure([],"Connect Supabase to load marketplace data.",false);
  const supabase=await createSupabaseServerClient();
  let allowedPartIds:string[]|undefined;
-
- if(filters.vehicle){
-  const {data,error}=await supabase.from("part_fitments").select("part_id").eq("vehicle_id",filters.vehicle);
-  if(error)return failure([],error.message);
-  allowedPartIds=[...new Set((data??[]).map(row=>row.part_id))];
-  if(!allowedPartIds.length)return {data:[],error:null,configured:true};
- }
- if(filters.catalogueVariant){
-  const {data,error}=await supabase.from("part_catalogue_fitments").select("part_id,year_from,year_to,fuel_type,engine_size_simple").eq("variant_id",filters.catalogueVariant);
-  if(error)return failure([],error.message);
-  const ids=[...new Set((data??[]).filter(row=>{
-   if(filters.catalogueYear!==undefined&&((row.year_from!==null&&filters.catalogueYear<row.year_from)||(row.year_to!==null&&filters.catalogueYear>row.year_to)))return false;
-   if(filters.catalogueFuel&&row.fuel_type&&row.fuel_type.toUpperCase()!==filters.catalogueFuel.toUpperCase())return false;
-   if(filters.catalogueEngineSize!==undefined&&row.engine_size_simple!==null&&row.engine_size_simple!==filters.catalogueEngineSize)return false;
-   return true;
-  }).map(row=>row.part_id))];
-  if(!ids.length)return {data:[],error:null,configured:true};
-  allowedPartIds=allowedPartIds?allowedPartIds.filter(id=>ids.includes(id)):ids;
+ let compatibilityMap:Awaited<ReturnType<typeof getCompatibilityMap>>|undefined;
+ if(filters.vehicle||filters.catalogueVariant){
+  try{
+   compatibilityMap=await getCompatibilityMap(filters);
+  }catch(error){
+   return failure([],error instanceof Error?error.message:"Compatibility data is temporarily unavailable.");
+  }
+  allowedPartIds=[...compatibilityMap.keys()];
   if(!allowedPartIds.length)return {data:[],error:null,configured:true};
  }
 
@@ -73,8 +64,18 @@ export async function getListings(filters:MarketplaceFilters={}):Promise<DataRes
  if(filters.ids?.length)query=query.in("id",filters.ids);
  const {data,error}=await query;
  if(error)return failure([],error.message);
- const listings=(data??[]).map(row=>listingFrom(row as unknown as RawListing));
- if(rankedIds){const rank=new Map(rankedIds.map((id,index)=>[id,index]));listings.sort((a,b)=>(rank.get(a.id)??9999)-(rank.get(b.id)??9999));}
+ const listings=(data??[]).map(row=>{
+  const item=listingFrom(row as unknown as RawListing);
+  return {...item,compatibility:compatibilityMap?.get(item.id)??null};
+ });
+ const searchRank=rankedIds?new Map(rankedIds.map((id,index)=>[id,index])):null;
+ const compatibilityRank=(level:string|undefined)=>level==="confirmed"?2:level==="family_match"?1:0;
+ listings.sort((a,b)=>{
+  const compatibilityDifference=compatibilityRank(b.compatibility?.level)-compatibilityRank(a.compatibility?.level);
+  if(compatibilityDifference)return compatibilityDifference;
+  if(searchRank)return (searchRank.get(a.id)??9999)-(searchRank.get(b.id)??9999);
+  return 0;
+ });
  return {data:listings,error:null,configured:true};
 }
 
