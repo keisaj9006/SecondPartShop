@@ -8,7 +8,7 @@ const label=(value:string)=>value.charAt(0).toUpperCase()+value.slice(1);
 
 export function ProductCard({item,saved=false,fitsVehicle=false}:{item:Listing;saved?:boolean;fitsVehicle?:boolean}){
  return <article className="group overflow-hidden rounded-[22px] border border-black/10 bg-white transition hover:-translate-y-1 hover:shadow-[0_18px_50px_rgba(18,34,29,.12)]">
-  <div className="relative h-52"><ProductImage url={item.images[0]?.url} alt={item.images[0]?.alt??item.title} code={item.gearboxCode}/><div className="absolute right-3 top-3"><SaveButton partId={item.id} initialSaved={saved} compact/></div></div>
+  <div className="relative h-52"><ProductImage url={item.images[0]?.url} alt={item.images[0]?.alt??item.title}/><div className="absolute right-3 top-3"><SaveButton partId={item.id} initialSaved={saved} compact/></div></div>
   <div className="p-5">
    <div className="mb-3 flex flex-wrap items-center gap-2"><span className="rounded-full bg-[#eef1eb] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide">{label(item.condition)}</span>{fitsVehicle&&<span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-black text-emerald-800"><CheckCircle2 size={13}/>Fits your vehicle</span>}</div>
    <Link href={`/parts/${item.slug}`}><h3 className="text-lg font-bold tracking-tight group-hover:underline">{item.title}</h3></Link>
