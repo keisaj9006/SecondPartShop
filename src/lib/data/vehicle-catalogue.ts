@@ -75,19 +75,20 @@ export async function getCatalogueEngines(variantId:string):Promise<CatalogueEng
 
 export async function getCatalogueSelection(variantId:string,year:number,fuelType?:string,engineSizeSimple?:number):Promise<VehicleCatalogueSelection|null>{
  const supabase=await createSupabaseServerClient();
- const {data:variant,error:variantError}=await supabase.from("vehicle_catalogue_variants").select("id,make,model_family,variant").eq("provider","dft").eq("body_type","Cars").eq("id",variantId).maybeSingle();
- if(variantError)throw variantError;
- if(!variant)return null;
- const {data:yearRow,error:yearError}=await supabase.from("vehicle_catalogue_years").select("year_first_used").eq("variant_id",variantId).eq("year_first_used",year).maybeSingle();
- if(yearError)throw yearError;
- if(!yearRow)return null;
- if(fuelType){
-  let engineQuery=supabase.from("vehicle_catalogue_engines").select("fuel_type,engine_size_simple").eq("variant_id",variantId).eq("fuel_type",fuelType);
-  if(engineSizeSimple!==undefined)engineQuery=engineQuery.eq("engine_size_simple",engineSizeSimple);
-  const {data:engineRows,error:engineError}=await engineQuery.limit(1);
-  if(engineError)throw engineError;
-  if(!engineRows?.length)return null;
- }
+ let engineQuery=supabase.from("vehicle_catalogue_engines").select("fuel_type,engine_size_simple").eq("variant_id",variantId);
+ if(fuelType)engineQuery=engineQuery.eq("fuel_type",fuelType);
+ if(engineSizeSimple!==undefined)engineQuery=engineQuery.eq("engine_size_simple",engineSizeSimple);
+ const [variantResult,yearResult,engineResult]=await Promise.all([
+  supabase.from("vehicle_catalogue_variants").select("id,make,model_family,variant").eq("provider","dft").eq("body_type","Cars").eq("id",variantId).maybeSingle(),
+  supabase.from("vehicle_catalogue_years").select("year_first_used").eq("variant_id",variantId).eq("year_first_used",year).maybeSingle(),
+  fuelType?engineQuery.limit(1):Promise.resolve({data:null,error:null})
+ ]);
+ if(variantResult.error)throw variantResult.error;
+ if(yearResult.error)throw yearResult.error;
+ if(engineResult.error)throw engineResult.error;
+ if(!variantResult.data||!yearResult.data)return null;
+ if(fuelType&&!engineResult.data?.length)return null;
+ const variant=variantResult.data;
  return {variantId:variant.id,make:variant.make,modelFamily:variant.model_family,variant:variant.variant,year,fuelType:fuelType??null,engineSizeSimple:engineSizeSimple??null};
 }
 
