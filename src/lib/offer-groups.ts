@@ -23,7 +23,8 @@ export function groupListingsForOffers(listings:Listing[]):OfferGroup[]{
    singles.push({key:"listing:"+listing.id,kind:source.kind,number:source.number,listings:[listing]});
    continue;
   }
-  const key=source.kind+":"+normalized;
+  const manufacturerKey=source.kind==="part"?normalizeComparablePartNumber(listing.manufacturer??""):"";
+  const key=source.kind+":"+manufacturerKey+":"+normalized;
   const existing=groups.get(key);
   if(existing)existing.listings.push(listing);
   else groups.set(key,{key,kind:source.kind,number:source.number,listings:[listing]});
