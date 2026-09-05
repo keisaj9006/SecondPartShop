@@ -17,6 +17,7 @@ export default async function ComparePage({searchParams}:{searchParams:Promise<R
  const params=await searchParams;
  const number=first(params.number)?.trim()??"";
  const kind=first(params.kind)==="part"?"part":"oem";
+ const manufacturer=first(params.manufacturer)?.trim()??"";
  if(!number)return <><Header/><main className="mx-auto max-w-4xl px-4 py-16 sm:px-6"><h1 className="text-3xl font-black">Nothing to compare</h1><p className="mt-2 text-[#63706a]">Choose a grouped part from marketplace results first.</p><Link href="/#marketplace" className="mt-5 inline-block font-bold underline">Back to marketplace</Link></main></>;
 
  const requestedVariant=first(params.cv);
@@ -37,7 +38,7 @@ export default async function ComparePage({searchParams}:{searchParams:Promise<R
  };
  const [result,user]=await Promise.all([getListings(filters),getCurrentUser()]);
  const expected=normalizeComparablePartNumber(number);
- const exact=result.data.filter(item=>normalizeComparablePartNumber(kind==="oem"?item.oemNumber??"":item.partNumber??"")===expected);
+ const exact=result.data.filter(item=>normalizeComparablePartNumber(kind==="oem"?item.oemNumber??"":item.partNumber??"")===expected&&(kind==="oem"||!manufacturer||(item.manufacturer??"").toLowerCase()===manufacturer.toLowerCase()));
  const listings=await enrichListingsWithDistance(exact,filters.postcode);
  const savedIds=user?await getSavedPartIds(user.id):[];
  listings.sort((a,b)=>a.pricePence-b.pricePence);
