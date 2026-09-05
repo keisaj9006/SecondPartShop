@@ -122,7 +122,7 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
  },[variantId]);
 
  const pushVehicleParams=(params:URLSearchParams)=>{
-  for(const key of ["vehicle","cv","cy","cf","ce"])params.delete(key);
+  for(const key of ["vehicle","cv","cy","cf","ce","vr"])params.delete(key);
   const qs=params.toString();
   router.push(`/${qs?`?${qs}`:""}#marketplace`);
  };
@@ -143,6 +143,7 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
    if(engine.engineSizeSimple!==null)params.set("ce",String(engine.engineSizeSimple));
   }
   params.delete("vehicle");
+  if(registrationVehicle?.registration)params.set("vr",registrationVehicle.registration);else params.delete("vr");
   const qs=params.toString();
   router.push(`/?${qs}#marketplace`);
  };
@@ -185,6 +186,7 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
      if(catalogue.engineMatched&&payload.vehicle.fuelType)params.set("cf",payload.vehicle.fuelType);
      if(catalogue.engineMatched&&payload.vehicle.engineSizeSimple)params.set("ce",String(payload.vehicle.engineSizeSimple));
      params.delete("vehicle");
+     params.set("vr",payload.registration);
      setLookup({kind:"info",message:"Vehicle found. Compatibility filter applied."});
      const qs=params.toString();
      router.push(`/?${qs}#marketplace`);
