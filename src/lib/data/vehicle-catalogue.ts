@@ -100,12 +100,22 @@ export async function matchRegistrationToCatalogue(vehicle:{make:string;model:st
  const makeKey=normalizeVehicleName(vehicle.make);
  const modelKey=normalizeVehicleName(vehicle.model);
  const makeOptions=[...new Set(modelMap.map(row=>row.make))];
- const matchedMake=makeOptions.find(make=>normalizeVehicleName(make)===makeKey);
- if(!matchedMake)return {make:null,modelFamily:null,variants:[] as CatalogueVariantOption[],engineMatched:false};
+ let matchedMake=makeOptions.find(make=>normalizeVehicleName(make)===makeKey);
+ if(!matchedMake){
+  const supabase=await createSupabaseServerClient();
+  const {data:aliases,error:aliasError}=await supabase
+   .from("vehicle_catalogue_make_aliases")
+   .select("source_make,canonical_make")
+   .eq("provider","dft");
+  if(aliasError)throw aliasError;
+  const alias=(aliases??[]).find(row=>normalizeVehicleName(row.source_make)===makeKey);
+  if(alias)matchedMake=makeOptions.find(make=>normalizeVehicleName(make)===normalizeVehicleName(alias.canonical_make));
+ }
+ if(!matchedMake)return {make:null,modelFamily:null,variants:[] as CatalogueVariantOption[],engineMatched:false,resolution:"manual" as const};
  const modelOptions=modelMap.filter(row=>row.make===matchedMake).map(row=>row.modelFamily);
  const exact=modelOptions.find(model=>normalizeVehicleName(model)===modelKey);
  const close=exact??modelOptions.find(model=>normalizeVehicleName(model).includes(modelKey)||modelKey.includes(normalizeVehicleName(model)));
- if(!close||!vehicle.year)return {make:matchedMake,modelFamily:close??null,variants:[] as CatalogueVariantOption[],engineMatched:false};
+ if(!close||!vehicle.year)return {make:matchedMake,modelFamily:close??null,variants:[] as CatalogueVariantOption[],engineMatched:false,resolution:"manual" as const};
  let variants=await getCatalogueVariantsForModelYear(matchedMake,close,vehicle.year);
  let engineMatched=false;
  if((vehicle.fuelType||vehicle.engineSizeSimple)&&variants.length){
@@ -118,5 +128,6 @@ export async function matchRegistrationToCatalogue(vehicle:{make:string;model:st
   const matchingIds=new Set((data??[]).filter(row=>!vehicle.fuelType||fuelComparable(row.fuel_type)===fuelComparable(vehicle.fuelType)).map(row=>row.variant_id));
   if(matchingIds.size){variants=variants.filter(item=>matchingIds.has(item.id));engineMatched=true;}
  }
- return {make:matchedMake,modelFamily:close,variants,engineMatched};
+ const resolution=variants.length===1?"exact_variant":variants.length>1?"choose_variant":"manual";
+ return {make:matchedMake,modelFamily:close,variants,engineMatched,resolution};
 }
