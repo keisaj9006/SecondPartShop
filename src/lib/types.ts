@@ -16,6 +16,7 @@ export type CatalogueFitmentSelection={id?:string;variantId:string;make:string;m
 export type GarageVehicle={id:string;catalogueVariantId:string;registration:string|null;year:number;fuelType:string|null;engineSizeSimple:number|null;nickname:string|null;make:string;modelFamily:string;variant:string;createdAt:string};
 export type PartRequest={id:string;queryText:string;oemNumber:string|null;notes:string|null;status:"open"|"closed";registration:string|null;year:number|null;fuelType:string|null;engineSizeSimple:number|null;createdAt:string;categoryName:string|null;vehicleLabel:string|null};
 export type SellerPartRequestLead={id:string;queryText:string;oemNumber:string|null;notes:string|null;createdAt:string;categoryId:string|null;categoryName:string|null;variantId:string|null;vehicleMake:string|null;vehicleModel:string|null;vehicleVariant:string|null;year:number|null;fuelType:string|null;engineSizeSimple:number|null};
+export type SavedSearch={id:string;name:string;params:Record<string,string>;createdAt:string};
 export type DonorVehicle={id:string;sellerId:string;registration:string|null;make:string;model:string;variant:string|null;year:number;fuelType:string|null;engineSizeSimple:number|null;colour:string|null;notes:string|null;createdAt:string};
 export type ListingImage={id:string;url:string;alt:string;position:number};
 export type Fitment={vehicle:Vehicle;notes:string|null};
