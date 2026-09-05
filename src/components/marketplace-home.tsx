@@ -17,6 +17,7 @@ const vehicleParams=(filters:MarketplaceFilters)=>{
  if(filters.category)params.set("category",filters.category);
  if(filters.condition)params.set("condition",filters.condition);
  if(filters.postcode)params.set("pc",filters.postcode);
+ if(filters.collectionOnly)params.set("collection","1");
  if(Number.isFinite(filters.minPrice))params.set("min",String(filters.minPrice));
  if(Number.isFinite(filters.maxPrice))params.set("max",String(filters.maxPrice));
  if(filters.vehicle)params.set("vehicle",filters.vehicle);
