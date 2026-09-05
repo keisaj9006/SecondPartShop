@@ -3,7 +3,8 @@
 import { useActionState,useMemo,useState } from "react";
 import { createListing,updateListing } from "@/app/dashboard/actions";
 import { buildCategoryTree,getCategoryAncestors,type CategoryNode } from "@/lib/category-tree";
-import type { ActionState,Category,DonorVehicle,Listing,Vehicle } from "@/lib/types";
+import { SellerCompatibilityEditor } from "@/components/seller-compatibility-editor";
+import type { ActionState,CatalogueFitmentSelection,Category,DonorVehicle,Listing } from "@/lib/types";
 
 const initial:ActionState={status:"idle"};
 const selectableDescendants=(node:CategoryNode|null)=>{
@@ -14,7 +15,7 @@ const selectableDescendants=(node:CategoryNode|null)=>{
  return result;
 };
 
-export function ListingForm({categories,vehicles,donors,defaultDonorId,listing}:{categories:Category[];vehicles:Vehicle[];donors:DonorVehicle[];defaultDonorId?:string;listing?:Listing}){
+export function ListingForm({categories,donors,defaultDonorId,initialCatalogueFitments=[],listing}:{categories:Category[];donors:DonorVehicle[];defaultDonorId?:string;initialCatalogueFitments?:CatalogueFitmentSelection[];listing?:Listing}){
  const handler=listing?updateListing:createListing;
  const [state,action,pending]=useActionState(handler,initial);
  const tree=useMemo(()=>buildCategoryTree(categories),[categories]);
@@ -26,7 +27,6 @@ export function ListingForm({categories,vehicles,donors,defaultDonorId,listing}:
  const groups=department?.children??[];
  const group=groups.find(item=>item.id===groupId)??null;
  const partTypes=selectableDescendants(group);
- const selected=new Set(listing?.fitments.map(f=>f.vehicle.id)??[]);
  const selectedCategory=categories.find(category=>category.id===categoryId);
  const transmissionRelated=Boolean(selectedCategory?.isTransmissionRelated);
  const input="mt-2 w-full rounded-xl border border-black/15 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#173c31]";
@@ -88,11 +88,7 @@ export function ListingForm({categories,vehicles,donors,defaultDonorId,listing}:
   <label className="text-sm font-bold">Listing status<select name="status" defaultValue={listing?.status==="active"?"active":"draft"} className={input}><option value="draft">Draft</option><option value="active">Active</option></select></label>
   <label className="text-sm font-bold lg:col-span-2">Real product photos<input name="images" multiple type="file" accept="image/jpeg,image/png,image/webp" className={`${input} file:mr-3 file:rounded-lg file:border-0 file:bg-[#eef1eb] file:px-3 file:py-2 file:font-bold`}/><small className="mt-2 block font-normal leading-5 text-[#63706a]">Real photos of the actual part only. Up to 6 JPG, PNG or WebP files, maximum 5 MB each. At least one photo is required to publish an active listing; we recommend a whole-part photo, the label/OE number and connectors or any visible damage. Existing images remain when editing.</small></label>
 
-  <fieldset className="lg:col-span-2">
-   <legend className="text-sm font-bold">Compatible vehicles</legend>
-   <p className="mt-1 text-sm text-[#63706a]">Select only fitments you can confidently support. This preserves the existing QA fitment workflow while the full catalogue fitment editor is developed.</p>
-   <div className="mt-3 grid max-h-64 gap-2 overflow-y-auto rounded-xl border border-black/10 p-3 sm:grid-cols-2">{vehicles.map(vehicle=><label key={vehicle.id} className="flex items-start gap-3 rounded-lg p-2 text-sm hover:bg-[#eef1eb]"><input type="checkbox" name="vehicleIds" value={vehicle.id} defaultChecked={selected.has(vehicle.id)} className="mt-1"/><span><strong>{vehicle.make} {vehicle.model} {vehicle.generation}</strong><small className="block text-[#63706a]">{vehicle.year} · {vehicle.engine}{vehicle.fuelType?` · ${vehicle.fuelType}`:""}{transmissionRelated&&(vehicle.gearboxFamily||vehicle.gearboxCode)?` · ${vehicle.gearboxFamily??""} ${vehicle.gearboxCode??""}`:""}</small></span></label>)}</div>
-  </fieldset>
+  <SellerCompatibilityEditor initialFitments={initialCatalogueFitments}/>
 
   {state.message&&<p role="status" className={`rounded-xl p-3 text-sm lg:col-span-2 ${state.status==="error"?"bg-red-50 text-red-800":"bg-emerald-50 text-emerald-800"}`}>{state.message}</p>}
   <button disabled={pending||!categoryId} className="rounded-xl bg-[#173c31] px-5 py-3.5 font-black text-white disabled:cursor-not-allowed disabled:opacity-50 lg:col-span-2">{pending?"Saving…":listing?"Save listing":"Create listing"}</button>
