@@ -7,12 +7,14 @@ import { VehicleSelector } from "./vehicle-selector";
 import { MarketplaceFiltersPanel } from "./marketplace-filters";
 import { MarketplaceSearch } from "./marketplace-search";
 import { PartRequestCard } from "./part-request-card";
+import { PostcodeDistanceFilter } from "./postcode-distance-filter";
 
 const vehicleParams=(filters:MarketplaceFilters)=>{
  const params=new URLSearchParams();
  if(filters.query)params.set("q",filters.query);
  if(filters.category)params.set("category",filters.category);
  if(filters.condition)params.set("condition",filters.condition);
+ if(filters.postcode)params.set("pc",filters.postcode);
  if(Number.isFinite(filters.minPrice))params.set("min",String(filters.minPrice));
  if(Number.isFinite(filters.maxPrice))params.set("max",String(filters.maxPrice));
  if(filters.vehicle)params.set("vehicle",filters.vehicle);
@@ -89,6 +91,7 @@ export function MarketplaceHome({listings,categories,vehicles,catalogueModels,ga
    <div className="mb-6"><p className="mb-2 text-xs font-black uppercase tracking-[.2em] text-[#287154]">Marketplace</p><h2 className="text-3xl font-black tracking-[-.04em] sm:text-4xl">Find the part you need</h2></div>
    <MarketplaceSearch categories={categories} filters={filters} activeVehicleLabel={activeVehicleLabel}/>
    <MarketplaceFiltersPanel filters={filters}/>
+   <PostcodeDistanceFilter initialPostcode={filters.postcode}/>
    <p className="mt-6 text-[#63706a]">{listings.length} listing{listings.length===1?"":"s"} match the current search</p>
    {error&&<div className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm"><p className="font-bold">{configured?"Marketplace data is temporarily unavailable":"Supabase setup required"}</p><p className="mt-1 text-amber-900/75">{error}</p></div>}
    {listings.length?<div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{listings.map(item=><ProductCard key={item.id} item={item} saved={savedIds.includes(item.id)} contextQuery={contextQuery}/>)}</div>:!error&&<><div className="mt-8 rounded-3xl border border-dashed border-black/20 bg-white py-16 text-center"><Search className="mx-auto mb-4 text-[#63706a]"/><h3 className="text-xl font-bold">No confirmed matches yet</h3><p className="mx-auto mt-2 max-w-xl text-[#63706a]">{activeVehicleLabel?"We know which vehicle you selected, but no seller fitment currently confirms a matching part for this search. We will never label an unverified part as a confirmed fit.":"Try a different part name, category, OE/OEM number or filter."}</p></div><PartRequestCard signedIn={signedIn} filters={filters} defaultText={filters.query??selectedCategory?.name??""}/></>}
