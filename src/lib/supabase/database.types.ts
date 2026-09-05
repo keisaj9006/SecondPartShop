@@ -319,6 +319,79 @@ export type Database = {
           },
         ]
       }
+      part_requests: {
+        Row: {
+          catalogue_variant_id: string | null
+          category_id: string | null
+          created_at: string
+          engine_size_simple: number | null
+          fuel_type: string | null
+          id: string
+          notes: string | null
+          oem_number: string | null
+          profile_id: string
+          query_text: string
+          registration: string | null
+          status: string
+          updated_at: string
+          year: number | null
+        }
+        Insert: {
+          catalogue_variant_id?: string | null
+          category_id?: string | null
+          created_at?: string
+          engine_size_simple?: number | null
+          fuel_type?: string | null
+          id?: string
+          notes?: string | null
+          oem_number?: string | null
+          profile_id: string
+          query_text: string
+          registration?: string | null
+          status?: string
+          updated_at?: string
+          year?: number | null
+        }
+        Update: {
+          catalogue_variant_id?: string | null
+          category_id?: string | null
+          created_at?: string
+          engine_size_simple?: number | null
+          fuel_type?: string | null
+          id?: string
+          notes?: string | null
+          oem_number?: string | null
+          profile_id?: string
+          query_text?: string
+          registration?: string | null
+          status?: string
+          updated_at?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "part_requests_catalogue_variant_id_fkey"
+            columns: ["catalogue_variant_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_catalogue_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "part_requests_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "part_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parts: {
         Row: {
           category_id: string
