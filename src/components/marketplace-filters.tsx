@@ -6,6 +6,7 @@ export function MarketplaceFiltersPanel({filters}:{filters:MarketplaceFilters}){
  const preserved=new URLSearchParams();
  if(filters.query)preserved.set("q",filters.query);
  if(filters.category)preserved.set("category",filters.category);
+ if(filters.postcode)preserved.set("pc",filters.postcode);
  if(filters.vehicle)preserved.set("vehicle",filters.vehicle);
  if(filters.vehicleRegistration)preserved.set("vr",filters.vehicleRegistration);
  if(filters.catalogueVariant)preserved.set("cv",filters.catalogueVariant);
@@ -16,6 +17,7 @@ export function MarketplaceFiltersPanel({filters}:{filters:MarketplaceFilters}){
  return <form method="get" action="/" className="mt-4 grid gap-3 rounded-2xl border border-black/10 bg-white p-4 sm:grid-cols-2 lg:grid-cols-5">
   {filters.query&&<input type="hidden" name="q" value={filters.query}/>}
   {filters.category&&<input type="hidden" name="category" value={filters.category}/>}
+  {filters.postcode&&<input type="hidden" name="pc" value={filters.postcode}/>}
   {filters.vehicle&&<input type="hidden" name="vehicle" value={filters.vehicle}/>}
   {filters.vehicleRegistration&&<input type="hidden" name="vr" value={filters.vehicleRegistration}/>}
   {filters.catalogueVariant&&<input type="hidden" name="cv" value={filters.catalogueVariant}/>}
