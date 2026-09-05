@@ -55,6 +55,62 @@ export type Database = {
           },
         ]
       }
+      donor_vehicles: {
+        Row: {
+          colour: string | null
+          created_at: string
+          engine_size_simple: number | null
+          fuel_type: string | null
+          id: string
+          make: string
+          model: string
+          notes: string | null
+          registration: string | null
+          seller_id: string
+          updated_at: string
+          variant: string | null
+          year: number
+        }
+        Insert: {
+          colour?: string | null
+          created_at?: string
+          engine_size_simple?: number | null
+          fuel_type?: string | null
+          id?: string
+          make: string
+          model: string
+          notes?: string | null
+          registration?: string | null
+          seller_id: string
+          updated_at?: string
+          variant?: string | null
+          year: number
+        }
+        Update: {
+          colour?: string | null
+          created_at?: string
+          engine_size_simple?: number | null
+          fuel_type?: string | null
+          id?: string
+          make?: string
+          model?: string
+          notes?: string | null
+          registration?: string | null
+          seller_id?: string
+          updated_at?: string
+          variant?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "donor_vehicles_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       garage_vehicles: {
         Row: {
           catalogue_variant_id: string
@@ -419,6 +475,7 @@ export type Database = {
           damage_notes: string | null
           description: string
           dispatch_days: number
+          donor_vehicle_id: string | null
           gearbox_code: string | null
           gearbox_family: string | null
           id: string
@@ -443,6 +500,7 @@ export type Database = {
           damage_notes?: string | null
           description: string
           dispatch_days?: number
+          donor_vehicle_id?: string | null
           gearbox_code?: string | null
           gearbox_family?: string | null
           id?: string
@@ -467,6 +525,7 @@ export type Database = {
           damage_notes?: string | null
           description?: string
           dispatch_days?: number
+          donor_vehicle_id?: string | null
           gearbox_code?: string | null
           gearbox_family?: string | null
           id?: string
@@ -489,6 +548,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parts_donor_vehicle_id_fkey"
+            columns: ["donor_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "donor_vehicles"
             referencedColumns: ["id"]
           },
           {
