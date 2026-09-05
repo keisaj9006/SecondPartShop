@@ -1029,6 +1029,44 @@ export type Database = {
           },
         ]
       }
+      support_requests: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          profile_id: string
+          status: string
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          profile_id: string
+          status?: string
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          profile_id?: string
+          status?: string
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicle_catalogue_engines: {
         Row: {
           engine_size_desc: string | null
