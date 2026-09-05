@@ -10,6 +10,8 @@ Status: active build plan for `rebuild-nextjs`.
    - cache public vehicle catalogue requests
    - keep homepage/filter interactions responsive
    - optimize image/loading states where needed
+   - canonical VRM flow: DVSA → DfT catalogue → manual fallback
+   - keep VDG disabled as optional paid enrichment only
 
 2. Authentication/account essentials
    - forgot/reset password flow
