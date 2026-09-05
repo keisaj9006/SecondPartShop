@@ -23,3 +23,22 @@ Do not build a fake in-app wallet or hold regulated client money directly in app
 ### Build timing
 
 Payments, payouts, disputes, refunds, and settlement are a **final commerce layer**. Finish the core buyer/seller marketplace workflows first, then design and implement this flow with the payment provider.
+
+## Vehicle identification strategy
+
+**Status:** Canonical pre-payments strategy.
+
+SecondPart should not depend on a paid VRM lookup for its core buyer flow while the marketplace is pre-revenue.
+
+Primary flow:
+
+1. **DVSA MOT History API** — official registration lookup when approved credentials are configured.
+2. **SecondPart DfT vehicle catalogue** — map the DVSA make/model/year/fuel/engine data into the internal catalogue.
+3. If the match resolves to one exact catalogue variant, apply it automatically.
+4. If several valid derivatives remain, show only the remaining exact-version choice.
+5. If the official lookup cannot resolve the vehicle, fall back to the existing manual Make → Model → Year → Version → Engine flow.
+6. **Vehicle Data Global (VDG)** remains an optional paid fallback / enrichment provider for a later stage, not a required dependency.
+
+Current VDG sandbox package `VehicleDetails` contains both `ModelDetails` and `VehicleDetails`, so it is suitable for later enrichment if the free/official route proves insufficient. Do not purchase or enable paid production lookups without explicit approval.
+
+Registration results must never be fabricated. Provider failure must degrade to manual selection.
