@@ -28,10 +28,10 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
  const vehicleRegistration=rawRegistration?normalizeRegistration(rawRegistration):undefined;
  const rawPostcode=first(params.pc);
  const postcode=rawPostcode?normalizePostcode(rawPostcode):undefined;
- const [categories,user]=await Promise.all([getCategories(),getCurrentUser()]);
- const selectedCatalogue=requestedCatalogueVariant&&requestedCatalogueYear
-  ?await getCatalogueSelection(requestedCatalogueVariant,requestedCatalogueYear,requestedCatalogueFuel,requestedCatalogueEngine)
-  :null;
+ const selectedCataloguePromise=requestedCatalogueVariant&&requestedCatalogueYear
+  ?getCatalogueSelection(requestedCatalogueVariant,requestedCatalogueYear,requestedCatalogueFuel,requestedCatalogueEngine)
+  :Promise.resolve(null);
+ const [categories,user,selectedCatalogue]=await Promise.all([getCategories(),getCurrentUser(),selectedCataloguePromise]);
  const filters:MarketplaceFilters={
   query:first(params.q),
   category:first(params.category),
