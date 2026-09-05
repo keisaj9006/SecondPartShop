@@ -16,7 +16,7 @@ export const dynamic="force-dynamic";
 
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 const integer=(value:string|undefined)=>{if(!value)return undefined;const parsed=Number(value);return Number.isInteger(parsed)?parsed:undefined;};
-const contextKeys=["q","category","condition","min","max","pc","collection","vehicle","vr","cv","cy","cf","ce"] as const;
+const contextKeys=["q","category","condition","sort","min","max","pc","collection","vehicle","vr","cv","cy","cf","ce"] as const;
 
 export default async function PartPage({params,searchParams}:{params:Promise<{slug:string}>;searchParams:Promise<Record<string,string|string[]|undefined>>}){
  const [{slug},rawSearch,user]=await Promise.all([params,searchParams,getCurrentUser()]);
