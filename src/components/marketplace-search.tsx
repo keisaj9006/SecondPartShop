@@ -79,7 +79,7 @@ export function MarketplaceSearch({categories,filters,activeVehicleLabel}:{categ
 
  const clearCategory=()=>pushParams(params=>params.delete("category"));
  const clearSearchAndCategory=()=>{setQuery("");setOpen(false);setCategoryOpen(false);pushParams(params=>{params.delete("q");params.delete("category");});};
- const clearVehicle=()=>pushParams(params=>{for(const key of ["vehicle","cv","cy","cf","ce"])params.delete(key);});
+ const clearVehicle=()=>pushParams(params=>{for(const key of ["vehicle","cv","cy","cf","ce","vr"])params.delete(key);});
  const hasSuggestions=items.length>0&&query.trim().length>=2;
 
  const onKeyDown=(event:ReactKeyboardEvent<HTMLInputElement>)=>{
