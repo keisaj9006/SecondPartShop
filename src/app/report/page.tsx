@@ -10,10 +10,11 @@ const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:val
 const safeReturnTo=(value:string|undefined)=>value&&value.startsWith("/")&&!value.startsWith("//")?value:"/";
 
 export default async function ReportPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
- await requireUser("/report");
  const params=await searchParams;
  const partId=first(params.part)??"";
  const returnTo=safeReturnTo(first(params.returnTo));
+ const authReturn="/report?part="+encodeURIComponent(partId)+"&returnTo="+encodeURIComponent(returnTo);
+ await requireUser(authReturn);
  const supabase=await createSupabaseServerClient();
  const {data:part}=partId?await supabase.from("parts").select("id,title,slug,sellers(business_name)").eq("id",partId).maybeSingle():{data:null};
  if(!part)return <><Header/><main className="mx-auto max-w-2xl px-4 py-16"><h1 className="text-3xl font-black">Listing not available</h1><p className="mt-2 text-[#63706a]">We could not load the listing you wanted to report.</p><Link href={returnTo} className="mt-5 inline-block font-black underline">Go back</Link></main></>;
