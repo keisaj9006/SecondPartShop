@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect,useMemo,useState } from "react";
+import { useEffect,useMemo,useState,useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CarFront,ChevronDown,Search,X } from "lucide-react";
 import type { Vehicle,VehicleCatalogueModelOption,VehicleCatalogueSelection } from "@/lib/types";
@@ -30,8 +30,10 @@ type RegistrationSummary={
 const nameLabel=(value:string)=>value.toLowerCase().replace(/(^|[\s/-])\p{L}/gu,match=>match.toUpperCase()).replace(/\bBmw\b/g,"BMW").replace(/\bMg\b/g,"MG").replace(/\bDs\b/g,"DS");
 const fuelLabel=(value:string)=>value.toLowerCase().replace(/(^|[\s(-])\p{L}/gu,match=>match.toUpperCase());
 const engineKey=(engine:Pick<CatalogueEngine,"fuelType"|"engineSizeSimple">)=>`${engine.fuelType}\u001f${engine.engineSizeSimple??""}`;
+const catalogueCache=new Map<string,unknown[]>();
 
 async function getItems<T>(url:string,signal?:AbortSignal):Promise<T[]>{
+ const cached=catalogueCache.get(url);if(cached)return cached as T[];
  const controller=new AbortController();
  let timedOut=false;
  const abort=()=>controller.abort();
@@ -41,7 +43,7 @@ async function getItems<T>(url:string,signal?:AbortSignal):Promise<T[]>{
   const response=await fetch(url,{signal:controller.signal});
   const payload=await response.json() as ApiPayload<T>;
   if(!response.ok)throw new Error(payload.message??"Vehicle catalogue is unavailable.");
-  return payload.items??[];
+  const items=payload.items??[];catalogueCache.set(url,items as unknown[]);return items;
  }catch(error){
   if(timedOut)throw new Error("Vehicle options are taking too long to load. Please try again.");
   throw error;
@@ -74,6 +76,7 @@ function SearchableVehicleSelect({value,options,placeholder,disabled,onChange}:{
 export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCatalogue,baseParams}:{vehicles:Vehicle[];catalogueModels:VehicleCatalogueModelOption[];selectedId?:string;selectedCatalogue:VehicleCatalogueSelection|null;baseParams:Record<string,string>}){
  const selectedLegacy=vehicles.find(vehicle=>vehicle.id===selectedId);
  const router=useRouter();
+ const [isApplying,startTransition]=useTransition();
  const makes=useMemo(()=>unique(catalogueModels.map(item=>item.make)).sort((a,b)=>a.localeCompare(b)),[catalogueModels]);
 
  const [registration,setRegistration]=useState("");
@@ -117,7 +120,7 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
   if(!variantId)return;
   const controller=new AbortController();
   void getItems<CatalogueEngine>(`/api/vehicle-catalogue?level=engines&variantId=${encodeURIComponent(variantId)}`,controller.signal)
-   .then(items=>{setEngines(items);setLoadingEngines(false);})
+   .then(items=>{setEngines(items);if(items.length===1)setCatalogueEngine(engineKey(items[0]));setLoadingEngines(false);})
    .catch(error=>{if(error instanceof Error&&error.name!=="AbortError"){setCatalogueError(error.message);setLoadingEngines(false);}});
   return()=>controller.abort();
  },[variantId]);
@@ -146,7 +149,7 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
   params.delete("vehicle");
   if(registrationVehicle?.registration)params.set("vr",registrationVehicle.registration);else params.delete("vr");
   const qs=params.toString();
-  router.push(`/?${qs}#marketplace`);
+  startTransition(()=>router.push(`/?${qs}#marketplace`));
  };
 
  const findByRegistration=async()=>{
@@ -213,7 +216,7 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
 
  const control="min-w-0 rounded-xl border border-black/12 bg-white px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-[#173c31] disabled:bg-black/5";
  const selectedVariant=variants.find(item=>item.id===variantId)??(selectedCatalogue?.variantId===variantId?{id:selectedCatalogue.variantId,variant:selectedCatalogue.variant}:undefined);
- const canApply=Boolean(variantId&&year&&!loadingVariants&&!loadingEngines&&(engines.length===0||catalogueEngine));
+ const canApply=Boolean(variantId&&year&&!loadingVariants&&!loadingEngines&&(engines.length===0||catalogueEngine)&&!isApplying);
 
  return <div>
   <div className="rounded-2xl border border-black/10 bg-white p-4">
@@ -238,7 +241,8 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
     <select aria-label="Engine and fuel" className={`${control} col-span-2 sm:col-span-2`} value={catalogueEngine} disabled={!variantId||loadingEngines||engines.length===0} onChange={event=>setCatalogueEngine(event.target.value)}><option value="">{loadingEngines?"Loading engine…":engines.length?"Engine / fuel":"Engine data unavailable"}</option>{engines.map(item=><option key={engineKey(item)} value={engineKey(item)}>{item.engineSizeSimple?`${item.engineSizeSimple}cc · ${fuelLabel(item.fuelType)}`:fuelLabel(item.fuelType)}</option>)}</select>
    </div>
    {catalogueError&&<p role="status" className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800">{catalogueError}</p>}
-   <div className="mt-3 flex flex-wrap gap-3"><button type="button" disabled={!canApply} onClick={applyCatalogue} className="rounded-xl bg-[#d4f44d] px-5 py-3 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50">Use this vehicle</button>{(selectedId||selectedCatalogue)&&<button type="button" onClick={clearVehicle} className="inline-flex items-center gap-1 text-sm font-bold underline"><X size={14}/>Remove vehicle</button>}</div>
+   {(loadingYears||loadingVariants||loadingEngines||isApplying)&&<p role="status" className="mt-3 rounded-xl bg-[#eef1eb] px-3 py-2 text-sm font-bold text-[#173c31]">{loadingYears?"Loading available years…":loadingVariants?"Loading exact versions…":loadingEngines?"Loading engine options…":"Applying vehicle and checking compatibility…"}</p>}
+   <div className="mt-3 flex flex-wrap gap-3"><button type="button" disabled={!canApply} onClick={applyCatalogue} className="rounded-xl bg-[#d4f44d] px-5 py-3 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50">{isApplying?"Applying vehicle…":"Use this vehicle"}</button>{(selectedId||selectedCatalogue)&&<button type="button" onClick={clearVehicle} className="inline-flex items-center gap-1 text-sm font-bold underline"><X size={14}/>Remove vehicle</button>}</div>
   </div>}
 
   {selectedLegacy&&<p className="mt-3 rounded-xl bg-[#eef1eb] px-3 py-2 text-xs text-[#63706a]">Existing compatibility test vehicle selected: {selectedLegacy.make} {selectedLegacy.model} {selectedLegacy.year}. This preserves legacy QA fitments while the full catalogue fitments are populated.</p>}
