@@ -35,6 +35,7 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   minPrice:first(params.min)?Number(first(params.min)):undefined,
   maxPrice:first(params.max)?Number(first(params.max)):undefined,
   postcode,
+  collectionOnly:first(params.collection)==="1",
   vehicle:first(params.vehicle),
   vehicleRegistration:vehicleRegistration||undefined,
   catalogueVariant:selectedCatalogue?.variantId,
