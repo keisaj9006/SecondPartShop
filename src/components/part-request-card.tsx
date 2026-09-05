@@ -5,7 +5,7 @@ import type { MarketplaceFilters } from "@/lib/types";
 
 export function PartRequestCard({signedIn,filters,defaultText=""}:{signedIn:boolean;filters:MarketplaceFilters;defaultText?:string}){
  return <section className="mx-auto mt-6 max-w-2xl rounded-3xl border border-black/10 bg-[#f8f7f2] p-5 text-left">
-  <div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#173c31] text-[#d4f44d]"><SearchX size={18}/></span><div><h4 className="font-black">Can't find the exact part?</h4><p className="mt-1 text-sm leading-6 text-[#63706a]">Save a part request with your selected vehicle. You will not need to rebuild the search later.</p></div></div>
+  <div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#173c31] text-[#d4f44d]"><SearchX size={18}/></span><div><h4 className="font-black">Can&apos;t find the exact part?</h4><p className="mt-1 text-sm leading-6 text-[#63706a]">Save a part request with your selected vehicle. You will not need to rebuild the search later.</p></div></div>
   {signedIn?<form action={createPartRequest} className="mt-4 grid gap-3">
    {filters.category&&<input type="hidden" name="categoryId" value={filters.category}/>}
    {filters.catalogueVariant&&<input type="hidden" name="variantId" value={filters.catalogueVariant}/>}
