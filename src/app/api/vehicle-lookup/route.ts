@@ -22,6 +22,7 @@ export async function POST(request:Request){
  return NextResponse.json({
   registration:result.registration,
   vehicle:result.vehicle,
-  catalogue
+  catalogue,
+  strategy:"dvsa_to_dft"
  },{status:200,headers:{"cache-control":"no-store"}});
 }
