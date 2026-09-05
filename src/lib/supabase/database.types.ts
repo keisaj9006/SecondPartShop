@@ -635,6 +635,70 @@ export type Database = {
           },
         ]
       }
+      seller_part_request_leads: {
+        Row: {
+          catalogue_variant_id: string | null
+          category_id: string | null
+          created_at: string
+          engine_size_simple: number | null
+          fuel_type: string | null
+          notes: string | null
+          oem_number: string | null
+          query_text: string
+          request_id: string
+          status: string
+          year: number | null
+        }
+        Insert: {
+          catalogue_variant_id?: string | null
+          category_id?: string | null
+          created_at: string
+          engine_size_simple?: number | null
+          fuel_type?: string | null
+          notes?: string | null
+          oem_number?: string | null
+          query_text: string
+          request_id: string
+          status: string
+          year?: number | null
+        }
+        Update: {
+          catalogue_variant_id?: string | null
+          category_id?: string | null
+          created_at?: string
+          engine_size_simple?: number | null
+          fuel_type?: string | null
+          notes?: string | null
+          oem_number?: string | null
+          query_text?: string
+          request_id?: string
+          status?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_part_request_leads_catalogue_variant_id_fkey"
+            columns: ["catalogue_variant_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_catalogue_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_part_request_leads_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_part_request_leads_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: true
+            referencedRelation: "part_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sellers: {
         Row: {
           business_name: string
@@ -980,25 +1044,6 @@ export type Database = {
       replace_part_catalogue_fitments: {
         Args: { p_fitments: Json; p_part_id: string }
         Returns: undefined
-      }
-      seller_open_part_request_leads: {
-        Args: never
-        Returns: {
-          category_id: string
-          category_name: string
-          created_at: string
-          engine_size_simple: number
-          fuel_type: string
-          id: string
-          notes: string
-          oem_number: string
-          query_text: string
-          variant_id: string
-          vehicle_make: string
-          vehicle_model: string
-          vehicle_variant: string
-          year: number
-        }[]
       }
       vehicle_catalogue_makes: {
         Args: never
