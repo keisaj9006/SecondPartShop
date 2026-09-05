@@ -19,7 +19,6 @@ export function MarketplaceFiltersPanel({filters}:{filters:MarketplaceFilters}){
   {filters.query&&<input type="hidden" name="q" value={filters.query}/>}
   {filters.category&&<input type="hidden" name="category" value={filters.category}/>}
   {filters.postcode&&<input type="hidden" name="pc" value={filters.postcode}/>}
-  {filters.collectionOnly&&<input type="hidden" name="collection" value="1"/>}
   {filters.vehicle&&<input type="hidden" name="vehicle" value={filters.vehicle}/>}
   {filters.vehicleRegistration&&<input type="hidden" name="vr" value={filters.vehicleRegistration}/>}
   {filters.catalogueVariant&&<input type="hidden" name="cv" value={filters.catalogueVariant}/>}
