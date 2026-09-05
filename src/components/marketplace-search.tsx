@@ -88,11 +88,14 @@ export function MarketplaceSearch({categories,filters,activeVehicleLabel}:{categ
   else if(event.key==="Escape"){setOpen(false);setCategoryOpen(false);}
  };
 
- let runningIndex=-1;
- const group=(title:string,entries:MarketplaceSuggestion[])=>{
+ const group=(title:string,entries:MarketplaceSuggestion[],startIndex:number)=>{
   if(!entries.length)return null;
-  return <section><p className="px-3 pb-1 pt-3 text-[11px] font-black uppercase tracking-[.14em] text-[#7b847f]">{title}</p>{entries.map(item=>{runningIndex+=1;const index=runningIndex;return <button key={`${item.kind}-${item.label}-${index}`} type="button" onMouseEnter={()=>setActiveIndex(index)} onClick={()=>chooseSuggestion(item)} className={`flex w-full items-start justify-between gap-3 px-3 py-2.5 text-left text-sm ${activeIndex===index?"bg-[#eef1eb]":"hover:bg-[#eef1eb]"}`}><span><strong>{item.label}</strong>{item.meta&&<small className="mt-0.5 block text-[#63706a]">{item.meta}</small>}</span></button>;})}</section>;
+  return <section><p className="px-3 pb-1 pt-3 text-[11px] font-black uppercase tracking-[.14em] text-[#7b847f]">{title}</p>{entries.map((item,localIndex)=>{const index=startIndex+localIndex;return <button key={`${item.kind}-${item.label}-${index}`} type="button" onMouseEnter={()=>setActiveIndex(index)} onClick={()=>chooseSuggestion(item)} className={`flex w-full items-start justify-between gap-3 px-3 py-2.5 text-left text-sm ${activeIndex===index?"bg-[#eef1eb]":"hover:bg-[#eef1eb]"}`}><span><strong>{item.label}</strong>{item.meta&&<small className="mt-0.5 block text-[#63706a]">{item.meta}</small>}</span></button>;})}</section>;
  };
+ const categoryOffset=0;
+ const listingOffset=groups.categories.length;
+ const numberOffset=listingOffset+groups.listings.length;
+ const brandOffset=numberOffset+groups.numbers.length;
 
  return <div ref={rootRef} className="relative">
   <div className="rounded-3xl border border-black/10 bg-white p-4 shadow-sm sm:p-5">
@@ -113,10 +116,10 @@ export function MarketplaceSearch({categories,filters,activeVehicleLabel}:{categ
   </div>
 
   {open&&hasSuggestions&&<div className="absolute left-0 right-0 z-40 mt-2 max-h-[440px] overflow-y-auto rounded-2xl border border-black/10 bg-white p-2 shadow-2xl">
-   {group("Categories",groups.categories)}
-   {group("Parts & listings",groups.listings)}
-   {group("OE/OEM & part numbers",groups.numbers)}
-   {group("Brands",groups.brands)}
+   {group("Categories",groups.categories,categoryOffset)}
+   {group("Parts & listings",groups.listings,listingOffset)}
+   {group("OE/OEM & part numbers",groups.numbers,numberOffset)}
+   {group("Brands",groups.brands,brandOffset)}
    <button type="button" onClick={()=>performSearch()} className="mt-2 w-full rounded-xl bg-[#eef1eb] px-3 py-3 text-left text-sm font-black">View all results for “{query.trim()}”</button>
   </div>}
 
