@@ -602,6 +602,39 @@ export type Database = {
         }
         Relationships: []
       }
+      recently_viewed_parts: {
+        Row: {
+          part_id: string
+          profile_id: string
+          viewed_at: string
+        }
+        Insert: {
+          part_id: string
+          profile_id: string
+          viewed_at?: string
+        }
+        Update: {
+          part_id?: string
+          profile_id?: string
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recently_viewed_parts_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recently_viewed_parts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_parts: {
         Row: {
           created_at: string
@@ -628,6 +661,41 @@ export type Database = {
           },
           {
             foreignKeyName: "saved_parts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_searches: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          profile_id: string
+          search_params: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          profile_id: string
+          search_params?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          profile_id?: string
+          search_params?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_searches_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
