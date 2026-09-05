@@ -66,6 +66,7 @@ export async function getListings(filters:MarketplaceFilters={}):Promise<DataRes
  let query=supabase.from("parts").select(selectListing()).eq("status","active").order("created_at",{ascending:false});
  if(categoryIds)query=query.in("category_id",categoryIds);
  if(filters.condition)query=query.eq("condition",filters.condition);
+ if(filters.collectionOnly)query=query.eq("collection_available",true);
  if(Number.isFinite(filters.minPrice))query=query.gte("price_pence",Math.round((filters.minPrice??0)*100));
  if(Number.isFinite(filters.maxPrice))query=query.lte("price_pence",Math.round((filters.maxPrice??0)*100));
  if(allowedPartIds)query=query.in("id",allowedPartIds);
