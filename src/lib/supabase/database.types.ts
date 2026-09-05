@@ -17,24 +17,33 @@ export type Database = {
       categories: {
         Row: {
           id: string
+          is_selectable: boolean
           is_transmission_related: boolean
           name: string
           parent_id: string | null
+          search_terms: string[]
           slug: string
+          sort_order: number
         }
         Insert: {
           id?: string
+          is_selectable?: boolean
           is_transmission_related?: boolean
           name: string
           parent_id?: string | null
+          search_terms?: string[]
           slug: string
+          sort_order?: number
         }
         Update: {
           id?: string
+          is_selectable?: boolean
           is_transmission_related?: boolean
           name?: string
           parent_id?: string | null
+          search_terms?: string[]
           slug?: string
+          sort_order?: number
         }
         Relationships: [
           {
@@ -509,6 +518,30 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_catalogue_make_aliases: {
+        Row: {
+          canonical_make: string
+          created_at: string
+          display_name: string
+          provider: string
+          source_make: string
+        }
+        Insert: {
+          canonical_make: string
+          created_at?: string
+          display_name: string
+          provider: string
+          source_make: string
+        }
+        Update: {
+          canonical_make?: string
+          created_at?: string
+          display_name?: string
+          provider?: string
+          source_make?: string
+        }
+        Relationships: []
+      }
       vehicle_catalogue_variants: {
         Row: {
           body_type: string | null
@@ -671,6 +704,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      category_descendant_ids: {
+        Args: { p_category_id: string }
+        Returns: {
+          id: string
+        }[]
+      }
       import_vehicle_catalogue_batch: {
         Args: {
           p_engines?: Json
@@ -679,6 +718,12 @@ export type Database = {
           p_years?: Json
         }
         Returns: Json
+      }
+      marketplace_search_part_ids: {
+        Args: { p_query: string }
+        Returns: {
+          part_id: string
+        }[]
       }
       vehicle_catalogue_makes: {
         Args: never
