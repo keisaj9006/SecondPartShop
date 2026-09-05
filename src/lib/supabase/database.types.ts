@@ -981,6 +981,25 @@ export type Database = {
         Args: { p_fitments: Json; p_part_id: string }
         Returns: undefined
       }
+      seller_open_part_request_leads: {
+        Args: never
+        Returns: {
+          category_id: string
+          category_name: string
+          created_at: string
+          engine_size_simple: number
+          fuel_type: string
+          id: string
+          notes: string
+          oem_number: string
+          query_text: string
+          variant_id: string
+          vehicle_make: string
+          vehicle_model: string
+          vehicle_variant: string
+          year: number
+        }[]
+      }
       vehicle_catalogue_makes: {
         Args: never
         Returns: {
