@@ -3,7 +3,7 @@
 import { useActionState,useMemo,useState } from "react";
 import { createListing,updateListing } from "@/app/dashboard/actions";
 import { buildCategoryTree,getCategoryAncestors,type CategoryNode } from "@/lib/category-tree";
-import type { ActionState,Category,Listing,Vehicle } from "@/lib/types";
+import type { ActionState,Category,DonorVehicle,Listing,Vehicle } from "@/lib/types";
 
 const initial:ActionState={status:"idle"};
 const selectableDescendants=(node:CategoryNode|null)=>{
@@ -14,7 +14,7 @@ const selectableDescendants=(node:CategoryNode|null)=>{
  return result;
 };
 
-export function ListingForm({categories,vehicles,listing}:{categories:Category[];vehicles:Vehicle[];listing?:Listing}){
+export function ListingForm({categories,vehicles,donors,defaultDonorId,listing}:{categories:Category[];vehicles:Vehicle[];donors:DonorVehicle[];defaultDonorId?:string;listing?:Listing}){
  const handler=listing?updateListing:createListing;
  const [state,action,pending]=useActionState(handler,initial);
  const tree=useMemo(()=>buildCategoryTree(categories),[categories]);
@@ -45,6 +45,7 @@ export function ListingForm({categories,vehicles,listing}:{categories:Category[]
 
   <label className="text-sm font-bold lg:col-span-2">Listing title<input required minLength={5} name="title" defaultValue={listing?.title} className={input} placeholder="e.g. Golf Mk7 LED headlight"/></label>
   <label className="text-sm font-bold lg:col-span-2">Description<textarea required minLength={20} rows={5} name="description" defaultValue={listing?.description} className={input} placeholder="Describe condition, testing and what is included."/></label>
+  <label className="text-sm font-bold lg:col-span-2">Donor vehicle <span className="font-normal text-[#63706a]">(optional)</span><select name="donorVehicleId" defaultValue={listing?.donorVehicleId??defaultDonorId??""} className={input}><option value="">Not linked to a donor vehicle</option>{donors.map(donor=><option key={donor.id} value={donor.id}>{donor.registration?donor.registration+" · ":""}{donor.make} {donor.model} · {donor.year}{donor.engineSizeSimple?" · "+donor.engineSizeSimple+"cc":""}</option>)}</select><small className="mt-2 block font-normal text-[#63706a]">Reuse one donor across many listings instead of re-entering the same vehicle details. <a href="/dashboard/donors" className="font-bold underline">Manage donor vehicles</a>.</small></label>
 
   <fieldset className="rounded-2xl border border-black/10 bg-[#f8f7f2] p-4 lg:col-span-2">
    <legend className="px-1 text-sm font-black">Part category</legend>
