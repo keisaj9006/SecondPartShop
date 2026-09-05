@@ -4,6 +4,7 @@ import { useEffect,useMemo,useRef,useState,type KeyboardEvent as ReactKeyboardEv
 import { useRouter } from "next/navigation";
 import { ChevronDown,Search,X } from "lucide-react";
 import { CategoryBrowser } from "@/components/category-browser";
+import { PartCodeScanner } from "@/components/part-code-scanner";
 import { getCategoryPath } from "@/lib/category-tree";
 import type { Category,MarketplaceFilters,MarketplaceSuggestion,SearchSuggestionGroups } from "@/lib/types";
 
@@ -108,6 +109,7 @@ export function MarketplaceSearch({categories,filters,activeVehicleLabel}:{categ
     </div>
     <button type="submit" className="rounded-2xl bg-[#173c31] px-6 py-3.5 text-sm font-black text-white">Search</button>
    </form>
+   <PartCodeScanner/>
 
    <div className="mt-3 flex flex-wrap items-center gap-2">
     <button type="button" onClick={()=>{setCategoryOpen(value=>!value);setOpen(false);}} className="inline-flex items-center gap-2 rounded-full border border-black/12 px-4 py-2 text-sm font-bold">Browse categories<ChevronDown size={15}/></button>
