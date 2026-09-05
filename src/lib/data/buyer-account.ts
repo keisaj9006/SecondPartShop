@@ -43,18 +43,20 @@ export async function getRecentlyViewedListings(profileId:string,limit=12):Promi
 
 export async function getBuyerAccountCounts(profileId:string){
  const supabase=await createSupabaseServerClient();
- const [savedParts,savedSearches,garage,requests,recent]=await Promise.all([
+ const [savedParts,savedSearches,garage,requests,recent,notifications]=await Promise.all([
   supabase.from("saved_parts").select("part_id",{count:"exact",head:true}).eq("profile_id",profileId),
   supabase.from("saved_searches").select("id",{count:"exact",head:true}).eq("profile_id",profileId),
   supabase.from("garage_vehicles").select("id",{count:"exact",head:true}).eq("profile_id",profileId),
   supabase.from("part_requests").select("id",{count:"exact",head:true}).eq("profile_id",profileId).eq("status","open"),
-  supabase.from("recently_viewed_parts").select("part_id",{count:"exact",head:true}).eq("profile_id",profileId)
+  supabase.from("recently_viewed_parts").select("part_id",{count:"exact",head:true}).eq("profile_id",profileId),
+  supabase.from("notifications").select("id",{count:"exact",head:true}).eq("profile_id",profileId).is("read_at",null)
  ]);
  return {
   savedParts:savedParts.count??0,
   savedSearches:savedSearches.count??0,
   garage:garage.count??0,
   openRequests:requests.count??0,
-  recentlyViewed:recent.count??0
+  recentlyViewed:recent.count??0,
+  unreadNotifications:notifications.count??0
  };
 }
