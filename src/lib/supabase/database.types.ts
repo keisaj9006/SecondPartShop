@@ -200,6 +200,74 @@ export type Database = {
           },
         ]
       }
+      marketplace_reports: {
+        Row: {
+          created_at: string
+          details: string | null
+          id: string
+          part_id: string | null
+          reason: string
+          reporter_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          seller_id: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          part_id?: string | null
+          reason: string
+          reporter_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          seller_id?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          part_id?: string | null
+          reason?: string
+          reporter_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          seller_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_reports_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_reports_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_reports_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_search_synonyms: {
         Row: {
           alias: string
@@ -798,6 +866,64 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: true
             referencedRelation: "part_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_verification_requests: {
+        Row: {
+          id: string
+          message: string | null
+          requested_at: string
+          requester_id: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          seller_id: string
+          status: string
+        }
+        Insert: {
+          id?: string
+          message?: string | null
+          requested_at?: string
+          requester_id: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          seller_id: string
+          status?: string
+        }
+        Update: {
+          id?: string
+          message?: string | null
+          requested_at?: string
+          requester_id?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          seller_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_verification_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_verification_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_verification_requests_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
             referencedColumns: ["id"]
           },
         ]
