@@ -31,9 +31,9 @@ export async function getCompatibilityMap(filters:MarketplaceFilters,partId?:str
   const {data,error}=await supabase.rpc("marketplace_catalogue_compatibility",{
    p_variant_id:filters.catalogueVariant,
    p_year:filters.catalogueYear,
-   p_fuel:filters.catalogueFuel??null,
-   p_engine:filters.catalogueEngineSize??null,
-   p_part_id:partId??null
+   p_fuel:filters.catalogueFuel,
+   p_engine:filters.catalogueEngineSize,
+   p_part_id:partId
   });
   if(error)throw error;
   for(const row of data??[]){
@@ -44,7 +44,7 @@ export async function getCompatibilityMap(filters:MarketplaceFilters,partId?:str
  if(filters.vehicle){
   const {data,error}=await supabase.rpc("marketplace_legacy_vehicle_compatibility",{
    p_vehicle_id:filters.vehicle,
-   p_part_id:partId??null
+   p_part_id:partId
   });
   if(error)throw error;
   for(const row of data??[]){
