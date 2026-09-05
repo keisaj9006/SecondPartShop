@@ -6,6 +6,7 @@ import { ProductCard } from "./product-card";
 import { VehicleSelector } from "./vehicle-selector";
 import { MarketplaceFiltersPanel } from "./marketplace-filters";
 import { MarketplaceSearch } from "./marketplace-search";
+import { PartRequestCard } from "./part-request-card";
 
 const vehicleParams=(filters:MarketplaceFilters)=>{
  const params=new URLSearchParams();
@@ -36,6 +37,7 @@ const savedVehicleHref=(vehicle:GarageVehicle,baseParams:Record<string,string>)=
 
 export function MarketplaceHome({listings,categories,vehicles,catalogueModels,garageVehicles,signedIn,filters,selectedCatalogue,savedIds,error,configured}:{listings:Listing[];categories:Category[];vehicles:Vehicle[];catalogueModels:VehicleCatalogueModelOption[];garageVehicles:GarageVehicle[];signedIn:boolean;filters:MarketplaceFilters;selectedCatalogue:VehicleCatalogueSelection|null;savedIds:string[];error:string|null;configured:boolean}){
  const selectedLegacy=vehicles.find(v=>v.id===filters.vehicle);
+ const selectedCategory=categories.find(category=>category.id===filters.category);
  const baseParams=Object.fromEntries(Object.entries({q:filters.query,category:filters.category,condition:filters.condition,min:filters.minPrice?.toString(),max:filters.maxPrice?.toString()}).filter((entry):entry is [string,string]=>Boolean(entry[1])));
  const activeVehicleLabel=selectedCatalogue
   ?`${selectedCatalogue.make} ${selectedCatalogue.modelFamily} ${selectedCatalogue.year}`
@@ -89,7 +91,7 @@ export function MarketplaceHome({listings,categories,vehicles,catalogueModels,ga
    <MarketplaceFiltersPanel filters={filters}/>
    <p className="mt-6 text-[#63706a]">{listings.length} listing{listings.length===1?"":"s"} match the current search</p>
    {error&&<div className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm"><p className="font-bold">{configured?"Marketplace data is temporarily unavailable":"Supabase setup required"}</p><p className="mt-1 text-amber-900/75">{error}</p></div>}
-   {listings.length?<div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{listings.map(item=><ProductCard key={item.id} item={item} saved={savedIds.includes(item.id)} contextQuery={contextQuery}/>)}</div>:!error&&<div className="mt-8 rounded-3xl border border-dashed border-black/20 bg-white py-20 text-center"><Search className="mx-auto mb-4 text-[#63706a]"/><h3 className="text-xl font-bold">No confirmed matches yet</h3><p className="mx-auto mt-2 max-w-xl text-[#63706a]">{activeVehicleLabel?"We know which vehicle you selected, but no seller fitment currently confirms a matching part for this search. We will never label an unverified part as a confirmed fit.":"Try a different part name, category, OE/OEM number or filter."}</p></div>}
+   {listings.length?<div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{listings.map(item=><ProductCard key={item.id} item={item} saved={savedIds.includes(item.id)} contextQuery={contextQuery}/>)}</div>:!error&&<><div className="mt-8 rounded-3xl border border-dashed border-black/20 bg-white py-16 text-center"><Search className="mx-auto mb-4 text-[#63706a]"/><h3 className="text-xl font-bold">No confirmed matches yet</h3><p className="mx-auto mt-2 max-w-xl text-[#63706a]">{activeVehicleLabel?"We know which vehicle you selected, but no seller fitment currently confirms a matching part for this search. We will never label an unverified part as a confirmed fit.":"Try a different part name, category, OE/OEM number or filter."}</p></div><PartRequestCard signedIn={signedIn} filters={filters} defaultText={filters.query??selectedCategory?.name??""}/></>}
   </section>
  </main>;
 }
