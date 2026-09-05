@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowRight,Bookmark,CarFront,Clock3,Heart,Search,Wrench } from "lucide-react";
+import { ArrowRight,Bookmark,CarFront,Clock3,Heart,Search,ShieldCheck,Wrench } from "lucide-react";
 import { Header } from "@/components/header";
 import { AuthForm } from "@/components/auth-form";
 import { ProductCard } from "@/components/product-card";
@@ -16,14 +16,15 @@ const card=(href:string,label:string,count:number,description:string,icon:ReactN
 export default async function AccountPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
  const params=await searchParams;
  const [user,profile]=await Promise.all([getCurrentUser(),getCurrentProfile()]);
- if(!user||!profile)return <><Header/><main className="mx-auto grid min-h-[70vh] max-w-7xl place-items-center px-4 py-12"><AuthForm defaultMode={first(params.mode)==="signup"?"signup":"signin"} defaultRole={first(params.role)==="seller"?"seller":"buyer"} returnTo={first(params.returnTo)??"/account"} configured={isSupabaseConfigured()}/></main></>;
+ if(!user||!profile){const notice=first(params.reason)==="signin-required"?"Please sign in to continue. Your previous session may have expired.":first(params.error)==="confirmation-failed"?"We could not confirm that email link. Request a fresh confirmation email and try again.":undefined;return <><Header/><main className="mx-auto grid min-h-[70vh] max-w-7xl place-items-center px-4 py-12"><AuthForm defaultMode={first(params.mode)==="signup"?"signup":"signin"} defaultRole={first(params.role)==="seller"?"seller":"buyer"} returnTo={first(params.returnTo)??"/account"} configured={isSupabaseConfigured()} notice={notice}/></main></>;}
  const [counts,recent]=await Promise.all([getBuyerAccountCounts(user.id),getRecentlyViewedListings(user.id,3)]);
  const items=[
   card("/garage","SecondPart Garage",counts.garage,"Saved vehicles and one-click compatibility searches.",<CarFront size={22}/>),
   card("/saved","Saved parts",counts.savedParts,"Parts you want to come back to.",<Heart size={22}/>),
   card("/saved-searches","Saved searches",counts.savedSearches,"Vehicle, part and filter combinations ready to run again.",<Bookmark size={22}/>),
   card("/recently-viewed","Recently viewed",counts.recentlyViewed,"Your latest signed-in product views.",<Clock3 size={22}/>),
-  card("/requests","Part requests",counts.openRequests,"Open requests for parts you could not find.",<Search size={22}/>)
+  card("/requests","Part requests",counts.openRequests,"Open requests for parts you could not find.",<Search size={22}/>),
+  card("/account/security","Security & account",0,"Password recovery, verification help and account deletion requests.",<ShieldCheck size={22}/>)
  ];
  return <><Header/><main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
   <section className="overflow-hidden rounded-[32px] bg-[#173c31] p-6 text-white sm:p-9">
