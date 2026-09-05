@@ -323,7 +323,9 @@ export type Database = {
         Row: {
           category_id: string
           condition: Database["public"]["Enums"]["part_condition"]
+          condition_notes: string | null
           created_at: string
+          damage_notes: string | null
           description: string
           dispatch_days: number
           gearbox_code: string | null
@@ -337,13 +339,17 @@ export type Database = {
           slug: string
           status: Database["public"]["Enums"]["listing_status"]
           stock: number
+          testing_status: string
           title: string
           updated_at: string
+          warranty_days: number
         }
         Insert: {
           category_id: string
           condition: Database["public"]["Enums"]["part_condition"]
+          condition_notes?: string | null
           created_at?: string
+          damage_notes?: string | null
           description: string
           dispatch_days?: number
           gearbox_code?: string | null
@@ -357,13 +363,17 @@ export type Database = {
           slug: string
           status?: Database["public"]["Enums"]["listing_status"]
           stock?: number
+          testing_status?: string
           title: string
           updated_at?: string
+          warranty_days?: number
         }
         Update: {
           category_id?: string
           condition?: Database["public"]["Enums"]["part_condition"]
+          condition_notes?: string | null
           created_at?: string
+          damage_notes?: string | null
           description?: string
           dispatch_days?: number
           gearbox_code?: string | null
@@ -377,8 +387,10 @@ export type Database = {
           slug?: string
           status?: Database["public"]["Enums"]["listing_status"]
           stock?: number
+          testing_status?: string
           title?: string
           updated_at?: string
+          warranty_days?: number
         }
         Relationships: [
           {
