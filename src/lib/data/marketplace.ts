@@ -41,9 +41,18 @@ export async function getListings(filters:MarketplaceFilters={}):Promise<DataRes
 
  let rankedIds:string[]|undefined;
  if(filters.query?.trim()){
-  const {data,error}=await supabase.rpc("marketplace_search_part_ids",{p_query:filters.query.trim()});
+  const searchText=filters.query.trim();
+  const {data,error}=await supabase.rpc("marketplace_search_part_ids",{p_query:searchText});
   if(error)return failure([],error.message);
   rankedIds=(data??[]).map(row=>row.part_id);
+  if(!rankedIds.length){
+   const {data:synonym}=await supabase.from("marketplace_search_synonyms").select("canonical_query").eq("alias",searchText.toLowerCase()).maybeSingle();
+   if(synonym?.canonical_query){
+    const {data:fallback,error:fallbackError}=await supabase.rpc("marketplace_search_part_ids",{p_query:synonym.canonical_query});
+    if(fallbackError)return failure([],fallbackError.message);
+    rankedIds=(fallback??[]).map(row=>row.part_id);
+   }
+  }
   if(!rankedIds.length)return {data:[],error:null,configured:true};
  }
  let categoryIds:string[]|undefined;
@@ -86,13 +95,24 @@ export async function getSearchSuggestions(queryText:string):Promise<SearchSugge
  const supabase=await createSupabaseServerClient();
  const categories=await getCategories();
  const lower=q.toLowerCase();
- const categoryMatches=categories.filter(category=>[category.name,category.slug,...category.searchTerms].some(value=>value.toLowerCase().includes(lower))).sort((a,b)=>{
+ const {data:synonym}=await supabase.from("marketplace_search_synonyms").select("canonical_query").eq("alias",lower).maybeSingle();
+ const canonicalLower=synonym?.canonical_query?.toLowerCase()??null;
+ const categoryMatches=categories.filter(category=>[category.name,category.slug,...category.searchTerms].some(value=>{
+  const hay=value.toLowerCase();
+  return hay.includes(lower)||(canonicalLower?hay.includes(canonicalLower):false);
+ })).sort((a,b)=>{
   const ae=a.name.toLowerCase()===lower?0:a.name.toLowerCase().startsWith(lower)?1:2;
   const be=b.name.toLowerCase()===lower?0:b.name.toLowerCase().startsWith(lower)?1:2;
   return ae-be||a.sortOrder-b.sortOrder||a.name.localeCompare(b.name);
  }).slice(0,5).map(category=>({kind:"category" as const,label:category.name,query:category.name,categoryId:category.id,meta:getCategoryPath(categories,category.id)}));
- const {data:ranked}=await supabase.rpc("marketplace_search_part_ids",{p_query:q});
- const ids=(ranked??[]).slice(0,8).map(row=>row.part_id);
+ const {data:ranked,error:rankedError}=await supabase.rpc("marketplace_search_part_ids",{p_query:q});
+ if(rankedError)throw rankedError;
+ let ids=(ranked??[]).slice(0,8).map(row=>row.part_id);
+ if(!ids.length&&synonym?.canonical_query){
+  const {data:fallback,error:fallbackError}=await supabase.rpc("marketplace_search_part_ids",{p_query:synonym.canonical_query});
+  if(fallbackError)throw fallbackError;
+  ids=(fallback??[]).slice(0,8).map(row=>row.part_id);
+ }
  if(!ids.length)return {...empty,categories:categoryMatches};
  const {data:parts}=await supabase.from("parts").select("id,title,manufacturer,part_number,oem_number").eq("status","active").in("id",ids);
  const byId=new Map((parts??[]).map(part=>[part.id,part]));
