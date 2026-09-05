@@ -469,10 +469,13 @@ export type Database = {
       parts: {
         Row: {
           category_id: string
+          collection_available: boolean
           condition: Database["public"]["Enums"]["part_condition"]
           condition_notes: string | null
           created_at: string
           damage_notes: string | null
+          delivery_days_max: number | null
+          delivery_days_min: number | null
           description: string
           dispatch_days: number
           donor_vehicle_id: string | null
@@ -494,10 +497,13 @@ export type Database = {
         }
         Insert: {
           category_id: string
+          collection_available?: boolean
           condition: Database["public"]["Enums"]["part_condition"]
           condition_notes?: string | null
           created_at?: string
           damage_notes?: string | null
+          delivery_days_max?: number | null
+          delivery_days_min?: number | null
           description: string
           dispatch_days?: number
           donor_vehicle_id?: string | null
@@ -519,10 +525,13 @@ export type Database = {
         }
         Update: {
           category_id?: string
+          collection_available?: boolean
           condition?: Database["public"]["Enums"]["part_condition"]
           condition_notes?: string | null
           created_at?: string
           damage_notes?: string | null
+          delivery_days_max?: number | null
+          delivery_days_min?: number | null
           description?: string
           dispatch_days?: number
           donor_vehicle_id?: string | null
