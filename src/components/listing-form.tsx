@@ -15,7 +15,7 @@ const selectableDescendants=(node:CategoryNode|null)=>{
  return result;
 };
 
-export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defaultCategoryId,initialCatalogueFitments=[],listing}:{categories:Category[];donors:DonorVehicle[];defaultDonorId?:string;defaultTitle?:string;defaultCategoryId?:string;initialCatalogueFitments?:CatalogueFitmentSelection[];listing?:Listing}){
+export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defaultCategoryId,defaultRequestId,initialCatalogueFitments=[],listing}:{categories:Category[];donors:DonorVehicle[];defaultDonorId?:string;defaultTitle?:string;defaultCategoryId?:string;defaultRequestId?:string;initialCatalogueFitments?:CatalogueFitmentSelection[];listing?:Listing}){
  const handler=listing?updateListing:createListing;
  const [state,action,pending]=useActionState(handler,initial);
  const tree=useMemo(()=>buildCategoryTree(categories),[categories]);
@@ -41,7 +41,7 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
  };
 
  return <form action={action} className="mt-8 grid gap-5 rounded-3xl border border-black/10 bg-white p-5 sm:p-7 lg:grid-cols-2">
-  {listing&&<input type="hidden" name="partId" value={listing.id}/>}
+  {listing&&<input type="hidden" name="partId" value={listing.id}/>} {!listing&&defaultRequestId&&<input type="hidden" name="sourceRequestId" value={defaultRequestId}/>} 
   <input type="hidden" name="categoryId" value={categoryId}/>
 
   <label className="text-sm font-bold lg:col-span-2">Listing title<input required minLength={5} name="title" defaultValue={listing?.title??defaultTitle} className={input} placeholder="e.g. Golf Mk7 LED headlight"/></label>
