@@ -8,6 +8,8 @@ import { MarketplaceFiltersPanel } from "./marketplace-filters";
 import { MarketplaceSearch } from "./marketplace-search";
 import { PartRequestCard } from "./part-request-card";
 import { PostcodeDistanceFilter } from "./postcode-distance-filter";
+import { OfferGroupCard } from "./offer-group-card";
+import { groupListingsForOffers } from "@/lib/offer-groups";
 
 const vehicleParams=(filters:MarketplaceFilters)=>{
  const params=new URLSearchParams();
@@ -45,6 +47,7 @@ export function MarketplaceHome({listings,categories,vehicles,catalogueModels,ga
   ?`${selectedCatalogue.make} ${selectedCatalogue.modelFamily} ${selectedCatalogue.year}`
   :selectedLegacy?`${selectedLegacy.make} ${selectedLegacy.model} ${selectedLegacy.year}`:undefined;
  const contextQuery=vehicleParams(filters).toString();
+ const offerGroups=groupListingsForOffers(listings);
  const selectedSaved=Boolean(selectedCatalogue&&garageVehicles.some(vehicle=>
   vehicle.catalogueVariantId===selectedCatalogue.variantId&&
   vehicle.year===selectedCatalogue.year&&
@@ -94,7 +97,7 @@ export function MarketplaceHome({listings,categories,vehicles,catalogueModels,ga
    <PostcodeDistanceFilter initialPostcode={filters.postcode}/>
    <p className="mt-6 text-[#63706a]">{listings.length} listing{listings.length===1?"":"s"} match the current search</p>
    {error&&<div className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm"><p className="font-bold">{configured?"Marketplace data is temporarily unavailable":"Supabase setup required"}</p><p className="mt-1 text-amber-900/75">{error}</p></div>}
-   {listings.length?<div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{listings.map(item=><ProductCard key={item.id} item={item} saved={savedIds.includes(item.id)} contextQuery={contextQuery}/>)}</div>:!error&&<><div className="mt-8 rounded-3xl border border-dashed border-black/20 bg-white py-16 text-center"><Search className="mx-auto mb-4 text-[#63706a]"/><h3 className="text-xl font-bold">No confirmed matches yet</h3><p className="mx-auto mt-2 max-w-xl text-[#63706a]">{activeVehicleLabel?"We know which vehicle you selected, but no seller fitment currently confirms a matching part for this search. We will never label an unverified part as a confirmed fit.":"Try a different part name, category, OE/OEM number or filter."}</p></div><PartRequestCard signedIn={signedIn} filters={filters} defaultText={filters.query??selectedCategory?.name??""}/></>}
+   {listings.length?<div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{offerGroups.map(group=>group.listings.length>1?<OfferGroupCard key={group.key} group={group} contextQuery={contextQuery}/>:<ProductCard key={group.listings[0].id} item={group.listings[0]} saved={savedIds.includes(group.listings[0].id)} contextQuery={contextQuery}/>)}</div>:!error&&<><div className="mt-8 rounded-3xl border border-dashed border-black/20 bg-white py-16 text-center"><Search className="mx-auto mb-4 text-[#63706a]"/><h3 className="text-xl font-bold">No confirmed matches yet</h3><p className="mx-auto mt-2 max-w-xl text-[#63706a]">{activeVehicleLabel?"We know which vehicle you selected, but no seller fitment currently confirms a matching part for this search. We will never label an unverified part as a confirmed fit.":"Try a different part name, category, OE/OEM number or filter."}</p></div><PartRequestCard signedIn={signedIn} filters={filters} defaultText={filters.query??selectedCategory?.name??""}/></>}
   </section>
  </main>;
 }
