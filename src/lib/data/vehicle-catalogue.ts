@@ -100,12 +100,13 @@ export async function matchRegistrationToCatalogue(vehicle:{make:string;model:st
  const modelKey=normalizeVehicleName(vehicle.model);
  const makeOptions=[...new Set(modelMap.map(row=>row.make))];
  const matchedMake=makeOptions.find(make=>normalizeVehicleName(make)===makeKey);
- if(!matchedMake)return {make:null,modelFamily:null,variants:[] as CatalogueVariantOption[]};
+ if(!matchedMake)return {make:null,modelFamily:null,variants:[] as CatalogueVariantOption[],engineMatched:false};
  const modelOptions=modelMap.filter(row=>row.make===matchedMake).map(row=>row.modelFamily);
  const exact=modelOptions.find(model=>normalizeVehicleName(model)===modelKey);
  const close=exact??modelOptions.find(model=>normalizeVehicleName(model).includes(modelKey)||modelKey.includes(normalizeVehicleName(model)));
- if(!close||!vehicle.year)return {make:matchedMake,modelFamily:close??null,variants:[] as CatalogueVariantOption[]};
+ if(!close||!vehicle.year)return {make:matchedMake,modelFamily:close??null,variants:[] as CatalogueVariantOption[],engineMatched:false};
  let variants=await getCatalogueVariantsForModelYear(matchedMake,close,vehicle.year);
+ let engineMatched=false;
  if((vehicle.fuelType||vehicle.engineSizeSimple)&&variants.length){
   const supabase=await createSupabaseServerClient();
   const variantIds=variants.map(item=>item.id);
@@ -114,7 +115,7 @@ export async function matchRegistrationToCatalogue(vehicle:{make:string;model:st
   const {data,error}=await query;
   if(error)throw error;
   const matchingIds=new Set((data??[]).filter(row=>!vehicle.fuelType||fuelComparable(row.fuel_type)===fuelComparable(vehicle.fuelType)).map(row=>row.variant_id));
-  if(matchingIds.size)variants=variants.filter(item=>matchingIds.has(item.id));
+  if(matchingIds.size){variants=variants.filter(item=>matchingIds.has(item.id));engineMatched=true;}
  }
- return {make:matchedMake,modelFamily:close,variants};
+ return {make:matchedMake,modelFamily:close,variants,engineMatched};
 }
