@@ -16,6 +16,7 @@ const vehicleParams=(filters:MarketplaceFilters)=>{
  if(filters.query)params.set("q",filters.query);
  if(filters.category)params.set("category",filters.category);
  if(filters.condition)params.set("condition",filters.condition);
+ if(filters.sort)params.set("sort",filters.sort);
  if(filters.postcode)params.set("pc",filters.postcode);
  if(filters.collectionOnly)params.set("collection","1");
  if(Number.isFinite(filters.minPrice))params.set("min",String(filters.minPrice));
@@ -43,7 +44,7 @@ const savedVehicleHref=(vehicle:GarageVehicle,baseParams:Record<string,string>)=
 export function MarketplaceHome({listings,categories,vehicles,catalogueModels,garageVehicles,signedIn,filters,selectedCatalogue,savedIds,error,configured}:{listings:Listing[];categories:Category[];vehicles:Vehicle[];catalogueModels:VehicleCatalogueModelOption[];garageVehicles:GarageVehicle[];signedIn:boolean;filters:MarketplaceFilters;selectedCatalogue:VehicleCatalogueSelection|null;savedIds:string[];error:string|null;configured:boolean}){
  const selectedLegacy=vehicles.find(v=>v.id===filters.vehicle);
  const selectedCategory=categories.find(category=>category.id===filters.category);
- const baseParams=Object.fromEntries(Object.entries({q:filters.query,category:filters.category,condition:filters.condition,min:filters.minPrice?.toString(),max:filters.maxPrice?.toString()}).filter((entry):entry is [string,string]=>Boolean(entry[1])));
+ const baseParams=Object.fromEntries(Object.entries({q:filters.query,category:filters.category,condition:filters.condition,sort:filters.sort,min:filters.minPrice?.toString(),max:filters.maxPrice?.toString()}).filter((entry):entry is [string,string]=>Boolean(entry[1])));
  const activeVehicleLabel=selectedCatalogue
   ?`${selectedCatalogue.make} ${selectedCatalogue.modelFamily} ${selectedCatalogue.year}`
   :selectedLegacy?`${selectedLegacy.make} ${selectedLegacy.model} ${selectedLegacy.year}`:undefined;
