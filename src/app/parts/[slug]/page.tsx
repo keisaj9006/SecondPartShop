@@ -5,6 +5,7 @@ import { CompatibilityBadge } from "@/components/compatibility-badge";
 import { Header } from "@/components/header";
 import { ProductGallery } from "@/components/product-gallery";
 import { SaveButton } from "@/components/save-button";
+import { RecentlyViewedTracker } from "@/components/recently-viewed-tracker";
 import { getCurrentUser } from "@/lib/auth";
 import { getPartCompatibility } from "@/lib/data/compatibility";
 import { getListingBySlug,getSavedPartIds,getVehicles } from "@/lib/data/marketplace";
@@ -54,7 +55,7 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
  const savedIds=user?await getSavedPartIds(user.id):[];
  const backHref=context.toString()?`/?${context.toString()}#marketplace`:"/#marketplace";
 
- return <><Header/><main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+ return <><Header/>{user&&<RecentlyViewedTracker partId={item.id}/>}<main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
   <Link href={backHref} className="mb-6 inline-flex items-center gap-2 text-sm font-bold"><ArrowLeft size={16}/>Back to results</Link>
   <div className="grid gap-8 lg:grid-cols-[1.05fr_.95fr]">
    <ProductGallery images={item.images} alt={item.title}/>
