@@ -55,6 +55,60 @@ export type Database = {
           },
         ]
       }
+      garage_vehicles: {
+        Row: {
+          catalogue_variant_id: string
+          created_at: string
+          engine_size_simple: number | null
+          fuel_type: string | null
+          id: string
+          nickname: string | null
+          profile_id: string
+          registration: string | null
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          catalogue_variant_id: string
+          created_at?: string
+          engine_size_simple?: number | null
+          fuel_type?: string | null
+          id?: string
+          nickname?: string | null
+          profile_id: string
+          registration?: string | null
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          catalogue_variant_id?: string
+          created_at?: string
+          engine_size_simple?: number | null
+          fuel_type?: string | null
+          id?: string
+          nickname?: string | null
+          profile_id?: string
+          registration?: string | null
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "garage_vehicles_catalogue_variant_id_fkey"
+            columns: ["catalogue_variant_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_catalogue_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "garage_vehicles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           id: string
