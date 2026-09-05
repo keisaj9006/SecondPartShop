@@ -29,6 +29,7 @@ export default async function ComparePage({searchParams}:{searchParams:Promise<R
  const filters:MarketplaceFilters={
   query:number,
   postcode:postcodeRaw?normalizePostcode(postcodeRaw):undefined,
+  collectionOnly:first(params.collection)==="1",
   vehicle:first(params.vehicle),
   vehicleRegistration:first(params.vr),
   catalogueVariant:selectedCatalogue?.variantId,
@@ -44,7 +45,7 @@ export default async function ComparePage({searchParams}:{searchParams:Promise<R
  listings.sort((a,b)=>a.pricePence-b.pricePence);
 
  const preserved=new URLSearchParams();
- for(const key of ["pc","vehicle","vr","cv","cy","cf","ce"] as const){const value=first(params[key]);if(value)preserved.set(key,value);}
+ for(const key of ["pc","collection","vehicle","vr","cv","cy","cf","ce"] as const){const value=first(params[key]);if(value)preserved.set(key,value);}
  const contextQuery=preserved.toString();
  const sellerCount=new Set(listings.map(item=>item.sellerId)).size;
  const cheapest=listings[0];
