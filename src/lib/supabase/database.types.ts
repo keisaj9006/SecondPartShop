@@ -286,6 +286,50 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          dedupe_key: string | null
+          href: string | null
+          id: string
+          profile_id: string
+          read_at: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          href?: string | null
+          id?: string
+          profile_id: string
+          read_at?: string | null
+          title: string
+          type: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          href?: string | null
+          id?: string
+          profile_id?: string
+          read_at?: string | null
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           id: string
@@ -591,6 +635,7 @@ export type Database = {
           price_pence: number
           seller_id: string
           slug: string
+          source_request_id: string | null
           status: Database["public"]["Enums"]["listing_status"]
           stock: number
           testing_status: string
@@ -619,6 +664,7 @@ export type Database = {
           price_pence: number
           seller_id: string
           slug: string
+          source_request_id?: string | null
           status?: Database["public"]["Enums"]["listing_status"]
           stock?: number
           testing_status?: string
@@ -647,6 +693,7 @@ export type Database = {
           price_pence?: number
           seller_id?: string
           slug?: string
+          source_request_id?: string | null
           status?: Database["public"]["Enums"]["listing_status"]
           stock?: number
           testing_status?: string
@@ -674,6 +721,13 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parts_source_request_id_fkey"
+            columns: ["source_request_id"]
+            isOneToOne: false
+            referencedRelation: "part_requests"
             referencedColumns: ["id"]
           },
         ]
