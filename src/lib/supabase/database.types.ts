@@ -109,6 +109,24 @@ export type Database = {
           },
         ]
       }
+      marketplace_search_synonyms: {
+        Row: {
+          alias: string
+          canonical_query: string
+          created_at: string
+        }
+        Insert: {
+          alias: string
+          canonical_query: string
+          created_at?: string
+        }
+        Update: {
+          alias?: string
+          canonical_query?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           id: string
