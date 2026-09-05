@@ -6,6 +6,7 @@ export function MarketplaceFiltersPanel({filters}:{filters:MarketplaceFilters}){
  const preserved=new URLSearchParams();
  if(filters.query)preserved.set("q",filters.query);
  if(filters.category)preserved.set("category",filters.category);
+ if(filters.sort)preserved.set("sort",filters.sort);
  if(filters.postcode)preserved.set("pc",filters.postcode);
  if(filters.collectionOnly)preserved.set("collection","1");
  if(filters.vehicle)preserved.set("vehicle",filters.vehicle);
@@ -15,7 +16,7 @@ export function MarketplaceFiltersPanel({filters}:{filters:MarketplaceFilters}){
  if(filters.catalogueFuel)preserved.set("cf",filters.catalogueFuel);
  if(filters.catalogueEngineSize!==undefined)preserved.set("ce",String(filters.catalogueEngineSize));
  const resetHref=`/${preserved.toString()?`?${preserved.toString()}`:""}#marketplace`;
- return <form method="get" action="/" className="mt-4 grid gap-3 rounded-2xl border border-black/10 bg-white p-4 sm:grid-cols-2 lg:grid-cols-6">
+ return <form method="get" action="/" className="mt-4 grid gap-3 rounded-2xl border border-black/10 bg-white p-4 sm:grid-cols-2 lg:grid-cols-7">
   {filters.query&&<input type="hidden" name="q" value={filters.query}/>}
   {filters.category&&<input type="hidden" name="category" value={filters.category}/>}
   {filters.postcode&&<input type="hidden" name="pc" value={filters.postcode}/>}
@@ -25,6 +26,7 @@ export function MarketplaceFiltersPanel({filters}:{filters:MarketplaceFilters}){
   {filters.catalogueYear!==undefined&&<input type="hidden" name="cy" value={filters.catalogueYear}/>}
   {filters.catalogueFuel&&<input type="hidden" name="cf" value={filters.catalogueFuel}/>}
   {filters.catalogueEngineSize!==undefined&&<input type="hidden" name="ce" value={filters.catalogueEngineSize}/>}
+  <select name="sort" defaultValue={filters.sort??"best"} className={input}><option value="best">Best match</option><option value="price_asc">Price: low to high</option><option value="price_desc">Price: high to low</option><option value="distance">Nearest first</option><option value="delivery">Fastest delivery</option><option value="warranty">Longest warranty</option></select>
   <select name="condition" defaultValue={filters.condition??""} className={input}><option value="">Any condition</option><option value="new">New</option><option value="reconditioned">Reconditioned</option><option value="used">Used</option></select>
   <input type="number" min="0" step="1" name="min" defaultValue={filters.minPrice} className={input} placeholder="Min price £"/>
   <input type="number" min="0" step="1" name="max" defaultValue={filters.maxPrice} className={input} placeholder="Max price £"/>
