@@ -2,6 +2,7 @@ import { Header } from "@/components/header";
 import { MarketplaceHome } from "@/components/marketplace-home";
 import { getCategories,getListings,getSavedPartIds,getVehicles } from "@/lib/data/marketplace";
 import { getGarageVehicles } from "@/lib/data/garage";
+import { getRecentlyViewedListings } from "@/lib/data/buyer-account";
 import { getCatalogueModelMap,getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
 import { getCurrentUser } from "@/lib/auth";
 import { normalizeRegistration } from "@/lib/vehicle-registration";
@@ -47,14 +48,15 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   catalogueFuel:selectedCatalogue?.fuelType??undefined,
   catalogueEngineSize:selectedCatalogue?.engineSizeSimple??undefined
  };
- const [result,vehicles,savedIds,catalogueModels,garageVehicles]=await Promise.all([
+ const [result,vehicles,savedIds,catalogueModels,garageVehicles,recentlyViewed]=await Promise.all([
   getListings(filters),
   getVehicles(),
   user?getSavedPartIds(user.id):Promise.resolve([]),
   getCatalogueModelMap(),
-  user?getGarageVehicles(user.id):Promise.resolve([])
+  user?getGarageVehicles(user.id):Promise.resolve([]),
+  user?getRecentlyViewedListings(user.id,3):Promise.resolve([])
  ]);
  const listingsWithDistance=await enrichListingsWithDistance(result.data,postcode);
  const sortedListings=sortMarketplaceListings(listingsWithDistance,sort);
- return <><Header/><MarketplaceHome listings={sortedListings} categories={categories} vehicles={vehicles} catalogueModels={catalogueModels} garageVehicles={garageVehicles} signedIn={Boolean(user)} filters={filters} selectedCatalogue={selectedCatalogue} savedIds={savedIds} error={result.error} configured={result.configured}/><footer className="border-t border-black/10 px-4 py-8 text-sm text-[#63706a]"><div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 sm:flex-row"><span>© 2026 SecondPart Ltd.</span><span>Built for the UK automotive trade.</span></div></footer></>;
+ return <><Header/><MarketplaceHome listings={sortedListings} categories={categories} vehicles={vehicles} catalogueModels={catalogueModels} garageVehicles={garageVehicles} recentlyViewed={recentlyViewed} signedIn={Boolean(user)} filters={filters} selectedCatalogue={selectedCatalogue} savedIds={savedIds} error={result.error} configured={result.configured}/><footer className="border-t border-black/10 px-4 py-8 text-sm text-[#63706a]"><div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 sm:flex-row"><span>© 2026 SecondPart Ltd.</span><span>Built for the UK automotive trade.</span></div></footer></>;
 }
