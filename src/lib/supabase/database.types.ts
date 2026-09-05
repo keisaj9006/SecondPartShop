@@ -977,6 +977,10 @@ export type Database = {
           part_id: string
         }[]
       }
+      replace_part_catalogue_fitments: {
+        Args: { p_fitments: Json; p_part_id: string }
+        Returns: undefined
+      }
       vehicle_catalogue_makes: {
         Args: never
         Returns: {
