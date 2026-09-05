@@ -773,6 +773,26 @@ export type Database = {
         }
         Returns: Json
       }
+      marketplace_catalogue_compatibility: {
+        Args: {
+          p_engine?: number
+          p_fuel?: string
+          p_part_id?: string
+          p_variant_id: string
+          p_year: number
+        }
+        Returns: {
+          confidence: string
+          part_id: string
+        }[]
+      }
+      marketplace_legacy_vehicle_compatibility: {
+        Args: { p_part_id?: string; p_vehicle_id: string }
+        Returns: {
+          confidence: string
+          part_id: string
+        }[]
+      }
       marketplace_search_part_ids: {
         Args: { p_query: string }
         Returns: {
