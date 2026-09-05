@@ -52,3 +52,52 @@ export async function createListing(_previous:ActionState,formData:FormData):Pro
 export async function updateListing(_previous:ActionState,formData:FormData):Promise<ActionState>{const {user}=await requireSeller("/dashboard");const seller=await getSellerForOwner(user.id);if(!seller)return {status:"error",message:"Seller profile not found."};const partId=String(formData.get("partId")??"");const raw=readListing(formData);const invalid=validateListing(raw);if(invalid)return {status:"error",message:invalid};const catalogueFitments=readCatalogueFitments(formData);if(catalogueFitments.error)return {status:"error",message:catalogueFitments.error};const normalized=await normalizeForCategory(raw);if(normalized.error||!normalized.value)return {status:"error",message:normalized.error??"Listing could not be validated."};const value={...normalized.value,donor_vehicle_id:await validateDonorForSeller(normalized.value.donor_vehicle_id,seller.id)};const supabase=await createSupabaseServerClient();const files=imageFiles(formData);if(raw.status==="active"&&!files.length){const {count}=await supabase.from("part_images").select("id",{count:"exact",head:true}).eq("part_id",partId);if(!count)return {status:"error",message:"Add at least one real product photo before publishing an active listing."};}const {data,error}=await supabase.from("parts").update(value).eq("id",partId).eq("seller_id",seller.id).select("id,slug").single();if(error||!data)return {status:"error",message:error?.message??"Listing not found."};try{await replaceCatalogueFitments(partId,catalogueFitments.rows);if(files.length){const {data:lastImages}=await supabase.from("part_images").select("position").eq("part_id",partId).order("position",{ascending:false}).limit(1);const start=(lastImages?.[0]?.position??-1)+1;await uploadImages(partId,user.id,value.title,files,start);}}catch(error){return {status:"error",message:error instanceof Error?error.message:"Listing saved, but related data could not be updated."};}revalidatePath("/");revalidatePath(`/parts/${data.slug}`);revalidatePath("/dashboard");redirect("/dashboard?updated=1");}
 export async function archiveListing(formData:FormData){const {user}=await requireSeller("/dashboard");const seller=await getSellerForOwner(user.id);if(!seller)return;const partId=String(formData.get("partId")??"");const supabase=await createSupabaseServerClient();await supabase.from("parts").update({status:"archived"}).eq("id",partId).eq("seller_id",seller.id);revalidatePath("/");revalidatePath("/dashboard");}
 export async function updateStock(formData:FormData){const {user}=await requireSeller("/dashboard");const seller=await getSellerForOwner(user.id);if(!seller)return;const partId=String(formData.get("partId")??"");const stock=Math.max(0,Math.floor(Number(formData.get("stock"))));const supabase=await createSupabaseServerClient();await supabase.from("parts").update({stock}).eq("id",partId).eq("seller_id",seller.id);revalidatePath("/");revalidatePath("/dashboard");}
+
+export async function deleteListingImage(formData:FormData){
+ const {user}=await requireSeller("/dashboard");
+ const seller=await getSellerForOwner(user.id);
+ if(!seller)return;
+ const imageId=String(formData.get("imageId")??"");
+ const partId=String(formData.get("partId")??"");
+ if(!imageId||!partId)return;
+ const supabase=await createSupabaseServerClient();
+ const {data:part}=await supabase.from("parts").select("id,slug,status").eq("id",partId).eq("seller_id",seller.id).maybeSingle();
+ if(!part)return;
+ const {data:image}=await supabase.from("part_images").select("id,storage_path").eq("id",imageId).eq("part_id",partId).maybeSingle();
+ if(!image)return;
+ if(part.status==="active"){
+  const {count}=await supabase.from("part_images").select("id",{count:"exact",head:true}).eq("part_id",partId);
+  if((count??0)<=1)return;
+ }
+ const {error:storageError}=await supabase.storage.from("part-images").remove([image.storage_path]);
+ if(storageError)throw storageError;
+ const {error}=await supabase.from("part_images").delete().eq("id",imageId).eq("part_id",partId);
+ if(error)throw error;
+ revalidatePath("/dashboard");
+ revalidatePath("/dashboard/listings/"+partId+"/edit");
+ revalidatePath("/parts/"+part.slug);
+}
+
+export async function setListingCoverImage(formData:FormData){
+ const {user}=await requireSeller("/dashboard");
+ const seller=await getSellerForOwner(user.id);
+ if(!seller)return;
+ const imageId=String(formData.get("imageId")??"");
+ const partId=String(formData.get("partId")??"");
+ if(!imageId||!partId)return;
+ const supabase=await createSupabaseServerClient();
+ const {data:part}=await supabase.from("parts").select("id,slug").eq("id",partId).eq("seller_id",seller.id).maybeSingle();
+ if(!part)return;
+ const {data:images,error}=await supabase.from("part_images").select("id,position").eq("part_id",partId).order("position");
+ if(error)throw error;
+ const chosen=(images??[]).find(image=>image.id===imageId);
+ if(!chosen)return;
+ const ordered=[chosen,...(images??[]).filter(image=>image.id!==imageId)];
+ for(let index=0;index<ordered.length;index+=1){
+  const {error:updateError}=await supabase.from("part_images").update({position:index}).eq("id",ordered[index].id).eq("part_id",partId);
+  if(updateError)throw updateError;
+ }
+ revalidatePath("/dashboard");
+ revalidatePath("/dashboard/listings/"+partId+"/edit");
+ revalidatePath("/parts/"+part.slug);
+}
