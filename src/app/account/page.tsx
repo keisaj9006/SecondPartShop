@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ArrowRight,Bookmark,CarFront,Clock3,Heart,Search,Wrench } from "lucide-react";
 import { Header } from "@/components/header";
 import { AuthForm } from "@/components/auth-form";
@@ -10,7 +11,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 export const dynamic="force-dynamic";
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 
-const card=(href:string,label:string,count:number,description:string,icon:React.ReactNode)=>({href,label,count,description,icon});
+const card=(href:string,label:string,count:number,description:string,icon:ReactNode)=>({href,label,count,description,icon});
 
 export default async function AccountPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
  const params=await searchParams;
