@@ -7,3 +7,5 @@ export async function getCurrentUser(){if(!isSupabaseConfigured())return null;co
 export async function getCurrentProfile():Promise<Profile|null>{const user=await getCurrentUser();if(!user)return null;const supabase=await createSupabaseServerClient();const {data}=await supabase.from("profiles").select("id,role,display_name,phone").eq("id",user.id).maybeSingle();return data?{id:data.id,role:data.role,displayName:data.display_name,phone:data.phone}:null;}
 export async function requireUser(returnTo="/account"){const user=await getCurrentUser();if(!user)redirect(`/account?reason=signin-required&returnTo=${encodeURIComponent(returnTo)}`);return user;}
 export async function requireSeller(returnTo="/dashboard"){const user=await requireUser(returnTo);const profile=await getCurrentProfile();if(!profile||!(["seller","admin"] as string[]).includes(profile.role))redirect("/account?error=seller-required");return {user,profile};}
+
+export async function requireAdmin(returnTo="/admin/moderation"){const user=await requireUser(returnTo);const profile=await getCurrentProfile();if(!profile||profile.role!=="admin")redirect("/account?error=admin-required");return {user,profile};}
