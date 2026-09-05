@@ -5,6 +5,7 @@ import { getGarageVehicles } from "@/lib/data/garage";
 import { getCatalogueModelMap,getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
 import { getCurrentUser } from "@/lib/auth";
 import { normalizeRegistration } from "@/lib/vehicle-registration";
+import { enrichListingsWithDistance,normalizePostcode } from "@/lib/postcode";
 import type { MarketplaceFilters,PartCondition } from "@/lib/types";
 
 export const dynamic="force-dynamic";
@@ -21,6 +22,8 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
  const requestedCatalogueEngine=integer(first(params.ce));
  const rawRegistration=first(params.vr);
  const vehicleRegistration=rawRegistration?normalizeRegistration(rawRegistration):undefined;
+ const rawPostcode=first(params.pc);
+ const postcode=rawPostcode?normalizePostcode(rawPostcode):undefined;
  const [categories,user]=await Promise.all([getCategories(),getCurrentUser()]);
  const selectedCatalogue=requestedCatalogueVariant&&requestedCatalogueYear
   ?await getCatalogueSelection(requestedCatalogueVariant,requestedCatalogueYear,requestedCatalogueFuel,requestedCatalogueEngine)
@@ -31,6 +34,7 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   condition:(["new","reconditioned","used"] as string[]).includes(condition??"")?condition as PartCondition:undefined,
   minPrice:first(params.min)?Number(first(params.min)):undefined,
   maxPrice:first(params.max)?Number(first(params.max)):undefined,
+  postcode,
   vehicle:first(params.vehicle),
   vehicleRegistration:vehicleRegistration||undefined,
   catalogueVariant:selectedCatalogue?.variantId,
@@ -45,5 +49,6 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   getCatalogueModelMap(),
   user?getGarageVehicles(user.id):Promise.resolve([])
  ]);
- return <><Header/><MarketplaceHome listings={result.data} categories={categories} vehicles={vehicles} catalogueModels={catalogueModels} garageVehicles={garageVehicles} signedIn={Boolean(user)} filters={filters} selectedCatalogue={selectedCatalogue} savedIds={savedIds} error={result.error} configured={result.configured}/><footer className="border-t border-black/10 px-4 py-8 text-sm text-[#63706a]"><div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 sm:flex-row"><span>© 2026 SecondPart Ltd.</span><span>Built for the UK automotive trade.</span></div></footer></>;
+ const listingsWithDistance=await enrichListingsWithDistance(result.data,postcode);
+ return <><Header/><MarketplaceHome listings={listingsWithDistance} categories={categories} vehicles={vehicles} catalogueModels={catalogueModels} garageVehicles={garageVehicles} signedIn={Boolean(user)} filters={filters} selectedCatalogue={selectedCatalogue} savedIds={savedIds} error={result.error} configured={result.configured}/><footer className="border-t border-black/10 px-4 py-8 text-sm text-[#63706a]"><div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 sm:flex-row"><span>© 2026 SecondPart Ltd.</span><span>Built for the UK automotive trade.</span></div></footer></>;
 }
