@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect,useMemo,useRef,useState } from "react";
+import { useEffect,useMemo,useRef,useState,type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown,Search,X } from "lucide-react";
 import { CategoryBrowser } from "@/components/category-browser";
@@ -81,7 +81,7 @@ export function MarketplaceSearch({categories,filters,activeVehicleLabel}:{categ
  const clearVehicle=()=>pushParams(params=>{for(const key of ["vehicle","cv","cy","cf","ce"])params.delete(key);});
  const hasSuggestions=items.length>0&&query.trim().length>=2;
 
- const onKeyDown=(event:React.KeyboardEvent<HTMLInputElement>)=>{
+ const onKeyDown=(event:ReactKeyboardEvent<HTMLInputElement>)=>{
   if(event.key==="ArrowDown"&&hasSuggestions){event.preventDefault();setOpen(true);setActiveIndex(index=>Math.min(index+1,items.length-1));}
   else if(event.key==="ArrowUp"&&hasSuggestions){event.preventDefault();setActiveIndex(index=>Math.max(index-1,0));}
   else if(event.key==="Enter"){event.preventDefault();if(open&&activeIndex>=0&&items[activeIndex])chooseSuggestion(items[activeIndex]);else performSearch();}
