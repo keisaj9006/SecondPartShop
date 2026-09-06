@@ -1,3 +1,4 @@
+import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileSeller } from "@/lib/mobile-api";
 import { listingRow,parseMobileListingInput,replaceMobileListingFitments,slugifyMobileListing,validateMobileListingInput } from "@/lib/mobile-seller-listing-write";
 
@@ -57,12 +58,19 @@ export async function POST(request:Request){
  try{body=await request.json();}catch{return mobileJson(request,{ok:false,error:"invalid_json"},400);}
 
  try{
+  const input=body&&typeof body==="object"&&!Array.isArray(body)?body as Record<string,unknown>:{};
+  const rawSourceRequestId=String(input.sourceRequestId??"").trim();
+  let sourceRequestId:string|null=null;
+  if(isUuid(rawSourceRequestId)){
+   const {data:lead}=await supabase.from("seller_part_request_leads").select("request_id").eq("request_id",rawSourceRequestId).eq("status","open").maybeSingle();
+   sourceRequestId=lead?.request_id??null;
+  }
   const parsed=parseMobileListingInput(body);
   const value=await validateMobileListingInput(supabase,auth.seller.id,parsed);
   const slug=`${slugifyMobileListing(value.title)}-${crypto.randomUUID().slice(0,8)}`;
   const {data,error}=await supabase
    .from("parts")
-   .insert({...listingRow(value),seller_id:auth.seller.id,status:"draft",slug})
+   .insert({...listingRow(value),seller_id:auth.seller.id,source_request_id:sourceRequestId,status:"draft",slug})
    .select("id,slug")
    .single();
   if(error||!data)return mobileJson(request,{ok:false,error:"listing_create_failed"},503);
