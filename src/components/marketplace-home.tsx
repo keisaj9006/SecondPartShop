@@ -13,6 +13,7 @@ import { OfferGroupCard } from "./offer-group-card";
 import { groupListingsForOffers } from "@/lib/offer-groups";
 import { SaveSearchControl } from "./save-search-control";
 import { VehicleCompatibilityToggle } from "./vehicle-compatibility-toggle";
+import { VehicleContextPersistence } from "./vehicle-context-persistence";
 
 const vehicleParams=(filters:MarketplaceFilters)=>{
  const params=new URLSearchParams();
@@ -65,16 +66,17 @@ export function MarketplaceHome({listings,categories,vehicles,catalogueModels,ga
  ));
 
  return <main>
+  <VehicleContextPersistence/>
   <section className="dot-grid overflow-hidden bg-[#173c31] text-white">
-   <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[.9fr_1.1fr] lg:py-20">
+   <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:gap-10 sm:px-6 sm:py-14 lg:grid-cols-[.9fr_1.1fr] lg:py-20">
     <div className="animate-in">
      <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-3 py-1.5 text-xs font-bold text-[#d4f44d]"><Sparkles size={14}/>Smarter parts search for UK drivers</div>
-     <h1 className="max-w-3xl text-5xl font-black leading-[.98] tracking-[-.055em] sm:text-6xl">The right part.<br/><span className="text-[#d4f44d]">First time.</span></h1>
+     <h1 className="max-w-3xl text-4xl font-black leading-[.98] tracking-[-.055em] sm:text-6xl">The right part.<br/><span className="text-[#d4f44d]">First time.</span></h1>
      <p className="mt-6 max-w-xl text-lg leading-7 text-white/72">Identify your vehicle, then search by part name, OE/OEM number, category, brand or keyword.</p>
      <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-white/75"><span className="flex items-center gap-2"><BadgeCheck size={18} className="text-[#d4f44d]"/>Verified garages</span><span className="flex items-center gap-2"><ShieldCheck size={18} className="text-[#d4f44d]"/>Evidence-based fitment</span><span className="flex items-center gap-2"><Truck size={18} className="text-[#d4f44d]"/>UK-wide sellers</span></div>
     </div>
 
-    <div className="animate-in rounded-[28px] bg-[#f5f2ea] p-5 text-[#12221d] shadow-2xl [animation-delay:120ms] sm:p-7">
+    <div className="animate-in min-w-0 rounded-[24px] bg-[#f5f2ea] p-4 text-[#12221d] shadow-2xl [animation-delay:120ms] sm:rounded-[28px] sm:p-7">
      <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-sm font-black">Find parts compatible with your vehicle</p><p className="mb-4 mt-1 text-sm text-[#63706a]">Enter your registration first, or select the vehicle manually if you do not know it.</p></div>{signedIn&&<Link href="/garage" className="text-xs font-black underline">Manage Garage</Link>}</div>
 
      {garageVehicles.length>0&&<div className="mb-4 rounded-2xl border border-black/10 bg-white p-3">

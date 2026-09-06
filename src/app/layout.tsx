@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Footer } from "@/components/footer";
 import { PwaRegister } from "@/components/pwa-register";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -36,8 +37,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="min-h-screen">
         <PwaRegister />
         <div className="flex min-h-screen flex-col">
-          <div className="flex-1">{children}</div>
-          <Footer />
+          <div className="flex-1 pb-24 md:pb-0">{children}</div>
+          <div className="hidden md:block"><Footer /></div>
+          <MobileBottomNav />
         </div>
       </body>
     </html>

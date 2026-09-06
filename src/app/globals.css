@@ -11,3 +11,13 @@ button,a { -webkit-tap-highlight-color:transparent; }
 .part-visual { background:radial-gradient(circle at 68% 30%,rgba(212,244,77,.24),transparent 28%),linear-gradient(135deg,#e8ebe5 0%,#cfd7d1 52%,#f4f2eb 100%); }
 @keyframes fade-up { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 .animate-in { animation:fade-up .45s ease-out both; }
+
+
+/* Mobile app viewport hardening: preserve the full web design without horizontal breakage. */
+html,body { width:100%; max-width:100%; overflow-x:hidden; }
+img,svg,video,canvas { max-width:100%; }
+input,select,textarea,button { min-width:0; max-width:100%; }
+@media (max-width:767px) {
+  body { padding-bottom:env(safe-area-inset-bottom); }
+  .dot-grid { background-size:20px 20px; }
+}

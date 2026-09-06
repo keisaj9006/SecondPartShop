@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname,useRouter,useSearchParams } from "next/navigation";
-import { CheckCircle2,Layers3 } from "lucide-react";
+import { Check,CheckCircle2,Layers3 } from "lucide-react";
 
 export function VehicleCompatibilityToggle({vehicleLabel,checked}:{vehicleLabel:string;checked:boolean}){
  const router=useRouter();
@@ -19,8 +19,11 @@ export function VehicleCompatibilityToggle({vehicleLabel,checked}:{vehicleLabel:
    type="checkbox"
    checked={checked}
    onChange={event=>change(event.target.checked)}
-   className="mt-1 h-5 w-5 accent-[#173c31]"
+   className="peer sr-only"
   />
+  <span aria-hidden="true" className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md border-2 border-[#173c31] bg-white text-white transition peer-checked:bg-[#173c31]">
+   {checked&&<Check size={16} strokeWidth={3}/>}
+  </span>
   <span className="min-w-0 flex-1">
    <span className="flex items-center gap-2 text-sm font-black text-[#173c31]">
     {checked?<CheckCircle2 size={17}/>:<Layers3 size={17}/>}

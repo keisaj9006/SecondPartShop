@@ -61,13 +61,13 @@ export default async function AccountPage({searchParams}:{searchParams:Promise<R
   {!user.email_confirmed_at&&<div className="mb-6 flex flex-col justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center"><div><p className="font-black text-amber-950">Confirm your email address</p><p className="mt-1 text-sm text-amber-900/75">Email verification helps protect saved vehicles, requests and future orders.</p></div><Link href="/auth/verify-email" className="w-fit rounded-xl bg-amber-900 px-4 py-2.5 text-sm font-black text-white">Resend email</Link></div>}
   <section className="overflow-hidden rounded-[32px] bg-[#173c31] p-6 text-white sm:p-9">
    <p className="text-xs font-black uppercase tracking-[.2em] text-[#d4f44d]">Your account</p>
-   <div className="mt-3 flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><h1 className="text-4xl font-black tracking-[-.05em] sm:text-5xl">{profile.displayName}</h1><p className="mt-1 font-bold text-[#d4f44d]">@{profile.handle}</p><p className="mt-2 text-white/65">{user.email}</p>{trust&&<p className="mt-3 text-sm font-bold text-white/75">★ {trust.sellerRating?.toFixed(1)??"New"} seller · {trust.soldCount} sold · {trust.boughtCount} bought</p>}</div><div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3 text-sm"><span className="text-white/60">Buying</span><strong className="ml-2">Enabled</strong><span className="ml-4 text-white/60">Selling</span><strong className="ml-2">{sellingEnabled?"Enabled":"Not enabled"}</strong></div></div>
+   <div className="mt-3 flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><h1 className="text-4xl font-black tracking-[-.05em] sm:text-5xl">{profile.displayName}</h1><p className="mt-1 font-bold text-[#d4f44d]">@{profile.handle}</p><p className="mt-2 text-white/65">{user.email}</p>{trust&&<p className="mt-3 text-sm font-bold text-white/75">★ {trust.sellerRating?.toFixed(1)??"New"} seller · {trust.soldCount} sold · {trust.boughtCount} bought</p>}</div><div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3 text-sm"><span className="text-white/60">Buyer</span><strong className="ml-2">Enabled</strong><span className="ml-4 text-white/60">Seller</span><strong className="ml-2">{sellingEnabled?"Enabled":"Not enabled"}</strong></div></div>
   </section>
 
-  {sellingEnabled&&<div className="mt-5 grid max-w-md grid-cols-2 rounded-2xl bg-[#eef1eb] p-1">
-   <Link href="/account?view=buying" className={`rounded-xl px-4 py-2.5 text-center text-sm font-black ${view==="buying"?"bg-white shadow-sm":""}`}>Buying</Link>
-   <Link href="/account?view=selling" className={`rounded-xl px-4 py-2.5 text-center text-sm font-black ${view==="selling"?"bg-white shadow-sm":""}`}>Selling</Link>
-  </div>}
+  <div className="mt-5 grid max-w-md grid-cols-2 rounded-2xl bg-[#eef1eb] p-1">
+   <Link href="/account?view=buying" className={`rounded-xl px-4 py-2.5 text-center text-sm font-black ${view==="buying"?"bg-white shadow-sm":""}`}>Buyer</Link>
+   <Link href={sellingEnabled?"/account?view=selling":"/sell"} className={`rounded-xl px-4 py-2.5 text-center text-sm font-black ${view==="selling"?"bg-white shadow-sm":""}`}>Seller</Link>
+  </div>
 
   {!sellingEnabled&&<div className="mt-5 flex flex-col justify-between gap-3 rounded-2xl border border-[#173c31]/15 bg-[#f4f7f2] p-4 sm:flex-row sm:items-center"><div><p className="font-black">Want to sell parts too?</p><p className="mt-1 text-sm text-[#63706a]">Keep this login, Garage, purchases and reviews. Selling is added to your existing account.</p></div><Link href="/sell" className="w-fit rounded-xl bg-[#173c31] px-4 py-2.5 text-sm font-black text-white">Start selling</Link></div>}
 

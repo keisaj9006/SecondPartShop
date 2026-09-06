@@ -6,5 +6,9 @@
   "android": {
     "backgroundColor": "#173c31",
     "webContentsDebuggingEnabled": true
+  },
+  "server": {
+    "url": "https://second-part-shop-preview.vercel.app",
+    "cleartext": false
   }
 }
