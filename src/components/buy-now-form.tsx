@@ -15,7 +15,8 @@ export function BuyNowForm({
  collectionAvailable,
  signedIn,
  ownListing,
- checkoutReady
+ checkoutReady,
+ returnTo
 }:{
  partId:string;
  stock:number;
@@ -24,13 +25,14 @@ export function BuyNowForm({
  signedIn:boolean;
  ownListing:boolean;
  checkoutReady:boolean;
+ returnTo:string;
 }){
  const [state,action,pending]=useActionState(startCheckout,initial);
  const maxQuantity=Math.max(1,Math.min(stock,10));
 
  if(ownListing)return <div className="mt-5 rounded-2xl bg-[#eef1eb] p-4 text-sm font-bold text-[#56625d]">This is your own listing, so purchase controls are hidden.</div>;
 
- if(!signedIn)return <Link href="/account?reason=signin-required" className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-[#173c31] px-5 py-3.5 font-black text-white"><CreditCard size={18}/>Sign in to buy</Link>;
+ if(!signedIn)return <Link href={"/account?reason=signin-required&returnTo="+encodeURIComponent(returnTo)} className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-[#173c31] px-5 py-3.5 font-black text-white"><CreditCard size={18}/>Sign in to buy</Link>;
 
  return <form action={action} className="mt-5 rounded-2xl border border-black/10 bg-white p-4">
   <input type="hidden" name="partId" value={partId}/>
