@@ -11,7 +11,7 @@ export function ReviewList({reviews}:{reviews:TransactionReview[]}){
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link href={`/member/${review.reviewerHandle}`} className="font-black hover:underline">{review.reviewerDisplayName}</Link>
-          <p className="mt-0.5 text-xs text-[#63706a]">@{review.reviewerHandle} · Verified transaction</p>
+          <p className="mt-0.5 text-xs text-[#63706a]">@{review.reviewerHandle} · {review.reviewerSoldCount} sold · {review.reviewerBoughtCount} bought · Verified transaction</p>
         </div>
         <div className="flex items-center gap-0.5" aria-label={`${review.overallRating} out of 5 stars`}>{stars(review.overallRating)}</div>
       </div>
