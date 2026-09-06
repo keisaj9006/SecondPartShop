@@ -82,7 +82,7 @@ export async function getListings(filters:MarketplaceFilters={}):Promise<DataRes
   return {...item,compatibility:hasVehicleContext?(compatibilityMap?.get(item.id)??compatibilityInfo("unverified")):null};
  });
  const searchRank=rankedIds?new Map(rankedIds.map((id,index)=>[id,index])):null;
- const compatibilityRank=(level:string|undefined)=>level==="confirmed"?2:level==="family_match"?1:0;
+ const compatibilityRank=(level:string|undefined)=>level==="confirmed"?3:level==="buyer_verified"?2:level==="family_match"?1:0;
  listings.sort((a,b)=>{
   const compatibilityDifference=compatibilityRank(b.compatibility?.level)-compatibilityRank(a.compatibility?.level);
   if(compatibilityDifference)return compatibilityDifference;
