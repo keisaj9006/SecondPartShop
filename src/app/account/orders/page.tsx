@@ -21,7 +21,7 @@ export default async function PurchasesPage(){
 
   {orders.length?<div className="mt-8 grid gap-5">{orders.map(order=><article key={order.id} className="rounded-3xl border border-black/10 bg-white p-5 sm:p-6">
    <div className="flex flex-col justify-between gap-3 border-b border-black/8 pb-4 sm:flex-row sm:items-center">
-    <div><p className="text-xs font-black uppercase tracking-wide text-[#287154]">Order {order.id.slice(0,8).toUpperCase()}</p><p className="mt-1 text-sm text-[#63706a]">{new Intl.DateTimeFormat("en-GB",{dateStyle:"medium"}).format(new Date(order.createdAt))}</p></div>
+    <div><p className="text-xs font-black uppercase tracking-wide text-[#287154]">Order {order.id.slice(0,8).toUpperCase()}</p><p className="mt-1 text-sm text-[#63706a]">{new Intl.DateTimeFormat("en-GB",{dateStyle:"medium"}).format(new Date(order.createdAt))}</p><Link href={"/account/orders/"+order.id} className="mt-2 inline-block text-xs font-black text-[#287154] underline">View full order</Link></div>
     <div className="flex flex-wrap gap-2"><span className="rounded-full bg-[#eef1eb] px-3 py-1 text-xs font-black">{label(order.paymentStatus)}</span><span className="rounded-full bg-[#173c31] px-3 py-1 text-xs font-black text-white">{label(order.status)}</span></div>
    </div>
    <div className="mt-4 grid gap-4">{order.items.map(item=><div key={item.id} className="rounded-2xl bg-[#f8f7f2] p-4">
