@@ -12,7 +12,8 @@ const nativeApi={
  async closeBrowser(){},
  async minimizeApp(){},
  async getLaunchUrl(){return null;},
- async pickPhoto(){return null;},
+ async takePhoto(){return null;},
+ async choosePhotos(){return [];},
  async onUrlOpen(){return {remove:async()=>{}};},
  async onBackButton(){return {remove:async()=>{}};},
  async onAppState(){return {remove:async()=>{}};}
