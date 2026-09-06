@@ -1,4 +1,4 @@
-import type { PartTestingStatus } from "@/lib/types";
+import type { PartCondition,PartTestingStatus } from "@/lib/types";
 
 export function testingStatusLabel(status:PartTestingStatus){
  switch(status){
@@ -17,4 +17,13 @@ export function warrantyLabel(days:number){
  if(days===180)return "6-month warranty";
  if(days===365)return "12-month warranty";
  return `${days}-day warranty`;
+}
+
+
+export function conditionLabel(condition:PartCondition){
+ switch(condition){
+  case "reconditioned":return "Remanufactured / professionally refurbished";
+  case "new":return "New";
+  default:return "Used";
+ }
 }
