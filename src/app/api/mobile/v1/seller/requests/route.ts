@@ -1,4 +1,5 @@
 import { mobileJson,mobileOptions,requireMobileSeller } from "@/lib/mobile-api";
+import { isUuid } from "@/lib/identifiers";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -38,4 +39,21 @@ export async function GET(request:Request){
   matchScore:Number(row.match_score??0),
   matchReasons:row.match_reasons??[]
  })),pagination:{offset,limit,returned:page.length,hasMore}});
+}
+
+
+export async function PATCH(request:Request){
+ const auth=await requireMobileSeller(request);
+ if(!auth.context||!auth.seller)return auth.response;
+ const {supabase}=auth.context;
+ let payload:unknown;
+ try{payload=await request.json();}catch{return mobileJson(request,{ok:false,error:"invalid_json"},400);}
+ const input=payload&&typeof payload==="object"?payload as Record<string,unknown>:{};
+ const requestId=String(input.requestId??"").trim();
+ const action=String(input.action??"").trim();
+ if(!isUuid(requestId))return mobileJson(request,{ok:false,error:"invalid_part_request"},400);
+ if(action!=="dismiss")return mobileJson(request,{ok:false,error:"invalid_request_action"},400);
+ const {data,error}=await supabase.rpc("dismiss_seller_part_request_match",{p_request_id:requestId});
+ if(error)return mobileJson(request,{ok:false,error:"request_match_update_failed"},503);
+ return mobileJson(request,{ok:true,dismissed:Boolean(data)});
 }
