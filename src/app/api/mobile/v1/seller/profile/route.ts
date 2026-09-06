@@ -122,7 +122,7 @@ export async function PATCH(request:Request){
  if(existingError)return mobileJson(request,{ok:false,error:"seller_profile_unavailable"},503);
  if(!existing)return mobileJson(request,{ok:false,error:"seller_profile_required"},404);
 
- const {error}=await supabase
+ const {data:updated,error}=await supabase
   .from("sellers")
   .update({
    business_name:businessName,
@@ -132,8 +132,21 @@ export async function PATCH(request:Request){
    seller_type:sellerType
   })
   .eq("id",existing.id)
-  .eq("owner_id",user.id);
+  .eq("owner_id",user.id)
+  .select("id,verified_at,seller_type,business_name,location,postcode,description")
+  .single();
 
- if(error)return mobileJson(request,{ok:false,error:"seller_profile_update_failed"},503);
- return mobileJson(request,{ok:true,id:existing.id,verified:Boolean(existing.verified_at)});
+ if(error||!updated)return mobileJson(request,{ok:false,error:"seller_profile_update_failed"},503);
+ return mobileJson(request,{
+  ok:true,
+  seller:{
+   id:updated.id,
+   verified:Boolean(updated.verified_at),
+   sellerType:updated.seller_type,
+   businessName:updated.business_name,
+   location:updated.location,
+   postcode:updated.postcode,
+   description:updated.description
+  }
+ });
 }
