@@ -2405,6 +2405,19 @@ export type Database = {
           part_title: string
         }[]
       }
+      get_review_opportunities_page: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          counterpart_display_name: string
+          counterpart_handle: string
+          counterpart_profile_id: string
+          direction: string
+          existing_review_id: string
+          funds_released_at: string
+          order_item_id: string
+          part_title: string
+        }[]
+      }
       get_seller_directory_page: {
         Args: { p_limit?: number; p_offset?: number }
         Returns: {
@@ -2425,6 +2438,25 @@ export type Database = {
       }
       get_verified_fit_opportunities: {
         Args: never
+        Returns: {
+          existing_notes: string
+          existing_result: string
+          funds_released_at: string
+          order_item_id: string
+          part_id: string
+          part_slug: string
+          part_title: string
+          variant_id: string
+          vehicle_engine: number
+          vehicle_fuel: string
+          vehicle_make: string
+          vehicle_model: string
+          vehicle_variant: string
+          vehicle_year: number
+        }[]
+      }
+      get_verified_fit_opportunities_page: {
+        Args: { p_limit?: number; p_offset?: number }
         Returns: {
           existing_notes: string
           existing_result: string
