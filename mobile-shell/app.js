@@ -152,6 +152,7 @@ const boot=async()=>{
    C.prefetch("/notifications",{auth:true,maxAge:20000});
   }
   C.prefetch("/vehicle-catalogue?level=makes",{auth:false,maxAge:10*60*1000});
+  C.prefetch("/categories",{auth:false,maxAge:10*60*1000});
   await bindNativeListeners();
 
   const launchUrl=await C.Native.getLaunchUrl();

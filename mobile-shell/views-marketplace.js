@@ -26,6 +26,71 @@ const rememberedMarketplaceParams=()=>{
  return result;
 };
 
+
+const marketplaceFilterCount=()=>{
+ const params=rememberedMarketplaceParams();
+ return Object.keys(params).filter(key=>key!=="sort"||params.sort!=="best").length;
+};
+
+const marketplaceCategoryOptions=(categories,selected)=>{
+ const byId=new Map(categories.map(item=>[item.id,item]));
+ const path=item=>{
+  const names=[item.name];
+  let parent=item.parentId?byId.get(item.parentId):null;
+  let guard=0;
+  while(parent&&guard<6){names.unshift(parent.name);parent=parent.parentId?byId.get(parent.parentId):null;guard+=1;}
+  return names.join(" › ");
+ };
+ return categories.filter(item=>item.isSelectable).sort((a,b)=>path(a).localeCompare(path(b))).map(item=>
+  "<option value=\""+C.escapeHtml(item.id)+"\" "+(String(item.id)===String(selected||"")?"selected":"")+">"+C.escapeHtml(path(item))+"</option>"
+ ).join("");
+};
+
+const openMarketplaceFilters=async()=>{
+ let categories=[];
+ try{categories=(await C.apiCached("/categories",{auth:false,maxAge:10*60*1000})).items||[];}
+ catch(error){UI.toast("Categories are temporarily unavailable.","error");return;}
+ const current=rememberedMarketplaceParams();
+ UI.modal("Filter marketplace",
+  "<form id=\"market-filter-form\" class=\"form-grid\">"+
+   "<label class=\"label\">Part category<select id=\"mf-category\" class=\"select\"><option value=\"\">All categories</option>"+marketplaceCategoryOptions(categories,current.category)+"</select></label>"+
+   "<div class=\"spec-grid\">"+
+    "<label class=\"label\">Condition<select id=\"mf-condition\" class=\"select\"><option value=\"\">Any condition</option><option value=\"used\">Used</option><option value=\"new\">New</option><option value=\"reconditioned\">Remanufactured / professionally refurbished</option></select></label>"+
+    "<label class=\"label\">Sort<select id=\"mf-sort\" class=\"select\"><option value=\"best\">Best match</option><option value=\"price_asc\">Price: low to high</option><option value=\"price_desc\">Price: high to low</option><option value=\"distance\">Nearest first</option><option value=\"delivery\">Fastest delivery</option><option value=\"warranty\">Longest warranty</option></select></label>"+
+   "</div>"+
+   "<div class=\"spec-grid\"><label class=\"label\">Minimum price £<input id=\"mf-min\" class=\"input\" type=\"number\" min=\"0\" step=\"1\" value=\""+C.escapeHtml(current.min||"")+"\"></label><label class=\"label\">Maximum price £<input id=\"mf-max\" class=\"input\" type=\"number\" min=\"0\" step=\"1\" value=\""+C.escapeHtml(current.max||"")+"\"></label></div>"+
+   "<label class=\"label\">Buyer postcode <span class=\"subtle\">(for distance)</span><input id=\"mf-postcode\" class=\"input registration\" maxlength=\"8\" value=\""+C.escapeHtml(current.pc||"")+"\" placeholder=\"EH25 9BE\"></label>"+
+   "<label class=\"card flat\" style=\"display:flex;align-items:center;gap:10px;padding:12px\"><input id=\"mf-collection\" type=\"checkbox\" "+(current.collection==="1"?"checked":"")+" style=\"width:20px;height:20px;accent-color:#173c31\"><span><strong>Collection only</strong><small class=\"subtle\" style=\"display:block\">Only show listings available for local collection.</small></span></label>"+
+   "<div id=\"mf-status\"></div><div class=\"button-row\"><button id=\"mf-apply\" class=\"primary\" type=\"submit\">Apply filters</button><button id=\"mf-reset\" class=\"secondary\" type=\"button\">Reset filters</button></div>"+
+  "</form>"
+ );
+ const condition=document.getElementById("mf-condition");condition.value=current.condition||"";
+ const sort=document.getElementById("mf-sort");sort.value=current.sort||"best";
+ const status=document.getElementById("mf-status");
+ document.getElementById("mf-reset").addEventListener("click",()=>{C.state.marketplaceParams={};UI.closeModal();UI.route("home");});
+ document.getElementById("market-filter-form").addEventListener("submit",event=>{
+  event.preventDefault();
+  const min=String(document.getElementById("mf-min").value||"").trim();
+  const max=String(document.getElementById("mf-max").value||"").trim();
+  if(min&&max&&Number(min)>Number(max)){status.innerHTML="<div class=\"status warning\">Minimum price cannot be higher than maximum price.</div>";return;}
+  const rawPostcode=String(document.getElementById("mf-postcode").value||"").toUpperCase().replace(/\s+/g,"").trim();
+  if(rawPostcode&&!/^[A-Z]{1,2}[0-9][A-Z0-9]?[0-9][A-Z]{2}$/.test(rawPostcode)){status.innerHTML="<div class=\"status warning\">Enter a valid full UK postcode or leave it blank.</div>";return;}
+  const next={};
+  const category=String(document.getElementById("mf-category").value||"");
+  const conditionValue=String(condition.value||"");
+  const sortValue=String(sort.value||"best");
+  if(category)next.category=category;
+  if(conditionValue)next.condition=conditionValue;
+  if(sortValue&&sortValue!=="best")next.sort=sortValue;
+  if(min)next.min=min;
+  if(max)next.max=max;
+  if(rawPostcode)next.pc=rawPostcode;
+  if(document.getElementById("mf-collection").checked)next.collection="1";
+  C.state.marketplaceParams=next;
+  UI.closeModal();UI.route("home");
+ });
+};
+
 const marketplacePath=(query)=>{
  const params=new URLSearchParams();
  const remembered=rememberedMarketplaceParams();
@@ -65,7 +130,8 @@ const home=async()=>{
  const canSaveSearch=Boolean(C.state.session&&(C.state.currentSearch||C.state.activeVehicle||hasExtraFilters));
  html.push("<section class=\"hero\"><p class=\"eyebrow\">UK used parts marketplace</p><h1>The right part.<br><em>First time.</em></h1><p>Identify your vehicle, then search automotive parts from garages and sellers across the UK.</p><div class=\"hero-badges\"><span>Vehicle-first search</span><span>Verified fitment evidence</span><span>Buyer protection</span></div></section>");
  html.push("<section class=\"card\"><p class=\"eyebrow\">Your vehicle</p><div id=\"vehicle-context\">"+renderVehicleContext()+"</div><form id=\"registration-form\" class=\"vehicle-search\" style=\"margin-top:12px\"><div class=\"search-row\"><input id=\"registration-input\" class=\"input registration\" maxlength=\"10\" autocomplete=\"off\" placeholder=\"AB12 CDE\"/><button class=\"primary\" type=\"submit\">Find</button></div><button id=\"manual-vehicle\" class=\"link-button\" type=\"button\">Select vehicle manually</button><div id=\"vehicle-result\"></div></form></section>");
- html.push("<section class=\"card\"><p class=\"eyebrow\">Find a part</p><form id=\"market-search\" class=\"search-row\"><input id=\"part-query\" class=\"input\" value=\""+C.escapeHtml(C.state.currentSearch)+"\" placeholder=\"Part name, OE/OEM number or brand\"/><button class=\"primary\" type=\"submit\">Search</button></form></section>");
+ const activeFilterCount=marketplaceFilterCount();
+ html.push("<section class=\"card\"><p class=\"eyebrow\">Find a part</p><form id=\"market-search\" class=\"search-row\"><input id=\"part-query\" class=\"input\" value=\""+C.escapeHtml(C.state.currentSearch)+"\" placeholder=\"Part name, OE/OEM number or brand\"/><button class=\"primary\" type=\"submit\">Search</button></form><div class=\"button-row\" style=\"margin-top:10px\"><button id=\"market-filters\" class=\"secondary small-button\" type=\"button\">Filters"+(activeFilterCount?" · "+activeFilterCount:"")+"</button>"+(activeFilterCount?"<button id=\"market-reset-filters\" class=\"link-button\" type=\"button\">Reset filters</button>":"")+"</div></section>");
  if(hasExtraFilters)html.push("<section class=\"card flat\" style=\"margin-top:-2px\"><div class=\"row-between\"><div><p class=\"eyebrow\">Saved search filters</p><p class=\"subtle\">Extra marketplace filters are active from a saved search.</p></div><button id=\"clear-saved-filters\" class=\"link-button\" type=\"button\">Clear filters</button></div></section>");
  const marketplaceActions=[];
  if(C.state.currentSearch)marketplaceActions.push("<button id=\"clear-search\" class=\"link-button\" type=\"button\">Clear search</button>");
@@ -86,6 +152,8 @@ const home=async()=>{
   C.state.currentSearch=String(document.getElementById("part-query").value||"").trim();
   UI.route("home");
  });
+ const filtersButton=document.getElementById("market-filters");if(filtersButton)filtersButton.addEventListener("click",()=>void openMarketplaceFilters());
+ const resetFilters=document.getElementById("market-reset-filters");if(resetFilters)resetFilters.addEventListener("click",()=>{C.state.marketplaceParams={};UI.route("home");});
  const clearSearch=document.getElementById("clear-search");
  if(clearSearch)clearSearch.addEventListener("click",()=>{C.state.currentSearch="";UI.route("home");});
  const clearSavedFilters=document.getElementById("clear-saved-filters");
