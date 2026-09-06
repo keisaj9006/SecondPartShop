@@ -42,6 +42,7 @@ export default async function BuyerOrderDetailPage({params,searchParams}:{params
      </div>
      <div className="mt-4 flex flex-wrap gap-3 text-xs font-black">
       {order.paymentStatus==="paid"&&<Link href={"/messages/"+item.id} className="inline-flex items-center gap-1 text-[#287154] underline"><MessageSquareText size={14}/>Message seller</Link>}
+      {order.paymentStatus==="paid"&&["paid","preparing","ready_for_collection"].includes(item.fulfilmentStatus)&&<Link href={"/account/cases?item="+encodeURIComponent(item.id)+"&type=cancellation"} className="text-amber-800 underline">Request cancellation</Link>}
       {order.paymentStatus==="paid"&&!["cancelled","refunded","returned","return_requested","dispute_open"].includes(item.fulfilmentStatus)&&<Link href={"/account/cases?item="+encodeURIComponent(item.id)} className="text-amber-800 underline">Report problem / return</Link>}
       {item.fundsReleasedAt&&<Link href="/account/reviews" className="inline-flex items-center gap-1 text-[#287154] underline"><Star size={14}/>Leave verified review</Link>}
      </div>
