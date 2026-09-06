@@ -1,6 +1,6 @@
 import { Header } from "@/components/header";
 import { MarketplaceHome } from "@/components/marketplace-home";
-import { getCategories,getListings,getSavedPartIds,getVehicles } from "@/lib/data/marketplace";
+import { getCategories,getListings,getMarketplacePage,getSavedPartIds,getVehicles } from "@/lib/data/marketplace";
 import { getGarageVehicles } from "@/lib/data/garage";
 import { getRecentlyViewedListings } from "@/lib/data/buyer-account";
 import { getCatalogueModelMap,getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
@@ -25,6 +25,8 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
  const requestedCatalogueYear=integer(first(params.cy));
  const requestedCatalogueFuel=first(params.cf);
  const requestedCatalogueEngine=integer(first(params.ce));
+ const requestedPage=Math.max(1,integer(first(params.page))??1);
+ const pageSize=24;
  const rawRegistration=first(params.vr);
  const vehicleRegistration=rawRegistration?normalizeRegistration(rawRegistration):undefined;
  const vehicleColour=first(params.vc)?.trim().slice(0,40)||undefined;
@@ -52,8 +54,20 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   catalogueEngineSize:selectedCatalogue?.engineSizeSimple??undefined,
   compatibleOnly:Boolean(selectedCatalogue||isUuid(first(params.vehicle)))&&first(params.fit)!=="0"
  };
+ const marketplacePromise=sort==="distance"
+  ?getListings(filters).then(result=>({
+    ...result,
+    pagination:{
+     offset:(requestedPage-1)*pageSize,
+     limit:pageSize,
+     returned:result.data.length,
+     total:result.data.length,
+     hasMore:false
+    }
+   }))
+  :getMarketplacePage(filters,{offset:(requestedPage-1)*pageSize,limit:pageSize});
  const [result,vehicles,savedIds,catalogueModels,garageVehicles,recentlyViewed]=await Promise.all([
-  getListings(filters),
+  marketplacePromise,
   getVehicles(),
   user?getSavedPartIds(user.id):Promise.resolve([]),
   getCatalogueModelMap().catch(()=>[]),
@@ -61,6 +75,18 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   user?getRecentlyViewedListings(user.id,3):Promise.resolve([])
  ]);
  const listingsWithDistance=await enrichListingsWithDistance(result.data,postcode);
- const sortedListings=sortMarketplaceListings(listingsWithDistance,sort);
- return <><Header/><MarketplaceHome listings={sortedListings} categories={categories} vehicles={vehicles} catalogueModels={catalogueModels} garageVehicles={garageVehicles} recentlyViewed={recentlyViewed} signedIn={Boolean(user)} filters={filters} selectedCatalogue={selectedCatalogue} savedIds={savedIds} error={result.error} configured={result.configured}/></>;
+ const globallySorted=sort==="distance"?sortMarketplaceListings(listingsWithDistance,sort):listingsWithDistance;
+ const sortedListings=sort==="distance"
+  ?globallySorted.slice((requestedPage-1)*pageSize,requestedPage*pageSize)
+  :globallySorted;
+ const pagination=sort==="distance"
+  ?{
+    offset:(requestedPage-1)*pageSize,
+    limit:pageSize,
+    returned:sortedListings.length,
+    total:globallySorted.length,
+    hasMore:requestedPage*pageSize<globallySorted.length
+   }
+  :result.pagination;
+ return <><Header/><MarketplaceHome listings={sortedListings} categories={categories} vehicles={vehicles} catalogueModels={catalogueModels} garageVehicles={garageVehicles} recentlyViewed={recentlyViewed} signedIn={Boolean(user)} filters={filters} selectedCatalogue={selectedCatalogue} savedIds={savedIds} error={result.error} configured={result.configured} pagination={pagination} currentPage={requestedPage}/></>;
 }
