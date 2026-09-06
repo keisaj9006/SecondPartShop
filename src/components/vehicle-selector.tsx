@@ -76,8 +76,9 @@ function SearchableVehicleSelect({value,options,placeholder,disabled,onChange}:{
  </div>;
 }
 
-export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCatalogue,baseParams,compatibleOnly}:{vehicles:Vehicle[];catalogueModels:VehicleCatalogueModelOption[];selectedId?:string;selectedCatalogue:VehicleCatalogueSelection|null;baseParams:Record<string,string>;compatibleOnly:boolean}){
- const selectedLegacy=vehicles.find(vehicle=>vehicle.id===selectedId);
+export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCatalogue,baseParams,compatibleOnly,freshSelection=false}:{vehicles:Vehicle[];catalogueModels:VehicleCatalogueModelOption[];selectedId?:string;selectedCatalogue:VehicleCatalogueSelection|null;baseParams:Record<string,string>;compatibleOnly:boolean;freshSelection?:boolean}){
+ const activeCatalogue=freshSelection?null:selectedCatalogue;
+ const selectedLegacy=freshSelection?undefined:vehicles.find(vehicle=>vehicle.id===selectedId);
  const router=useRouter();
  const [isApplying,startTransition]=useTransition();
  const makes=useMemo(()=>unique(catalogueModels.map(item=>item.make)).sort((a,b)=>a.localeCompare(b)),[catalogueModels]);
@@ -86,20 +87,20 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
  const [fitOnly,setFitOnly]=useState(compatibleOnly);
  const [lookup,setLookup]=useState<LookupState>({kind:"idle"});
  const [registrationVehicle,setRegistrationVehicle]=useState<RegistrationSummary|null>(null);
- const [manualOpen,setManualOpen]=useState(Boolean(selectedCatalogue||selectedLegacy));
+ const [manualOpen,setManualOpen]=useState(Boolean(activeCatalogue||selectedLegacy));
 
- const [make,setMake]=useState(selectedCatalogue?.make??"");
+ const [make,setMake]=useState(activeCatalogue?.make??"");
  const models=useMemo(()=>catalogueModels.filter(item=>item.make===make).map(item=>item.modelFamily),[catalogueModels,make]);
- const [model,setModel]=useState(selectedCatalogue?.modelFamily??"");
- const [year,setYear]=useState(selectedCatalogue?String(selectedCatalogue.year):"");
- const [variantId,setVariantId]=useState(selectedCatalogue?.variantId??"");
- const [catalogueEngine,setCatalogueEngine]=useState(selectedCatalogue?.fuelType?engineKey({fuelType:selectedCatalogue.fuelType,engineSizeSimple:selectedCatalogue.engineSizeSimple}):"");
+ const [model,setModel]=useState(activeCatalogue?.modelFamily??"");
+ const [year,setYear]=useState(activeCatalogue?String(activeCatalogue.year):"");
+ const [variantId,setVariantId]=useState(activeCatalogue?.variantId??"");
+ const [catalogueEngine,setCatalogueEngine]=useState(activeCatalogue?.fuelType?engineKey({fuelType:activeCatalogue.fuelType,engineSizeSimple:activeCatalogue.engineSizeSimple}):"");
  const [years,setYears]=useState<number[]>([]);
  const [variants,setVariants]=useState<CatalogueVariantOption[]>([]);
  const [engines,setEngines]=useState<CatalogueEngine[]>([]);
- const [loadingYears,setLoadingYears]=useState(Boolean(selectedCatalogue?.modelFamily));
- const [loadingVariants,setLoadingVariants]=useState(Boolean(selectedCatalogue?.year));
- const [loadingEngines,setLoadingEngines]=useState(Boolean(selectedCatalogue?.variantId));
+ const [loadingYears,setLoadingYears]=useState(Boolean(activeCatalogue?.modelFamily));
+ const [loadingVariants,setLoadingVariants]=useState(Boolean(activeCatalogue?.year));
+ const [loadingEngines,setLoadingEngines]=useState(Boolean(activeCatalogue?.variantId));
  const [catalogueError,setCatalogueError]=useState("");
 
 
@@ -223,7 +224,7 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
  const resetAfterVariant=(value:string)=>{setVariantId(value);setCatalogueEngine("");setEngines([]);setLoadingEngines(Boolean(value));setCatalogueError("");};
 
  const control="min-w-0 rounded-xl border border-black/12 bg-white px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-[#173c31] disabled:bg-black/5";
- const selectedVariant=variants.find(item=>item.id===variantId)??(selectedCatalogue?.variantId===variantId?{id:selectedCatalogue.variantId,variant:selectedCatalogue.variant}:undefined);
+ const selectedVariant=variants.find(item=>item.id===variantId)??(activeCatalogue?.variantId===variantId?{id:activeCatalogue.variantId,variant:activeCatalogue.variant}:undefined);
  const canApply=Boolean(variantId&&year&&!loadingVariants&&!loadingEngines&&(engines.length===0||catalogueEngine)&&!isApplying);
 
  return <div>
@@ -236,13 +237,11 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
    <p className="mt-2 text-xs leading-5 text-[#63706a]">Registration lookup uses a real provider only when credentials are configured. We do not fabricate vehicle results.</p>
    {lookup.message&&<p role="status" className={`mt-3 rounded-xl px-3 py-2 text-sm ${lookup.kind==="error"?"bg-red-50 text-red-800":"bg-[#eef1eb] text-[#173c31]"}`}>{lookup.message}</p>}
    {registrationVehicle&&<div className="mt-3 grid gap-3 rounded-2xl border border-[#173c31]/15 bg-[#f4f7f2] p-4 md:grid-cols-[minmax(0,1fr)_minmax(260px,.9fr)] md:items-center"><div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#173c31] text-white"><CarFront size={19}/></span><div className="min-w-0"><p className="text-xs font-black uppercase tracking-[.12em] text-[#287154]">{registrationVehicle.registration}</p><p className="mt-1 text-lg font-black">{nameLabel(registrationVehicle.make)} {nameLabel(registrationVehicle.model)}</p><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#4f5e57]">{registrationVehicle.year&&<span>Year: <strong>{registrationVehicle.year}</strong></span>}{registrationVehicle.engineSizeSimple&&<span>Engine: <strong>{registrationVehicle.engineSizeSimple}cc</strong></span>}{registrationVehicle.fuelType&&<span>Fuel: <strong>{fuelLabel(registrationVehicle.fuelType)}</strong></span>}{registrationVehicle.colour&&<span>Colour: <strong>{nameLabel(registrationVehicle.colour)}</strong></span>}</div></div></div>{registrationVehicle.year&&<VehicleVisual make={nameLabel(registrationVehicle.make)} model={nameLabel(registrationVehicle.model)} year={registrationVehicle.year} colour={registrationVehicle.colour} registration={registrationVehicle.registration} engine={registrationVehicle.engineSizeSimple?registrationVehicle.engineSizeSimple+"cc":null} fuel={registrationVehicle.fuelType?fuelLabel(registrationVehicle.fuelType):null} compact/>}</div>}
-   {registrationVehicle&&variantId&&year&&<div className="mt-3 grid gap-3 rounded-2xl border border-[#173c31]/15 bg-white p-4">
-    <label className="flex cursor-pointer items-start gap-3">
-     <input type="checkbox" checked={fitOnly} onChange={event=>setFitOnly(event.target.checked)} className="mt-1 h-5 w-5 accent-[#173c31]"/>
-     <span><strong className="block text-sm">Show only parts that fit this vehicle</strong><small className="mt-1 block leading-5 text-[#63706a]">Apply compatibility filtering immediately when you use this vehicle.</small></span>
-    </label>
-    <button type="button" disabled={!canApply} onClick={applyCatalogue} className="rounded-xl bg-[#d4f44d] px-5 py-3 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50">{isApplying?"Applying vehicle…":"Use this vehicle"}</button>
-   </div>}
+   {!activeCatalogue&&!selectedLegacy&&<label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-[#173c31]/20 bg-[#f7faef] p-3">
+    <input type="checkbox" checked={fitOnly} onChange={event=>setFitOnly(event.target.checked)} className="mt-1 h-5 w-5 accent-[#173c31]"/>
+    <span><strong className="block text-sm text-[#173c31]">Show only parts that fit this vehicle</strong><small className="mt-1 block leading-5 text-[#63706a]">{freshSelection?"Choose this before adding the new vehicle. The previous vehicle is not used here.":"Recommended: keep this on to show compatibility-filtered results as soon as you select a vehicle."}</small></span>
+   </label>}
+   {registrationVehicle&&variantId&&year&&<div className="mt-3 rounded-2xl border border-[#173c31]/15 bg-white p-4"><button type="button" disabled={!canApply} onClick={applyCatalogue} className="w-full rounded-xl bg-[#d4f44d] px-5 py-3 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50">{isApplying?"Applying vehicle…":"Use this vehicle"}</button></div>}
   </div>
 
   <button type="button" onClick={()=>setManualOpen(value=>!value)} className="mt-4 inline-flex items-center gap-2 text-sm font-black underline">{manualOpen?"Hide manual selection":"I don't know my registration / Select vehicle manually"}<ChevronDown size={15} className={manualOpen?"rotate-180 transition":"transition"}/></button>
@@ -257,11 +256,7 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
    </div>
    {catalogueError&&<p role="status" className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800">{catalogueError}</p>}
    {(loadingYears||loadingVariants||loadingEngines||isApplying)&&<p role="status" className="mt-3 rounded-xl bg-[#eef1eb] px-3 py-2 text-sm font-bold text-[#173c31]">{loadingYears?"Loading available years…":loadingVariants?"Loading exact versions…":loadingEngines?"Loading engine options…":"Applying vehicle and checking compatibility…"}</p>}
-   <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-[#173c31]/15 bg-white p-3">
-    <input type="checkbox" checked={fitOnly} onChange={event=>setFitOnly(event.target.checked)} className="mt-1 h-5 w-5 accent-[#173c31]"/>
-    <span><strong className="block text-sm">Show only parts that fit this vehicle</strong><small className="mt-1 block leading-5 text-[#63706a]">You can change this later from the marketplace vehicle card.</small></span>
-   </label>
-   <div className="mt-3 flex flex-wrap gap-3"><button type="button" disabled={!canApply} onClick={applyCatalogue} className="rounded-xl bg-[#d4f44d] px-5 py-3 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50">{isApplying?"Applying vehicle…":"Use this vehicle"}</button>{(selectedId||selectedCatalogue)&&<button type="button" onClick={clearVehicle} className="inline-flex items-center gap-1 text-sm font-bold underline"><X size={14}/>Remove vehicle</button>}</div>
+   <div className="mt-3 flex flex-wrap gap-3"><button type="button" disabled={!canApply} onClick={applyCatalogue} className="rounded-xl bg-[#d4f44d] px-5 py-3 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50">{isApplying?"Applying vehicle…":"Use this vehicle"}</button>{(selectedId||activeCatalogue)&&<button type="button" onClick={clearVehicle} className="inline-flex items-center gap-1 text-sm font-bold underline"><X size={14}/>Remove vehicle</button>}</div>
   </div>}
 
   {selectedLegacy&&<p className="mt-3 rounded-xl bg-[#eef1eb] px-3 py-2 text-xs text-[#63706a]">Existing compatibility test vehicle selected: {selectedLegacy.make} {selectedLegacy.model} {selectedLegacy.year}. This preserves legacy QA fitments while the full catalogue fitments are populated.</p>}
