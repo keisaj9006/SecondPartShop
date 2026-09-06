@@ -3,6 +3,7 @@ import { ArrowUpRight,Search } from "lucide-react";
 import { Header } from "@/components/header";
 import { requireSeller } from "@/lib/auth";
 import { getSellerPartRequestLeads } from "@/lib/data/seller-request-leads";
+import { dismissMatchedPartRequest } from "./actions";
 
 export const dynamic="force-dynamic";
 
@@ -34,7 +35,7 @@ export default async function SellerRequestsPage({searchParams}:{searchParams:Pr
       {lead.notes&&<p className="mt-3 max-w-3xl text-sm leading-6 text-[#63706a]">{lead.notes}</p>}{lead.matchReasons.length>0&&<div className="mt-3 rounded-xl bg-[#f4f7f2] p-3 text-xs leading-5 text-[#56625d]"><strong>Why you received this request:</strong> {lead.matchReasons.join(" · ")}</div>}
       <p className="mt-3 text-xs text-[#8a918e]">Requested {new Date(lead.createdAt).toLocaleDateString("en-GB")}</p>
      </div>
-     <Link href={"/dashboard/listings/new?"+params.toString()} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#173c31] px-4 py-3 text-sm font-black text-white">Create matching listing<ArrowUpRight size={16}/></Link>
+     <div className="flex shrink-0 flex-col gap-2"><Link href={"/dashboard/listings/new?"+params.toString()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#173c31] px-4 py-3 text-sm font-black text-white">Create matching listing<ArrowUpRight size={16}/></Link><form action={dismissMatchedPartRequest}><input type="hidden" name="requestId" value={lead.id}/><button className="w-full rounded-xl border border-black/15 bg-white px-4 py-2.5 text-xs font-black text-[#56625d]">Not relevant · Dismiss</button></form></div>
     </div>
    </article>;
   })}</div>:<div className="mt-8 rounded-3xl border border-dashed border-black/20 bg-white px-6 py-16 text-center"><Search className="mx-auto text-[#63706a]"/><h2 className="mt-4 text-xl font-black">No matched buyer requests</h2><p className="mx-auto mt-2 max-w-xl text-[#63706a]">SecondPart only routes demand that matches your inventory, donor vehicles or seller activity.</p></div>}{(page>1||result.pagination.hasMore)&&<nav className="mt-8 flex items-center justify-center gap-3">{page>1&&<Link href={page===2?"/dashboard/requests":"/dashboard/requests?page="+(page-1)} className="rounded-full border border-black/15 bg-white px-5 py-3 text-sm font-black">Previous</Link>}<span className="text-sm font-bold text-[#63706a]">Page {page}</span>{result.pagination.hasMore&&<Link href={"/dashboard/requests?page="+(page+1)} className="rounded-full bg-[#173c31] px-5 py-3 text-sm font-black text-white">Next</Link>}</nav>}
