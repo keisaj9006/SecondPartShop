@@ -9,10 +9,15 @@ import { getListingConversation } from "@/lib/data/listing-conversations";
 
 export const dynamic="force-dynamic";
 
-export default async function ListingConversationPage({params}:{params:Promise<{conversationId:string}>}){
- const {conversationId}=await params;
+const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
+const pageNumber=(value:string|undefined)=>{const parsed=Number(value);return Number.isInteger(parsed)&&parsed>0?parsed:1;};
+
+export default async function ListingConversationPage({params,searchParams}:{params:Promise<{conversationId:string}>;searchParams:Promise<Record<string,string|string[]|undefined>>}){
+ const [{conversationId},query]=await Promise.all([params,searchParams]);
  const user=await requireUser("/inbox/"+conversationId);
- const thread=await getListingConversation(conversationId).catch(()=>null);
+ const historyPage=pageNumber(first(query.history));
+ const messageLimit=100;
+ const thread=await getListingConversation(conversationId,{offset:(historyPage-1)*messageLimit,limit:messageLimit}).catch(()=>null);
  if(!thread)notFound();
 
  const sellerSide=thread.sellerOwnerId===user.id;
@@ -26,6 +31,7 @@ export default async function ListingConversationPage({params}:{params:Promise<{
      {thread.status==="open"&&<form action={closeListingConversation}><input type="hidden" name="conversationId" value={thread.id}/><button className="rounded-full border border-white/20 px-3 py-1.5 text-xs font-black text-white/80">Close conversation</button></form>}
     </div>
    </header>
+   <div className="border-b border-black/8 bg-white/70 px-4 py-2 text-center text-xs font-bold text-[#63706a]">{thread.messagePagination.hasOlder&&<Link href={"/inbox/"+thread.id+"?history="+(historyPage+1)} className="mr-4 underline">Older messages</Link>}{thread.messagePagination.hasNewer&&<Link href={historyPage===2?"/inbox/"+thread.id:"/inbox/"+thread.id+"?history="+(historyPage-1)} className="underline">Newer messages</Link>}</div>
    <div className="max-h-[55vh] min-h-64 overflow-y-auto p-3 sm:min-h-72 sm:p-5">
     {thread.messages.length?<div className="grid gap-3">{thread.messages.map(message=>{
      const mine=message.senderProfileId===user.id;
