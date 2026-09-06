@@ -29,9 +29,9 @@ export async function startStripeOnboarding(){
   .eq("seller_id",seller.id)
   .maybeSingle();
 
- let accountId=existing?.provider_account_id??null;
-
+ let onboardingUrl:string;
  try{
+  let accountId=existing?.provider_account_id??null;
   if(!accountId){
    const account=await createStripeRecipientAccount({email:user.email,displayName:seller.businessName});
    accountId=account.id;
@@ -47,13 +47,11 @@ export async function startStripeOnboarding(){
    },{onConflict:"seller_id"});
    if(error)throw error;
   }
-
-  const url=await createStripeOnboardingLink(accountId);
-  redirect(url);
- }catch(error){
-  if(error instanceof Error&&error.message==="NEXT_REDIRECT")throw error;
+  onboardingUrl=await createStripeOnboardingLink(accountId);
+ }catch{
   redirect("/dashboard/payments?error=stripe");
  }
+ redirect(onboardingUrl);
 }
 
 export async function refreshStripePaymentStatus(){
@@ -62,6 +60,7 @@ export async function refreshStripePaymentStatus(){
 
  const seller=await getSellerForOwner(user.id);
  if(!seller)redirect("/dashboard");
+
  const supabase=await createSupabaseServerClient();
  const {data}=await supabase
   .from("seller_payment_accounts")
@@ -71,19 +70,23 @@ export async function refreshStripePaymentStatus(){
 
  if(!data?.provider_account_id)redirect("/dashboard/payments");
 
+ let synced=false;
  try{
   const account=await getStripeRecipientAccount(data.provider_account_id);
   const transferStatus=recipientTransferStatus(account);
   const complete=transferStatus==="active";
   const admin=createSupabaseAdminClient();
-  await admin.from("seller_payment_accounts").update({
+  const {error}=await admin.from("seller_payment_accounts").update({
    onboarding_status:complete?"complete":"pending",
    transfers_enabled:complete,
    details_submitted:complete
   }).eq("seller_id",seller.id);
+  if(error)throw error;
+  synced=true;
   revalidatePath("/dashboard/payments");
-  redirect("/dashboard/payments?refreshed=1");
  }catch{
-  redirect("/dashboard/payments?error=sync");
+  synced=false;
  }
+
+ redirect(synced?"/dashboard/payments?refreshed=1":"/dashboard/payments?error=sync");
 }
