@@ -6,7 +6,7 @@ import type { Listing,SavedSearch } from "@/lib/types";
 
 const safeParams=(value:unknown):Record<string,string>=>{
  if(typeof value!=="object"||value===null||Array.isArray(value))return {};
- const allowed=new Set(["q","category","condition","sort","min","max","pc","collection","vehicle","vr","cv","cy","cf","ce"]);
+ const allowed=new Set(["q","category","condition","sort","min","max","pc","collection","vehicle","vr","vc","cv","cy","cf","ce"]);
  const result:Record<string,string>={};
  for(const [key,item] of Object.entries(value as Record<string,unknown>)){
   if(allowed.has(key)&&typeof item==="string"&&item.length<=200)result[key]=item;
@@ -43,13 +43,14 @@ export async function getRecentlyViewedListings(profileId:string,limit=12):Promi
 
 export async function getBuyerAccountCounts(profileId:string){
  const supabase=await createSupabaseServerClient();
- const [savedParts,savedSearches,garage,requests,recent,notifications]=await Promise.all([
+ const [savedParts,savedSearches,garage,requests,recent,notifications,orders]=await Promise.all([
   supabase.from("saved_parts").select("part_id",{count:"exact",head:true}).eq("profile_id",profileId),
   supabase.from("saved_searches").select("id",{count:"exact",head:true}).eq("profile_id",profileId),
   supabase.from("garage_vehicles").select("id",{count:"exact",head:true}).eq("profile_id",profileId),
   supabase.from("part_requests").select("id",{count:"exact",head:true}).eq("profile_id",profileId).eq("status","open"),
   supabase.from("recently_viewed_parts").select("part_id",{count:"exact",head:true}).eq("profile_id",profileId),
-  supabase.from("notifications").select("id",{count:"exact",head:true}).eq("profile_id",profileId).is("read_at",null)
+  supabase.from("notifications").select("id",{count:"exact",head:true}).eq("profile_id",profileId).is("read_at",null),
+  supabase.from("orders").select("id",{count:"exact",head:true}).eq("buyer_id",profileId)
  ]);
  return {
   savedParts:savedParts.count??0,
@@ -57,6 +58,7 @@ export async function getBuyerAccountCounts(profileId:string){
   garage:garage.count??0,
   openRequests:requests.count??0,
   recentlyViewed:recent.count??0,
-  unreadNotifications:notifications.count??0
+  unreadNotifications:notifications.count??0,
+  orders:orders.count??0
  };
 }
