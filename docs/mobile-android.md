@@ -81,7 +81,9 @@ The preview application now includes:
 - app lifecycle refresh handling;
 - Camera / Photo Picker integration;
 - private transaction-case evidence uploads;
-- seller inventory photo capture / gallery selection against the existing `part-images` bucket.
+- seller inventory photo capture / gallery selection against the existing `part-images` bucket;
+- native seller donor-vehicle creation;
+- native seller listing create/edit/publish flow with simplified compatibility evidence and optional exact fitments.
 
 ## Remaining production mobile gates
 
@@ -90,7 +92,7 @@ Before Google Play release:
 1. replace the preview custom checkout scheme with verified HTTPS Android App Links;
 2. extend deep-link handling to production email confirmation/password flows;
 3. push notifications;
-4. finish full mobile-native seller listing create/edit rather than using the web editor for non-photo fields;
+4. push notifications and notification deep-link routing;
 5. release signing and Play App Signing;
 6. generate a release Android App Bundle (AAB);
 7. production API/domain configuration;
