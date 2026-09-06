@@ -34,6 +34,7 @@ type SellerSaleRow={
  quantity:number;
  unit_price_pence:number;
  shipping_pence:number;
+ platform_fee_pence:number;
  seller_net_pence:number;
  delivery_method:"shipping"|"collection";
  fulfilment_status:string;
@@ -111,7 +112,7 @@ export async function getSellerSales(sellerId:string):Promise<SellerSale[]>{
  const supabase=await createSupabaseServerClient();
  const {data,error}=await supabase
   .from("order_items")
-  .select("id,order_id,quantity,unit_price_pence,shipping_pence,seller_net_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,release_eligible_at,funds_released_at,parts(title,slug),orders(id,status,payment_status,created_at,shipping_name,shipping_address)")
+  .select("id,order_id,quantity,unit_price_pence,shipping_pence,platform_fee_pence,seller_net_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,release_eligible_at,funds_released_at,parts(title,slug),orders(id,status,payment_status,created_at,shipping_name,shipping_address)")
   .eq("seller_id",sellerId)
   .order("id",{ascending:false});
  if(error)throw new Error("Seller orders are temporarily unavailable.");
@@ -128,6 +129,7 @@ export async function getSellerSales(sellerId:string):Promise<SellerSale[]>{
    quantity:raw.quantity,
    unitPricePence:raw.unit_price_pence,
    shippingPence:raw.shipping_pence,
+   platformFeePence:raw.platform_fee_pence,
    sellerNetPence:raw.seller_net_pence,
    deliveryMethod:raw.delivery_method,
    fulfilmentStatus:raw.fulfilment_status,
