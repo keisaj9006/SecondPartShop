@@ -44,8 +44,8 @@ export function AdminCaseResolution({item}:{item:TransactionCase}){
   {item.caseType==="return"&&["open","seller_response","under_review"].includes(item.status)&&
    <ActionForm caseId={item.id} action={authorizeReturn} title="Authorise physical return" button="Authorise return"/>}
 
-  {(item.caseType==="dispute"||item.status==="returned")&&
-   <ActionForm caseId={item.id} action={approveFullRefund} title="Approve full refund" button="Issue full refund"/>}
+  {(item.caseType==="dispute"||item.caseType==="cancellation"||item.status==="returned")&&
+   <ActionForm caseId={item.id} action={approveFullRefund} title={item.caseType==="cancellation"?"Approve cancellation refund":"Approve full refund"} button={item.caseType==="cancellation"?"Issue cancellation refund":"Issue full refund"}/>} 
 
   {item.caseType==="return"&&item.status!=="returned"&&
    <ActionForm caseId={item.id} action={approveReturnlessRefund} title="Refund without return" button="Issue refund without return" notesRequired/>}
