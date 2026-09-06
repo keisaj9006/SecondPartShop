@@ -75,6 +75,18 @@ export type TransactionReview={
  partTitle:string;
 };
 
+export type TransactionCaseEvidence={
+ id:string;
+ caseId:string;
+ uploaderProfileId:string;
+ uploaderHandle:string;
+ uploaderDisplayName:string;
+ originalName:string;
+ mimeType:string;
+ signedUrl:string;
+ createdAt:string;
+};
+
 export type TransactionMessage={
  id:string;
  senderProfileId:string;
