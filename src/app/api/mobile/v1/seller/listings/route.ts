@@ -19,7 +19,10 @@ export async function GET(request:Request){
  const offset=Number.isInteger(rawOffset)?Math.max(0,rawOffset):0;
  const search=url.searchParams.get("q")?.trim().slice(0,120)??"";
  const status=url.searchParams.get("status")?.trim()??"";
+ const sourceChannel=url.searchParams.get("source")?.trim()??"";
+ const importBatchId=url.searchParams.get("importBatch")?.trim()??"";
  const validStatuses=["draft","active","reserved","sold","archived"];
+ const validSources=["manual","csv","ebay","api"];
 
  let query=supabase
   .from("parts")
@@ -33,6 +36,8 @@ export async function GET(request:Request){
   query=query.or(`title.ilike.%${escaped}%,oem_number.ilike.%${escaped}%,part_number.ilike.%${escaped}%,manufacturer.ilike.%${escaped}%,source_external_id.ilike.%${escaped}%`);
  }
  if(validStatuses.includes(status))query=query.eq("status",status as "draft"|"active"|"reserved"|"sold"|"archived");
+ if(validSources.includes(sourceChannel))query=query.eq("source_channel",sourceChannel as "manual"|"csv"|"ebay"|"api");
+ if(isUuid(importBatchId))query=query.eq("import_batch_id",importBatchId);
 
  const {data,error}=await query.range(offset,offset+limit);
  if(error)return mobileJson(request,{ok:false,error:"inventory_unavailable"},503);
