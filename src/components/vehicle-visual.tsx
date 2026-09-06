@@ -62,20 +62,9 @@ export function VehicleVisual({
   </div>
 
   <svg viewBox="0 0 520 230" role="img" aria-label={"Representative preview of "+[colour,make,model,String(year)].filter(Boolean).join(" ")} className={"mx-auto w-full "+(compact?"mt-1 max-h-28":"mt-2 max-h-44")}>
-   <defs>
-    <linearGradient id={"body-"+make.replace(/[^a-z0-9]/gi,"")} x1="0" y1="0" x2="0" y2="1">
-     <stop offset="0%" stopColor={paint.highlight}/>
-     <stop offset="45%" stopColor={paint.body}/>
-     <stop offset="100%" stopColor={paint.shade}/>
-    </linearGradient>
-    <linearGradient id={"glass-"+make.replace(/[^a-z0-9]/gi,"")} x1="0" x2="1">
-     <stop offset="0%" stopColor="#d9e8ea"/>
-     <stop offset="100%" stopColor="#8fa8ad"/>
-    </linearGradient>
-   </defs>
    <ellipse cx="258" cy="190" rx="191" ry="18" fill="rgba(15,23,42,.10)"/>
-   <path d="M67 148c8-24 22-43 45-55l74-38c15-8 31-12 48-12h75c22 0 42 7 59 21l52 43 42 11c19 5 31 18 34 38l2 17H42l4-10c4-9 11-14 21-15Z" fill={"url(#body-"+make.replace(/[^a-z0-9]/gi,"")+")"} stroke="#16211e" strokeWidth="4" strokeLinejoin="round"/>
-   <path d="M202 61 142 99h235l-40-34c-10-8-22-12-36-12h-65c-12 0-24 3-34 8Z" fill={"url(#glass-"+make.replace(/[^a-z0-9]/gi,"")+")"} stroke="#16211e" strokeWidth="3"/>
+   <path d="M67 148c8-24 22-43 45-55l74-38c15-8 31-12 48-12h75c22 0 42 7 59 21l52 43 42 11c19 5 31 18 34 38l2 17H42l4-10c4-9 11-14 21-15Z" fill={paint.body} stroke="#16211e" strokeWidth="4" strokeLinejoin="round"/>
+   <path d="M202 61 142 99h235l-40-34c-10-8-22-12-36-12h-65c-12 0-24 3-34 8Z" fill="#bfd1d4" stroke="#16211e" strokeWidth="3"/>
    <path d="M268 53v46M139 101h243" stroke="#16211e" strokeWidth="3" opacity=".75"/>
    <path d="M104 111c-11 7-20 18-26 34M420 115c22 3 38 11 48 24" stroke={paint.highlight} strokeWidth="4" strokeLinecap="round" opacity=".65"/>
    <path d="M57 143h48" stroke="#f8fafc" strokeWidth="9" strokeLinecap="round"/>
