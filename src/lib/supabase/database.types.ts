@@ -2255,6 +2255,24 @@ export type Database = {
           part_title: string
         }[]
       }
+      get_seller_directory_page: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          bought_count: number
+          business_name: string
+          description: string
+          handle: string
+          location: string
+          owner_id: string
+          seller_id: string
+          seller_rating: number
+          seller_review_count: number
+          seller_type: string
+          seller_verified: boolean
+          slug: string
+          sold_count: number
+        }[]
+      }
       get_verified_fit_opportunities: {
         Args: never
         Returns: {
