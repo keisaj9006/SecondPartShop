@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CarFront,Trash2 } from "lucide-react";
 import { Header } from "@/components/header";
+import { VehicleVisual } from "@/components/vehicle-visual";
 import { requireUser } from "@/lib/auth";
 import { getGarageVehicles } from "@/lib/data/garage";
 import { removeGarageVehicle } from "./actions";
