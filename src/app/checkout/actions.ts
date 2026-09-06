@@ -50,6 +50,7 @@ export async function startCheckout(_previous:ActionState,formData:FormData):Pro
    quantity:reservation.quantity,
    unitPricePence:reservation.unit_price_pence,
    shippingPence:reservation.shipping_pence,
+   deliveryMethod:deliveryMethod as "shipping"|"collection",
    customerEmail:user.email,
    expiresAt:reservation.checkout_expires_at
   });
