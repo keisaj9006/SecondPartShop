@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireSeller } from "@/lib/auth";
 import { getSellerForOwner } from "@/lib/data/marketplace";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { normalizeRegistration } from "@/lib/vehicle-registration";
 import { csvBoolean,parseCsv } from "@/lib/csv";
+import { isUuid } from "@/lib/identifiers";
 
 export type BulkImportIssue={row:number;message:string};
 export type BulkImportPreviewRow={
@@ -317,4 +319,24 @@ export async function bulkImportCsv(_previous:BulkImportState,formData:FormData)
   sample:validation.sample,
   batchId:batch.id
  };
+}
+
+
+export async function publishReadyImportDrafts(formData:FormData){
+ const {user}=await requireSeller("/dashboard/import");
+ const seller=await getSellerForOwner(user.id);
+ if(!seller)return;
+ const batchId=String(formData.get("batchId")??"").trim();
+ if(!isUuid(batchId))return;
+
+ const supabase=await createSupabaseServerClient();
+ const {data,error}=await supabase.rpc("publish_ready_import_batch",{p_batch_id:batchId});
+ if(error)throw new Error("Ready drafts could not be published.");
+
+ const published=Number(data??0);
+ revalidatePath("/");
+ revalidatePath("/dashboard");
+ revalidatePath("/dashboard/import");
+ revalidatePath("/dashboard/import/"+batchId);
+ redirect("/dashboard/import/"+batchId+"?published="+published);
 }
