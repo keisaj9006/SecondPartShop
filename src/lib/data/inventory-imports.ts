@@ -37,7 +37,7 @@ export async function getInventoryImportReport(sellerId:string,id:string):Promis
  return {
   id:data.id,
   filename:data.filename,
-  status:data.status,
+  status:data.status==="completed"||data.status==="partial"||data.status==="failed"?data.status:"failed",
   rowsReceived:data.rows_received,
   rowsCreated:data.rows_created,
   rowsRejected:data.rows_rejected,
