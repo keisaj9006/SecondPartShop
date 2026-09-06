@@ -24,7 +24,7 @@ const account=async(payload)=>{
  html.push("<section class=\"account-hero\"><p class=\"eyebrow\" style=\"color:#d4f44d\">Your SecondPart account</p><h1>"+C.escapeHtml(profile?profile.displayName:"SecondPart member")+"</h1><p>"+C.escapeHtml(profile?"@"+profile.handle:"")+" · "+C.escapeHtml(me.user&&me.user.email?me.user.email:"")+"</p><p style=\"margin-top:10px;font-size:12px;color:rgba(255,255,255,.7)\">One login for buying and selling. Selling never removes your buyer features.</p>"+(!me.user.emailConfirmed?"<div class=\"status warning\" style=\"margin-top:12px\">Email confirmation is still pending.</div>":"")+"</section>");
 
  if(sellingEnabled){
-  html.push("<div class=\"segmented\" style=\"margin-top:14px\"><button id=\"mode-buying\" class=\""+(mode==="buying"?"active":"")+"\" type=\"button\">Buying</button><button id=\"mode-selling\" class=\""+(mode==="selling"?"active":"")+"\" type=\"button\">Selling</button></div>");
+  html.push("<div class=\"segmented\" style=\"margin-top:14px\"><button id=\"mode-buying\" class=\""+(mode==="buying"?"active":"")+"\" type=\"button\">Buyer</button><button id=\"mode-selling\" class=\""+(mode==="selling"?"active":"")+"\" type=\"button\">Seller</button></div>");
  }
 
  if(mode==="buying"){
@@ -38,7 +38,7 @@ const account=async(payload)=>{
   }
  }
 
- if(profile)html.push("<section class=\"card\" style=\"margin-top:12px\"><p class=\"eyebrow\">Account capabilities</p><div class=\"spec-grid\"><div class=\"spec\"><small>Buying</small><strong>Enabled</strong></div><div class=\"spec\"><small>Selling</small><strong>"+(sellingEnabled?"Enabled":"Not enabled")+"</strong></div></div>"+(seller?"<div class=\"status "+(seller.verified?"success":"info")+"\" style=\"margin-top:10px\">"+C.escapeHtml(seller.businessName)+" · "+(seller.verified?"Verified business":seller.sellerType==="business"?"Business verification not complete":"Private seller profile")+"</div>":"")+"</section>");
+ if(profile)html.push("<section class=\"card\" style=\"margin-top:12px\"><p class=\"eyebrow\">Account capabilities</p><div class=\"spec-grid\"><div class=\"spec\"><small>Buyer</small><strong>Enabled</strong></div><div class=\"spec\"><small>Seller</small><strong>"+(sellingEnabled?"Enabled":"Not enabled")+"</strong></div></div>"+(seller?"<div class=\"status "+(seller.verified?"success":"info")+"\" style=\"margin-top:10px\">"+C.escapeHtml(seller.businessName)+" · "+(seller.verified?"Verified business":seller.sellerType==="business"?"Business verification not complete":"Private seller profile")+"</div>":"")+"</section>");
 
  html.push("<section class=\"account-grid\" style=\"margin-top:12px\"><button class=\"account-tile\" id=\"account-member-profile\" type=\"button\"><strong>Profile & username</strong><small>Public name, @username, bio and private phone.</small></button><button class=\"account-tile\" id=\"account-security\" type=\"button\"><strong>Security & account</strong><small>Email, password recovery and account controls.</small></button></section>");
  html.push("<div class=\"button-row\" style=\"margin-top:14px\"><button id=\"account-signout\" class=\"danger-button small-button\" type=\"button\">Sign out</button></div>");
