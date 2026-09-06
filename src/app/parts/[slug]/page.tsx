@@ -95,7 +95,7 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
       <span className="flex items-center gap-2"><MapPin className="text-[#d4f44d]" size={18}/>{item.seller.businessName}, {item.seller.location}</span>
       {sellerTrust&&<div className="rounded-xl bg-white/10 p-3">
         <Link href={`/member/${sellerTrust.handle}`} className="font-black text-[#d4f44d] hover:underline">@{sellerTrust.handle}</Link>
-        <p className="mt-1 font-bold">★ {sellerTrust.sellerRating?.toFixed(1)??"New"} · {sellerTrust.sellerReviewCount} verified reviews · {sellerTrust.soldCount} sold</p>
+        <p className="mt-1 font-bold">★ {sellerTrust.sellerRating?.toFixed(1)??"New"} · {sellerTrust.sellerReviewCount} verified reviews · {sellerTrust.soldCount} sold · {sellerTrust.boughtCount} bought</p>
       </div>}
       {item.collectionAvailable&&<span className="flex items-center gap-2"><MapPin className="text-[#d4f44d]" size={18}/>Local collection available</span>}
       {item.deliveryDaysMin!==null&&item.deliveryDaysMax!==null&&<span className="flex items-center gap-2"><Truck className="text-[#d4f44d]" size={18}/>Seller estimate: {item.deliveryDaysMin}–{item.deliveryDaysMax} working days</span>}
