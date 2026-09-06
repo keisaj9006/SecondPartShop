@@ -45,3 +45,26 @@ export async function getInventoryImportReport(sellerId:string,id:string):Promis
   createdAt:data.created_at
  };
 }
+
+
+export type InventoryImportReadiness={
+ totalDrafts:number;
+ readyDrafts:number;
+ needsPhotos:number;
+ needsCompatibility:number;
+ needsTechnical:number;
+};
+
+export async function getInventoryImportReadiness(batchId:string):Promise<InventoryImportReadiness>{
+ const supabase=await createSupabaseServerClient();
+ const {data,error}=await supabase.rpc("seller_import_batch_readiness",{p_batch_id:batchId});
+ if(error)throw new Error("Import readiness is temporarily unavailable.");
+ const row=data?.[0];
+ return {
+  totalDrafts:Number(row?.total_drafts??0),
+  readyDrafts:Number(row?.ready_drafts??0),
+  needsPhotos:Number(row?.needs_photos??0),
+  needsCompatibility:Number(row?.needs_compatibility??0),
+  needsTechnical:Number(row?.needs_technical??0)
+ };
+}
