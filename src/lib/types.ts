@@ -104,6 +104,15 @@ export type SellerPaymentAccount={
  detailsSubmitted:boolean;
 };
 
+export type ShippingAddress={
+ line1:string|null;
+ line2:string|null;
+ city:string|null;
+ state:string|null;
+ postalCode:string|null;
+ country:string|null;
+};
+
 export type BuyerOrderItem={
  id:string;
  partTitle:string;
@@ -152,6 +161,8 @@ export type SellerSale={
  orderStatus:string;
  paymentStatus:string;
  orderCreatedAt:string;
+ shippingName:string|null;
+ shippingAddress:ShippingAddress|null;
 };
 
 export type ActionState={status:"idle"|"success"|"error";message?:string;fieldErrors?:Record<string,string>};
