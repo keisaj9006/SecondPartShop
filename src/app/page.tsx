@@ -30,7 +30,7 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
  const rawPostcode=first(params.pc);
  const postcode=rawPostcode?normalizePostcode(rawPostcode):undefined;
  const selectedCataloguePromise=requestedCatalogueVariant&&requestedCatalogueYear
-  ?getCatalogueSelection(requestedCatalogueVariant,requestedCatalogueYear,requestedCatalogueFuel,requestedCatalogueEngine)
+  ?getCatalogueSelection(requestedCatalogueVariant,requestedCatalogueYear,requestedCatalogueFuel,requestedCatalogueEngine).catch(()=>null)
   :Promise.resolve(null);
  const [categories,user,selectedCatalogue]=await Promise.all([getCategories(),getCurrentUser(),selectedCataloguePromise]);
  const filters:MarketplaceFilters={
@@ -53,7 +53,7 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   getListings(filters),
   getVehicles(),
   user?getSavedPartIds(user.id):Promise.resolve([]),
-  getCatalogueModelMap(),
+  getCatalogueModelMap().catch(()=>[]),
   user?getGarageVehicles(user.id):Promise.resolve([]),
   user?getRecentlyViewedListings(user.id,3):Promise.resolve([])
  ]);
