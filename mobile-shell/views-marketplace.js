@@ -41,14 +41,14 @@ const home=async()=>{
  UI.loading("Loading marketplace");
  let result;
  try{
-  result=await C.api(marketplacePath(C.state.currentSearch),{auth:false});
+  result=await C.apiCached(marketplacePath(C.state.currentSearch),{auth:false,maxAge:20000});
  }catch(error){
   UI.empty("⌁","Marketplace unavailable",error.message,"Try again",()=>UI.route("home"));
   return;
  }
 
  const html=[];
- html.push("<section class=\"hero\"><p class=\"eyebrow\">UK used parts marketplace</p><h1>The right part.<br><em>First time.</em></h1><p>Identify your vehicle, then search used and reconditioned parts from garages and sellers across the UK.</p><div class=\"hero-badges\"><span>Vehicle-first search</span><span>Verified fitment evidence</span><span>Buyer protection</span></div></section>");
+ html.push("<section class=\"hero\"><p class=\"eyebrow\">UK used parts marketplace</p><h1>The right part.<br><em>First time.</em></h1><p>Identify your vehicle, then search automotive parts from garages and sellers across the UK.</p><div class=\"hero-badges\"><span>Vehicle-first search</span><span>Verified fitment evidence</span><span>Buyer protection</span></div></section>");
  html.push("<section class=\"card\"><p class=\"eyebrow\">Your vehicle</p><div id=\"vehicle-context\">"+renderVehicleContext()+"</div><form id=\"registration-form\" class=\"vehicle-search\" style=\"margin-top:12px\"><div class=\"search-row\"><input id=\"registration-input\" class=\"input registration\" maxlength=\"10\" autocomplete=\"off\" placeholder=\"AB12 CDE\"/><button class=\"primary\" type=\"submit\">Find</button></div><button id=\"manual-vehicle\" class=\"link-button\" type=\"button\">Select vehicle manually</button><div id=\"vehicle-result\"></div></form></section>");
  html.push("<section class=\"card\"><p class=\"eyebrow\">Find a part</p><form id=\"market-search\" class=\"search-row\"><input id=\"part-query\" class=\"input\" value=\""+C.escapeHtml(C.state.currentSearch)+"\" placeholder=\"Part name, OE/OEM number or brand\"/><button class=\"primary\" type=\"submit\">Search</button></form></section>");
  html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Marketplace</p><h2>"+(C.state.currentSearch?"Search results":"Available parts")+"</h2><p>"+result.pagination.total+" matching listing"+(result.pagination.total===1?"":"s")+"</p></div>"+(C.state.currentSearch?"<button id=\"clear-search\" class=\"link-button\" type=\"button\">Clear search</button>":"")+"</div>");
@@ -136,6 +136,8 @@ const lookupRegistration=async(event)=>{
      engine:catalogue.engineMatched?vehicle.engineSizeSimple??undefined:undefined,
      registration:result.registration,colour:vehicle.colour||undefined
     }});
+    C.invalidateCache("/garage");
+    C.prefetch("/garage",{auth:true,maxAge:60000});
     UI.toast("Vehicle saved to Garage.");
    }catch(error){UI.toast(error.message,"error");}
    finally{save.disabled=false;}
@@ -327,7 +329,7 @@ const garage=async()=>{
  if(!await UI.requireAuth("garage"))return;
  UI.loading("Loading Garage");
  let items;
- try{items=(await C.api("/garage",{auth:true})).items||[];}
+ try{items=(await C.apiCached("/garage",{auth:true,maxAge:60000})).items||[];}
  catch(error){UI.empty("▱","Garage unavailable",error.message,"Try again",()=>UI.route("garage"));return;}
 
  const html=[];
@@ -353,6 +355,7 @@ const garage=async()=>{
   button.disabled=true;
   try{
    await C.api("/garage?id="+encodeURIComponent(button.dataset.removeGarage),{method:"DELETE",auth:true});
+   C.invalidateCache("/garage");
    UI.toast("Vehicle removed.");
    UI.route("garage");
   }catch(error){UI.toast(error.message,"error");button.disabled=false;}
