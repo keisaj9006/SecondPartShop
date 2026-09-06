@@ -3,12 +3,8 @@
   "appName": "SecondPart",
   "webDir": "mobile-shell",
   "loggingBehavior": "debug",
-  "server": {
-    "url": "https://second-part-shop-preview.vercel.app",
-    "cleartext": false
-  },
   "android": {
-    "backgroundColor": "#0f172a",
+    "backgroundColor": "#173c31",
     "webContentsDebuggingEnabled": true
   }
 }
