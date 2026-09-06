@@ -9,49 +9,86 @@ const account=async(payload)=>{
  if(!C.state.session){renderAuth(payload&&payload.mode?payload.mode:"signin");return;}
  UI.loading("Loading account");
  if(!C.state.me)await C.loadMe();
- if(!C.state.me){C.clearSession();renderAuth("signin");return;}
+ if(!C.state.me){await C.clearSession();renderAuth("signin");return;}
 
  const me=C.state.me;
  const profile=me.profile;
  const seller=me.seller;
+ const sellingEnabled=Boolean(profile&&["seller","admin"].includes(profile.role));
+ if(payload&&payload.view==="selling"&&sellingEnabled)C.state.accountMode="selling";
+ if(payload&&payload.view==="buying")C.state.accountMode="buying";
+ if(!sellingEnabled)C.state.accountMode="buying";
+ const mode=C.state.accountMode;
+
  const html=[];
- html.push("<section class=\"account-hero\"><p class=\"eyebrow\" style=\"color:#d4f44d\">Your account</p><h1>"+C.escapeHtml(profile?profile.displayName:"SecondPart member")+"</h1><p>"+C.escapeHtml(profile?"@"+profile.handle:"")+" · "+C.escapeHtml(me.user&&me.user.email?me.user.email:"")+"</p>"+(!me.user.emailConfirmed?"<div class=\"status warning\" style=\"margin-top:12px\">Email confirmation is still pending.</div>":"")+"</section>");
- html.push("<section class=\"account-grid\"><button class=\"account-tile\" id=\"account-saved\" type=\"button\"><strong>Saved parts</strong><small>Parts you want to come back to.</small></button><button class=\"account-tile\" id=\"account-notifications\" type=\"button\"><strong>Notifications</strong><small>"+C.escapeHtml(C.state.unreadNotifications)+" unread marketplace update(s).</small></button><button class=\"account-tile\" id=\"account-garage\" type=\"button\"><strong>Garage</strong><small>Your saved vehicles and compatibility filters.</small></button><button class=\"account-tile\" id=\"account-orders\" type=\"button\"><strong>Purchases</strong><small>Payment, delivery and buyer protection.</small></button><button class=\"account-tile\" id=\"account-cases\" type=\"button\"><strong>Returns & cases</strong><small>Cancellations, returns, disputes and private photo evidence.</small></button><button class=\"account-tile\" id=\"account-inbox\" type=\"button\"><strong>Part questions</strong><small>Buyer and seller pre-purchase conversations.</small></button>"+(seller?"<button class=\"account-tile\" id=\"account-seller\" type=\"button\"><strong>Seller dashboard</strong><small>Sales, payouts, fulfilment and cases.</small></button><button class=\"account-tile\" id=\"account-inventory\" type=\"button\"><strong>Seller inventory</strong><small>Listings and real product photos from camera or gallery.</small></button>":"")+"</section>");
- if(profile)html.push("<section class=\"card\" style=\"margin-top:12px\"><p class=\"eyebrow\">Profile</p><div class=\"spec-grid\"><div class=\"spec\"><small>Role</small><strong>"+C.escapeHtml(C.human(profile.role))+"</strong></div><div class=\"spec\"><small>Member since</small><strong>"+C.dateOnly(profile.createdAt)+"</strong></div></div>"+(seller?"<div class=\"status "+(seller.verified?"success":"info")+"\" style=\"margin-top:10px\">"+C.escapeHtml(seller.businessName)+" · "+(seller.verified?"Verified seller":"Seller verification pending/not completed")+"</div>":"")+"</section>");
+ html.push("<section class=\"account-hero\"><p class=\"eyebrow\" style=\"color:#d4f44d\">Your SecondPart account</p><h1>"+C.escapeHtml(profile?profile.displayName:"SecondPart member")+"</h1><p>"+C.escapeHtml(profile?"@"+profile.handle:"")+" · "+C.escapeHtml(me.user&&me.user.email?me.user.email:"")+"</p><p style=\"margin-top:10px;font-size:12px;color:rgba(255,255,255,.7)\">One login for buying and selling. Selling never removes your buyer features.</p>"+(!me.user.emailConfirmed?"<div class=\"status warning\" style=\"margin-top:12px\">Email confirmation is still pending.</div>":"")+"</section>");
+
+ if(sellingEnabled){
+  html.push("<div class=\"segmented\" style=\"margin-top:14px\"><button id=\"mode-buying\" class=\""+(mode==="buying"?"active":"")+"\" type=\"button\">Buying</button><button id=\"mode-selling\" class=\""+(mode==="selling"?"active":"")+"\" type=\"button\">Selling</button></div>");
+ }
+
+ if(mode==="buying"){
+  html.push("<section class=\"account-grid\" style=\"margin-top:14px\"><button class=\"account-tile\" id=\"account-saved\" type=\"button\"><strong>Saved parts</strong><small>Parts you want to come back to.</small></button><button class=\"account-tile\" id=\"account-notifications\" type=\"button\"><strong>Notifications</strong><small>"+C.escapeHtml(C.state.unreadNotifications)+" unread marketplace update(s).</small></button><button class=\"account-tile\" id=\"account-garage\" type=\"button\"><strong>Garage</strong><small>Your saved vehicles and compatibility filters.</small></button><button class=\"account-tile\" id=\"account-orders\" type=\"button\"><strong>Purchases</strong><small>Payment, delivery and buyer protection.</small></button><button class=\"account-tile\" id=\"account-cases\" type=\"button\"><strong>Returns & cases</strong><small>Cancellations, returns, disputes and private photo evidence.</small></button><button class=\"account-tile\" id=\"account-inbox\" type=\"button\"><strong>Part questions</strong><small>Questions with sellers and buyers.</small></button></section>");
+  if(!sellingEnabled)html.push("<section class=\"card\" style=\"margin-top:14px\"><p class=\"eyebrow\">Want to sell too?</p><h3 style=\"margin:5px 0\">Enable selling on this account</h3><p class=\"subtle\">Keep the same login, Garage, purchases and reviews. Add a private seller or business / garage profile.</p><button id=\"account-start-selling\" class=\"lime-button wide\" style=\"margin-top:12px\" type=\"button\">Start selling</button></section>");
+ }else{
+  if(!seller){
+   html.push("<section class=\"card\" style=\"margin-top:14px\"><p class=\"eyebrow\">Selling setup</p><h3 style=\"margin:5px 0\">Finish your seller profile</h3><p class=\"subtle\">Your account can still buy parts. Complete seller details to publish listings and receive sales.</p><button id=\"account-finish-selling\" class=\"lime-button wide\" style=\"margin-top:12px\" type=\"button\">Finish seller setup</button></section>");
+  }else{
+   html.push("<section class=\"account-grid\" style=\"margin-top:14px\"><button class=\"account-tile\" id=\"account-seller\" type=\"button\"><strong>Seller dashboard</strong><small>Sales, payouts, fulfilment and cases.</small></button><button class=\"account-tile\" id=\"account-inventory\" type=\"button\"><strong>Inventory</strong><small>Create, edit and photograph listings.</small></button><button class=\"account-tile\" id=\"account-inbox\" type=\"button\"><strong>Buyer questions</strong><small>Pre-purchase messages about your parts.</small></button><button class=\"account-tile\" id=\"account-notifications\" type=\"button\"><strong>Seller notifications</strong><small>"+C.escapeHtml(C.state.unreadNotifications)+" unread update(s).</small></button><button class=\"account-tile\" id=\"account-cases\" type=\"button\"><strong>Returns & cases</strong><small>Transaction problems and evidence.</small></button><button class=\"account-tile\" id=\"account-new-listing\" type=\"button\"><strong>Create listing</strong><small>Add a part directly from the app.</small></button></section>");
+  }
+ }
+
+ if(profile)html.push("<section class=\"card\" style=\"margin-top:12px\"><p class=\"eyebrow\">Account capabilities</p><div class=\"spec-grid\"><div class=\"spec\"><small>Buying</small><strong>Enabled</strong></div><div class=\"spec\"><small>Selling</small><strong>"+(sellingEnabled?"Enabled":"Not enabled")+"</strong></div></div>"+(seller?"<div class=\"status "+(seller.verified?"success":"info")+"\" style=\"margin-top:10px\">"+C.escapeHtml(seller.businessName)+" · "+(seller.verified?"Verified seller":"Seller verification pending / not completed")+"</div>":"")+"</section>");
+
  html.push("<div class=\"button-row\" style=\"margin-top:14px\"><button id=\"account-web\" class=\"secondary small-button\" type=\"button\">Profile & security on web</button><button id=\"account-signout\" class=\"danger-button small-button\" type=\"button\">Sign out</button></div>");
  UI.app.innerHTML=html.join("");
 
- document.getElementById("account-saved").addEventListener("click",()=>UI.route("saved"));
- document.getElementById("account-notifications").addEventListener("click",()=>UI.route("notifications"));
- document.getElementById("account-garage").addEventListener("click",()=>UI.route("garage"));
- document.getElementById("account-orders").addEventListener("click",()=>UI.route("orders"));
- document.getElementById("account-cases").addEventListener("click",()=>UI.route("cases"));
- document.getElementById("account-inbox").addEventListener("click",()=>UI.route("inbox"));
+ const buying=document.getElementById("mode-buying");if(buying)buying.addEventListener("click",()=>{C.state.accountMode="buying";UI.route("account",{view:"buying"});});
+ const selling=document.getElementById("mode-selling");if(selling)selling.addEventListener("click",()=>{C.state.accountMode="selling";UI.route("account",{view:"selling"});});
+ const saved=document.getElementById("account-saved");if(saved)saved.addEventListener("click",()=>UI.route("saved"));
+ const notifications=document.getElementById("account-notifications");if(notifications)notifications.addEventListener("click",()=>UI.route("notifications"));
+ const garage=document.getElementById("account-garage");if(garage)garage.addEventListener("click",()=>UI.route("garage"));
+ const orders=document.getElementById("account-orders");if(orders)orders.addEventListener("click",()=>UI.route("orders"));
+ const cases=document.getElementById("account-cases");if(cases)cases.addEventListener("click",()=>UI.route("cases"));
+ const inbox=document.getElementById("account-inbox");if(inbox)inbox.addEventListener("click",()=>UI.route("inbox"));
  const sellerButton=document.getElementById("account-seller");if(sellerButton)sellerButton.addEventListener("click",()=>UI.route("seller"));
- const inventoryButton=document.getElementById("account-inventory");if(inventoryButton)inventoryButton.addEventListener("click",()=>UI.route("inventory"));
- document.getElementById("account-web").addEventListener("click",()=>{window.location.href=C.config.webBaseUrl.replace(/\/$/,"")+"/account";});
+ const inventory=document.getElementById("account-inventory");if(inventory)inventory.addEventListener("click",()=>UI.route("inventory"));
+ const newListing=document.getElementById("account-new-listing");if(newListing)newListing.addEventListener("click",()=>UI.route("listingEditor"));
+ const startSelling=document.getElementById("account-start-selling");if(startSelling)startSelling.addEventListener("click",()=>UI.route("sellerSetup"));
+ const finishSelling=document.getElementById("account-finish-selling");if(finishSelling)finishSelling.addEventListener("click",()=>UI.route("sellerSetup"));
+ document.getElementById("account-web").addEventListener("click",()=>void C.Native.openBrowser(C.config.webBaseUrl.replace(/\/$/,"")+"/account"));
  document.getElementById("account-signout").addEventListener("click",async()=>{
   await C.signOut();
+  C.state.accountMode="buying";
   await UI.refreshUserChrome();
   UI.toast("Signed out.");
   UI.route("home");
  });
 };
 
+let authSignupRole="buyer";
+
 const renderAuth=(mode)=>{
  const signup=mode==="signup";
- const html="<section class=\"auth-card\"><div class=\"segmented\"><button id=\"auth-signin-tab\" class=\""+(!signup?"active":"")+"\" type=\"button\">Sign in</button><button id=\"auth-signup-tab\" class=\""+(signup?"active":"")+"\" type=\"button\">Create account</button></div><p class=\"eyebrow\" style=\"margin-top:20px\">SecondPart account</p><h1 style=\"font-size:30px;margin:5px 0\">"+(signup?"Join SecondPart":"Welcome back")+"</h1><p class=\"subtle\">"+(signup?"Create a buyer account or enable selling from day one.":"Access your Garage, saved parts, purchases and messages.")+"</p><form id=\"auth-form\" class=\"form-grid\">"+(signup?"<label class=\"label\">Display name<input id=\"auth-name\" class=\"input\" minlength=\"2\" required autocomplete=\"name\"/></label><label class=\"label\">Account type<select id=\"auth-role\" class=\"select\"><option value=\"buyer\">Buyer</option><option value=\"seller\">Seller / garage</option></select></label>":"")+"<label class=\"label\">Email<input id=\"auth-email\" class=\"input\" type=\"email\" required autocomplete=\"email\"/></label><label class=\"label\">Password<input id=\"auth-password\" class=\"input\" type=\"password\" minlength=\"8\" required autocomplete=\""+(signup?"new-password":"current-password")+"\"/></label><div id=\"auth-status\"></div><button class=\"primary wide\" type=\"submit\">"+(signup?"Create account":"Sign in")+"</button></form>"+(!signup?"<button id=\"auth-forgot\" class=\"link-button\" style=\"margin-top:12px\" type=\"button\">Forgot password / resend confirmation</button>":"")+"</section>";
+ const roleCard=(role,title,body)=>"<button type=\"button\" class=\"account-tile auth-role-choice"+(authSignupRole===role?" selected":"")+"\" data-auth-role=\""+role+"\"><strong>"+title+"</strong><small>"+body+"</small></button>";
+ const html="<section class=\"auth-card\"><div class=\"segmented\"><button id=\"auth-signin-tab\" class=\""+(!signup?"active":"")+"\" type=\"button\">Sign in</button><button id=\"auth-signup-tab\" class=\""+(signup?"active":"")+"\" type=\"button\">Create account</button></div><p class=\"eyebrow\" style=\"margin-top:20px\">SecondPart account</p><h1 style=\"font-size:30px;margin:5px 0\">"+(signup?"Join SecondPart":"Welcome back")+"</h1><p class=\"subtle\">"+(signup?"Choose how you want to start. A seller account can also buy parts with the same login.":"One login for your Garage, purchases, selling and messages.")+"</p>"+(signup?"<section class=\"account-grid\" style=\"margin-top:14px\">"+roleCard("buyer","I want to buy parts","Garage, compatibility, saved parts and purchases.")+roleCard("seller","I want to sell parts","Includes all buyer features plus seller tools.")+"</section>":"")+"<form id=\"auth-form\" class=\"form-grid\" style=\"margin-top:14px\">"+(signup?"<input id=\"auth-role\" type=\"hidden\" value=\""+authSignupRole+"\"/><label class=\"label\">Your name / contact name<input id=\"auth-name\" class=\"input\" minlength=\"2\" required autocomplete=\"name\"/></label>":"")+"<label class=\"label\">Email<input id=\"auth-email\" class=\"input\" type=\"email\" required autocomplete=\"email\"/></label><label class=\"label\">Password<input id=\"auth-password\" class=\"input\" type=\"password\" minlength=\"8\" required autocomplete=\""+(signup?"new-password":"current-password")+"\"/></label><div id=\"auth-status\"></div><button id=\"auth-submit\" class=\"primary wide\" type=\"submit\">"+(signup?(authSignupRole==="seller"?"Create seller account":"Create buyer account"):"Sign in")+"</button></form>"+(!signup?"<button id=\"auth-forgot\" class=\"link-button\" style=\"margin-top:12px\" type=\"button\">Forgot password / resend confirmation</button>":"")+"</section>";
  UI.app.innerHTML=html;
 
  document.getElementById("auth-signin-tab").addEventListener("click",()=>renderAuth("signin"));
  document.getElementById("auth-signup-tab").addEventListener("click",()=>renderAuth("signup"));
+ UI.app.querySelectorAll("[data-auth-role]").forEach(button=>button.addEventListener("click",()=>{
+  authSignupRole=button.dataset.authRole==="seller"?"seller":"buyer";
+  UI.app.querySelectorAll("[data-auth-role]").forEach(node=>node.classList.toggle("selected",node.dataset.authRole===authSignupRole));
+  document.getElementById("auth-role").value=authSignupRole;
+  document.getElementById("auth-submit").textContent=authSignupRole==="seller"?"Create seller account":"Create buyer account";
+ }));
  const forgot=document.getElementById("auth-forgot");
- if(forgot)forgot.addEventListener("click",()=>{window.location.href=C.config.webBaseUrl.replace(/\/$/,"")+"/auth/forgot-password";});
+ if(forgot)forgot.addEventListener("click",()=>void C.Native.openBrowser(C.config.webBaseUrl.replace(/\/$/,"")+"/auth/forgot-password"));
 
  document.getElementById("auth-form").addEventListener("submit",async event=>{
   event.preventDefault();
   const status=document.getElementById("auth-status");
-  const button=event.currentTarget.querySelector("button[type=submit]");
+  const button=document.getElementById("auth-submit");
   button.disabled=true;button.textContent=signup?"Creating account…":"Signing in…";
   const email=String(document.getElementById("auth-email").value||"").trim();
   const password=String(document.getElementById("auth-password").value||"");
@@ -62,10 +99,10 @@ const renderAuth=(mode)=>{
     if(displayName.length<2)throw new Error("Enter your name or business contact name.");
     const result=await C.signUp({email,password,displayName,role});
     if(result&&result.access_token){
-     await afterLogin();
+     await afterLogin(role);
     }else{
-     status.innerHTML="<div class=\"status success\">Account created. Check your email to confirm the account, then return to the app and sign in.</div>";
-     button.disabled=false;button.textContent="Create account";
+     status.innerHTML="<div class=\"status success\">Account created. Check your email to confirm it, then sign in"+(role==="seller"?" and finish your seller profile.":".")+"</div>";
+     button.disabled=false;button.textContent=role==="seller"?"Create seller account":"Create buyer account";
     }
    }else{
     await C.signIn(email,password);
@@ -73,18 +110,57 @@ const renderAuth=(mode)=>{
    }
   }catch(error){
    status.innerHTML="<div class=\"status error\">"+C.escapeHtml(error.message)+"</div>";
-   button.disabled=false;button.textContent=signup?"Create account":"Sign in";
+   button.disabled=false;button.textContent=signup?(authSignupRole==="seller"?"Create seller account":"Create buyer account"):"Sign in";
   }
  });
 };
 
-const afterLogin=async()=>{
+const afterLogin=async(intent=null)=>{
  await C.loadMe();
  await UI.refreshUserChrome();
  UI.toast("Signed in.");
+ if(intent==="seller"&&C.state.me&&!C.state.me.seller){
+  C.state.afterAuth=null;
+  C.state.accountMode="selling";
+  UI.route("sellerSetup");
+  return;
+ }
  const target=C.state.afterAuth||"account";
  C.state.afterAuth=null;
  UI.route(target);
+};
+
+const sellerSetup=async()=>{
+ if(!await UI.requireAuth("sellerSetup"))return;
+ if(!C.state.me)await C.loadMe();
+ if(C.state.me?.seller){C.state.accountMode="selling";UI.route("account",{view:"selling"});return;}
+
+ const profile=C.state.me?.profile;
+ UI.app.innerHTML="<button class=\"back\" id=\"seller-setup-back\" type=\"button\">‹ Back to account</button><section class=\"auth-card\"><p class=\"eyebrow\">Selling on SecondPart</p><h1 style=\"font-size:28px;margin:5px 0\">Create your seller profile</h1><p class=\"subtle\">This adds selling to your existing account. You will still be able to buy parts normally.</p><form id=\"seller-setup-form\" class=\"form-grid\" style=\"margin-top:16px\"><label class=\"label\">Seller type<select id=\"seller-type\" class=\"select\"><option value=\"private\">Private seller</option><option value=\"business\">Business / garage / breaker</option></select></label><label class=\"label\">Seller / business name<input id=\"seller-name\" class=\"input\" minlength=\"2\" maxlength=\"140\" value=\""+C.escapeHtml(profile?.displayName||"")+"\" required/></label><label class=\"label\">Town or city<input id=\"seller-location\" class=\"input\" maxlength=\"140\" required/></label><label class=\"label\">Postcode <span class=\"subtle\">(optional)</span><input id=\"seller-postcode\" class=\"input\" maxlength=\"20\"/></label><label class=\"label\">About you / the business<textarea id=\"seller-description\" class=\"textarea\" minlength=\"20\" maxlength=\"2000\" placeholder=\"What kind of parts do you sell, how are they sourced, tested or dispatched?\" required></textarea></label><div id=\"seller-setup-status\"></div><button id=\"seller-setup-submit\" class=\"lime-button wide\" type=\"submit\">Enable selling</button></form></section>";
+ document.getElementById("seller-setup-back").addEventListener("click",()=>UI.route("account",{view:"buying"}));
+ document.getElementById("seller-setup-form").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const button=document.getElementById("seller-setup-submit");
+  const status=document.getElementById("seller-setup-status");
+  button.disabled=true;button.textContent="Setting up…";
+  try{
+   await C.api("/seller/profile",{method:"POST",auth:true,body:{
+    sellerType:document.getElementById("seller-type").value,
+    businessName:String(document.getElementById("seller-name").value||"").trim(),
+    location:String(document.getElementById("seller-location").value||"").trim(),
+    postcode:String(document.getElementById("seller-postcode").value||"").trim(),
+    description:String(document.getElementById("seller-description").value||"").trim()
+   }});
+   C.invalidateCache("auth:");
+   await C.loadMe();
+   C.state.accountMode="selling";
+   UI.toast("Selling enabled. You can still buy parts with this account.");
+   UI.route("account",{view:"selling"});
+  }catch(error){
+   status.innerHTML="<div class=\"status error\">"+C.escapeHtml(error.message.replaceAll("_"," "))+"</div>";
+   button.disabled=false;button.textContent="Enable selling";
+  }
+ });
 };
 
 const saved=async()=>{
@@ -188,4 +264,5 @@ UI.register("account",account);
 UI.register("saved",saved);
 UI.register("notifications",notifications);
 UI.register("member",member);
+UI.register("sellerSetup",sellerSetup);
 })();
