@@ -32,8 +32,8 @@ export async function getListings(filters:MarketplaceFilters={}):Promise<DataRes
  if(filters.vehicle||filters.catalogueVariant){
   try{
    compatibilityMap=await getCompatibilityMap(filters);
-  }catch(error){
-   return failure([],error instanceof Error?error.message:"Compatibility data is temporarily unavailable.");
+  }catch{
+   return failure([],"Compatibility data is temporarily unavailable.");
   }
   allowedPartIds=[...compatibilityMap.keys()];
   if(!allowedPartIds.length)return {data:[],error:null,configured:true};
@@ -43,13 +43,13 @@ export async function getListings(filters:MarketplaceFilters={}):Promise<DataRes
  if(filters.query?.trim()){
   const searchText=filters.query.trim();
   const {data,error}=await supabase.rpc("marketplace_search_part_ids",{p_query:searchText});
-  if(error)return failure([],error.message);
+  if(error)return failure([],"Marketplace search is temporarily unavailable.");
   rankedIds=(data??[]).map(row=>row.part_id);
   if(!rankedIds.length){
    const {data:synonym}=await supabase.from("marketplace_search_synonyms").select("canonical_query").eq("alias",searchText.toLowerCase()).maybeSingle();
    if(synonym?.canonical_query){
     const {data:fallback,error:fallbackError}=await supabase.rpc("marketplace_search_part_ids",{p_query:synonym.canonical_query});
-    if(fallbackError)return failure([],fallbackError.message);
+    if(fallbackError)return failure([],"Marketplace search is temporarily unavailable.");
     rankedIds=(fallback??[]).map(row=>row.part_id);
    }
   }
@@ -58,7 +58,7 @@ export async function getListings(filters:MarketplaceFilters={}):Promise<DataRes
  let categoryIds:string[]|undefined;
  if(filters.category){
   const {data,error}=await supabase.rpc("category_descendant_ids",{p_category_id:filters.category});
-  if(error)return failure([],error.message);
+  if(error)return failure([],"Category filtering is temporarily unavailable.");
   categoryIds=(data??[]).map(row=>row.id);
   if(!categoryIds.length)return {data:[],error:null,configured:true};
  }
@@ -73,7 +73,7 @@ export async function getListings(filters:MarketplaceFilters={}):Promise<DataRes
  if(rankedIds)query=query.in("id",rankedIds);
  if(filters.ids?.length)query=query.in("id",filters.ids);
  const {data,error}=await query;
- if(error)return failure([],error.message);
+ if(error)return failure([],"Marketplace listings are temporarily unavailable.");
  const listings=(data??[]).map(row=>{
   const item=listingFrom(row as unknown as RawListing);
   return {...item,compatibility:compatibilityMap?.get(item.id)??null};
@@ -126,7 +126,7 @@ export async function getSearchSuggestions(queryText:string):Promise<SearchSugge
  return {categories:categoryMatches,listings,numbers:[...numberMap.values()].slice(0,4),brands};
 }
 
-export async function getListingBySlug(slug:string):Promise<DataResult<Listing|null>>{if(!isSupabaseConfigured())return failure(null,"Connect Supabase to load this listing.",false);const supabase=await createSupabaseServerClient();const {data,error}=await supabase.from("parts").select(selectListing()).eq("slug",slug).eq("status","active").maybeSingle();if(error)return failure(null,error.message);return {data:data?listingFrom(data as unknown as RawListing):null,error:null,configured:true};}
+export async function getListingBySlug(slug:string):Promise<DataResult<Listing|null>>{if(!isSupabaseConfigured())return failure(null,"Connect Supabase to load this listing.",false);const supabase=await createSupabaseServerClient();const {data,error}=await supabase.from("parts").select(selectListing()).eq("slug",slug).eq("status","active").maybeSingle();if(error)return failure(null,"This listing is temporarily unavailable.");return {data:data?listingFrom(data as unknown as RawListing):null,error:null,configured:true};}
 export async function getCategories():Promise<Category[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();const {data}=await supabase.from("categories").select(categorySelect).order("sort_order").order("name");return (data??[]).map(c=>categoryFrom(c as RawCategory));}
 export async function getVehicles():Promise<Vehicle[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();const {data}=await supabase.from("vehicles").select("id,make,model,generation,year,engine,engine_code,fuel_type,gearbox_family,gearbox_code,data_status,source_reference").order("make").order("model").order("year");return (data??[]).map(v=>vehicleFrom(v as RawVehicle));}
 export async function getSavedPartIds(userId:string):Promise<string[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();const {data}=await supabase.from("saved_parts").select("part_id").eq("profile_id",userId);return (data??[]).map(item=>item.part_id);}
