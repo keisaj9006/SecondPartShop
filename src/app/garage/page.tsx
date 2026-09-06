@@ -8,11 +8,12 @@ import { removeGarageVehicle } from "./actions";
 
 export const dynamic="force-dynamic";
 
-const vehicleHref=(vehicle:{catalogueVariantId:string;year:number;fuelType:string|null;engineSizeSimple:number|null;registration:string|null})=>{
+const vehicleHref=(vehicle:{catalogueVariantId:string;year:number;fuelType:string|null;engineSizeSimple:number|null;registration:string|null;colour:string|null})=>{
  const params=new URLSearchParams({cv:vehicle.catalogueVariantId,cy:String(vehicle.year)});
  if(vehicle.fuelType)params.set("cf",vehicle.fuelType);
  if(vehicle.engineSizeSimple!==null)params.set("ce",String(vehicle.engineSizeSimple));
  if(vehicle.registration)params.set("vr",vehicle.registration);
+ if(vehicle.colour)params.set("vc",vehicle.colour);
  return `/?${params.toString()}#marketplace`;
 };
 
