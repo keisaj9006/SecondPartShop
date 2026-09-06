@@ -58,7 +58,7 @@ export async function getListingConversations():Promise<ListingConversationSumma
  return (await getListingConversationsPage({limit:60})).items;
 }
 
-export async function getListingConversation(conversationId:string):Promise<ListingConversationThread|null>{
+export async function getListingConversation(conversationId:string,options:{offset?:number;limit?:number}={}):Promise<ListingConversationThread|null>{
  const supabase=await createSupabaseServerClient();
  const {data,error}=await supabase
   .from("listing_conversations")
@@ -70,20 +70,27 @@ export async function getListingConversation(conversationId:string):Promise<List
  const summary=mapSummary(data as unknown as ConversationRow);
  if(!summary)return null;
 
- const {data:messages,error:messageError}=await supabase
+ const offset=Math.max(0,Math.floor(options.offset??0));
+ const limit=Math.max(1,Math.min(Math.floor(options.limit??100),200));
+ const {data:messageRows,error:messageError}=await supabase
   .from("listing_conversation_messages")
   .select("id,sender_profile_id,body,created_at")
   .eq("conversation_id",conversationId)
-  .order("created_at");
+  .order("created_at",{ascending:false})
+  .order("id",{ascending:false})
+  .range(offset,offset+limit);
+ const rawMessages=messageRows??[];
+ const hasOlder=rawMessages.length>limit;
+ const messages=rawMessages.slice(0,limit).reverse();
  if(messageError)throw new Error("Conversation messages are temporarily unavailable.");
 
- const ids=[...new Set((messages??[]).map(message=>message.sender_profile_id))];
+ const ids=[...new Set(messages.map(message=>message.sender_profile_id))];
  const profiles=await Promise.all(ids.map(id=>getPublicMemberProfileById(id).catch(()=>null)));
  const byId=new Map(profiles.filter((p):p is NonNullable<typeof p>=>Boolean(p)).map(p=>[p.id,p]));
 
  return {
   ...summary,
-  messages:(messages??[]).map(message=>{
+  messages:messages.map(message=>{
    const profile=byId.get(message.sender_profile_id);
    return {
     id:message.id,
@@ -93,6 +100,7 @@ export async function getListingConversation(conversationId:string):Promise<List
     body:message.body,
     createdAt:message.created_at
    };
-  })
+  }),
+  messagePagination:{offset,limit,hasOlder,hasNewer:offset>0}
  };
 }
