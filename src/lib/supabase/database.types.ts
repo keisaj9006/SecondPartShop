@@ -1370,6 +1370,11 @@ export type Database = {
           resolution_notes: string | null
           resolved_at: string | null
           resolved_by: string | null
+          return_authorized_at: string | null
+          return_received_at: string | null
+          return_shipped_at: string | null
+          return_tracking_carrier: string | null
+          return_tracking_number: string | null
           seller_response: string | null
           status: string
           updated_at: string
@@ -1392,6 +1397,11 @@ export type Database = {
           resolution_notes?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
+          return_authorized_at?: string | null
+          return_received_at?: string | null
+          return_shipped_at?: string | null
+          return_tracking_carrier?: string | null
+          return_tracking_number?: string | null
           seller_response?: string | null
           status?: string
           updated_at?: string
@@ -1414,6 +1424,11 @@ export type Database = {
           resolution_notes?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
+          return_authorized_at?: string | null
+          return_received_at?: string | null
+          return_shipped_at?: string | null
+          return_tracking_carrier?: string | null
+          return_tracking_number?: string | null
           seller_response?: string | null
           status?: string
           updated_at?: string
@@ -1808,6 +1823,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_authorize_transaction_return: {
+        Args: { p_case_id: string; p_notes?: string }
+        Returns: boolean
+      }
+      admin_prepare_returnless_refund: {
+        Args: { p_case_id: string; p_notes: string }
+        Returns: boolean
+      }
       admin_prepare_transaction_case_refund: {
         Args: { p_case_id: string; p_notes: string }
         Returns: boolean
@@ -1830,6 +1853,14 @@ export type Database = {
       }
       buyer_mark_order_item_received: {
         Args: { p_accept_now?: boolean; p_order_item_id: string }
+        Returns: boolean
+      }
+      buyer_mark_transaction_return_shipped: {
+        Args: {
+          p_carrier: string
+          p_case_id: string
+          p_tracking_number: string
+        }
         Returns: boolean
       }
       cancel_checkout_order: {
@@ -2036,6 +2067,10 @@ export type Database = {
         Returns: undefined
       }
       seller_checkout_ready: { Args: { p_seller_id: string }; Returns: boolean }
+      seller_confirm_transaction_return_received: {
+        Args: { p_case_id: string }
+        Returns: boolean
+      }
       seller_respond_transaction_case: {
         Args: { p_case_id: string; p_response: string }
         Returns: boolean
