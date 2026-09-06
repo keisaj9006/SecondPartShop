@@ -17,6 +17,7 @@ const knownMessage=(message:string)=>{
  if(lower.includes("not ready to receive"))return "This seller is still completing marketplace payout setup.";
  if(lower.includes("active checkout reservation for this part"))return "You already have an active checkout for this part. Open Purchases to continue or wait for it to expire.";
  if(lower.includes("too many active checkout reservations"))return "You already have several active checkouts. Complete or cancel one before reserving another part.";
+ if(lower.includes("vehicle")||lower.includes("engine/fuel")||lower.includes("registration"))return "We could not verify the selected vehicle for this checkout. Re-select the vehicle and try again.";
  return "Checkout could not be started. Please try again.";
 };
 
@@ -24,9 +25,18 @@ export async function startCheckout(_previous:ActionState,formData:FormData):Pro
  const partId=String(formData.get("partId")??"");
  const quantity=Math.floor(Number(formData.get("quantity")??1));
  const deliveryMethod=String(formData.get("deliveryMethod")??"shipping");
+ const vehicleVariantId=String(formData.get("vehicleVariantId")??"").trim();
+ const vehicleYearText=String(formData.get("vehicleYear")??"").trim();
+ const vehicleFuel=String(formData.get("vehicleFuel")??"").trim();
+ const vehicleEngineText=String(formData.get("vehicleEngine")??"").trim();
+ const vehicleRegistration=String(formData.get("vehicleRegistration")??"").trim();
+ const vehicleYear=vehicleYearText?Number(vehicleYearText):undefined;
+ const vehicleEngine=vehicleEngineText?Number(vehicleEngineText):undefined;
  if(!isUuid(partId))return {status:"error",message:"This listing could not be identified."};
  if(!Number.isInteger(quantity)||quantity<1||quantity>10)return {status:"error",message:"Choose a valid quantity."};
  if(!(["shipping","collection"] as string[]).includes(deliveryMethod))return {status:"error",message:"Choose shipping or collection."};
+ if(vehicleVariantId&&(!isUuid(vehicleVariantId)||!Number.isInteger(vehicleYear)))return {status:"error",message:"Re-select your vehicle before checkout."};
+ if(vehicleEngineText&&!Number.isInteger(vehicleEngine))return {status:"error",message:"The selected vehicle engine is invalid."};
  if(!isStripeCheckoutConfigured())return {status:"error",message:"Marketplace checkout is not enabled yet."};
 
  const user=await requireUser("/account");
@@ -35,10 +45,15 @@ export async function startCheckout(_previous:ActionState,formData:FormData):Pro
  const {data:part}=await supabase.from("parts").select("slug").eq("id",partId).maybeSingle();
  if(!part)return {status:"error",message:"This listing is no longer available."};
 
- const {data,error}=await supabase.rpc("prepare_checkout_order",{
+ const {data,error}=await supabase.rpc("prepare_checkout_order_v2",{
   p_part_id:partId,
   p_quantity:quantity,
-  p_delivery_method:deliveryMethod
+  p_delivery_method:deliveryMethod,
+  p_vehicle_variant_id:vehicleVariantId||undefined,
+  p_vehicle_year:vehicleYear,
+  p_vehicle_fuel:vehicleFuel||undefined,
+  p_vehicle_engine:vehicleEngine,
+  p_vehicle_registration:vehicleRegistration||undefined
  });
  const reservation=data?.[0];
  if(error||!reservation)return {status:"error",message:knownMessage(error?.message??"")};
