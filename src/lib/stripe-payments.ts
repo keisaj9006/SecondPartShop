@@ -90,7 +90,7 @@ export async function createCheckoutSession(input:{
   append(body,"line_items[1][quantity]",1);
  }
 
- return stripeV1<StripeCheckoutSession>("/v1/checkout/sessions",{method:"POST",body});
+ return stripeV1<StripeCheckoutSession>("/v1/checkout/sessions",{method:"POST",body,headers:{"Idempotency-Key":`secondpart-checkout-${input.orderId}`}});
 }
 
 export async function getPaymentIntent(paymentIntentId:string){
@@ -112,7 +112,7 @@ export async function createSellerTransfer(input:{
  append(body,"source_transaction",input.sourceChargeId);
  append(body,"metadata[order_id]",input.orderId);
  append(body,"metadata[order_item_id]",input.orderItemId);
- return stripeV1<StripeTransfer>("/v1/transfers",{method:"POST",body});
+ return stripeV1<StripeTransfer>("/v1/transfers",{method:"POST",body,headers:{"Idempotency-Key":`secondpart-transfer-${input.orderItemId}`}});
 }
 
 export async function reverseSellerTransfer(transferId:string,amountPence?:number){
