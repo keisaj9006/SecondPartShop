@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { BuyerOrder,SellerSale } from "@/lib/types";
+import type { BuyerOrder,OrderTimelineEvent,SellerSale } from "@/lib/types";
 
 type BuyerOrderRow={
  id:string;
@@ -143,4 +143,27 @@ export async function getSellerSales(sellerId:string):Promise<SellerSale[]>{
    shippingAddress:shippingAddress(order.shipping_address)
   }];
  });
+}
+
+
+export async function getOrderTimeline(orderId:string,orderItemId?:string):Promise<OrderTimelineEvent[]>{
+ const supabase=await createSupabaseServerClient();
+ let query=supabase
+  .from("order_events")
+  .select("id,order_id,order_item_id,actor_profile_id,event_type,from_status,to_status,created_at")
+  .eq("order_id",orderId)
+  .order("created_at",{ascending:true});
+ if(orderItemId)query=query.or(`order_item_id.eq.${orderItemId},order_item_id.is.null`);
+ const {data,error}=await query;
+ if(error)throw new Error("Order timeline is temporarily unavailable.");
+ return (data??[]).map(row=>({
+  id:row.id,
+  orderId:row.order_id,
+  orderItemId:row.order_item_id,
+  eventType:row.event_type,
+  fromStatus:row.from_status,
+  toStatus:row.to_status,
+  actorProfileId:row.actor_profile_id,
+  createdAt:row.created_at
+ }));
 }
