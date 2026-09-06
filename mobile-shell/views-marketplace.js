@@ -16,8 +16,20 @@ const activeVehicleQuery=()=>{
  return params.toString();
 };
 
+const rememberedMarketplaceParams=()=>{
+ const source=C.state.marketplaceParams&&typeof C.state.marketplaceParams==="object"?C.state.marketplaceParams:{};
+ const result={};
+ ["category","condition","sort","min","max","pc","collection"].forEach(key=>{
+  const value=source[key];
+  if(value!==undefined&&value!==null&&String(value)!=="")result[key]=String(value);
+ });
+ return result;
+};
+
 const marketplacePath=(query)=>{
  const params=new URLSearchParams();
+ const remembered=rememberedMarketplaceParams();
+ Object.entries(remembered).forEach(([key,value])=>params.set(key,value));
  if(query)params.set("q",query);
  const vehicle=activeVehicleQuery();
  if(vehicle){
@@ -48,14 +60,21 @@ const home=async()=>{
  }
 
  const html=[];
+ const extraFilters=rememberedMarketplaceParams();
+ const hasExtraFilters=Object.keys(extraFilters).length>0;
+ const canSaveSearch=Boolean(C.state.session&&(C.state.currentSearch||C.state.activeVehicle||hasExtraFilters));
  html.push("<section class=\"hero\"><p class=\"eyebrow\">UK used parts marketplace</p><h1>The right part.<br><em>First time.</em></h1><p>Identify your vehicle, then search automotive parts from garages and sellers across the UK.</p><div class=\"hero-badges\"><span>Vehicle-first search</span><span>Verified fitment evidence</span><span>Buyer protection</span></div></section>");
  html.push("<section class=\"card\"><p class=\"eyebrow\">Your vehicle</p><div id=\"vehicle-context\">"+renderVehicleContext()+"</div><form id=\"registration-form\" class=\"vehicle-search\" style=\"margin-top:12px\"><div class=\"search-row\"><input id=\"registration-input\" class=\"input registration\" maxlength=\"10\" autocomplete=\"off\" placeholder=\"AB12 CDE\"/><button class=\"primary\" type=\"submit\">Find</button></div><button id=\"manual-vehicle\" class=\"link-button\" type=\"button\">Select vehicle manually</button><div id=\"vehicle-result\"></div></form></section>");
  html.push("<section class=\"card\"><p class=\"eyebrow\">Find a part</p><form id=\"market-search\" class=\"search-row\"><input id=\"part-query\" class=\"input\" value=\""+C.escapeHtml(C.state.currentSearch)+"\" placeholder=\"Part name, OE/OEM number or brand\"/><button class=\"primary\" type=\"submit\">Search</button></form></section>");
- html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Marketplace</p><h2>"+(C.state.currentSearch?"Search results":"Available parts")+"</h2><p>"+result.pagination.total+" matching listing"+(result.pagination.total===1?"":"s")+"</p></div>"+(C.state.currentSearch?"<button id=\"clear-search\" class=\"link-button\" type=\"button\">Clear search</button>":"")+"</div>");
+ if(hasExtraFilters)html.push("<section class=\"card flat\" style=\"margin-top:-2px\"><div class=\"row-between\"><div><p class=\"eyebrow\">Saved search filters</p><p class=\"subtle\">Extra marketplace filters are active from a saved search.</p></div><button id=\"clear-saved-filters\" class=\"link-button\" type=\"button\">Clear filters</button></div></section>");
+ const marketplaceActions=[];
+ if(C.state.currentSearch)marketplaceActions.push("<button id=\"clear-search\" class=\"link-button\" type=\"button\">Clear search</button>");
+ if(canSaveSearch)marketplaceActions.push("<button id=\"save-search\" class=\"secondary small-button\" type=\"button\">Save search</button>");
+ html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Marketplace</p><h2>"+(C.state.currentSearch?"Search results":"Available parts")+"</h2><p>"+result.pagination.total+" matching listing"+(result.pagination.total===1?"":"s")+"</p></div>"+(marketplaceActions.length?"<div class=\"button-row\">"+marketplaceActions.join("")+"</div>":"")+"</div>");
  if(result.items&&result.items.length){
   html.push("<section id=\"listing-grid\" class=\"list-grid\">"+result.items.map(UI.listingCard).join("")+"</section>");
  }else{
-  html.push("<div class=\"empty\"><div class=\"empty-icon\">⌕</div><h3>No matching parts yet</h3><p>Try another part name, OE/OEM number or remove the vehicle filter.</p></div>");
+  html.push("<div class=\"empty\"><div class=\"empty-icon\">⌕</div><h3>No matching parts yet</h3><p>Try another part name, OE/OEM number or remove the vehicle filter.</p>"+(C.state.currentSearch?"<button id=\"request-missing-part\" class=\"primary small-button\" style=\"margin-top:14px\" type=\"button\">Request this part</button>":"")+"</div>");
  }
 
  UI.app.innerHTML=html.join("");
@@ -69,6 +88,12 @@ const home=async()=>{
  });
  const clearSearch=document.getElementById("clear-search");
  if(clearSearch)clearSearch.addEventListener("click",()=>{C.state.currentSearch="";UI.route("home");});
+ const clearSavedFilters=document.getElementById("clear-saved-filters");
+ if(clearSavedFilters)clearSavedFilters.addEventListener("click",()=>{C.state.marketplaceParams={};UI.route("home");});
+ const saveSearch=document.getElementById("save-search");
+ if(saveSearch)saveSearch.addEventListener("click",async()=>{if(!await UI.requireAuth("savedSearches"))return;UI.route("savedSearches",{saveCurrent:true});});
+ const requestMissing=document.getElementById("request-missing-part");
+ if(requestMissing)requestMissing.addEventListener("click",async()=>{if(!await UI.requireAuth("requests"))return;UI.route("requests",{prefill:C.state.currentSearch});});
 
  const fitOnly=document.getElementById("vehicle-fit-only");
  if(fitOnly)fitOnly.addEventListener("change",event=>{C.state.vehicleCompatibleOnly=Boolean(event.target.checked);UI.route("home");});
@@ -268,6 +293,7 @@ const listing=async(payload)=>{
  }
  catch(error){UI.empty("!","Listing unavailable",error.message,"Back to marketplace",()=>UI.route("home"));return;}
 
+ if(C.state.session)void C.api("/recently-viewed",{method:"POST",auth:true,body:{partId:item.id}}).catch(()=>{});
  const image=UI.firstImage(item);
  const own=Boolean(C.state.me&&C.state.me.profile&&item.seller&&item.seller.ownerId===C.state.me.profile.id);
  const saved=C.state.savedIds.has(item.id);

@@ -17,6 +17,7 @@ const state={
  activeVehicle:null,
  vehicleCompatibleOnly:true,
  currentSearch:"",
+ marketplaceParams:{},
  currentView:"home",
  accountMode:"buying"
 };
@@ -133,6 +134,7 @@ const clearSession=async()=>{
  state.me=null;
  state.savedIds=new Set();
  state.unreadNotifications=0;
+ state.marketplaceParams={};
  invalidateCache("auth:");
  localStorage.removeItem(LEGACY_SESSION_KEY);
  try{await Native.storage.remove(SESSION_KEY);}catch(error){console.error("Could not clear secure session storage",error);}
