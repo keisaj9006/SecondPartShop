@@ -10,6 +10,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getPartCompatibility } from "@/lib/data/compatibility";
 import { getListingBySlug,getSavedPartIds,getVehicles } from "@/lib/data/marketplace";
 import { getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
+import { getPublicMemberProfileById } from "@/lib/data/reputation";
 import type { MarketplaceFilters } from "@/lib/types";
 import { testingStatusLabel,warrantyLabel } from "@/lib/listing-trust";
 import { isUuid } from "@/lib/identifiers";
@@ -53,7 +54,10 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
  }
  if(filters.vehicleRegistration&&vehicleLabel)vehicleLabel=`${filters.vehicleRegistration} · ${vehicleLabel}`;
 
- const savedIds=user?await getSavedPartIds(user.id):[];
+ const [savedIds,sellerTrust]=await Promise.all([
+  user?getSavedPartIds(user.id):Promise.resolve([]),
+  getPublicMemberProfileById(item.seller.ownerId).catch(()=>null)
+ ]);
  const backHref=context.toString()?`/?${context.toString()}#marketplace`:"/#marketplace";
  const currentHref=context.toString()?`/parts/${slug}?${context.toString()}`:`/parts/${slug}`;
  const reportHref=`/report?part=${encodeURIComponent(item.id)}&returnTo=${encodeURIComponent(currentHref)}`;
@@ -82,7 +86,20 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
     <div className="mt-6 rounded-2xl border border-black/10 bg-white p-5"><p className="font-bold">Recorded compatibility</p>{item.fitments.length?<ul className="mt-3 space-y-3">{item.fitments.map(({vehicle,notes})=><li key={vehicle.id} className="flex items-start gap-2 text-sm"><Check size={16} className="mt-0.5 shrink-0 text-[#287154]"/><span><strong>{vehicle.make} {vehicle.model} {vehicle.generation}</strong> · {vehicle.year} · {vehicle.engine}{vehicle.fuelType?` · ${vehicle.fuelType}`:""}{notes&&<small className="mt-1 block text-[#63706a]">{notes}</small>}</span></li>)}</ul>:<p className="mt-2 text-sm text-[#63706a]">Compatibility has not been confirmed for a specific legacy QA vehicle. Use the compatibility confidence above when shopping with a selected catalogue vehicle.</p>}</div>
 
     <div className="mt-5 grid grid-cols-2 gap-3"><SaveButton partId={item.id} initialSaved={savedIds.includes(item.id)}/><Link href={`/seller/${item.seller.slug}`} className="grid place-items-center rounded-xl bg-[#d4f44d] px-5 py-3 text-center font-black">View seller</Link></div>
-    <div className="mt-6 grid gap-3 rounded-2xl bg-[#173c31] p-5 text-sm text-white">{item.seller.verified&&<span className="flex items-center gap-2"><ShieldCheck className="text-[#d4f44d]" size={18}/>Verified seller</span>}<span className="flex items-center gap-2"><MapPin className="text-[#d4f44d]" size={18}/>{item.seller.businessName}, {item.seller.location}</span>{item.collectionAvailable&&<span className="flex items-center gap-2"><MapPin className="text-[#d4f44d]" size={18}/>Local collection available</span>}{item.deliveryDaysMin!==null&&item.deliveryDaysMax!==null&&<span className="flex items-center gap-2"><Truck className="text-[#d4f44d]" size={18}/>Seller estimate: {item.deliveryDaysMin}–{item.deliveryDaysMax} working days</span>}<span className="flex items-center gap-2"><Truck className="text-[#d4f44d]" size={18}/>Stock and dispatch supplied by the seller</span></div><Link href={user?reportHref:`/account?returnTo=${encodeURIComponent(reportHref)}`} className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-[#63706a] underline"><Flag size={14}/>Report this listing</Link>
+    <div className="mt-6 grid gap-3 rounded-2xl bg-[#173c31] p-5 text-sm text-white">
+      <div className="flex flex-wrap items-center gap-2">
+        {item.seller.verified&&<span className="flex items-center gap-2"><ShieldCheck className="text-[#d4f44d]" size={18}/>Verified seller</span>}
+        <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-black capitalize">{item.seller.sellerType} seller</span>
+      </div>
+      <span className="flex items-center gap-2"><MapPin className="text-[#d4f44d]" size={18}/>{item.seller.businessName}, {item.seller.location}</span>
+      {sellerTrust&&<div className="rounded-xl bg-white/10 p-3">
+        <Link href={`/member/${sellerTrust.handle}`} className="font-black text-[#d4f44d] hover:underline">@{sellerTrust.handle}</Link>
+        <p className="mt-1 font-bold">★ {sellerTrust.sellerRating?.toFixed(1)??"New"} · {sellerTrust.sellerReviewCount} verified reviews · {sellerTrust.soldCount} sold</p>
+      </div>}
+      {item.collectionAvailable&&<span className="flex items-center gap-2"><MapPin className="text-[#d4f44d]" size={18}/>Local collection available</span>}
+      {item.deliveryDaysMin!==null&&item.deliveryDaysMax!==null&&<span className="flex items-center gap-2"><Truck className="text-[#d4f44d]" size={18}/>Seller estimate: {item.deliveryDaysMin}–{item.deliveryDaysMax} working days</span>}
+      <span className="flex items-center gap-2"><Truck className="text-[#d4f44d]" size={18}/>Stock and dispatch supplied by the seller</span>
+    </div><Link href={user?reportHref:`/account?returnTo=${encodeURIComponent(reportHref)}`} className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-[#63706a] underline"><Flag size={14}/>Report this listing</Link>
    </div>
   </div>
  </main></>;
