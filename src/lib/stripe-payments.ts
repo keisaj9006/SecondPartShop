@@ -115,18 +115,26 @@ export async function createSellerTransfer(input:{
  return stripeV1<StripeTransfer>("/v1/transfers",{method:"POST",body,headers:{"Idempotency-Key":`secondpart-transfer-${input.orderItemId}`}});
 }
 
-export async function reverseSellerTransfer(transferId:string,amountPence?:number){
+export async function reverseSellerTransfer(transferId:string,amountPence?:number,idempotencyKey?:string){
  const body=new URLSearchParams();
  append(body,"amount",amountPence);
- return stripeV1<StripeTransferReversal>(`/v1/transfers/${encodeURIComponent(transferId)}/reversals`,{method:"POST",body});
+ return stripeV1<StripeTransferReversal>(`/v1/transfers/${encodeURIComponent(transferId)}/reversals`,{
+  method:"POST",
+  body,
+  headers:idempotencyKey?{"Idempotency-Key":idempotencyKey}:undefined
+ });
 }
 
-export async function refundPlatformPayment(input:{paymentIntentId:string;amountPence?:number}){
+export async function refundPlatformPayment(input:{paymentIntentId:string;amountPence?:number;idempotencyKey?:string}){
  const body=new URLSearchParams();
  append(body,"payment_intent",input.paymentIntentId);
  append(body,"amount",input.amountPence);
  append(body,"reason","requested_by_customer");
- return stripeV1<StripeRefund>("/v1/refunds",{method:"POST",body});
+ return stripeV1<StripeRefund>("/v1/refunds",{
+  method:"POST",
+  body,
+  headers:input.idempotencyKey?{"Idempotency-Key":input.idempotencyKey}:undefined
+ });
 }
 
 export function verifyStripeWebhookSignature(payload:string,header:string|null){
