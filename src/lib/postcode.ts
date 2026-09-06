@@ -40,7 +40,7 @@ export async function enrichListingsWithDistance(listings:Listing[],buyerPostcod
  const buyer=await lookupPostcodeLocation(buyerPostcode);
  if(!buyer)return listings;
  const sellerPostcodes=[...new Set(listings.map(item=>item.seller.postcode).filter((value):value is string=>Boolean(value)))];
- const resolved=new Map<string,Awaited<ReturnType<typeof lookupLocation>>>();
+ const resolved=new Map<string,Awaited<ReturnType<typeof lookupPostcodeLocation>>>();
  await Promise.all(sellerPostcodes.map(async postcode=>resolved.set(postcode,await lookupPostcodeLocation(postcode,true))));
  return listings.map(item=>{
   const sellerPostcode=item.seller.postcode;
