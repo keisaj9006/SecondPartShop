@@ -2613,6 +2613,10 @@ export type Database = {
           unit_price_pence: number
         }[]
       }
+      publish_ready_import_batch: {
+        Args: { p_batch_id: string }
+        Returns: number
+      }
       register_transaction_case_evidence: {
         Args: {
           p_case_id: string
@@ -2630,6 +2634,16 @@ export type Database = {
       seller_confirm_transaction_return_received: {
         Args: { p_case_id: string }
         Returns: boolean
+      }
+      seller_import_batch_readiness: {
+        Args: { p_batch_id: string }
+        Returns: {
+          needs_compatibility: number
+          needs_photos: number
+          needs_technical: number
+          ready_drafts: number
+          total_drafts: number
+        }[]
       }
       seller_ranked_part_request_leads: {
         Args: { p_limit?: number; p_offset?: number }
