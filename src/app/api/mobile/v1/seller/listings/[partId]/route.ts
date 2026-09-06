@@ -19,7 +19,7 @@ export async function GET(request:Request,{params}:{params:Promise<{partId:strin
 
  const {data,error}=await supabase
   .from("parts")
-  .select("id,slug,title,description,category_id,donor_vehicle_id,condition,price_pence,shipping_pence,stock,manufacturer,part_number,oem_number,gearbox_family,gearbox_code,dispatch_days,testing_status,warranty_days,condition_notes,damage_notes,collection_available,delivery_days_min,delivery_days_max,status,categories(name,is_transmission_related),part_catalogue_fitments(variant_id,year_from,year_to,fuel_type,engine_size_simple,notes)")
+  .select("id,slug,title,description,category_id,donor_vehicle_id,condition,price_pence,shipping_pence,stock,manufacturer,part_number,oem_number,gearbox_family,gearbox_code,dispatch_days,testing_status,warranty_days,condition_notes,damage_notes,collection_available,delivery_days_min,delivery_days_max,status,categories(name,is_transmission_related),part_catalogue_fitments(variant_id,year_from,year_to,fuel_type,engine_size_simple,notes,vehicle_catalogue_variants(make,model_family,variant))")
   .eq("id",partId)
   .eq("seller_id",auth.seller.id)
   .maybeSingle();
@@ -56,12 +56,16 @@ export async function GET(request:Request,{params}:{params:Promise<{partId:strin
   status:data.status,
   catalogueFitments:(data.part_catalogue_fitments??[]).flatMap(fitment=>{
    if(fitment.year_from===null||fitment.year_to===null||fitment.year_from!==fitment.year_to)return [];
+   const vehicle=one(fitment.vehicle_catalogue_variants);
    return [{
     variantId:fitment.variant_id,
     year:fitment.year_from,
     fuelType:fitment.fuel_type,
     engineSizeSimple:fitment.engine_size_simple,
-    notes:fitment.notes
+    notes:fitment.notes,
+    make:vehicle?.make??null,
+    modelFamily:vehicle?.model_family??null,
+    variant:vehicle?.variant??null
    }];
   })
  }});
