@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/commerce/release-due",
+      "path": "/api/commerce/maintenance",
       "schedule": "15 4 * * *"
     }
   ]
