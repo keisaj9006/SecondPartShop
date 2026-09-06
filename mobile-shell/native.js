@@ -11,6 +11,7 @@ const nativeApi={
  async openBrowser(url){window.location.href=url;},
  async closeBrowser(){},
  async minimizeApp(){},
+ async getLaunchUrl(){return null;},
  async pickPhoto(){return null;},
  async onUrlOpen(){return {remove:async()=>{}};},
  async onBackButton(){return {remove:async()=>{}};},
