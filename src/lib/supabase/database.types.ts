@@ -227,6 +227,100 @@ export type Database = {
           },
         ]
       }
+      listing_conversation_messages: {
+        Row: {
+          body: string
+          conversation_id: string
+          created_at: string
+          id: string
+          sender_profile_id: string
+        }
+        Insert: {
+          body: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          sender_profile_id: string
+        }
+        Update: {
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          sender_profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_conversation_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "listing_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_conversation_messages_sender_profile_id_fkey"
+            columns: ["sender_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_conversations: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          id: string
+          last_message_at: string
+          part_id: string
+          seller_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          part_id: string
+          seller_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          part_id?: string
+          seller_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_conversations_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_conversations_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_conversations_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_reports: {
         Row: {
           created_at: string
@@ -1924,6 +2018,10 @@ export type Database = {
           id: string
         }[]
       }
+      close_listing_conversation: {
+        Args: { p_conversation_id: string }
+        Returns: boolean
+      }
       close_provider_payment_dispute: {
         Args: { p_dispute_id: string; p_event_id: string; p_status: string }
         Returns: boolean
@@ -2144,8 +2242,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      send_listing_conversation_message: {
+        Args: { p_body: string; p_conversation_id: string }
+        Returns: string
+      }
       send_transaction_message: {
         Args: { p_body: string; p_order_item_id: string }
+        Returns: string
+      }
+      start_listing_conversation: {
+        Args: { p_body: string; p_part_id: string }
         Returns: string
       }
       submit_transaction_review: {
