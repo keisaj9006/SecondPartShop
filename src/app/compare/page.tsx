@@ -8,6 +8,7 @@ import { getListings,getSavedPartIds } from "@/lib/data/marketplace";
 import { enrichListingsWithDistance,normalizePostcode } from "@/lib/postcode";
 import { normalizeComparablePartNumber } from "@/lib/offer-groups";
 import type { MarketplaceFilters } from "@/lib/types";
+import { isUuid } from "@/lib/identifiers";
 
 export const dynamic="force-dynamic";
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
@@ -20,7 +21,7 @@ export default async function ComparePage({searchParams}:{searchParams:Promise<R
  const manufacturer=first(params.manufacturer)?.trim()??"";
  if(!number)return <><Header/><main className="mx-auto max-w-4xl px-4 py-16 sm:px-6"><h1 className="text-3xl font-black">Nothing to compare</h1><p className="mt-2 text-[#63706a]">Choose a grouped part from marketplace results first.</p><Link href="/#marketplace" className="mt-5 inline-block font-bold underline">Back to marketplace</Link></main></>;
 
- const requestedVariant=first(params.cv);
+ const requestedVariant=isUuid(first(params.cv))?first(params.cv):undefined;
  const requestedYear=integer(first(params.cy));
  const requestedFuel=first(params.cf);
  const requestedEngine=integer(first(params.ce));
@@ -30,7 +31,7 @@ export default async function ComparePage({searchParams}:{searchParams:Promise<R
   query:number,
   postcode:postcodeRaw?normalizePostcode(postcodeRaw):undefined,
   collectionOnly:first(params.collection)==="1",
-  vehicle:first(params.vehicle),
+  vehicle:isUuid(first(params.vehicle))?first(params.vehicle):undefined,
   vehicleRegistration:first(params.vr),
   catalogueVariant:selectedCatalogue?.variantId,
   catalogueYear:selectedCatalogue?.year,
