@@ -12,20 +12,40 @@ export async function GET(request:Request){
  if(!auth.context||!auth.seller)return auth.response;
  const {supabase}=auth.context;
  const seller=auth.seller;
+ const url=new URL(request.url);
+ const rawLimit=Number(url.searchParams.get("limit")??40);
+ const rawOffset=Number(url.searchParams.get("offset")??0);
+ const limit=Number.isInteger(rawLimit)?Math.max(1,Math.min(rawLimit,100)):40;
+ const offset=Number.isInteger(rawOffset)?Math.max(0,rawOffset):0;
+ const search=url.searchParams.get("q")?.trim().slice(0,120)??"";
+ const status=url.searchParams.get("status")?.trim()??"";
+ const validStatuses=["draft","active","reserved","sold","archived"];
 
- const {data,error}=await supabase
+ let query=supabase
   .from("parts")
   .select("id,slug,title,status,stock,price_pence,condition,testing_status,warranty_days,donor_vehicle_id,created_at,updated_at,part_images(id,storage_path,alt_text,position)")
   .eq("seller_id",seller.id)
-  .order("updated_at",{ascending:false});
+  .order("updated_at",{ascending:false})
+  .order("id");
+
+ if(search){
+  const escaped=search.replaceAll("%","\\%").replaceAll("_","\\_");
+  query=query.or(`title.ilike.%${escaped}%,oem_number.ilike.%${escaped}%,part_number.ilike.%${escaped}%,manufacturer.ilike.%${escaped}%`);
+ }
+ if(validStatuses.includes(status))query=query.eq("status",status as "draft"|"active"|"reserved"|"sold"|"archived");
+
+ const {data,error}=await query.range(offset,offset+limit);
  if(error)return mobileJson(request,{ok:false,error:"inventory_unavailable"},503);
+ const raw=data??[];
+ const hasMore=raw.length>limit;
+ const page=raw.slice(0,limit);
 
  const urlBase=process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/,"")??"";
  const publicUrl=(path:string)=>urlBase+"/storage/v1/object/public/part-images/"+path.split("/").map(encodeURIComponent).join("/");
 
  return mobileJson(request,{
   ok:true,
-  items:(data??[]).map(item=>({
+  items:page.map(item=>({
    id:item.id,
    slug:item.slug,
    title:item.title,
@@ -38,13 +58,14 @@ export async function GET(request:Request){
    donorVehicleId:item.donor_vehicle_id,
    createdAt:item.created_at,
    updatedAt:item.updated_at,
-   images:(item.part_images??[]).sort((a,b)=>a.position-b.position).map(image=>({
+   images:(item.part_images??[]).sort((a,b)=>a.position-b.position).slice(0,1).map(image=>({
     id:image.id,
     url:publicUrl(image.storage_path),
     alt:image.alt_text,
     position:image.position
    }))
-  }))
+  })),
+  pagination:{offset,limit,returned:page.length,hasMore}
  });
 }
 
