@@ -110,8 +110,79 @@ export async function getMarketplacePage(
  const emptyPagination={offset,limit,returned:0,total:0,hasMore:false};
  if(!isSupabaseConfigured())return {...failure([],"Connect Supabase to load marketplace data.",false),pagination:emptyPagination};
 
- // Complex vehicle ranking still uses the compatibility engine first so correctness is
- // preserved while compatibility-specific SQL pagination is introduced separately.
+ const supabase=await createSupabaseServerClient();
+ let categoryIds:string[]|undefined;
+ if(filters.category){
+  const {data,error}=await supabase.rpc("category_descendant_ids",{p_category_id:filters.category});
+  if(error)return {...failure([],"Category filtering is temporarily unavailable."),pagination:emptyPagination};
+  categoryIds=(data??[]).map(row=>row.id);
+  if(!categoryIds.length)return {data:[],error:null,configured:true,pagination:emptyPagination};
+ }
+
+ const sort=filters.sort??"best";
+
+ // Catalogue compatibility is ranked and paged inside PostgreSQL. Only the IDs for
+ // this page are hydrated with card images/details.
+ if(filters.catalogueVariant&&filters.catalogueYear!==undefined&&sort==="best"){
+  let rankedIds:string[]|undefined;
+  if(filters.query?.trim()){
+   const searchText=filters.query.trim();
+   const {data,error}=await supabase.rpc("marketplace_search_part_ids",{p_query:searchText});
+   if(error)return {...failure([],"Marketplace search is temporarily unavailable."),pagination:emptyPagination};
+   rankedIds=(data??[]).map(row=>row.part_id);
+   if(!rankedIds.length){
+    const {data:synonym}=await supabase.from("marketplace_search_synonyms").select("canonical_query").eq("alias",searchText.toLowerCase()).maybeSingle();
+    if(synonym?.canonical_query){
+     const {data:fallback,error:fallbackError}=await supabase.rpc("marketplace_search_part_ids",{p_query:synonym.canonical_query});
+     if(fallbackError)return {...failure([],"Marketplace search is temporarily unavailable."),pagination:emptyPagination};
+     rankedIds=(fallback??[]).map(row=>row.part_id);
+    }
+   }
+   if(!rankedIds.length)return {data:[],error:null,configured:true,pagination:emptyPagination};
+  }
+
+  const {data:pageRows,error:pageError}=await supabase.rpc("marketplace_catalogue_page",{
+   p_variant_id:filters.catalogueVariant,
+   p_year:filters.catalogueYear,
+   p_fuel:filters.catalogueFuel,
+   p_engine:filters.catalogueEngineSize,
+   p_part_ids:rankedIds,
+   p_category_ids:categoryIds,
+   p_condition:filters.condition,
+   p_min_price_pence:Number.isFinite(filters.minPrice)?Math.round((filters.minPrice??0)*100):undefined,
+   p_max_price_pence:Number.isFinite(filters.maxPrice)?Math.round((filters.maxPrice??0)*100):undefined,
+   p_collection_only:Boolean(filters.collectionOnly),
+   p_compatible_only:filters.compatibleOnly!==false,
+   p_limit:limit,
+   p_offset:offset
+  });
+  if(pageError)return {...failure([],"Compatibility data is temporarily unavailable."),pagination:emptyPagination};
+
+  const ids=(pageRows??[]).map(row=>row.part_id);
+  if(!ids.length){
+   return {data:[],error:null,configured:true,pagination:{offset,limit,returned:0,total:offset===0?0:null,hasMore:false}};
+  }
+  const confidence=new Map((pageRows??[]).map(row=>[row.part_id,row.confidence] as const));
+  const total=Number(pageRows?.[0]?.total_count??ids.length);
+  const {data:rows,error:rowError}=await supabase.from("parts").select(selectListing()).in("id",ids);
+  if(rowError)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
+  const byId=new Map((rows??[]).map(row=>{const raw=row as unknown as RawListing;return [raw.id,listingFrom(raw)] as const;}));
+  const listings=ids.flatMap(id=>{
+   const item=byId.get(id);
+   const level=confidence.get(id);
+   if(!item||!(level==="confirmed"||level==="buyer_verified"||level==="family_match"||level==="unverified"))return [];
+   return [{...item,compatibility:compatibilityInfo(level)}];
+  });
+  return {
+   data:listings,
+   error:null,
+   configured:true,
+   pagination:{offset,limit,returned:listings.length,total,hasMore:offset+ids.length<total}
+  };
+ }
+
+ // Legacy vehicle IDs and alternative vehicle sorts keep the existing path until
+ // their dedicated SQL ordering is introduced.
  if(filters.vehicle||filters.catalogueVariant){
   const result=await getListings(filters);
   const page=result.data.slice(offset,offset+limit);
@@ -126,15 +197,6 @@ export async function getMarketplacePage(
     hasMore:offset+page.length<result.data.length
    }
   };
- }
-
- const supabase=await createSupabaseServerClient();
- let categoryIds:string[]|undefined;
- if(filters.category){
-  const {data,error}=await supabase.rpc("category_descendant_ids",{p_category_id:filters.category});
-  if(error)return {...failure([],"Category filtering is temporarily unavailable."),pagination:emptyPagination};
-  categoryIds=(data??[]).map(row=>row.id);
-  if(!categoryIds.length)return {data:[],error:null,configured:true,pagination:emptyPagination};
  }
 
  // Text search already returns a bounded ranked candidate set. Filter only lightweight
@@ -193,7 +255,6 @@ export async function getMarketplacePage(
  if(Number.isFinite(filters.minPrice))query=query.gte("price_pence",Math.round((filters.minPrice??0)*100));
  if(Number.isFinite(filters.maxPrice))query=query.lte("price_pence",Math.round((filters.maxPrice??0)*100));
 
- const sort=filters.sort??"best";
  if(sort==="price_asc")query=query.order("price_pence",{ascending:true}).order("created_at",{ascending:false});
  else if(sort==="price_desc")query=query.order("price_pence",{ascending:false}).order("created_at",{ascending:false});
  else if(sort==="delivery")query=query.order("delivery_days_min",{ascending:true,nullsFirst:false}).order("created_at",{ascending:false});
