@@ -24,6 +24,7 @@ const filtersToParams=(filters:MarketplaceFilters)=>{
  if(filters.catalogueYear!==undefined)params.cy=String(filters.catalogueYear);
  if(filters.catalogueFuel)params.cf=filters.catalogueFuel;
  if(filters.catalogueEngineSize!==undefined)params.ce=String(filters.catalogueEngineSize);
+ if(filters.vehicle||filters.catalogueVariant)params.fit=filters.compatibleOnly===false?"0":"1";
  return params;
 };
 
