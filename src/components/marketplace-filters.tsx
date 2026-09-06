@@ -16,6 +16,7 @@ export function MarketplaceFiltersPanel({filters}:{filters:MarketplaceFilters}){
  if(filters.catalogueYear!==undefined)preserved.set("cy",String(filters.catalogueYear));
  if(filters.catalogueFuel)preserved.set("cf",filters.catalogueFuel);
  if(filters.catalogueEngineSize!==undefined)preserved.set("ce",String(filters.catalogueEngineSize));
+ if((filters.vehicle||filters.catalogueVariant)&&filters.compatibleOnly===false)preserved.set("fit","0");
  const resetHref="/"+(preserved.toString()?"?"+preserved.toString():"")+"#marketplace";
  const advancedActive=Boolean(Number.isFinite(filters.minPrice)||Number.isFinite(filters.maxPrice)||filters.collectionOnly);
  return <form method="get" action="/" className="mt-4 rounded-2xl border border-black/10 bg-white p-4">
@@ -28,6 +29,7 @@ export function MarketplaceFiltersPanel({filters}:{filters:MarketplaceFilters}){
   {filters.catalogueYear!==undefined&&<input type="hidden" name="cy" value={filters.catalogueYear}/>}
   {filters.catalogueFuel&&<input type="hidden" name="cf" value={filters.catalogueFuel}/>}
   {filters.catalogueEngineSize!==undefined&&<input type="hidden" name="ce" value={filters.catalogueEngineSize}/>}
+  {(filters.vehicle||filters.catalogueVariant)&&<input type="hidden" name="fit" value={filters.compatibleOnly===false?"0":"1"}/>} 
 
   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto_auto]">
    <label className="text-xs font-black uppercase tracking-[.08em] text-[#63706a]">Sort<select name="sort" defaultValue={filters.sort??"best"} className={"mt-1.5 "+input}><option value="best">Best match</option><option value="price_asc">Price: low to high</option><option value="price_desc">Price: high to low</option><option value="distance">Nearest first</option><option value="delivery">Fastest delivery</option><option value="warranty">Longest warranty</option></select></label>
