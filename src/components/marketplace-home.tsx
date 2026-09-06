@@ -90,7 +90,7 @@ export function MarketplaceHome({listings,categories,vehicles,catalogueModels,ga
       <div className="mt-2 flex gap-2 overflow-x-auto pb-1">{garageVehicles.slice(0,4).map(vehicle=><Link key={vehicle.id} href={savedVehicleHref(vehicle,baseParams)} className="min-w-fit rounded-xl border border-black/10 bg-[#f8f7f2] px-3 py-2 text-xs font-bold hover:bg-[#eef1eb]">{vehicle.registration?<span className="mr-2 font-mono text-[#287154]">{vehicle.registration}</span>:null}{vehicle.make} {vehicle.modelFamily} · {vehicle.year}</Link>)}</div>
      </div>}
 
-     <VehicleSelector vehicles={vehicles} catalogueModels={catalogueModels} selectedId={filters.vehicle} selectedCatalogue={selectedCatalogue} baseParams={baseParams} compatibleOnly={filters.compatibleOnly!==false}/>
+     <VehicleSelector key={`${selectedCatalogue?.variantId??filters.vehicle??"none"}-${selectedCatalogue?.year??"none"}-${filters.compatibleOnly!==false?"fit":"all"}`} vehicles={vehicles} catalogueModels={catalogueModels} selectedId={filters.vehicle} selectedCatalogue={selectedCatalogue} baseParams={baseParams} compatibleOnly={filters.compatibleOnly!==false}/>
 
      {selectedCatalogue&&<div className="mt-4 grid gap-3">
       <VehicleVisual make={selectedCatalogue.make} model={selectedCatalogue.modelFamily} year={selectedCatalogue.year} colour={filters.vehicleColour} variant={selectedCatalogue.variant} registration={filters.vehicleRegistration} engine={selectedCatalogue.engineSizeSimple?selectedCatalogue.engineSizeSimple+"cc":null} fuel={selectedCatalogue.fuelType}/>
