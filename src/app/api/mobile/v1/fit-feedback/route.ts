@@ -11,13 +11,21 @@ export async function GET(request:Request){
  const auth=await requireMobileUser(request);
  if(!auth.context)return auth.response;
  const {supabase}=auth.context;
+ const url=new URL(request.url);
+ const rawLimit=Number(url.searchParams.get("limit")??30);
+ const rawOffset=Number(url.searchParams.get("offset")??0);
+ const limit=Number.isInteger(rawLimit)?Math.max(1,Math.min(rawLimit,60)):30;
+ const offset=Number.isInteger(rawOffset)?Math.max(0,rawOffset):0;
 
- const {data,error}=await supabase.rpc("get_verified_fit_opportunities");
+ const {data,error}=await supabase.rpc("get_verified_fit_opportunities_page",{p_limit:limit,p_offset:offset});
  if(error)return mobileJson(request,{ok:false,error:"fit_feedback_unavailable"},503);
+ const raw=data??[];
+ const hasMore=raw.length>limit;
+ const page=raw.slice(0,limit);
 
  return mobileJson(request,{
   ok:true,
-  items:(data??[]).map(row=>({
+  items:page.map(row=>({
    orderItemId:row.order_item_id,
    partId:row.part_id,
    partTitle:row.part_title,
@@ -34,7 +42,8 @@ export async function GET(request:Request){
    existingResult:row.existing_result,
    existingNotes:row.existing_notes,
    fundsReleasedAt:row.funds_released_at
-  }))
+  })),
+  pagination:{offset,limit,returned:page.length,hasMore}
  });
 }
 
