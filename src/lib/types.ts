@@ -75,6 +75,26 @@ export type TransactionReview={
  partTitle:string;
 };
 
+export type TransactionCase={
+ id:string;
+ orderItemId:string;
+ caseType:"return"|"dispute";
+ reason:string;
+ details:string;
+ status:"open"|"seller_response"|"under_review"|"resolved"|"rejected"|"cancelled";
+ previousFulfilmentStatus:string;
+ sellerResponse:string|null;
+ resolution:"full_refund"|"no_refund"|"other"|null;
+ resolutionNotes:string|null;
+ createdAt:string;
+ resolvedAt:string|null;
+ partTitle:string;
+ partSlug:string;
+ sellerName:string;
+ sellerSlug:string;
+ buyerId:string;
+};
+
 export type SellerPaymentAccount={
  sellerId:string;
  provider:"stripe";
