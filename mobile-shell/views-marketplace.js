@@ -309,7 +309,7 @@ const listing=async(payload)=>{
   try{
    const result=await C.api("/checkout",{method:"POST",auth:true,body:{partId:item.id,quantity,deliveryMethod}});
    UI.toast("Opening secure Stripe checkout…");
-   window.location.href=result.checkoutUrl;
+   await C.Native.openBrowser(result.checkoutUrl);
   }catch(error){
    UI.toast(error.message,"error");
    submit.disabled=false;submit.textContent="Buy securely";
