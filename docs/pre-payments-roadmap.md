@@ -1,6 +1,6 @@
 # SecondPart — Pre-payments roadmap
 
-Status: **build complete on `rebuild-nextjs`; pre-QA cleanup complete; backend/static acceptance QA is passing after the first QA Fix Pass. Fresh Preview browser/mobile acceptance remains the final gate before commerce work.**
+Status: **marketplace foundation and backend/static QA are passing on `rebuild-nextjs`. Trust/reputation, Vehicle Visual and Commerce Core foundations are now implemented. Fresh Preview/mobile QA and Stripe test-mode integration are the next gates before real payment capture.**
 
 ## Completed before payments
 
@@ -94,31 +94,45 @@ Validated against the real Supabase project and current `rebuild-nextjs` source:
 
 A fresh Vercel Preview must still be tested on desktop and mobile for buyer, seller and admin interaction/visual behaviour before commerce starts. The currently connected Vercel plugin is enabled but returns zero teams and 403 for the previous Preview URL, so browser-level Preview QA requires re-authorizing the Vercel connection to the original project team scope.
 
-Do not start the payment/order layer until this fresh Preview pass is complete.
+Trust and commerce foundations have now been added by explicit product direction. Do not enable **live payment capture or live seller payouts** until a fresh Preview/mobile acceptance pass and Stripe test-mode end-to-end QA are complete.
 
 ### Remaining launch hardening
 
-- after browser acceptance, add a small PWA/installability pass if phone home-screen installation is desired; the current project has no web manifest/service worker yet
+- PWA/installability metadata and service worker are implemented
+- Android developer-preview APK build is implemented for real-device QA; this remote-preview container is not the Google Play production architecture
 - enable Supabase leaked-password protection before public launch
 - complete final legal review before real commerce
 
-## Payment/order phase after QA
+## Trust + commerce phase
 
-- order state machine
-- checkout
-- regulated marketplace payment provider
-- buyer funds protection / delayed seller payout
+### Implemented foundation
+
+- public member handles and reputation pages
+- seller and buyer transaction counters based only on funds-released order items
+- separate seller/buyer star ratings
+- transaction-gated, double-blind reviews
+- Purchases and Sales & payouts account screens
+- order/payment/fulfilment/payout state fields and order-event audit trail
+- private seller payment-account table
+- Stripe Connect Accounts v2 recipient onboarding scaffold
+- Vehicle Visual colour persistence and representative Garage cards
+
+### Still required before live commerce
+
+- Stripe test credentials and seller onboarding end-to-end QA
+- buyer checkout and payment creation
+- webhook-driven payment state
 - delivery / collection confirmation
 - buyer acceptance / automatic release window
+- real separate-charge/transfer release logic
 - refunds, returns and disputes
-- seller payouts
-- transaction history
+- payout/transfer reconciliation
+- transaction notifications and final mobile QA
 
 ## Deliberately later / optional
 
 - full AI visual recognition of an unlabelled part
 - buyer/seller chat
-- reviews
 - MOT/service reminders
 - service kits
 - garage fitting ecosystem
