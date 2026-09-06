@@ -12,6 +12,7 @@ import { getListingBySlug,getSavedPartIds,getVehicles } from "@/lib/data/marketp
 import { getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
 import type { MarketplaceFilters } from "@/lib/types";
 import { testingStatusLabel,warrantyLabel } from "@/lib/listing-trust";
+import { isUuid } from "@/lib/identifiers";
 
 export const dynamic="force-dynamic";
 
@@ -33,9 +34,9 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
   category:first(rawSearch.category),
   postcode:first(rawSearch.pc),
   collectionOnly:first(rawSearch.collection)==="1",
-  vehicle:first(rawSearch.vehicle),
+  vehicle:isUuid(first(rawSearch.vehicle))?first(rawSearch.vehicle):undefined,
   vehicleRegistration:first(rawSearch.vr),
-  catalogueVariant:first(rawSearch.cv),
+  catalogueVariant:isUuid(first(rawSearch.cv))?first(rawSearch.cv):undefined,
   catalogueYear:integer(first(rawSearch.cy)),
   catalogueFuel:first(rawSearch.cf),
   catalogueEngineSize:integer(first(rawSearch.ce))
