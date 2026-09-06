@@ -8,6 +8,11 @@ const copy:Record<CompatibilityLevel,CompatibilityInfo>={
   label:"Confirmed for your vehicle",
   detail:"This listing has an explicit fitment for the selected vehicle configuration."
  },
+ buyer_verified:{
+  level:"buyer_verified",
+  label:"Verified fit by SecondPart buyers",
+  detail:"At least two different SecondPart buyers completed a real transaction for this part and confirmed an exact fit on this selected vehicle configuration."
+ },
  family_match:{
   level:"family_match",
   label:"Vehicle family match — verify details",
@@ -37,7 +42,7 @@ export async function getCompatibilityMap(filters:MarketplaceFilters,partId?:str
   });
   if(error)throw error;
   for(const row of data??[]){
-   if(row.confidence==="confirmed"||row.confidence==="family_match")map.set(row.part_id,compatibilityInfo(row.confidence));
+   if(row.confidence==="confirmed"||row.confidence==="buyer_verified"||row.confidence==="family_match")map.set(row.part_id,compatibilityInfo(row.confidence));
   }
   return map;
  }
@@ -57,5 +62,23 @@ export async function getCompatibilityMap(filters:MarketplaceFilters,partId?:str
 export async function getPartCompatibility(partId:string,filters:MarketplaceFilters):Promise<CompatibilityInfo|null>{
  if(!filters.vehicle&&!filters.catalogueVariant)return null;
  const map=await getCompatibilityMap(filters,partId);
- return map.get(partId)??compatibilityInfo("unverified");
+ const info=map.get(partId)??compatibilityInfo("unverified");
+ if(!filters.catalogueVariant||filters.catalogueYear===undefined)return info;
+ const supabase=await createSupabaseServerClient();
+ const {data,error}=await supabase.rpc("get_part_verified_fit_summary",{
+  p_part_id:partId,
+  p_variant_id:filters.catalogueVariant,
+  p_year:filters.catalogueYear,
+  p_fuel:filters.catalogueFuel,
+  p_engine:filters.catalogueEngineSize
+ });
+ if(error)return info;
+ const row=data?.[0];
+ if(!row)return info;
+ const verifiedFit={
+  exactFitCount:Number(row.exact_fit_count??0),
+  modifiedFitCount:Number(row.modified_fit_count??0),
+  didNotFitCount:Number(row.did_not_fit_count??0)
+ };
+ return {...info,verifiedFit};
 }
