@@ -42,6 +42,10 @@ const nativeApi={
   if(!isNative)return;
   try{await App.minimizeApp();}catch{}
  },
+ async getLaunchUrl(){
+  if(!isNative)return null;
+  try{return (await App.getLaunchUrl()).url??null;}catch{return null;}
+ },
  async pickPhoto(){
   if(!isNative)return null;
   const photo=await Camera.getPhoto({
