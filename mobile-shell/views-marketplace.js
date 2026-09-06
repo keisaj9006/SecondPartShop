@@ -455,7 +455,7 @@ const garage=async()=>{
   C.setActiveVehicle({
    variantId:item.catalogueVariantId,year:item.year,fuelType:item.fuelType,engineSizeSimple:item.engineSizeSimple,
    make:item.make,modelFamily:item.modelFamily,variant:item.variant,registration:item.registration,colour:item.colour
-  };
+  },{compatibleOnly:true});
   UI.route("home");
  }));
  UI.app.querySelectorAll("[data-remove-garage]").forEach(button=>button.addEventListener("click",async()=>{
