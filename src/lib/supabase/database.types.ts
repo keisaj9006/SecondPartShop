@@ -1345,6 +1345,88 @@ export type Database = {
           },
         ]
       }
+      transaction_cases: {
+        Row: {
+          case_type: string
+          created_at: string
+          details: string
+          id: string
+          opened_by: string
+          order_item_id: string
+          previous_fulfilment_status: string
+          provider_refund_id: string | null
+          provider_transfer_reversal_id: string | null
+          reason: string
+          resolution: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          seller_response: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          case_type: string
+          created_at?: string
+          details: string
+          id?: string
+          opened_by: string
+          order_item_id: string
+          previous_fulfilment_status: string
+          provider_refund_id?: string | null
+          provider_transfer_reversal_id?: string | null
+          reason: string
+          resolution?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          seller_response?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          case_type?: string
+          created_at?: string
+          details?: string
+          id?: string
+          opened_by?: string
+          order_item_id?: string
+          previous_fulfilment_status?: string
+          provider_refund_id?: string | null
+          provider_transfer_reversal_id?: string | null
+          reason?: string
+          resolution?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          seller_response?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_cases_opened_by_fkey"
+            columns: ["opened_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_cases_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_cases_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transaction_reviews: {
         Row: {
           buyer_conduct_rating: number | null
@@ -1672,6 +1754,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_reject_transaction_case: {
+        Args: { p_case_id: string; p_notes: string }
+        Returns: boolean
+      }
       admin_review_seller_verification: {
         Args: {
           p_approve: boolean
@@ -1705,6 +1791,15 @@ export type Database = {
           p_event_id: string
           p_order_id: string
           p_payment_intent_id: string
+        }
+        Returns: boolean
+      }
+      finalize_transaction_case_refund: {
+        Args: {
+          p_case_id: string
+          p_refund_id: string
+          p_refund_pence: number
+          p_transfer_reversal_id?: string
         }
         Returns: boolean
       }
@@ -1833,6 +1928,15 @@ export type Database = {
           part_id: string
         }[]
       }
+      open_transaction_case: {
+        Args: {
+          p_case_type: string
+          p_details: string
+          p_order_item_id: string
+          p_reason: string
+        }
+        Returns: string
+      }
       prepare_checkout_order: {
         Args: {
           p_delivery_method?: string
@@ -1858,6 +1962,10 @@ export type Database = {
         Returns: undefined
       }
       seller_checkout_ready: { Args: { p_seller_id: string }; Returns: boolean }
+      seller_respond_transaction_case: {
+        Args: { p_case_id: string; p_response: string }
+        Returns: boolean
+      }
       seller_set_order_item_fulfilment: {
         Args: {
           p_action: string
