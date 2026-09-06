@@ -6,7 +6,7 @@ import type { TransactionCase } from "@/lib/types";
 type CaseRow={
  id:string;
  order_item_id:string;
- case_type:"return"|"dispute";
+ case_type:"return"|"dispute"|"cancellation";
  reason:string;
  details:string;
  status:TransactionCase["status"];
