@@ -43,10 +43,25 @@ type SellerSaleRow={
  release_eligible_at:string|null;
  funds_released_at:string|null;
  parts:{title:string;slug:string}|Array<{title:string;slug:string}>|null;
- orders:{id:string;status:string;payment_status:string;created_at:string}|Array<{id:string;status:string;payment_status:string;created_at:string}>|null;
+ orders:{id:string;status:string;payment_status:string;created_at:string;shipping_name:string|null;shipping_address:unknown}|Array<{id:string;status:string;payment_status:string;created_at:string;shipping_name:string|null;shipping_address:unknown}>|null;
 };
 
 const one=<T>(value:T|T[]|null)=>Array.isArray(value)?value[0]??null:value;
+
+const shippingAddress=(value:unknown)=>{
+ if(!value||typeof value!=="object"||Array.isArray(value))return null;
+ const row=value as Record<string,unknown>;
+ const text=(key:string)=>typeof row[key]==="string"?row[key] as string:null;
+ return {
+  line1:text("line1"),
+  line2:text("line2"),
+  city:text("city"),
+  state:text("state"),
+  postalCode:text("postal_code"),
+  country:text("country")
+ };
+};
+
 
 export async function getBuyerOrders(profileId:string):Promise<BuyerOrder[]>{
  const supabase=await createSupabaseServerClient();
@@ -96,7 +111,7 @@ export async function getSellerSales(sellerId:string):Promise<SellerSale[]>{
  const supabase=await createSupabaseServerClient();
  const {data,error}=await supabase
   .from("order_items")
-  .select("id,order_id,quantity,unit_price_pence,shipping_pence,seller_net_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,release_eligible_at,funds_released_at,parts(title,slug),orders(id,status,payment_status,created_at)")
+  .select("id,order_id,quantity,unit_price_pence,shipping_pence,seller_net_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,release_eligible_at,funds_released_at,parts(title,slug),orders(id,status,payment_status,created_at,shipping_name,shipping_address)")
   .eq("seller_id",sellerId)
   .order("id",{ascending:false});
  if(error)throw new Error("Seller orders are temporarily unavailable.");
@@ -123,7 +138,9 @@ export async function getSellerSales(sellerId:string):Promise<SellerSale[]>{
    fundsReleasedAt:raw.funds_released_at,
    orderStatus:order.status,
    paymentStatus:order.payment_status,
-   orderCreatedAt:order.created_at
+   orderCreatedAt:order.created_at,
+   shippingName:order.shipping_name,
+   shippingAddress:shippingAddress(order.shipping_address)
   }];
  });
 }
