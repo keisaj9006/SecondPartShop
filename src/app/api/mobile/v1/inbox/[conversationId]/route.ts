@@ -15,6 +15,11 @@ export async function GET(request:Request,{params}:{params:Promise<{conversation
  const auth=await requireMobileUser(request);
  if(!auth.context)return auth.response;
  const {supabase}=auth.context;
+ const url=new URL(request.url);
+ const rawLimit=Number(url.searchParams.get("limit")??100);
+ const rawOffset=Number(url.searchParams.get("offset")??0);
+ const limit=Number.isInteger(rawLimit)?Math.max(1,Math.min(rawLimit,200)):100;
+ const offset=Number.isInteger(rawOffset)?Math.max(0,rawOffset):0;
 
  const {data,error}=await supabase
   .from("listing_conversations")
@@ -28,14 +33,19 @@ export async function GET(request:Request,{params}:{params:Promise<{conversation
  const seller=one(data.sellers);
  if(!part||!seller)return mobileJson(request,{ok:false,error:"conversation_unavailable"},503);
 
- const {data:messages,error:messageError}=await supabase
+ const {data:messageRows,error:messageError}=await supabase
   .from("listing_conversation_messages")
   .select("id,sender_profile_id,body,created_at")
   .eq("conversation_id",conversationId)
-  .order("created_at",{ascending:true});
+  .order("created_at",{ascending:false})
+  .order("id",{ascending:false})
+  .range(offset,offset+limit);
  if(messageError)return mobileJson(request,{ok:false,error:"messages_unavailable"},503);
+ const rawMessages=messageRows??[];
+ const hasOlder=rawMessages.length>limit;
+ const messages=rawMessages.slice(0,limit).reverse();
 
- const senderIds=[...new Set((messages??[]).map(message=>message.sender_profile_id))];
+ const senderIds=[...new Set(messages.map(message=>message.sender_profile_id))];
  const {data:profiles}=senderIds.length
   ?await supabase.from("profiles").select("id,handle,display_name").in("id",senderIds)
   :{data:[] as Array<{id:string;handle:string;display_name:string}>};
@@ -53,7 +63,7 @@ export async function GET(request:Request,{params}:{params:Promise<{conversation
    sellerOwnerId:seller.owner_id,
    status:data.status,
    lastMessageAt:data.last_message_at,
-   messages:(messages??[]).map(message=>{
+   messages:messages.map(message=>{
     const profile=byId.get(message.sender_profile_id);
     return {
      id:message.id,
@@ -63,7 +73,8 @@ export async function GET(request:Request,{params}:{params:Promise<{conversation
      body:message.body,
      createdAt:message.created_at
     };
-   })
+   }),
+   pagination:{offset,limit,returned:messages.length,hasOlder,hasNewer:offset>0}
   }
  });
 }
