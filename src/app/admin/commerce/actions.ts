@@ -25,6 +25,17 @@ export async function rejectTransactionCase(_previous:ActionState,formData:FormD
  return {status:"success",message:"Case closed without a refund. Any eligible blocked payout can resume."};
 }
 
+export async function authorizeReturn(_previous:ActionState,formData:FormData):Promise<ActionState>{
+ await requireAdmin("/admin/commerce");
+ const caseId=String(formData.get("caseId")??"");
+ const notes=String(formData.get("notes")??"").trim();
+ const supabase=await createSupabaseServerClient();
+ const {error}=await supabase.rpc("admin_authorize_transaction_return",{p_case_id:caseId,p_notes:notes||undefined});
+ if(error)return {status:"error",message:"We could not authorise this return right now."};
+ revalidateCases();
+ return {status:"success",message:"Return authorised. The buyer can now record the return shipment."};
+}
+
 export async function approveFullRefund(_previous:ActionState,formData:FormData):Promise<ActionState>{
  await requireAdmin("/admin/commerce");
  const caseId=String(formData.get("caseId")??"");
@@ -45,5 +56,30 @@ export async function approveFullRefund(_previous:ActionState,formData:FormData)
  }catch{
   revalidateCases();
   return {status:"error",message:"Refund processing failed safely. The case remains under review and the payout stays blocked."};
+ }
+}
+
+
+export async function approveReturnlessRefund(_previous:ActionState,formData:FormData):Promise<ActionState>{
+ await requireAdmin("/admin/commerce");
+ const caseId=String(formData.get("caseId")??"");
+ const notes=String(formData.get("notes")??"").trim();
+ if(notes.length<10)return {status:"error",message:"Document why a refund without return is appropriate."};
+
+ const supabase=await createSupabaseServerClient();
+ const {error:gateError}=await supabase.rpc("admin_prepare_returnless_refund",{p_case_id:caseId,p_notes:notes});
+ if(gateError)return {status:"error",message:"This case is not available for a refund without return."};
+
+ try{
+  const result=await refundTransactionCase(caseId);
+  if(!result.refunded){
+   revalidateCases();
+   return {status:"error",message:result.reason==="stripe_not_configured"?"Stripe refund processing is not configured yet.":"The refund could not be completed."};
+  }
+  revalidateCases();
+  return {status:"success",message:"Refund completed without requiring the item to be returned."};
+ }catch{
+  revalidateCases();
+  return {status:"error",message:"Refund processing failed safely. The case remains under review and payout stays blocked."};
  }
 }
