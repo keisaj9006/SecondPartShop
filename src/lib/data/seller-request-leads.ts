@@ -2,7 +2,7 @@ import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { SellerPartRequestLead } from "@/lib/types";
 
-export async function getSellerPartRequestLeads(options:{offset?:number;limit?:number}={}):Promise<{items:SellerPartRequestLead[];hasMore:boolean;offset:number;limit:number}>{
+export async function getSellerPartRequestLeads(options:{offset?:number;limit?:number}={}):Promise<{items:SellerPartRequestLead[];pagination:{hasMore:boolean;offset:number;limit:number}}>{
  const offset=Math.max(0,Math.floor(options.offset??0));
  const limit=Math.max(1,Math.min(Math.floor(options.limit??30),60));
  const supabase=await createSupabaseServerClient();
@@ -28,5 +28,5 @@ export async function getSellerPartRequestLeads(options:{offset?:number;limit?:n
   matchScore:Number(row.match_score??0),
   matchReasons:row.match_reasons??[]
  }));
- return {items,hasMore,offset,limit};
+ return {items,pagination:{hasMore,offset,limit}};
 }
