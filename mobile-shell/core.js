@@ -17,7 +17,16 @@ const state={
  activeVehicle:null,
  vehicleCompatibleOnly:true,
  currentSearch:"",
- currentView:"home"
+ currentView:"home",
+ accountMode:"buying"
+};
+
+const responseCache=new Map();
+const cacheKey=(path,auth)=>String(auth?"auth:":"public:")+String(path);
+const invalidateCache=(prefix="")=>{
+ for(const key of responseCache.keys()){
+  if(!prefix||key.includes(String(prefix)))responseCache.delete(key);
+ }
 };
 
 const escapeHtml=(value)=>String(value??"")
@@ -44,7 +53,11 @@ const dateOnly=(value)=>{
  catch{return String(value);}
 };
 
-const human=(value)=>String(value??"").replaceAll("_"," ").replace(/\b\w/g,letter=>letter.toUpperCase());
+const human=(value)=>{
+ const raw=String(value??"");
+ if(raw==="reconditioned")return "Remanufactured / refurbished";
+ return raw.replaceAll("_"," ").replace(/\b\w/g,letter=>letter.toUpperCase());
+};
 
 const safeHttpUrl=(value)=>{
  try{
@@ -110,6 +123,7 @@ const storeSession=async(payload)=>{
  localStorage.removeItem(LEGACY_SESSION_KEY);
  state.session=session;
  state.sessionReady=true;
+ invalidateCache("auth:");
  return session;
 };
 
@@ -119,6 +133,7 @@ const clearSession=async()=>{
  state.me=null;
  state.savedIds=new Set();
  state.unreadNotifications=0;
+ invalidateCache("auth:");
  localStorage.removeItem(LEGACY_SESSION_KEY);
  try{await Native.storage.remove(SESSION_KEY);}catch(error){console.error("Could not clear secure session storage",error);}
 };
@@ -217,6 +232,27 @@ const api=async(path,{method="GET",body,auth=false,retry=true}={})=>{
   throw error;
  }
  return payload;
+};
+
+const apiCached=async(path,{auth=false,maxAge=30000,refresh=false}={})=>{
+ const key=cacheKey(path,auth);
+ const existing=responseCache.get(key);
+ const now=Date.now();
+ if(!refresh&&existing&&existing.value&&now-existing.at<maxAge)return existing.value;
+ if(existing?.promise)return existing.promise;
+ const promise=api(path,{auth}).then(value=>{
+  responseCache.set(key,{value,at:Date.now(),promise:null});
+  return value;
+ }).catch(error=>{
+  responseCache.delete(key);
+  throw error;
+ });
+ responseCache.set(key,{value:existing?.value??null,at:existing?.at??0,promise});
+ return promise;
+};
+
+const prefetch=(path,options={})=>{
+ void apiCached(path,options).catch(()=>{});
 };
 
 const apiForm=async(path,{method="POST",formData,retry=true}={})=>{
@@ -334,6 +370,9 @@ window.SecondPartCore=Object.freeze({
  state,
  initializeSession,
  api,
+ apiCached,
+ prefetch,
+ invalidateCache,
  apiForm,
  nativePhotoFile,
  authFetch,
