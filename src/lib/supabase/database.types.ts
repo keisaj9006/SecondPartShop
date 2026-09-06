@@ -1340,6 +1340,45 @@ export type Database = {
           },
         ]
       }
+      seller_part_request_matches: {
+        Row: {
+          created_at: string
+          match_reasons: string[]
+          match_score: number
+          request_id: string
+          seller_id: string
+        }
+        Insert: {
+          created_at?: string
+          match_reasons?: string[]
+          match_score: number
+          request_id: string
+          seller_id: string
+        }
+        Update: {
+          created_at?: string
+          match_reasons?: string[]
+          match_score?: number
+          request_id?: string
+          seller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_part_request_matches_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "part_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_part_request_matches_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seller_payment_accounts: {
         Row: {
           created_at: string
@@ -2563,6 +2602,27 @@ export type Database = {
       seller_confirm_transaction_return_received: {
         Args: { p_case_id: string }
         Returns: boolean
+      }
+      seller_ranked_part_request_leads: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          catalogue_variant_id: string
+          category_id: string
+          category_name: string
+          created_at: string
+          engine_size_simple: number
+          fuel_type: string
+          match_reasons: string[]
+          match_score: number
+          notes: string
+          oem_number: string
+          query_text: string
+          request_id: string
+          vehicle_make: string
+          vehicle_model: string
+          vehicle_variant: string
+          year: number
+        }[]
       }
       seller_respond_transaction_case: {
         Args: { p_case_id: string; p_response: string }
