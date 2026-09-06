@@ -75,6 +75,31 @@ export type TransactionReview={
  partTitle:string;
 };
 
+export type ListingConversationSummary={
+ id:string;
+ partId:string;
+ partTitle:string;
+ partSlug:string;
+ sellerName:string;
+ buyerId:string;
+ sellerOwnerId:string|null;
+ status:"open"|"closed";
+ lastMessageAt:string;
+};
+
+export type ListingConversationMessage={
+ id:string;
+ senderProfileId:string;
+ senderHandle:string;
+ senderDisplayName:string;
+ body:string;
+ createdAt:string;
+};
+
+export type ListingConversationThread=ListingConversationSummary&{
+ messages:ListingConversationMessage[];
+};
+
 export type TransactionCaseEvidence={
  id:string;
  caseId:string;
