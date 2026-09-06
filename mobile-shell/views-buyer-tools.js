@@ -38,15 +38,14 @@ const paramsSummary=(params)=>{
 };
 
 const restoreVehicle=async(params)=>{
- C.state.activeVehicle=null;
- C.state.vehicleCompatibleOnly=true;
+ C.clearActiveVehicle();
  if(!params.cv||!params.cy)return;
  const query=new URLSearchParams({level:"selection",variantId:String(params.cv),year:String(params.cy)});
  if(params.cf)query.set("fuel",String(params.cf));
  if(params.ce)query.set("engine",String(params.ce));
  try{
   const result=await C.api("/vehicle-catalogue?"+query.toString(),{auth:false});
-  C.state.activeVehicle=result.item||null;
+  C.setActiveVehicle(result.item||null,{compatibleOnly:true});
  }catch{
   UI.toast("The saved vehicle could not be restored. Running the remaining search filters.","warning");
  }
