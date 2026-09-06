@@ -23,14 +23,14 @@ export async function GET(request:Request){
 
  let query=supabase
   .from("parts")
-  .select("id,slug,title,status,stock,price_pence,condition,testing_status,warranty_days,donor_vehicle_id,created_at,updated_at,part_images(id,storage_path,alt_text,position)")
+  .select("id,slug,title,status,stock,price_pence,condition,testing_status,warranty_days,donor_vehicle_id,source_channel,source_external_id,import_batch_id,created_at,updated_at,part_images(id,storage_path,alt_text,position)")
   .eq("seller_id",seller.id)
   .order("updated_at",{ascending:false})
   .order("id");
 
  if(search){
   const escaped=search.replaceAll("%","\\%").replaceAll("_","\\_");
-  query=query.or(`title.ilike.%${escaped}%,oem_number.ilike.%${escaped}%,part_number.ilike.%${escaped}%,manufacturer.ilike.%${escaped}%`);
+  query=query.or(`title.ilike.%${escaped}%,oem_number.ilike.%${escaped}%,part_number.ilike.%${escaped}%,manufacturer.ilike.%${escaped}%,source_external_id.ilike.%${escaped}%`);
  }
  if(validStatuses.includes(status))query=query.eq("status",status as "draft"|"active"|"reserved"|"sold"|"archived");
 
@@ -56,6 +56,9 @@ export async function GET(request:Request){
    testingStatus:item.testing_status,
    warrantyDays:item.warranty_days,
    donorVehicleId:item.donor_vehicle_id,
+   sourceChannel:item.source_channel,
+   sellerReference:item.source_external_id,
+   importBatchId:item.import_batch_id,
    createdAt:item.created_at,
    updatedAt:item.updated_at,
    images:(item.part_images??[]).sort((a,b)=>a.position-b.position).slice(0,1).map(image=>({
