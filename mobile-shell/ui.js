@@ -13,13 +13,44 @@ const routeStack=[];
 
 const routeKey=(route)=>route?route.name+"|"+JSON.stringify(route.payload||{}):"";
 
+const syncNavigationMode=()=>{
+ const buttons=[...document.querySelectorAll("#bottom-nav [data-nav]")];
+ if(buttons.length<5)return;
+ const selling=C.state.accountMode==="selling"&&Boolean(C.state.me?.seller);
+ const config=selling
+  ?[
+    ["seller","⌂","Dashboard"],
+    ["inventory","□","Inventory"],
+    ["sellerSales","▣","Sales"],
+    ["inbox","◫","Inbox"],
+    ["account","○","Account"]
+   ]
+  :[
+    ["home","⌂","Home"],
+    ["garage","▱","Garage"],
+    ["orders","▣","Purchases"],
+    ["inbox","◫","Inbox"],
+    ["account","○","Account"]
+   ];
+ buttons.forEach((button,index)=>{
+  const item=config[index];
+  if(!item)return;
+  button.dataset.nav=item[0];
+  const icon=button.querySelector(".nav-icon");
+  const label=button.querySelector(".nav-icon+span");
+  if(icon)icon.textContent=item[1];
+  if(label)label.textContent=item[2];
+ });
+};
+
 const route=async(name,payload,options={})=>{
  const next={name,payload:payload||{}};
  if(currentRoute&&!options.fromBack&&routeKey(currentRoute)!==routeKey(next))routeStack.push(currentRoute);
  currentRoute=next;
  C.state.currentView=name;
+ syncNavigationMode();
  document.querySelectorAll("[data-nav]").forEach(button=>{
-  button.classList.toggle("active",button.dataset.nav===name||((name==="listing"||name==="member")&&button.dataset.nav==="home")||(name==="order"&&button.dataset.nav==="orders")||(name==="conversation"&&button.dataset.nav==="inbox")||(["saved","notifications","seller","cases","inventory","listingEditor"].includes(name)&&button.dataset.nav==="account"));
+  button.classList.toggle("active",button.dataset.nav===name||((name==="listing"||name==="member")&&button.dataset.nav==="home")||(name==="order"&&button.dataset.nav==="orders")||(name==="conversation"&&button.dataset.nav==="inbox")||(name==="transactionChat"&&button.dataset.nav==="inbox")||(name==="listingEditor"&&button.dataset.nav==="inventory")||(["saved","notifications","seller","cases","inventory","listingEditor"].includes(name)&&button.dataset.nav==="account"));
  });
  if(!registry.has(name)){
   app.innerHTML="<div class=\"empty\"><div class=\"empty-icon\">!</div><h3>Screen unavailable</h3><p>This mobile screen has not been registered.</p></div>";
