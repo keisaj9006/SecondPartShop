@@ -4,17 +4,26 @@ import { Header } from "@/components/header";
 import { TransactionReviewForm } from "@/components/transaction-review-form";
 import { VerifiedFitFeedbackForm } from "@/components/verified-fit-feedback-form";
 import { requireUser } from "@/lib/auth";
-import { getReviewOpportunities } from "@/lib/data/reviews";
-import { getFitFeedbackOpportunities } from "@/lib/data/fit-feedback";
+import { getReviewOpportunitiesPage } from "@/lib/data/reviews";
+import { getFitFeedbackOpportunitiesPage } from "@/lib/data/fit-feedback";
 
 export const dynamic="force-dynamic";
 
-export default async function ReviewsPage(){
- await requireUser("/account/reviews");
- const [opportunities,fitOpportunities]=await Promise.all([
-  getReviewOpportunities().catch(()=>[]),
-  getFitFeedbackOpportunities().catch(()=>[])
+const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
+const pageNumber=(value:string|undefined)=>{const parsed=Number(value);return Number.isInteger(parsed)&&parsed>0?parsed:1;};
+
+export default async function ReviewsPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
+ const [,params]=await Promise.all([requireUser("/account/reviews"),searchParams]);
+ const reviewPage=pageNumber(first(params.reviewPage));
+ const fitPage=pageNumber(first(params.fitPage));
+ const pageSize=20;
+ const [reviewResult,fitResult]=await Promise.all([
+  getReviewOpportunitiesPage({offset:(reviewPage-1)*pageSize,limit:pageSize}).catch(()=>({items:[],hasMore:false,offset:0,limit:pageSize})),
+  getFitFeedbackOpportunitiesPage({offset:(fitPage-1)*pageSize,limit:pageSize}).catch(()=>({items:[],hasMore:false,offset:0,limit:pageSize}))
  ]);
+ const opportunities=reviewResult.items;
+ const fitOpportunities=fitResult.items;
+ const href=(nextReview=reviewPage,nextFit=fitPage)=>{const search=new URLSearchParams();if(nextReview>1)search.set("reviewPage",String(nextReview));if(nextFit>1)search.set("fitPage",String(nextFit));const qs=search.toString();return qs?"/account/reviews?"+qs:"/account/reviews";};
  const pending=opportunities.filter(item=>!item.existingReviewId);
  const submitted=opportunities.filter(item=>Boolean(item.existingReviewId));
  const fitPending=fitOpportunities.filter(item=>!item.existingResult||item.existingResult==="not_installed");
@@ -30,6 +39,7 @@ export default async function ReviewsPage(){
    <p className="mt-2 max-w-2xl text-sm leading-6 text-[#63706a]">Tell SecondPart whether a purchased part actually fitted the vehicle selected at checkout. These answers become transaction-backed compatibility evidence, not anonymous votes.</p>
    {fitPending.length>0&&<div className="mt-5 grid gap-5">{fitPending.map(item=><article key={item.orderItemId} className="rounded-3xl border border-cyan-200 bg-white p-5 sm:p-6"><p className="text-xs font-black uppercase tracking-wide text-cyan-900">You bought this part</p><Link href={"/parts/"+item.partSlug} className="mt-1 block text-xl font-black hover:underline">{item.partTitle}</Link><VerifiedFitFeedbackForm opportunity={item}/></article>)}</div>}
    {fitSubmitted.length>0&&<details className="mt-5 rounded-2xl border border-black/10 bg-white p-4"><summary className="cursor-pointer text-sm font-black">{fitSubmitted.length} submitted fitment confirmation{fitSubmitted.length===1?"":"s"}</summary><div className="mt-4 grid gap-4">{fitSubmitted.map(item=><div key={item.orderItemId} className="rounded-2xl bg-[#f8f7f2] p-4"><p className="font-black">{item.partTitle}</p><VerifiedFitFeedbackForm opportunity={item}/></div>)}</div></details>}
+  {(fitPage>1||fitResult.hasMore)&&<nav aria-label="Fitment feedback pages" className="mt-5 flex items-center justify-center gap-3">{fitPage>1&&<Link href={href(reviewPage,fitPage-1)} className="rounded-full border border-black/15 bg-white px-4 py-2 text-xs font-black">Previous fitment</Link>}<span className="text-xs font-bold text-[#63706a]">Fitment page {fitPage}</span>{fitResult.hasMore&&<Link href={href(reviewPage,fitPage+1)} className="rounded-full bg-[#173c31] px-4 py-2 text-xs font-black text-white">Next fitment</Link>}</nav>}
   </section>}
 
   <section className="mt-10">
@@ -40,6 +50,7 @@ export default async function ReviewsPage(){
     <p className="mt-1 text-sm text-[#63706a]">Reviewing <Link href={`/member/${item.counterpartHandle}`} className="font-black text-[#173c31] hover:underline">{item.counterpartDisplayName} · @{item.counterpartHandle}</Link></p>
     <TransactionReviewForm opportunity={item}/>
    </article>)}</div>:<div className="mt-5 rounded-3xl border border-dashed border-black/15 bg-white p-7 text-sm text-[#63706a]">No completed transactions are waiting for your review.</div>}
+  {(reviewPage>1||reviewResult.hasMore)&&<nav aria-label="Review opportunity pages" className="mt-5 flex items-center justify-center gap-3">{reviewPage>1&&<Link href={href(reviewPage-1,fitPage)} className="rounded-full border border-black/15 bg-white px-4 py-2 text-xs font-black">Previous reviews</Link>}<span className="text-xs font-bold text-[#63706a]">Review page {reviewPage}</span>{reviewResult.hasMore&&<Link href={href(reviewPage+1,fitPage)} className="rounded-full bg-[#173c31] px-4 py-2 text-xs font-black text-white">Next reviews</Link>}</nav>}
   </section>
 
   {submitted.length>0&&<section className="mt-10">
