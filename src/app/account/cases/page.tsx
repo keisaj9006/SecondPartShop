@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { AlertTriangle,CheckCircle2 } from "lucide-react";
+import { CaseEvidencePanel } from "@/components/case-evidence-panel";
 import { Header } from "@/components/header";
 import { TransactionCaseForm } from "@/components/transaction-case-form";
 import { ReturnShipmentForm } from "@/components/return-shipment-form";
 import { requireUser } from "@/lib/auth";
+import { getTransactionCaseEvidence } from "@/lib/data/case-evidence";
 import { getBuyerOrders } from "@/lib/data/orders";
 import { getTransactionCases } from "@/lib/data/transaction-cases";
 
@@ -16,6 +18,7 @@ export default async function BuyerCasesPage({searchParams}:{searchParams:Promis
  const user=await requireUser("/account/cases");
  const [cases,orders]=await Promise.all([getTransactionCases().catch(()=>[]),getBuyerOrders(user.id).catch(()=>[])]);
  const buyerCases=cases.filter(item=>item.buyerId===user.id);
+ const evidenceByCase=await getTransactionCaseEvidence(buyerCases.map(item=>item.id)).catch(()=>new Map());
  const existingItems=new Set(buyerCases.filter(item=>["open","seller_response","under_review"].includes(item.status)).map(item=>item.orderItemId));
  const eligible=orders.flatMap(order=>order.items.filter(item=>
   ["paid","disputed"].includes(order.paymentStatus)&&
@@ -43,7 +46,7 @@ export default async function BuyerCasesPage({searchParams}:{searchParams:Promis
     <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wide text-[#287154]">{label(item.caseType)}</p><Link href={"/parts/"+item.partSlug} className="mt-1 block text-lg font-black hover:underline">{item.partTitle}</Link><p className="mt-1 text-sm text-[#63706a]">Seller: {item.sellerName}</p></div><span className="rounded-full bg-[#eef1eb] px-3 py-1 text-xs font-black">{label(item.status)}</span></div>
     <p className="mt-4 text-sm font-black">{item.reason}</p><p className="mt-1 text-sm leading-6 text-[#63706a]">{item.details}</p>
     {item.sellerResponse&&<div className="mt-4 rounded-2xl bg-[#f8f7f2] p-4"><p className="text-xs font-black uppercase tracking-wide text-[#287154]">Seller response</p><p className="mt-2 text-sm leading-6">{item.sellerResponse}</p></div>}{item.status==="return_authorized"&&<ReturnShipmentForm caseId={item.id}/>} {item.returnTrackingNumber&&<div className="mt-4 rounded-2xl bg-blue-50 p-4 text-sm text-blue-900"><p className="font-black">Return shipment recorded</p><p className="mt-1">{item.returnTrackingCarrier?item.returnTrackingCarrier+" · ":""}{item.returnTrackingNumber}</p></div>}{item.providerDisputeId&&<div className="mt-4 rounded-2xl bg-red-50 p-4 text-sm text-red-900"><p className="font-black">Card-provider dispute</p><p className="mt-1">Status: {item.providerDisputeStatus??"under review"}</p></div>}
-    {item.resolution&&<div className="mt-4 flex items-center gap-2 text-sm font-black text-emerald-800"><CheckCircle2 size={17}/>{item.resolution==="full_refund"?"Full refund issued":"Case resolved without refund"}</div>}
+    <CaseEvidencePanel caseId={item.id} evidence={evidenceByCase.get(item.id)??[]} canUpload={!["resolved","rejected","cancelled"].includes(item.status)}/>{item.resolution&&<div className="mt-4 flex items-center gap-2 text-sm font-black text-emerald-800"><CheckCircle2 size={17}/>{item.resolution==="full_refund"?"Full refund issued":"Case resolved without refund"}</div>}
    </article>)}</div>:<div className="mt-5 rounded-3xl border border-dashed border-black/15 bg-white p-8 text-sm text-[#63706a]"><AlertTriangle className="mb-3"/>You do not have any transaction cases.</div>}
   </section>
  </main></>;
