@@ -46,7 +46,10 @@ export function PartPassport({listing,evidence}:{listing:Listing;evidence:PartPa
      <div><dt className="text-[#63706a]">Testing</dt><dd className="font-black">{testingStatusLabel(listing.testingStatus)}</dd></div>
      <div><dt className="text-[#63706a]">Warranty</dt><dd className="font-black">{warrantyLabel(listing.warrantyDays)}</dd></div>
      <div><dt className="text-[#63706a]">Real photos</dt><dd className="font-black">{listing.images.length}</dd></div>
+     <div><dt className="text-[#63706a]">Dispatch</dt><dd className="font-black">{listing.dispatchDays===0?"Same working day":listing.dispatchDays+" working day"+(listing.dispatchDays===1?"":"s")}</dd></div>
     </dl>
+    {listing.conditionNotes&&<div className="mt-3 rounded-xl bg-[#f8f7f2] p-3 text-sm"><p className="font-black">Condition notes</p><p className="mt-1 leading-6 text-[#63706a]">{listing.conditionNotes}</p></div>}
+    {listing.damageNotes&&<div className="mt-3 rounded-xl bg-amber-50 p-3 text-sm"><p className="font-black text-amber-900">Visible damage / wear disclosed by seller</p><p className="mt-1 leading-6 text-amber-900/80">{listing.damageNotes}</p></div>}
     {(listing.conditionNotes||listing.damageNotes)&&<p className="mt-3 text-xs leading-5 text-[#63706a]"><BadgeCheck size={14} className="mr-1 inline text-[#287154]"/>Seller supplied condition / damage disclosure.</p>}
    </div>
 
