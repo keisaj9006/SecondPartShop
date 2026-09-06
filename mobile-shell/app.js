@@ -106,6 +106,11 @@ const boot=async()=>{
   await C.api("/health");
   if(C.state.session)await C.loadMe();
   await UI.refreshUserChrome();
+  if(C.state.session){
+   C.prefetch("/garage",{auth:true,maxAge:60000});
+   C.prefetch("/notifications",{auth:true,maxAge:20000});
+  }
+  C.prefetch("/vehicle-catalogue?level=makes",{auth:false,maxAge:10*60*1000});
   await bindNativeListeners();
 
   const launchUrl=await C.Native.getLaunchUrl();
