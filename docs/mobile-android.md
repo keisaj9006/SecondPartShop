@@ -1,31 +1,91 @@
 # SecondPart Android
 
-## Current phase: developer preview APK
+## Current architecture: bundled Capacitor application
 
-The current Android build is a developer-only Capacitor container used for real-device QA on Android.
+The Android build now packages the mobile application from `mobile-shell/` directly inside the APK.
 
-It loads the stable SecondPart preview deployment:
+The previous development-only `server.url` remote WebView configuration has been removed from `capacitor.config.json`.
+
+Current request flow:
+
+```
+Bundled Android UI
+  -> Supabase Auth (publishable client key only)
+  -> Authorization: Bearer <user access token>
+  -> /api/mobile/v1/*
+  -> Supabase RLS / guarded RPCs
+  -> Stripe server-side integration where required
+```
+
+The phone never receives `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CRON_SECRET` or DVSA server credentials.
+
+## Preview endpoint configuration
+
+`mobile-shell/config.js` currently uses the SecondPart preview alias as its API and web callback origin:
 
 `https://second-part-shop-preview.vercel.app`
 
-This is intentional for rapid QA while the existing Next.js marketplace remains server-rendered and uses Server Actions.
+The Supabase URL and publishable key in that file are public client configuration, not privileged secrets.
 
-## Important production rule
+Before each real-device preview cycle, the preview alias must point at a deployment containing the current `rebuild-nextjs` backend.
 
-Capacitor documents `server.url` as a live-reload/development option and explicitly says it is not intended for production.
+Before production release, replace the preview alias with the production SecondPart domain.
 
-Therefore this preview APK must **not** be submitted to Google Play as the production SecondPart app.
+## Mobile API
 
-Before store release we will:
+The bundled application consumes versioned endpoints under:
 
-1. replace the remote preview container with a bundled mobile frontend;
-2. keep Supabase and the existing backend/API contracts where appropriate;
-3. add native mobile behaviours such as app lifecycle handling, deep links, media/photo flows and notifications;
-4. create release signing and an Android App Bundle (AAB);
-5. run store-policy, privacy, security and device QA.
+`/api/mobile/v1/*`
+
+Implemented coverage includes:
+
+- API health/version check
+- account/session profile
+- public marketplace search and listing detail
+- categories
+- UK vehicle registration lookup
+- DfT vehicle catalogue lookup
+- Garage read/save/remove
+- saved parts
+- notifications/read state
+- purchases and order detail/timeline
+- buyer receipt/acceptance
+- checkout reservation cancellation
+- Stripe checkout creation
+- returns/disputes/cancellation cases
+- pre-purchase buyer/seller conversations
+- paid-order transaction chat
+- seller sales/payout state
+- seller fulfilment
+- seller transaction cases
+
+Authentication is performed with Supabase access tokens. The API creates a Supabase client scoped to that token so Row Level Security remains the primary data-access boundary.
+
+## Checkout
+
+The mobile app requests Stripe Checkout through the server-side endpoint. Stripe credentials are never shipped in the application.
+
+Payment truth remains server-controlled through Stripe webhook processing and reconciliation. The mobile client cannot mark an order paid.
+
+The current preview return page is `/checkout/mobile-complete`. Native deep-link return handling is still a production gate.
+
+## Remaining production mobile gates
+
+Before Google Play release:
+
+1. secure native token storage instead of preview localStorage;
+2. native deep links / verified App Links for checkout and email flows;
+3. push notifications;
+4. native camera/photo picker integration for seller listings and case evidence;
+5. Android lifecycle/back-navigation hardening;
+6. release signing and Play App Signing;
+7. generate a release Android App Bundle (AAB);
+8. production API/domain configuration;
+9. Play Console Data safety / privacy / store listing review;
+10. final physical-device security and commerce QA.
 
 ## Package identity
 
-Developer package ID: `com.secondpart.marketplace`
+Android package ID: `com.secondpart.marketplace`
 
-Do not publish this package to Google Play until the release-signing and production architecture gate is complete.
+Do not submit a debug APK to Google Play. Store release must use a signed release AAB.
