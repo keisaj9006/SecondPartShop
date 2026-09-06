@@ -35,7 +35,7 @@ export function BulkInventoryImport(){
     <div className="rounded-xl bg-red-50 p-3"><p className="text-xs text-red-800">Rejected</p><p className="mt-1 text-xl font-black text-red-900">{state.rejectedRows??0}</p></div>
    </div>}
 
-   {state.status==="success"&&<Link href="/dashboard?inventoryStatus=draft" className="mt-4 inline-flex min-h-11 items-center rounded-full bg-[#d4f44d] px-5 py-2.5 text-sm font-black text-[#173c31]">Review imported drafts</Link>}
+   {state.status==="success"&&<Link href={state.batchId?"/dashboard?inventoryStatus=draft&importBatch="+encodeURIComponent(state.batchId):"/dashboard?inventoryStatus=draft"} className="mt-4 inline-flex min-h-11 items-center rounded-full bg-[#d4f44d] px-5 py-2.5 text-sm font-black text-[#173c31]">Review this import</Link>}
   </form>
 
   <aside className="rounded-3xl border border-black/10 bg-[#f4f7f2] p-5 sm:p-6">
