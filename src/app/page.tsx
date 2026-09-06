@@ -1,14 +1,13 @@
 import { Header } from "@/components/header";
 import { MarketplaceHome } from "@/components/marketplace-home";
-import { getCategories,getListings,getMarketplacePage,getSavedPartIds,getVehicles } from "@/lib/data/marketplace";
+import { getCategories,getMarketplacePage,getSavedPartIds,getVehicles } from "@/lib/data/marketplace";
 import { getGarageVehicles } from "@/lib/data/garage";
 import { getRecentlyViewedListings } from "@/lib/data/buyer-account";
 import { getCatalogueModelMap,getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
 import { getCurrentUser } from "@/lib/auth";
 import { normalizeRegistration } from "@/lib/vehicle-registration";
-import { enrichListingsWithDistance,normalizePostcode } from "@/lib/postcode";
+import { normalizePostcode } from "@/lib/postcode";
 import type { MarketplaceFilters,MarketplaceSort,PartCondition } from "@/lib/types";
-import { sortMarketplaceListings } from "@/lib/marketplace-sort";
 import { isUuid } from "@/lib/identifiers";
 
 export const dynamic="force-dynamic";
@@ -54,39 +53,13 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   catalogueEngineSize:selectedCatalogue?.engineSizeSimple??undefined,
   compatibleOnly:Boolean(selectedCatalogue||isUuid(first(params.vehicle)))&&first(params.fit)!=="0"
  };
- const marketplacePromise=sort==="distance"
-  ?getListings(filters).then(result=>({
-    ...result,
-    pagination:{
-     offset:(requestedPage-1)*pageSize,
-     limit:pageSize,
-     returned:result.data.length,
-     total:result.data.length,
-     hasMore:false
-    }
-   }))
-  :getMarketplacePage(filters,{offset:(requestedPage-1)*pageSize,limit:pageSize});
  const [result,vehicles,savedIds,catalogueModels,garageVehicles,recentlyViewed]=await Promise.all([
-  marketplacePromise,
+  getMarketplacePage(filters,{offset:(requestedPage-1)*pageSize,limit:pageSize}),
   getVehicles(),
   user?getSavedPartIds(user.id):Promise.resolve([]),
   getCatalogueModelMap().catch(()=>[]),
   user?getGarageVehicles(user.id):Promise.resolve([]),
   user?getRecentlyViewedListings(user.id,3):Promise.resolve([])
  ]);
- const listingsWithDistance=await enrichListingsWithDistance(result.data,postcode);
- const globallySorted=sort==="distance"?sortMarketplaceListings(listingsWithDistance,sort):listingsWithDistance;
- const sortedListings=sort==="distance"
-  ?globallySorted.slice((requestedPage-1)*pageSize,requestedPage*pageSize)
-  :globallySorted;
- const pagination=sort==="distance"
-  ?{
-    offset:(requestedPage-1)*pageSize,
-    limit:pageSize,
-    returned:sortedListings.length,
-    total:globallySorted.length,
-    hasMore:requestedPage*pageSize<globallySorted.length
-   }
-  :result.pagination;
- return <><Header/><MarketplaceHome listings={sortedListings} categories={categories} vehicles={vehicles} catalogueModels={catalogueModels} garageVehicles={garageVehicles} recentlyViewed={recentlyViewed} signedIn={Boolean(user)} filters={filters} selectedCatalogue={selectedCatalogue} savedIds={savedIds} error={result.error} configured={result.configured} pagination={pagination} currentPage={requestedPage}/></>;
+ return <><Header/><MarketplaceHome listings={result.data} categories={categories} vehicles={vehicles} catalogueModels={catalogueModels} garageVehicles={garageVehicles} recentlyViewed={recentlyViewed} signedIn={Boolean(user)} filters={filters} selectedCatalogue={selectedCatalogue} savedIds={savedIds} error={result.error} configured={result.configured} pagination={result.pagination} currentPage={requestedPage}/></>;
 }
