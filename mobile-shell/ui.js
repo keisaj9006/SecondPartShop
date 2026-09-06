@@ -50,7 +50,13 @@ const route=async(name,payload,options={})=>{
  C.state.currentView=name;
  syncNavigationMode();
  document.querySelectorAll("[data-nav]").forEach(button=>{
-  button.classList.toggle("active",button.dataset.nav===name||((name==="listing"||name==="member")&&button.dataset.nav==="home")||(name==="order"&&button.dataset.nav==="orders")||(name==="conversation"&&button.dataset.nav==="inbox")||(name==="transactionChat"&&button.dataset.nav==="inbox")||(name==="listingEditor"&&button.dataset.nav==="inventory")||(["saved","notifications","seller","cases","inventory","listingEditor"].includes(name)&&button.dataset.nav==="account"));
+  const active=button.dataset.nav===name
+   ||((name==="listing"||name==="member")&&button.dataset.nav==="home")
+   ||(name==="order"&&button.dataset.nav==="orders")
+   ||(["conversation","transactionChat"].includes(name)&&button.dataset.nav==="inbox")
+   ||(name==="listingEditor"&&button.dataset.nav==="inventory")
+   ||(["saved","notifications","cases","sellerSetup","sellerProfile","sellerVerification"].includes(name)&&button.dataset.nav==="account");
+  button.classList.toggle("active",active);
  });
  if(!registry.has(name)){
   app.innerHTML="<div class=\"empty\"><div class=\"empty-icon\">!</div><h3>Screen unavailable</h3><p>This mobile screen has not been registered.</p></div>";
