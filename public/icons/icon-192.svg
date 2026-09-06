@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192" role="img" aria-label="SecondPart">
+  <rect width="192" height="192" rx="44" fill="#0f172a"/>
+  <path d="M38 58c0-11.046 8.954-20 20-20h76c11.046 0 20 8.954 20 20v76c0 11.046-8.954 20-20 20H58c-11.046 0-20-8.954-20-20V58Z" fill="none" stroke="#22c55e" stroke-width="8"/>
+  <text x="96" y="112" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="58" font-weight="800" fill="#ffffff">SP</text>
+</svg>
