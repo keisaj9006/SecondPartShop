@@ -12,13 +12,13 @@ export default async function InboxPage(){
 
  return <><Header/><main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
   <p className="text-xs font-black uppercase tracking-[.2em] text-[#287154]">Messages</p>
-  <h1 className="mt-2 text-4xl font-black tracking-[-.045em]">Part questions</h1>
+  <h1 className="mt-2 text-3xl font-black tracking-[-.045em] sm:text-4xl">Part questions</h1>
   <p className="mt-2 max-w-2xl text-sm leading-6 text-[#63706a]">Private pre-purchase questions about listings. Paid-order delivery and collection conversations stay inside the transaction chat for that order.</p>
 
   {conversations.length?<div className="mt-8 overflow-hidden rounded-3xl border border-black/10 bg-white">
    {conversations.map(item=>{
     const sellerSide=item.sellerOwnerId===user.id;
-    return <Link key={item.id} href={"/inbox/"+item.id} className="flex items-center gap-4 border-b border-black/8 p-5 last:border-0 hover:bg-[#f8f7f2]">
+    return <Link key={item.id} href={"/inbox/"+item.id} className="flex min-w-0 items-center gap-3 border-b border-black/8 p-4 last:border-0 hover:bg-[#f8f7f2] sm:gap-4 sm:p-5">
      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#173c31] text-[#d4f44d]">{sellerSide?<Store size={19}/>:<MessageSquareText size={19}/>}</span>
      <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="truncate font-black">{item.partTitle}</p>{item.status==="closed"&&<span className="rounded-full bg-[#eef1eb] px-2 py-0.5 text-[10px] font-black uppercase">Closed</span>}</div><p className="mt-1 text-xs text-[#63706a]">{sellerSide?"Buyer question":"Seller: "+item.sellerName} · updated {new Intl.DateTimeFormat("en-GB",{dateStyle:"medium",timeStyle:"short"}).format(new Date(item.lastMessageAt))}</p></div>
     </Link>;
