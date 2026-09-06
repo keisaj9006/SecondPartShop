@@ -174,11 +174,11 @@ export async function getMarketplacePage(
    :await supabase.rpc("marketplace_distance_page",common);
 
   if(distanceResult.error)return {...failure([],"Distance sorting is temporarily unavailable."),pagination:emptyPagination};
-  const pageRows=distanceResult.data??[];
+  const rawPageRows=distanceResult.data??[];
+  const hasMore=rawPageRows.length>limit;
+  const pageRows=rawPageRows.slice(0,limit);
   const ids=pageRows.map(row=>row.part_id);
-  if(!ids.length)return {data:[],error:null,configured:true,pagination:{offset,limit,returned:0,total:offset===0?0:null,hasMore:false}};
-
-  const total=Number(pageRows[0]?.total_count??ids.length);
+  if(!ids.length)return {data:[],error:null,configured:true,pagination:{offset,limit,returned:0,total:null,hasMore:false}};
   const distanceById=new Map(pageRows.map(row=>[row.part_id,{
    miles:row.distance_miles===null?null:Math.round(Number(row.distance_miles)*10)/10,
    approximate:Boolean(row.distance_approximate)
@@ -208,7 +208,7 @@ export async function getMarketplacePage(
    data:listings,
    error:null,
    configured:true,
-   pagination:{offset,limit,returned:listings.length,total,hasMore:offset+ids.length<total}
+   pagination:{offset,limit,returned:listings.length,total:null,hasMore}
   };
  }
 
@@ -249,12 +249,14 @@ export async function getMarketplacePage(
   });
   if(pageError)return {...failure([],"Compatibility data is temporarily unavailable."),pagination:emptyPagination};
 
-  const ids=(pageRows??[]).map(row=>row.part_id);
+  const rawRows=pageRows??[];
+  const hasMore=rawRows.length>limit;
+  const visibleRows=rawRows.slice(0,limit);
+  const ids=visibleRows.map(row=>row.part_id);
   if(!ids.length){
-   return {data:[],error:null,configured:true,pagination:{offset,limit,returned:0,total:offset===0?0:null,hasMore:false}};
+   return {data:[],error:null,configured:true,pagination:{offset,limit,returned:0,total:null,hasMore:false}};
   }
-  const confidence=new Map((pageRows??[]).map(row=>[row.part_id,row.confidence] as const));
-  const total=Number(pageRows?.[0]?.total_count??ids.length);
+  const confidence=new Map(visibleRows.map(row=>[row.part_id,row.confidence] as const));
   const {data:rows,error:rowError}=await supabase.from("parts").select(selectListing()).in("id",ids);
   if(rowError)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
   const byId=new Map((rows??[]).map(row=>{const raw=row as unknown as RawListing;return [raw.id,listingFrom(raw)] as const;}));
@@ -268,7 +270,7 @@ export async function getMarketplacePage(
    data:listings,
    error:null,
    configured:true,
-   pagination:{offset,limit,returned:listings.length,total,hasMore:offset+ids.length<total}
+   pagination:{offset,limit,returned:listings.length,total:null,hasMore}
   };
  }
 
@@ -339,7 +341,7 @@ export async function getMarketplacePage(
   };
  }
 
- let query=supabase.from("parts").select(selectListing(),{count:"exact"}).eq("status","active");
+ let query=supabase.from("parts").select(selectListing()).eq("status","active");
  if(categoryIds)query=query.in("category_id",categoryIds);
  if(filters.condition)query=query.eq("condition",filters.condition);
  if(filters.collectionOnly)query=query.eq("collection_available",true);
@@ -352,10 +354,11 @@ export async function getMarketplacePage(
  else if(sort==="warranty")query=query.order("warranty_days",{ascending:false}).order("created_at",{ascending:false});
  else query=query.order("created_at",{ascending:false});
 
- const {data,error,count}=await query.range(offset,offset+limit-1);
+ const {data,error}=await query.range(offset,offset+limit);
  if(error)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
- const listings=(data??[]).map(row=>listingFrom(row as unknown as RawListing));
- const total=count??null;
+ const rawRows=data??[];
+ const hasMore=rawRows.length>limit;
+ const listings=rawRows.slice(0,limit).map(row=>listingFrom(row as unknown as RawListing));
  return {
   data:listings,
   error:null,
@@ -364,8 +367,8 @@ export async function getMarketplacePage(
    offset,
    limit,
    returned:listings.length,
-   total,
-   hasMore:total===null?listings.length===limit:offset+listings.length<total
+   total:null,
+   hasMore
   }
  };
 }
