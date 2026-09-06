@@ -95,9 +95,11 @@ export function SellerCompatibilityEditor({initialFitments=[]}:{initialFitments?
   setNotes("");setConfirmed(false);setError("");
  };
 
- return <fieldset className="rounded-2xl border border-black/10 bg-[#f8f7f2] p-4 lg:col-span-2">
-  <legend className="px-1 text-sm font-black">Vehicle compatibility</legend>
-  <p className="mt-1 text-sm leading-6 text-[#63706a]">Add only exact vehicle configurations you can support with your own fitment knowledge, OE/OEM information or supplier data. These entries can power <strong>Confirmed for your vehicle</strong> on the buyer side.</p>
+ return <details open={fitments.length>0} className="rounded-2xl border border-black/10 bg-[#f8f7f2] p-4 lg:col-span-2">
+  <summary className="cursor-pointer list-none">
+   <p className="text-sm font-black">3. Other vehicles this part definitely fits <span className="font-normal text-[#63706a]">(optional)</span></p>
+   <p className="mt-1 text-xs leading-5 text-[#63706a]">Only open this section if you know additional exact fitments from OE/OEM data, supplier data or your own verified fitment knowledge. These entries can earn <strong>Confirmed for your vehicle</strong>.</p>
+  </summary>
 
   <input type="hidden" name="catalogueFitments" value={JSON.stringify(fitments.map(item=>({variantId:item.variantId,year:item.year,fuelType:item.fuelType,engineSizeSimple:item.engineSizeSimple,notes:item.notes})))}/>
 
@@ -109,7 +111,7 @@ export function SellerCompatibilityEditor({initialFitments=[]}:{initialFitments?
   </div>}
 
   <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4">
-   <div className="flex items-center justify-between gap-3"><div><p className="text-sm font-black">Add compatible vehicle</p><p className="mt-1 text-xs text-[#63706a]">{fitments.length}/20 fitments added</p></div></div>
+   <div className="flex items-center justify-between gap-3"><div><p className="text-sm font-black">Add another confirmed vehicle</p><p className="mt-1 text-xs text-[#63706a]">{fitments.length}/20 fitments added</p></div></div>
    <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
     <label className="text-sm font-bold">Make<select value={make} onChange={event=>void chooseMake(event.target.value)} className={input} disabled={loading==="makes"}><option value="">{loading==="makes"?"Loading makes…":"Choose make"}</option>{makes.map(item=><option key={item} value={item}>{item}</option>)}</select></label>
     <label className="text-sm font-bold">Model<select value={model} onChange={event=>void chooseModel(event.target.value)} className={input} disabled={!make||loading==="models"}><option value="">{loading==="models"?"Loading models…":"Choose model"}</option>{models.map(item=><option key={item} value={item}>{item}</option>)}</select></label>
@@ -121,7 +123,7 @@ export function SellerCompatibilityEditor({initialFitments=[]}:{initialFitments?
 
    <label className="mt-4 flex items-start gap-3 rounded-xl bg-[#f8f7f2] p-3 text-sm"><input type="checkbox" checked={confirmed} onChange={event=>setConfirmed(event.target.checked)} className="mt-1"/><span><strong>I confirm this fitment applies to the exact vehicle configuration selected above.</strong><small className="mt-1 block leading-5 text-[#63706a]">Do not confirm a fitment based only on a similar model name or registration lookup.</small></span></label>
    {error&&<p role="status" className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-800">{error}</p>}
-   <button type="button" onClick={addFitment} disabled={!canAdd} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#173c31] px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"><Plus size={16}/>Add compatible vehicle</button>
+   <button type="button" onClick={addFitment} disabled={!canAdd} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#173c31] px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"><Plus size={16}/>Add confirmed vehicle</button>
   </div>
- </fieldset>;
+ </details>;
 }
