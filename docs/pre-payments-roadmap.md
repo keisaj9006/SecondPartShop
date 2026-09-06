@@ -1,6 +1,6 @@
 # SecondPart — Pre-payments roadmap
 
-Status: **build complete on `rebuild-nextjs`; final manual acceptance QA intentionally deferred until the end.**
+Status: **build complete on `rebuild-nextjs`; pre-QA cleanup complete; full acceptance QA is the next gate before commerce work.**
 
 ## Completed before payments
 
@@ -49,6 +49,16 @@ Status: **build complete on `rebuild-nextjs`; final manual acceptance QA intenti
    - advisor issues introduced by moderation resolved
    - foreign-key indexes added where needed
    - current remaining Supabase security warning: leaked-password protection is disabled and must be enabled in Auth settings before public launch
+
+## Pre-QA cleanup — DONE
+
+- removed the duplicate homepage footer; the global layout footer is now the single footer source
+- aligned the Server Action upload request limit with the documented 6 × 5 MB photo contract
+- added server-side enforcement of the six-photo listing limit for create and edit flows
+- tracked the deployed closed DfT catalogue-import Edge Function in the repository
+- refreshed README/setup documentation so it matches the current migration-driven architecture
+- no database schema, RLS or authentication behaviour was changed in this cleanup
+- Supabase leaked-password protection remains a launch hardening setting to enable before public release
 
 ## Final pre-payments step
 
