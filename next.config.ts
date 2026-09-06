@@ -4,8 +4,8 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
-      // The form accepts a 5 MB image plus multipart field overhead.
-      bodySizeLimit: "6mb",
+      // Listing forms support up to 6 product images at 5 MB each plus multipart overhead.
+      bodySizeLimit: "35mb",
     },
   },
   images: {
