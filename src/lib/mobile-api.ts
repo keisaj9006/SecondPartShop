@@ -20,6 +20,8 @@ const canonicalOrigin=()=>{
 export const mobileCorsHeaders=(request:Request)=>{
  const headers=new Headers({
   "Cache-Control":"no-store",
+  "X-Content-Type-Options":"nosniff",
+  "X-SecondPart-API-Version":"v1",
   "Access-Control-Allow-Headers":"authorization,content-type",
   "Access-Control-Allow-Methods":"GET,POST,PATCH,DELETE,OPTIONS",
   "Vary":"Origin"
