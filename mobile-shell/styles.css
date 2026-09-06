@@ -69,3 +69,5 @@ a{color:inherit}
 .modal-backdrop{position:fixed;inset:0;z-index:90;background:rgba(6,19,15,.56);display:grid;align-items:end;padding:14px}.modal{max-width:680px;width:100%;margin:0 auto;background:var(--paper);border-radius:25px 25px 18px 18px;padding:18px;max-height:88dvh;overflow:auto}.modal h2{margin:0;font-size:22px}.modal-close{float:right;border:0;background:#fff;width:34px;height:34px;border-radius:11px;font-weight:900}
 .skeleton{background:linear-gradient(90deg,#eef1eb 25%,#f8faf8 50%,#eef1eb 75%);background-size:200% 100%;animation:shimmer 1.3s infinite}@keyframes shimmer{to{background-position:-200% 0}}
 @media(min-width:620px){.app-main{padding:24px}.hero{padding:30px}.list-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.modal-backdrop{align-items:center}.account-grid{grid-template-columns:repeat(3,1fr)}}
+
+.input-prefix{position:relative;margin-top:6px}.input-prefix>span{position:absolute;left:12px;top:50%;transform:translateY(-50%);z-index:1;color:var(--muted);font-size:12px;font-weight:900}.input-prefix .input{margin-top:0;padding-left:28px}.danger-card{border-color:#fecaca;background:#fffafa}.danger-card .eyebrow{color:#991b1b}
