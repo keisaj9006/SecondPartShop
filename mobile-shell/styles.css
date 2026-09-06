@@ -7,9 +7,13 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink)}
-body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+body{overscroll-behavior:none;-webkit-tap-highlight-color:rgba(212,244,77,.42)}
 button,input,select,textarea{font:inherit}
 button{cursor:pointer}
+button,a,[role="button"]{transition:transform .08s ease,filter .08s ease,box-shadow .08s ease,background-color .12s ease;-webkit-tap-highlight-color:rgba(212,244,77,.42)}
+button:not(:disabled):active,a[href]:active,[role="button"]:active{transform:scale(.98);filter:brightness(.93);box-shadow:0 0 0 3px rgba(212,244,77,.34)}
+input[type="checkbox"]:active,input[type="radio"]:active{filter:brightness(.86);outline:3px solid rgba(212,244,77,.42);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){button,a,[role="button"]{transition:none}button:not(:disabled):active,a[href]:active,[role="button"]:active{transform:none}}
 img{display:block;max-width:100%}
 a{color:inherit}
 .hidden{display:none!important}
