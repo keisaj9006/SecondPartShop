@@ -19,7 +19,7 @@ const route=async(name,payload,options={})=>{
  currentRoute=next;
  C.state.currentView=name;
  document.querySelectorAll("[data-nav]").forEach(button=>{
-  button.classList.toggle("active",button.dataset.nav===name||(name==="listing"&&button.dataset.nav==="home")||(name==="order"&&button.dataset.nav==="orders")||(name==="conversation"&&button.dataset.nav==="inbox")||(["saved","notifications","seller","cases","inventory"].includes(name)&&button.dataset.nav==="account"));
+  button.classList.toggle("active",button.dataset.nav===name||(name==="listing"&&button.dataset.nav==="home")||(name==="order"&&button.dataset.nav==="orders")||(name==="conversation"&&button.dataset.nav==="inbox")||(["saved","notifications","seller","cases","inventory","listingEditor"].includes(name)&&button.dataset.nav==="account"));
  });
  if(!registry.has(name)){
   app.innerHTML="<div class=\"empty\"><div class=\"empty-icon\">!</div><h3>Screen unavailable</h3><p>This mobile screen has not been registered.</p></div>";
