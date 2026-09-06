@@ -23,6 +23,7 @@ const marketplacePath=(query)=>{
  if(vehicle){
   const extra=new URLSearchParams(vehicle);
   extra.forEach((value,key)=>params.set(key,value));
+  params.set("fit",C.state.vehicleCompatibleOnly?"1":"0");
  }
  params.set("limit","60");
  return "/marketplace?"+params.toString();
@@ -31,7 +32,9 @@ const marketplacePath=(query)=>{
 const renderVehicleContext=()=>{
  const vehicle=C.state.activeVehicle;
  if(!vehicle)return "<div class=\"status info\">No vehicle selected. Search all parts or identify your vehicle first.</div>";
- return UI.vehicleVisual(vehicle,true)+"<div class=\"button-row\"><button id=\"change-vehicle\" class=\"secondary small-button\" type=\"button\">Change vehicle</button><button id=\"clear-vehicle\" class=\"link-button\" type=\"button\">Remove vehicle filter</button></div>";
+ return UI.vehicleVisual(vehicle,true)+
+  "<label class=\"card flat\" style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0;padding:12px\"><input id=\"vehicle-fit-only\" type=\"checkbox\" "+(C.state.vehicleCompatibleOnly?"checked":"")+" style=\"width:20px;height:20px;accent-color:#173c31;margin-top:1px\"/><span><strong style=\"font-size:12px\">Show only parts that fit this vehicle</strong><small style=\"display:block;margin-top:3px;color:#63706a;line-height:1.45\">"+(C.state.vehicleCompatibleOnly?"Only confirmed or same-family matches are shown.":"Showing the full marketplace; compatibility labels stay visible.")+"</small></span></label>"+
+  "<div class=\"button-row\"><button id=\"change-vehicle\" class=\"secondary small-button\" type=\"button\">Change vehicle</button><button id=\"clear-vehicle\" class=\"link-button\" type=\"button\">Remove vehicle</button></div>";
 };
 
 const home=async()=>{
@@ -67,13 +70,16 @@ const home=async()=>{
  const clearSearch=document.getElementById("clear-search");
  if(clearSearch)clearSearch.addEventListener("click",()=>{C.state.currentSearch="";UI.route("home");});
 
+ const fitOnly=document.getElementById("vehicle-fit-only");
+ if(fitOnly)fitOnly.addEventListener("change",event=>{C.state.vehicleCompatibleOnly=Boolean(event.target.checked);UI.route("home");});
+
  const registrationForm=document.getElementById("registration-form");
  if(registrationForm)registrationForm.addEventListener("submit",lookupRegistration);
  const manual=document.getElementById("manual-vehicle");
  if(manual)manual.addEventListener("click",()=>openManualVehicleSelector(lastLookup&&lastLookup.catalogue?lastLookup.catalogue:null,lastLookup&&lastLookup.vehicle?lastLookup.vehicle:null));
 
  const clearVehicle=document.getElementById("clear-vehicle");
- if(clearVehicle)clearVehicle.addEventListener("click",()=>{C.state.activeVehicle=null;lastLookup=null;UI.route("home");});
+ if(clearVehicle)clearVehicle.addEventListener("click",()=>{C.state.activeVehicle=null;C.state.vehicleCompatibleOnly=true;lastLookup=null;UI.route("home");});
  const changeVehicle=document.getElementById("change-vehicle");
  if(changeVehicle)changeVehicle.addEventListener("click",()=>openManualVehicleSelector(null,null));
 };
@@ -103,6 +109,7 @@ const lookupRegistration=async(event)=>{
   const use=document.getElementById("use-lookup-vehicle");
   if(use)use.addEventListener("click",()=>{
    const variant=variants[0];
+   C.state.vehicleCompatibleOnly=true;
    C.state.activeVehicle={
     variantId:variant.id,
     year:vehicle.year,
@@ -214,7 +221,8 @@ const openManualVehicleSelector=async(catalogue,vehicle)=>{
   if(!variant.value||!year.value)return;
   const selectedEngine=engine.value!==""?engines[Number(engine.value)]||null:null;
   const selectedVariantLabel=variant.options[variant.selectedIndex]?variant.options[variant.selectedIndex].textContent:"";
-  C.state.activeVehicle={
+  C.state.vehicleCompatibleOnly=true;
+   C.state.activeVehicle={
    variantId:variant.value,
    year:Number(year.value),
    fuelType:selectedEngine?selectedEngine.fuelType:null,
@@ -328,7 +336,8 @@ const garage=async()=>{
  UI.app.querySelectorAll("[data-use-garage]").forEach(button=>button.addEventListener("click",()=>{
   const item=items.find(vehicle=>vehicle.id===button.dataset.useGarage);
   if(!item)return;
-  C.state.activeVehicle={
+  C.state.vehicleCompatibleOnly=true;
+   C.state.activeVehicle={
    variantId:item.catalogueVariantId,year:item.year,fuelType:item.fuelType,engineSizeSimple:item.engineSizeSimple,
    make:item.make,modelFamily:item.modelFamily,variant:item.variant,registration:item.registration,colour:item.colour
   };
