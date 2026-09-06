@@ -51,7 +51,8 @@ export async function GET(request:Request){
   catalogueVariant:selectedCatalogue?.variantId,
   catalogueYear:selectedCatalogue?.year,
   catalogueFuel:selectedCatalogue?.fuelType??undefined,
-  catalogueEngineSize:selectedCatalogue?.engineSizeSimple??undefined
+  catalogueEngineSize:selectedCatalogue?.engineSizeSimple??undefined,
+  compatibleOnly:Boolean(selectedCatalogue)&&url.searchParams.get("fit")!=="0"
  };
 
  const result=await getListings(filters);
