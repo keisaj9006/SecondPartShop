@@ -149,6 +149,7 @@ export type Database = {
       garage_vehicles: {
         Row: {
           catalogue_variant_id: string
+          colour: string | null
           created_at: string
           engine_size_simple: number | null
           fuel_type: string | null
@@ -161,6 +162,7 @@ export type Database = {
         }
         Insert: {
           catalogue_variant_id: string
+          colour?: string | null
           created_at?: string
           engine_size_simple?: number | null
           fuel_type?: string | null
@@ -173,6 +175,7 @@ export type Database = {
         }
         Update: {
           catalogue_variant_id?: string
+          colour?: string | null
           created_at?: string
           engine_size_simple?: number | null
           fuel_type?: string | null
