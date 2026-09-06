@@ -3,6 +3,14 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCheckoutSession,getPaymentIntent,isStripeCheckoutConfigured } from "@/lib/stripe-payments";
 
+type PendingOrder={
+ id:string;
+ payment_status:string;
+ provider_checkout_session_id:string|null;
+ checkout_expires_at:string|null;
+ created_at:string;
+};
+
 const idValue=(value:unknown)=>{
  if(typeof value==="string")return value;
  if(value&&typeof value==="object"&&"id" in value&&typeof (value as {id?:unknown}).id==="string")return (value as {id:string}).id;
@@ -38,6 +46,66 @@ const shippingSnapshot=(session:{collected_information?:Record<string,unknown>|n
  };
 };
 
+async function reconcileOrderRow(admin:ReturnType<typeof createSupabaseAdminClient>,order:PendingOrder){
+ const sessionId=order.provider_checkout_session_id;
+ if(!sessionId)return {state:"deferred" as const,sessionId:null};
+
+ const session=await getCheckoutSession(sessionId);
+
+ if(session.payment_status==="paid"){
+  const paymentIntentId=idValue(session.payment_intent);
+  if(!paymentIntentId)return {state:"deferred" as const,sessionId};
+  const paymentIntent=await getPaymentIntent(paymentIntentId);
+  const chargeId=idValue(paymentIntent.latest_charge);
+  if(!chargeId)return {state:"deferred" as const,sessionId};
+  const shipping=shippingSnapshot(session);
+  const {error}=await admin.rpc("confirm_checkout_paid",{
+   p_order_id:order.id,
+   p_event_id:"reconcile-paid:"+session.id,
+   p_checkout_session_id:session.id,
+   p_payment_intent_id:paymentIntentId,
+   p_charge_id:chargeId,
+   p_shipping_name:shipping.name??undefined,
+   p_shipping_address:shipping.address??undefined
+  });
+  if(error)throw error;
+  return {state:"paid" as const,sessionId};
+ }
+
+ if(session.status==="expired"){
+  const {error}=await admin.rpc("cancel_checkout_order",{
+   p_order_id:order.id,
+   p_event_id:"reconcile-expired:"+session.id,
+   p_event_type:"reconciliation_checkout_expired"
+  });
+  if(error)throw error;
+  return {state:"expired" as const,sessionId};
+ }
+
+ return {state:"deferred" as const,sessionId};
+}
+
+export async function reconcileStripeOrder(orderId:string,expectedSessionId?:string){
+ if(!isStripeCheckoutConfigured())return {state:"skipped" as const};
+
+ const admin=createSupabaseAdminClient();
+ const {data,error}=await admin
+  .from("orders")
+  .select("id,payment_status,provider_checkout_session_id,checkout_expires_at,created_at")
+  .eq("id",orderId)
+  .maybeSingle();
+ if(error)throw error;
+ if(!data)return {state:"missing" as const};
+ if(expectedSessionId&&data.provider_checkout_session_id!==expectedSessionId)return {state:"session_mismatch" as const};
+ if(!["unpaid","requires_action","processing"].includes(data.payment_status))return {state:"already_settled" as const};
+
+ try{
+  return await reconcileOrderRow(admin,data as PendingOrder);
+ }catch{
+  return {state:"deferred" as const};
+ }
+}
+
 export async function reconcileStripeOrders(limit=100){
  if(!isStripeCheckoutConfigured())return {checked:0,repairedPaid:0,repairedExpired:0,deferred:0,skipped:true};
 
@@ -57,45 +125,11 @@ export async function reconcileStripeOrders(limit=100){
  let deferred=0;
 
  for(const order of data??[]){
-  const sessionId=order.provider_checkout_session_id;
-  if(!sessionId){deferred+=1;continue;}
-
   try{
-   const session=await getCheckoutSession(sessionId);
-
-   if(session.payment_status==="paid"){
-    const paymentIntentId=idValue(session.payment_intent);
-    if(!paymentIntentId){deferred+=1;continue;}
-    const paymentIntent=await getPaymentIntent(paymentIntentId);
-    const chargeId=idValue(paymentIntent.latest_charge);
-    if(!chargeId){deferred+=1;continue;}
-    const shipping=shippingSnapshot(session);
-    const {error:confirmError}=await admin.rpc("confirm_checkout_paid",{
-     p_order_id:order.id,
-     p_event_id:"reconcile-paid:"+session.id,
-     p_checkout_session_id:session.id,
-     p_payment_intent_id:paymentIntentId,
-     p_charge_id:chargeId,
-     p_shipping_name:shipping.name??undefined,
-     p_shipping_address:shipping.address??undefined
-    });
-    if(confirmError)throw confirmError;
-    repairedPaid+=1;
-    continue;
-   }
-
-   if(session.status==="expired"){
-    const {error:cancelError}=await admin.rpc("cancel_checkout_order",{
-     p_order_id:order.id,
-     p_event_id:"reconcile-expired:"+session.id,
-     p_event_type:"reconciliation_checkout_expired"
-    });
-    if(cancelError)throw cancelError;
-    repairedExpired+=1;
-    continue;
-   }
-
-   deferred+=1;
+   const result=await reconcileOrderRow(admin,order as PendingOrder);
+   if(result.state==="paid")repairedPaid+=1;
+   else if(result.state==="expired")repairedExpired+=1;
+   else deferred+=1;
   }catch{
    deferred+=1;
   }
