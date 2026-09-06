@@ -18,18 +18,19 @@ const integer=(value:string|undefined)=>{if(!value)return undefined;const parsed
 export default async function Home({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
  const params=await searchParams;
  const condition=first(params.condition);
+ const addVehicleMode=first(params.addVehicle)==="1";
  const requestedSort=first(params.sort);
  const sort=(["best","price_asc","price_desc","distance","delivery","warranty"] as string[]).includes(requestedSort??"")?requestedSort as MarketplaceSort:"best";
- const legacyVehicleId=isUuid(first(params.vehicle))?first(params.vehicle):undefined;
- const requestedCatalogueVariant=isUuid(first(params.cv))?first(params.cv):undefined;
- const requestedCatalogueYear=integer(first(params.cy));
- const requestedCatalogueFuel=first(params.cf);
- const requestedCatalogueEngine=integer(first(params.ce));
+ const legacyVehicleId=!addVehicleMode&&isUuid(first(params.vehicle))?first(params.vehicle):undefined;
+ const requestedCatalogueVariant=!addVehicleMode&&isUuid(first(params.cv))?first(params.cv):undefined;
+ const requestedCatalogueYear=addVehicleMode?undefined:integer(first(params.cy));
+ const requestedCatalogueFuel=addVehicleMode?undefined:first(params.cf);
+ const requestedCatalogueEngine=addVehicleMode?undefined:integer(first(params.ce));
  const requestedPage=Math.max(1,integer(first(params.page))??1);
  const pageSize=24;
- const rawRegistration=first(params.vr);
+ const rawRegistration=addVehicleMode?undefined:first(params.vr);
  const vehicleRegistration=rawRegistration?normalizeRegistration(rawRegistration):undefined;
- const vehicleColour=first(params.vc)?.trim().slice(0,40)||undefined;
+ const vehicleColour=addVehicleMode?undefined:first(params.vc)?.trim().slice(0,40)||undefined;
  const rawPostcode=first(params.pc);
  const postcode=rawPostcode?normalizePostcode(rawPostcode):undefined;
  const selectedCataloguePromise=requestedCatalogueVariant&&requestedCatalogueYear
@@ -62,5 +63,5 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   user?getGarageVehicles(user.id):Promise.resolve([]),
   user?getRecentlyViewedListings(user.id,3):Promise.resolve([])
  ]);
- return <><Header/><MarketplaceHome listings={result.data} categories={categories} vehicles={vehicles} catalogueModels={catalogueModels} garageVehicles={garageVehicles} recentlyViewed={recentlyViewed} signedIn={Boolean(user)} filters={filters} selectedCatalogue={selectedCatalogue} savedIds={savedIds} error={result.error} configured={result.configured} pagination={result.pagination} currentPage={requestedPage}/></>;
+ return <><Header/><MarketplaceHome freshVehicleSelection={addVehicleMode} listings={result.data} categories={categories} vehicles={vehicles} catalogueModels={catalogueModels} garageVehicles={garageVehicles} recentlyViewed={recentlyViewed} signedIn={Boolean(user)} filters={filters} selectedCatalogue={selectedCatalogue} savedIds={savedIds} error={result.error} configured={result.configured} pagination={result.pagination} currentPage={requestedPage}/></>;
 }
