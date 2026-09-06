@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft,MessageSquareText,PackageCheck,Star,Truck } from "lucide-react";
+import { resumeCheckout } from "@/app/account/orders/checkout-actions";
 import { BuyerReceiptControls } from "@/components/buyer-receipt-controls";
 import { Header } from "@/components/header";
 import { OrderTimeline } from "@/components/order-timeline";
@@ -12,8 +13,10 @@ export const dynamic="force-dynamic";
 const money=(pence:number,currency:string)=>new Intl.NumberFormat("en-GB",{style:"currency",currency}).format(pence/100);
 const label=(value:string)=>value.replaceAll("_"," ").replace(/\b\w/g,letter=>letter.toUpperCase());
 
-export default async function BuyerOrderDetailPage({params}:{params:Promise<{orderId:string}>}){
- const {orderId}=await params;
+const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
+
+export default async function BuyerOrderDetailPage({params,searchParams}:{params:Promise<{orderId:string}>;searchParams:Promise<Record<string,string|string[]|undefined>>}){
+ const [{orderId},query]=await Promise.all([params,searchParams]);
  const user=await requireUser("/account/orders/"+orderId);
  const orders=await getBuyerOrders(user.id).catch(()=>[]);
  const order=orders.find(item=>item.id===orderId);
@@ -22,6 +25,7 @@ export default async function BuyerOrderDetailPage({params}:{params:Promise<{ord
 
  return <><Header/><main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
   <Link href="/account/orders" className="inline-flex items-center gap-2 text-sm font-black"><ArrowLeft size={16}/>Back to purchases</Link>
+  {first(query.checkout)==="success"&&<div className="mt-5 rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-900">Payment confirmed. Your order is now in the SecondPart transaction flow.</div>}{first(query.checkout)==="pending"&&<div className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-900">Stripe is still confirming this payment. The order will update automatically.</div>}{first(query.checkout)==="expired"&&<div className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-900">This checkout session expired and its stock reservation was released.</div>}{first(query.checkout)==="unavailable"&&<div className="mt-5 rounded-2xl bg-red-50 p-4 text-sm font-bold text-red-800">This checkout session is not available to resume.</div>}
   <div className="mt-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
    <div><p className="text-xs font-black uppercase tracking-[.16em] text-[#287154]">Order {order.id.slice(0,8).toUpperCase()}</p><h1 className="mt-2 text-3xl font-black tracking-[-.04em]">Purchase details</h1><p className="mt-2 text-sm text-[#63706a]">{new Intl.DateTimeFormat("en-GB",{dateStyle:"long"}).format(new Date(order.createdAt))}</p></div>
    <div className="flex flex-wrap gap-2"><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-800">{label(order.paymentStatus)}</span><span className="rounded-full bg-[#173c31] px-3 py-1 text-xs font-black text-white">{label(order.status)}</span></div>
@@ -43,7 +47,7 @@ export default async function BuyerOrderDetailPage({params}:{params:Promise<{ord
      </div>
      <BuyerReceiptControls item={item}/>
     </article>)}
-    <div className="rounded-3xl bg-[#173c31] p-5 text-white"><p className="text-sm text-white/65">Order total</p><p className="mt-1 text-3xl font-black">{money(order.totalPence,order.currency)}</p></div>
+    <div className="rounded-3xl bg-[#173c31] p-5 text-white"><p className="text-sm text-white/65">Order total</p><p className="mt-1 text-3xl font-black">{money(order.totalPence,order.currency)}</p>{["unpaid","requires_action","processing"].includes(order.paymentStatus)&&<form action={resumeCheckout} className="mt-4"><input type="hidden" name="orderId" value={order.id}/><button className="rounded-xl bg-[#d4f44d] px-4 py-2.5 text-sm font-black text-[#173c31]">Resume secure checkout</button></form>}</div>
    </section>
    <OrderTimeline events={timeline}/>
   </div>
