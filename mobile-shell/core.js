@@ -8,18 +8,59 @@ if(!Native)throw new Error("SecondPart native bridge is missing.");
 
 const SESSION_KEY="mobile_session_v1";
 const LEGACY_SESSION_KEY="secondpart.mobile.session.v1";
+const VEHICLE_CONTEXT_KEY="secondpart.mobile.vehicle-context.v1";
+
+const readVehicleContext=()=>{
+ try{
+  const raw=localStorage.getItem(VEHICLE_CONTEXT_KEY);
+  if(!raw)return {vehicle:null,compatibleOnly:true};
+  const parsed=JSON.parse(raw);
+  const vehicle=parsed&&typeof parsed.vehicle==="object"&&parsed.vehicle?parsed.vehicle:null;
+  return {vehicle,compatibleOnly:parsed?.compatibleOnly!==false};
+ }catch{return {vehicle:null,compatibleOnly:true};}
+};
+
+const initialVehicleContext=readVehicleContext();
 const state={
  session:null,
  sessionReady:false,
  me:null,
  savedIds:new Set(),
  unreadNotifications:0,
- activeVehicle:null,
- vehicleCompatibleOnly:true,
+ activeVehicle:initialVehicleContext.vehicle,
+ vehicleCompatibleOnly:initialVehicleContext.compatibleOnly,
  currentSearch:"",
  marketplaceParams:{},
  currentView:"home",
  accountMode:"buying"
+};
+
+const persistVehicleContext=()=>{
+ try{
+  localStorage.setItem(VEHICLE_CONTEXT_KEY,JSON.stringify({
+   vehicle:state.activeVehicle,
+   compatibleOnly:Boolean(state.vehicleCompatibleOnly)
+  }));
+ }catch(error){console.warn("Could not persist vehicle context",error);}
+};
+
+const setActiveVehicle=(vehicle,{compatibleOnly}={})=>{
+ state.activeVehicle=vehicle&&typeof vehicle==="object"?vehicle:null;
+ if(compatibleOnly!==undefined)state.vehicleCompatibleOnly=Boolean(compatibleOnly);
+ persistVehicleContext();
+ return state.activeVehicle;
+};
+
+const clearActiveVehicle=()=>{
+ state.activeVehicle=null;
+ state.vehicleCompatibleOnly=true;
+ persistVehicleContext();
+};
+
+const setVehicleCompatibleOnly=(value)=>{
+ state.vehicleCompatibleOnly=Boolean(value);
+ persistVehicleContext();
+ return state.vehicleCompatibleOnly;
 };
 
 const responseCache=new Map();
@@ -402,6 +443,10 @@ window.SecondPartCore=Object.freeze({
  loadMe,
  refreshSaved,
  refreshNotifications,
+ setActiveVehicle,
+ clearActiveVehicle,
+ setVehicleCompatibleOnly,
+ persistVehicleContext,
  escapeHtml,
  money,
  dateTime,
