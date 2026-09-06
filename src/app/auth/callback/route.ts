@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-
-const safeNext=(candidate:string|null)=>{
- const next=candidate??"/account";
- return next.startsWith("/")&&!next.startsWith("//")?next:"/account";
-};
+import { safeInternalPath } from "@/lib/navigation";
 
 export async function GET(request:Request){
  const url=new URL(request.url);
  const code=url.searchParams.get("code");
- const next=safeNext(url.searchParams.get("next"));
+ const next=safeInternalPath(url.searchParams.get("next"),"/account");
  const providerError=url.searchParams.get("error_description")??url.searchParams.get("error");
 
  if(providerError){
