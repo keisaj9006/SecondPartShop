@@ -1,22 +1,48 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0f172a" />
-    <title>SecondPart</title>
-    <style>
-      html,body{margin:0;min-height:100%;background:#0f172a;color:#fff;font-family:Arial,sans-serif}
-      main{min-height:100vh;display:grid;place-items:center;padding:24px;text-align:center}
-      p{max-width:420px;line-height:1.5;color:#cbd5e1}
-    </style>
-  </head>
-  <body>
-    <main>
-      <div>
-        <h1>SecondPart</h1>
-        <p>The Android preview could not reach the marketplace. Check your internet connection and try again.</p>
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"/>
+  <meta name="theme-color" content="#173c31"/>
+  <meta name="color-scheme" content="light"/>
+  <meta http-equiv="X-Content-Type-Options" content="nosniff"/>
+  <title>SecondPart</title>
+  <link rel="stylesheet" href="./styles.css"/>
+</head>
+<body>
+  <div id="app-shell">
+    <header class="topbar">
+      <button id="brand-button" class="brand" type="button" aria-label="SecondPart home">
+        <span class="brand-mark">SP</span>
+        <span><strong>SecondPart</strong><small>Used parts marketplace</small></span>
+      </button>
+      <div class="top-actions">
+        <button id="saved-button" class="icon-button" type="button" aria-label="Saved parts">♡</button>
+        <button id="notifications-button" class="icon-button badge-anchor" type="button" aria-label="Notifications">♢<span id="notification-badge" class="badge hidden">0</span></button>
       </div>
+    </header>
+
+    <main id="app" class="app-main" aria-live="polite">
+      <section class="boot-screen">
+        <span class="spinner"></span>
+        <h1>Starting SecondPart</h1>
+        <p>Loading the marketplace securely…</p>
+      </section>
     </main>
-  </body>
+
+    <nav id="bottom-nav" class="bottom-nav" aria-label="Main navigation">
+      <button type="button" data-nav="home" class="nav-item active"><span class="nav-icon">⌂</span><span>Home</span></button>
+      <button type="button" data-nav="garage" class="nav-item"><span class="nav-icon">▱</span><span>Garage</span></button>
+      <button type="button" data-nav="orders" class="nav-item"><span class="nav-icon">▣</span><span>Orders</span></button>
+      <button type="button" data-nav="inbox" class="nav-item"><span class="nav-icon">◫</span><span>Inbox</span></button>
+      <button type="button" data-nav="account" class="nav-item"><span class="nav-icon">○</span><span>Account</span></button>
+    </nav>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+  <div id="modal-root"></div>
+
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
+</body>
 </html>
