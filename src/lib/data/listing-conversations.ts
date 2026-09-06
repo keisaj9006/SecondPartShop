@@ -33,17 +33,29 @@ const mapSummary=(row:ConversationRow):ListingConversationSummary|null=>{
  };
 };
 
-export async function getListingConversations():Promise<ListingConversationSummary[]>{
+export async function getListingConversationsPage(options:{offset?:number;limit?:number;status?:"open"|"closed"|"all"}={}):Promise<{items:ListingConversationSummary[];hasMore:boolean;offset:number;limit:number}>{
+ const offset=Math.max(0,Math.floor(options.offset??0));
+ const limit=Math.max(1,Math.min(Math.floor(options.limit??30),60));
  const supabase=await createSupabaseServerClient();
- const {data,error}=await supabase
+ let query=supabase
   .from("listing_conversations")
   .select("id,part_id,buyer_id,status,last_message_at,parts(title,slug),sellers(business_name,owner_id)")
-  .order("last_message_at",{ascending:false});
+  .order("last_message_at",{ascending:false})
+  .order("id");
+ if(options.status&&options.status!=="all")query=query.eq("status",options.status);
+ const {data,error}=await query.range(offset,offset+limit);
  if(error)throw new Error("Pre-purchase messages are temporarily unavailable.");
- return (data??[]).flatMap(row=>{
+ const raw=data??[];
+ const hasMore=raw.length>limit;
+ const items=raw.slice(0,limit).flatMap(row=>{
   const mapped=mapSummary(row as unknown as ConversationRow);
   return mapped?[mapped]:[];
  });
+ return {items,hasMore,offset,limit};
+}
+
+export async function getListingConversations():Promise<ListingConversationSummary[]>{
+ return (await getListingConversationsPage({limit:60})).items;
 }
 
 export async function getListingConversation(conversationId:string):Promise<ListingConversationThread|null>{
