@@ -5,6 +5,7 @@ const UI=window.SecondPartUI;
 const C=UI.C;
 
 const account=async(payload)=>{
+ await C.initializeSession();
  if(!C.state.session){renderAuth(payload&&payload.mode?payload.mode:"signin");return;}
  UI.loading("Loading account");
  if(!C.state.me)await C.loadMe();
@@ -15,7 +16,7 @@ const account=async(payload)=>{
  const seller=me.seller;
  const html=[];
  html.push("<section class=\"account-hero\"><p class=\"eyebrow\" style=\"color:#d4f44d\">Your account</p><h1>"+C.escapeHtml(profile?profile.displayName:"SecondPart member")+"</h1><p>"+C.escapeHtml(profile?"@"+profile.handle:"")+" · "+C.escapeHtml(me.user&&me.user.email?me.user.email:"")+"</p>"+(!me.user.emailConfirmed?"<div class=\"status warning\" style=\"margin-top:12px\">Email confirmation is still pending.</div>":"")+"</section>");
- html.push("<section class=\"account-grid\"><button class=\"account-tile\" id=\"account-saved\" type=\"button\"><strong>Saved parts</strong><small>Parts you want to come back to.</small></button><button class=\"account-tile\" id=\"account-notifications\" type=\"button\"><strong>Notifications</strong><small>"+C.escapeHtml(C.state.unreadNotifications)+" unread marketplace update(s).</small></button><button class=\"account-tile\" id=\"account-garage\" type=\"button\"><strong>Garage</strong><small>Your saved vehicles and compatibility filters.</small></button><button class=\"account-tile\" id=\"account-orders\" type=\"button\"><strong>Purchases</strong><small>Payment, delivery and buyer protection.</small></button><button class=\"account-tile\" id=\"account-inbox\" type=\"button\"><strong>Part questions</strong><small>Buyer and seller pre-purchase conversations.</small></button>"+(seller?"<button class=\"account-tile\" id=\"account-seller\" type=\"button\"><strong>Seller dashboard</strong><small>Sales, payouts, fulfilment and cases.</small></button>":"")+"</section>");
+ html.push("<section class=\"account-grid\"><button class=\"account-tile\" id=\"account-saved\" type=\"button\"><strong>Saved parts</strong><small>Parts you want to come back to.</small></button><button class=\"account-tile\" id=\"account-notifications\" type=\"button\"><strong>Notifications</strong><small>"+C.escapeHtml(C.state.unreadNotifications)+" unread marketplace update(s).</small></button><button class=\"account-tile\" id=\"account-garage\" type=\"button\"><strong>Garage</strong><small>Your saved vehicles and compatibility filters.</small></button><button class=\"account-tile\" id=\"account-orders\" type=\"button\"><strong>Purchases</strong><small>Payment, delivery and buyer protection.</small></button><button class=\"account-tile\" id=\"account-cases\" type=\"button\"><strong>Returns & cases</strong><small>Cancellations, returns, disputes and private photo evidence.</small></button><button class=\"account-tile\" id=\"account-inbox\" type=\"button\"><strong>Part questions</strong><small>Buyer and seller pre-purchase conversations.</small></button>"+(seller?"<button class=\"account-tile\" id=\"account-seller\" type=\"button\"><strong>Seller dashboard</strong><small>Sales, payouts, fulfilment and cases.</small></button><button class=\"account-tile\" id=\"account-inventory\" type=\"button\"><strong>Seller inventory</strong><small>Listings and real product photos from camera or gallery.</small></button>":"")+"</section>");
  if(profile)html.push("<section class=\"card\" style=\"margin-top:12px\"><p class=\"eyebrow\">Profile</p><div class=\"spec-grid\"><div class=\"spec\"><small>Role</small><strong>"+C.escapeHtml(C.human(profile.role))+"</strong></div><div class=\"spec\"><small>Member since</small><strong>"+C.dateOnly(profile.createdAt)+"</strong></div></div>"+(seller?"<div class=\"status "+(seller.verified?"success":"info")+"\" style=\"margin-top:10px\">"+C.escapeHtml(seller.businessName)+" · "+(seller.verified?"Verified seller":"Seller verification pending/not completed")+"</div>":"")+"</section>");
  html.push("<div class=\"button-row\" style=\"margin-top:14px\"><button id=\"account-web\" class=\"secondary small-button\" type=\"button\">Profile & security on web</button><button id=\"account-signout\" class=\"danger-button small-button\" type=\"button\">Sign out</button></div>");
  UI.app.innerHTML=html.join("");
@@ -24,8 +25,10 @@ const account=async(payload)=>{
  document.getElementById("account-notifications").addEventListener("click",()=>UI.route("notifications"));
  document.getElementById("account-garage").addEventListener("click",()=>UI.route("garage"));
  document.getElementById("account-orders").addEventListener("click",()=>UI.route("orders"));
+ document.getElementById("account-cases").addEventListener("click",()=>UI.route("cases"));
  document.getElementById("account-inbox").addEventListener("click",()=>UI.route("inbox"));
  const sellerButton=document.getElementById("account-seller");if(sellerButton)sellerButton.addEventListener("click",()=>UI.route("seller"));
+ const inventoryButton=document.getElementById("account-inventory");if(inventoryButton)inventoryButton.addEventListener("click",()=>UI.route("inventory"));
  document.getElementById("account-web").addEventListener("click",()=>{window.location.href=C.config.webBaseUrl.replace(/\/$/,"")+"/account";});
  document.getElementById("account-signout").addEventListener("click",async()=>{
   await C.signOut();
