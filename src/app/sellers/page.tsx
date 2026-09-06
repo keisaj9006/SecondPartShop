@@ -32,7 +32,7 @@ export default async function SellersPage(){
           </div>
 
           <h2 className="mt-6 text-xl font-black">{s.businessName}</h2>
-          {trust&&<p className="mt-1 text-xs font-bold text-[#63706a]">@{trust.handle}</p>}
+          {trust&&<p className="mt-1 text-xs font-bold text-[#63706a]">@{trust.handle} · {trust.soldCount} sold · {trust.boughtCount} bought</p>}
           <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#63706a]">{s.description}</p>
 
           {trust&&<div className="mt-5 grid grid-cols-2 gap-2 rounded-2xl bg-[#f8f7f2] p-3">
