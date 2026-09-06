@@ -1,9 +1,8 @@
 import { getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
-import { getListings,getMarketplacePage } from "@/lib/data/marketplace";
+import { getMarketplacePage } from "@/lib/data/marketplace";
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions } from "@/lib/mobile-api";
-import { sortMarketplaceListings } from "@/lib/marketplace-sort";
-import { enrichListingsWithDistance,normalizePostcode } from "@/lib/postcode";
+import { normalizePostcode } from "@/lib/postcode";
 import type { MarketplaceFilters,MarketplaceSort,PartCondition } from "@/lib/types";
 
 export const dynamic="force-dynamic";
@@ -58,27 +57,12 @@ export async function GET(request:Request){
  const limit=Math.max(1,Math.min(integer(url.searchParams.get("limit"))??40,100));
  const offset=Math.max(0,integer(url.searchParams.get("offset"))??0);
 
- if(sort==="distance"){
-  const result=await getListings(filters);
-  if(result.error)return mobileJson(request,{ok:false,error:"marketplace_unavailable",message:result.error},503);
-  const withDistance=await enrichListingsWithDistance(result.data,postcode);
-  const sorted=sortMarketplaceListings(withDistance,sort);
-  const page=sorted.slice(offset,offset+limit);
-  return mobileJson(request,{
-   ok:true,
-   items:page,
-   pagination:{offset,limit,returned:page.length,total:sorted.length,hasMore:offset+page.length<sorted.length},
-   vehicle:selectedCatalogue
-  });
- }
-
  const result=await getMarketplacePage(filters,{offset,limit});
  if(result.error)return mobileJson(request,{ok:false,error:"marketplace_unavailable",message:result.error},503);
- const withDistance=await enrichListingsWithDistance(result.data,postcode);
 
  return mobileJson(request,{
   ok:true,
-  items:withDistance,
+  items:result.data,
   pagination:result.pagination,
   vehicle:selectedCatalogue
  });
