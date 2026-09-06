@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect,useMemo,useRef,useState,type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useEffect,useMemo,useRef,useState,useTransition,type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown,Search,X } from "lucide-react";
+import { ChevronDown,LoaderCircle,Search,X } from "lucide-react";
 import { CategoryBrowser } from "@/components/category-browser";
 import { PartCodeScanner } from "@/components/part-code-scanner";
 import { getCategoryPath } from "@/lib/category-tree";
@@ -18,6 +18,7 @@ export function MarketplaceSearch({categories,filters,activeVehicleLabel}:{categ
  const [categoryOpen,setCategoryOpen]=useState(false);
  const [groups,setGroups]=useState<SearchSuggestionGroups>(emptyGroups);
  const [activeIndex,setActiveIndex]=useState(-1);
+ const [isNavigating,startNavigation]=useTransition();
 
  const selectedCategory=categories.find(category=>category.id===filters.category);
  const items=useMemo(()=>[
@@ -53,7 +54,7 @@ export function MarketplaceSearch({categories,filters,activeVehicleLabel}:{categ
   params.delete("family");params.delete("code");
   mutate(params);
   const qs=params.toString();
-  router.push(`/${qs?`?${qs}`:""}#marketplace`);
+  startNavigation(()=>router.push(`/${qs?`?${qs}`:""}#marketplace`,{scroll:false}));
  };
 
  const performSearch=(value=query)=>{
@@ -101,13 +102,14 @@ export function MarketplaceSearch({categories,filters,activeVehicleLabel}:{categ
 
  return <div ref={rootRef} className="relative">
   <div className="rounded-3xl border border-black/10 bg-white p-4 shadow-sm sm:p-5">
+   {isNavigating&&<div role="status" className="mb-3 flex items-center gap-2 rounded-xl bg-[#eef1eb] px-3 py-2 text-xs font-black text-[#173c31]"><LoaderCircle size={14} className="animate-spin"/>Updating marketplace results…</div>}
    <form onSubmit={event=>{event.preventDefault();performSearch();}} className="flex flex-col gap-2 sm:flex-row">
     <div className="relative flex-1">
      <Search size={19} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#63706a]"/>
      <input value={query} onChange={event=>{setQuery(event.target.value);setOpen(event.target.value.trim().length>=2);setActiveIndex(-1);}} onFocus={()=>{if(query.trim().length>=2)setOpen(true);}} onKeyDown={onKeyDown} autoComplete="off" aria-label="Search marketplace" className="w-full rounded-2xl border border-black/15 bg-[#f8f7f2] py-3.5 pl-11 pr-10 text-base outline-none focus:ring-2 focus:ring-[#173c31]" placeholder="Search by part, OE/OEM number, category, brand or keyword"/>
      {query&&<button type="button" aria-label="Clear search" onClick={()=>{setQuery("");setOpen(false);pushParams(params=>params.delete("q"));}} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 hover:bg-black/5"><X size={16}/></button>}
     </div>
-    <button type="submit" className="rounded-2xl bg-[#173c31] px-6 py-3.5 text-sm font-black text-white">Search</button>
+    <button type="submit" disabled={isNavigating} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#173c31] px-6 py-3.5 text-sm font-black text-white disabled:opacity-70">{isNavigating?<><LoaderCircle size={16} className="animate-spin"/>Updating…</>:"Search"}</button>
    </form>
    <PartCodeScanner/>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect,useRef,useState } from "react";
+import { useEffect,useRef,useState,useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell,CarFront,ChevronDown,Heart,Menu,Search,UserRound,Wrench,X } from "lucide-react";
@@ -14,6 +14,7 @@ export function HeaderShell({categories,user,displayName,seller}:{categories:Cat
  const [categoriesOpen,setCategoriesOpen]=useState(false);
  const [mobileOpen,setMobileOpen]=useState(false);
  const [mobileCategories,setMobileCategories]=useState(false);
+ const [,startNavigation]=useTransition();
 
  useEffect(()=>{
   const onPointerDown=(event:PointerEvent)=>{if(headerRef.current&&!headerRef.current.contains(event.target as Node)){setCategoriesOpen(false);setMobileOpen(false);setMobileCategories(false);}};
@@ -28,7 +29,7 @@ export function HeaderShell({categories,user,displayName,seller}:{categories:Cat
   const params=new URLSearchParams(window.location.pathname==="/"?window.location.search:"");
   params.set("category",category.id);
   params.delete("family");params.delete("code");
-  router.push(`/?${params.toString()}#marketplace`);
+  startNavigation(()=>router.push(`/?${params.toString()}#marketplace`,{scroll:false}));
  };
 
  return <header ref={headerRef} className="app-topbar sticky top-0 z-50 border-b border-black/10 bg-[#fbfcfa]/95 backdrop-blur-xl">
