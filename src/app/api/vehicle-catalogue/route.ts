@@ -17,5 +17,7 @@ export async function GET(request:Request){
   if(level==="years"){const variantId=clean(searchParams.get("variantId"));if(!variantId)return NextResponse.json({message:"Variant is required."},{status:400});return NextResponse.json({items:await getCatalogueYears(variantId)},{headers:{"cache-control":"public, max-age=1800"}});}
   if(level==="engines"){const variantId=clean(searchParams.get("variantId"));if(!variantId)return NextResponse.json({message:"Variant is required."},{status:400});return NextResponse.json({items:await getCatalogueEngines(variantId)},{headers:{"cache-control":"public, max-age=1800"}});}
   return NextResponse.json({message:"Unknown catalogue level."},{status:400});
- }catch(error){return NextResponse.json({message:error instanceof Error?error.message:"Vehicle catalogue unavailable."},{status:500});}
+ }catch{
+  return NextResponse.json({message:"Vehicle catalogue unavailable."},{status:503,headers:{"cache-control":"no-store"}});
+ }
 }
