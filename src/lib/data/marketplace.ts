@@ -448,5 +448,24 @@ export async function getSavedListings(userId:string):Promise<DataResult<Listing
 export async function getSellers():Promise<Seller[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();const {data}=await supabase.from("sellers").select("id,owner_id,business_name,slug,location,postcode,description,verified_at,seller_type").order("business_name");return (data??[]).map(s=>sellerFrom(s as RawSeller));}
 export async function getSellerBySlug(slug:string):Promise<Seller|null>{if(!isSupabaseConfigured())return null;const supabase=await createSupabaseServerClient();const {data}=await supabase.from("sellers").select("id,owner_id,business_name,slug,location,postcode,description,verified_at,seller_type").eq("slug",slug).maybeSingle();return data?sellerFrom(data as RawSeller):null;}
 export async function getSellerListings(sellerId:string,includeInactive=false):Promise<Listing[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();let query=supabase.from("parts").select(selectListing()).eq("seller_id",sellerId).order("updated_at",{ascending:false});if(!includeInactive)query=query.eq("status","active");const {data}=await query;return (data??[]).map(row=>listingFrom(row as unknown as RawListing));}
+
+export async function getSellerListingsPage(sellerId:string,options:{includeInactive?:boolean;offset?:number;limit?:number}={}){
+ const limit=Math.max(1,Math.min(Math.floor(options.limit??25),100));
+ const offset=Math.max(0,Math.floor(options.offset??0));
+ if(!isSupabaseConfigured())return {data:[] as Listing[],hasMore:false,offset,limit};
+ const supabase=await createSupabaseServerClient();
+ let query=supabase.from("parts").select(selectListing()).eq("seller_id",sellerId).order("updated_at",{ascending:false}).order("id");
+ if(!options.includeInactive)query=query.eq("status","active");
+ const {data,error}=await query.range(offset,offset+limit);
+ if(error)throw new Error("Seller inventory is temporarily unavailable.");
+ const raw=data??[];
+ const hasMore=raw.length>limit;
+ return {
+  data:raw.slice(0,limit).map(row=>listingFrom(row as unknown as RawListing)),
+  hasMore,
+  offset,
+  limit
+ };
+}
 export async function getSellerForOwner(ownerId:string):Promise<Seller|null>{if(!isSupabaseConfigured())return null;const supabase=await createSupabaseServerClient();const {data}=await supabase.from("sellers").select("id,owner_id,business_name,slug,location,postcode,description,verified_at,seller_type").eq("owner_id",ownerId).maybeSingle();return data?sellerFrom(data as RawSeller):null;}
 export async function getSellerListingById(id:string,sellerId:string):Promise<Listing|null>{if(!isSupabaseConfigured())return null;const supabase=await createSupabaseServerClient();const {data}=await supabase.from("parts").select(selectListing()).eq("id",id).eq("seller_id",sellerId).maybeSingle();return data?listingFrom(data as unknown as RawListing):null;}
