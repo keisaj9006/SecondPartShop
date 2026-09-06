@@ -10,9 +10,9 @@ export function SellerProfileForm(){
  const input="mt-2 w-full rounded-xl border border-black/15 px-4 py-3 outline-none focus:ring-2 focus:ring-[#173c31]";
  return <form action={action} className="mt-8 grid gap-5 rounded-3xl border border-black/10 bg-white p-6 sm:grid-cols-2">
   <label className="text-sm font-bold">Seller type
-   <select name="sellerType" defaultValue="business" className={input}>
-    <option value="business">Business / trader</option>
+   <select name="sellerType" defaultValue="private" className={input}>
     <option value="private">Private seller</option>
+    <option value="business">Business / garage / breaker</option>
    </select>
   </label>
   <label className="text-sm font-bold">Seller / business name<input required name="businessName" className={input}/></label>
