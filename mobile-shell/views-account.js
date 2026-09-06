@@ -294,12 +294,22 @@ const notifications=async()=>{
 const openNotification=(item)=>{
  const href=String(item.href||"");
  if(href.startsWith("/inbox/")){UI.route("conversation",{id:href.split("/").pop()});return;}
+ if(href.startsWith("/account/reviews")){UI.route("reviews");return;}
  if(href.startsWith("/account/orders")){UI.route("orders");return;}
- if(href.startsWith("/account/cases")){UI.route("orders");return;}
- if(href.startsWith("/dashboard/orders")){UI.route("seller");return;}
- if(href.startsWith("/dashboard/cases")){UI.route("seller");return;}
+ if(href.startsWith("/account/cases")){UI.route("cases");return;}
+ if(href.startsWith("/dashboard/orders")){C.state.accountMode="selling";UI.route("sellerSales");return;}
+ if(href.startsWith("/dashboard/cases")){C.state.accountMode="selling";UI.route("seller");return;}
+ if(href.startsWith("/dashboard/verification")){C.state.accountMode="selling";UI.route("sellerVerification");return;}
+ if(href.startsWith("/dashboard/payments")){C.state.accountMode="selling";UI.route("seller");return;}
+ if(href.startsWith("/dashboard/listings/")){
+  const id=href.split("/").filter(Boolean)[2];
+  C.state.accountMode="selling";
+  if(id&&id!=="new"){UI.route("listingEditor",{id});return;}
+  UI.route("listingEditor");return;
+ }
+ if(href==="/dashboard"||href.startsWith("/dashboard?")){C.state.accountMode="selling";UI.route("seller");return;}
  if(href.startsWith("/garage")){UI.route("garage");return;}
- window.location.href=C.config.webBaseUrl.replace(/\/$/,"")+href;
+ void C.Native.openBrowser(C.config.webBaseUrl.replace(/\/$/,"")+href);
 };
 
 
