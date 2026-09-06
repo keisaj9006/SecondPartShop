@@ -19,13 +19,16 @@ export default async function BuyerCasesPage({searchParams}:{searchParams:Promis
  const [cases,orders]=await Promise.all([getTransactionCases().catch(()=>[]),getBuyerOrders(user.id).catch(()=>[])]);
  const buyerCases=cases.filter(item=>item.buyerId===user.id);
  const evidenceByCase=await getTransactionCaseEvidence(buyerCases.map(item=>item.id)).catch(()=>new Map());
- const existingItems=new Set(buyerCases.filter(item=>["open","seller_response","under_review"].includes(item.status)).map(item=>item.orderItemId));
+ const activeCaseStatuses=["open","seller_response","under_review","return_authorized","return_shipped","returned"];
+ const existingItems=new Set(buyerCases.filter(item=>activeCaseStatuses.includes(item.status)).map(item=>item.orderItemId));
  const eligible=orders.flatMap(order=>order.items.filter(item=>
   ["paid","disputed"].includes(order.paymentStatus)&&
   !["cancelled","refunded","returned"].includes(item.fulfilmentStatus)&&
   !existingItems.has(item.id)
  ));
  const selectedId=first(params.item);
+ const requestedType=first(params.type);
+ const defaultCaseType=(["return","dispute","cancellation"] as string[]).includes(requestedType??"")?requestedType as "return"|"dispute"|"cancellation":"return";
  const selected=eligible.find(item=>item.id===selectedId)??null;
 
  return <><Header/><main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
@@ -33,7 +36,7 @@ export default async function BuyerCasesPage({searchParams}:{searchParams:Promis
   <h1 className="mt-2 text-4xl font-black tracking-[-.045em]">Returns & transaction cases</h1>
   <p className="mt-2 max-w-2xl text-sm leading-6 text-[#63706a]">Use a case when a completed marketplace purchase has a return, condition, delivery or transaction problem. Opening a case blocks any seller transfer that has not already been released.</p>
 
-  {selected&&<TransactionCaseForm orderItemId={selected.id} partTitle={selected.partTitle}/>}
+  {selected&&<TransactionCaseForm orderItemId={selected.id} partTitle={selected.partTitle} defaultCaseType={defaultCaseType}/>} 
 
   {!selected&&eligible.length>0&&<section className="mt-8 rounded-3xl border border-black/10 bg-white p-5">
    <h2 className="text-xl font-black">Choose a purchase</h2>
