@@ -71,6 +71,7 @@ async function validateCsv(file:File,sellerId:string){
  if(!file.name.toLowerCase().endsWith(".csv"))return {fatal:"Choose a .csv file.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:0};
 
  const parsed=parseCsv(await file.text());
+ if(parsed.error)return {fatal:parsed.error,rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:0};
  const missing=REQUIRED_HEADERS.filter(header=>!parsed.headers.includes(header));
  if(missing.length)return {fatal:"Missing required columns: "+missing.join(", ")+".",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:parsed.rows.length};
  if(parsed.rows.length>MAX_ROWS)return {fatal:"This CSV contains "+parsed.rows.length+" rows. Import up to "+MAX_ROWS+" rows per file.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:parsed.rows.length};
