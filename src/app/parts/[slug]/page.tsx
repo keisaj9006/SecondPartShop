@@ -41,10 +41,10 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
   catalogueFuel:first(rawSearch.cf),
   catalogueEngineSize:integer(first(rawSearch.ce))
  };
- const compatibility=await getPartCompatibility(item.id,filters);
+ const compatibility=await getPartCompatibility(item.id,filters).catch(()=>null);
  let vehicleLabel:string|null=null;
  if(filters.catalogueVariant&&filters.catalogueYear!==undefined){
-  const selected=await getCatalogueSelection(filters.catalogueVariant,filters.catalogueYear,filters.catalogueFuel,filters.catalogueEngineSize);
+  const selected=await getCatalogueSelection(filters.catalogueVariant,filters.catalogueYear,filters.catalogueFuel,filters.catalogueEngineSize).catch(()=>null);
   if(selected)vehicleLabel=`${selected.make} ${selected.modelFamily} · ${selected.year}${selected.engineSizeSimple?` · ${selected.engineSizeSimple}cc`:""}${selected.fuelType?` · ${selected.fuelType}`:""}`;
  }else if(filters.vehicle){
   const vehicles=await getVehicles();
