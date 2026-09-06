@@ -10,7 +10,7 @@ const items=[
  {href:"/garage",label:"Garage",icon:CarFront,active:(path:string)=>path.startsWith("/garage")},
  {href:"/account/orders",label:"Purchases",icon:PackageCheck,active:(path:string)=>path.startsWith("/account/orders")},
  {href:"/inbox",label:"Inbox",icon:MessageSquareText,active:(path:string)=>path.startsWith("/inbox")},
- {href:"/account",label:"Account",icon:UserRound,active:(path:string)=>path.startsWith("/account")&&!path.startsWith("/account/orders")}
+ {href:"/account",label:"Account",icon:UserRound,active:(path:string)=>(path.startsWith("/account")&&!path.startsWith("/account/orders"))||path.startsWith("/dashboard")||path.startsWith("/sell")}
 ];
 
 export function MobileBottomNav(){

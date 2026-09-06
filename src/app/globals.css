@@ -41,3 +41,27 @@ html.native-app button {
   input,select,textarea { font-size:16px; }
   button,a { min-height:44px; }
 }
+
+
+/* Seller mobile workspace: turn the desktop action ribbon into usable app controls. */
+@media (max-width:767px) {
+  .seller-mobile-actions {
+    display:grid;
+    width:100%;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+  .seller-mobile-actions > a {
+    width:100%;
+    min-height:48px;
+    justify-content:flex-start;
+    border-radius:14px;
+    padding:10px 12px;
+    font-size:12px;
+    line-height:1.2;
+  }
+  .seller-mobile-actions > a:last-child {
+    grid-column:1 / -1;
+    justify-content:center;
+  }
+}
