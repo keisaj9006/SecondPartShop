@@ -2,6 +2,13 @@ name: Android Preview APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - rebuild-nextjs
+    paths:
+      - "capacitor.config.json"
+      - "mobile-shell/**"
+      - ".github/workflows/android-preview-apk.yml"
 
 permissions:
   contents: read
