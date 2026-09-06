@@ -27,6 +27,7 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
  const requestedCatalogueEngine=integer(first(params.ce));
  const rawRegistration=first(params.vr);
  const vehicleRegistration=rawRegistration?normalizeRegistration(rawRegistration):undefined;
+ const vehicleColour=first(params.vc)?.trim().slice(0,40)||undefined;
  const rawPostcode=first(params.pc);
  const postcode=rawPostcode?normalizePostcode(rawPostcode):undefined;
  const selectedCataloguePromise=requestedCatalogueVariant&&requestedCatalogueYear
@@ -44,6 +45,7 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   collectionOnly:first(params.collection)==="1",
   vehicle:isUuid(first(params.vehicle))?first(params.vehicle):undefined,
   vehicleRegistration:vehicleRegistration||undefined,
+  vehicleColour,
   catalogueVariant:selectedCatalogue?.variantId,
   catalogueYear:selectedCatalogue?.year,
   catalogueFuel:selectedCatalogue?.fuelType??undefined,
