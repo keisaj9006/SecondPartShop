@@ -11,6 +11,7 @@ on:
       - "mobile-native-src/**"
       - "scripts/patch-android-mobile.mjs"
       - ".github/workflows/android-preview-apk.yml"
+      - ".github/android-preview-debug.keystore"
 
 permissions:
   contents: read
@@ -71,6 +72,12 @@ jobs:
       - name: Sync Capacitor project
         run: npx cap sync android
 
+      - name: Install stable preview debug keystore
+        run: |
+          mkdir -p "$HOME/.android"
+          cp .github/android-preview-debug.keystore "$HOME/.android/debug.keystore"
+          chmod 600 "$HOME/.android/debug.keystore"
+
       - name: Build debug APK
         working-directory: android
         run: |
@@ -83,7 +90,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: SecondPart-Android-Preview
+          name: SecondPart-Android-Preview-Stable
           path: SecondPart-preview.apk
           if-no-files-found: error
           retention-days: 14

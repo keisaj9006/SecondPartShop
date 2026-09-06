@@ -1,5 +1,5 @@
 {
-  "appId": "com.secondpart.marketplace",
+  "appId": "com.secondpart.marketplace.preview",
   "appName": "SecondPart",
   "webDir": "mobile-shell",
   "loggingBehavior": "debug",
