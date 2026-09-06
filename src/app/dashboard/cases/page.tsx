@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MessageSquareText } from "lucide-react";
 import { Header } from "@/components/header";
 import { SellerCaseResponseForm } from "@/components/seller-case-response-form";
+import { ReturnReceivedForm } from "@/components/return-received-form";
 import { requireSeller } from "@/lib/auth";
 import { getSellerForOwner } from "@/lib/data/marketplace";
 import { getTransactionCases } from "@/lib/data/transaction-cases";
@@ -23,6 +24,9 @@ export default async function SellerCasesPage(){
    <p className="mt-4 text-sm font-black">{item.reason}</p><p className="mt-1 text-sm leading-6 text-[#63706a]">{item.details}</p>
    {item.sellerResponse&&<div className="mt-4 rounded-2xl bg-[#f8f7f2] p-4"><p className="text-xs font-black uppercase tracking-wide text-[#287154]">Your latest response</p><p className="mt-2 text-sm leading-6">{item.sellerResponse}</p></div>}
    {["open","seller_response","under_review"].includes(item.status)&&<SellerCaseResponseForm caseId={item.id}/>}
+   {item.returnTrackingNumber&&<div className="mt-4 rounded-2xl bg-blue-50 p-4 text-sm text-blue-900"><p className="font-black">Buyer return shipment</p><p className="mt-1">{item.returnTrackingCarrier?item.returnTrackingCarrier+" · ":""}{item.returnTrackingNumber}</p></div>}
+   {item.caseType==="return"&&["return_authorized","return_shipped"].includes(item.status)&&<ReturnReceivedForm caseId={item.id}/>}
+   {item.providerDisputeId&&<div className="mt-4 rounded-2xl bg-red-50 p-4 text-sm text-red-900"><p className="font-black">Payment-provider dispute</p><p className="mt-1">Status: {item.providerDisputeStatus??"under review"}</p></div>}
    {item.resolution&&<p className="mt-4 text-sm font-black text-[#63706a]">Resolution: {item.resolution==="full_refund"?"Full refund":"No refund"}</p>}
   </article>)}</div>:<div className="mt-8 rounded-3xl border border-dashed border-black/15 bg-white p-10 text-center"><MessageSquareText className="mx-auto text-[#63706a]"/><h2 className="mt-4 text-xl font-black">No transaction cases</h2><p className="mt-2 text-sm text-[#63706a]">Buyer return requests and disputes will appear here.</p></div>}
  </main></>;
