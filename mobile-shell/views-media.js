@@ -346,7 +346,7 @@ const addExactFitment=async(fitments,onChange)=>{
   onChange();
  });
  try{
-  const result=await C.api("/vehicle-catalogue?level=makes");
+  const result=await C.apiCached("/vehicle-catalogue?level=makes",{auth:false,maxAge:10*60*1000});
   make.innerHTML="<option value=\"\">Choose make</option>"+options(result.items||[],"","");
  }catch(error){fail(error.message);}
 };
@@ -412,7 +412,7 @@ const listingEditor=async(payload={})=>{
  UI.loading(payload.id?"Loading listing":"Preparing new listing");
  let categories=[],donors=[],item=null;
  try{
-  const tasks=[C.api("/categories"),C.api("/seller/donors",{auth:true})];
+  const tasks=[C.apiCached("/categories",{auth:false,maxAge:10*60*1000}),C.apiCached("/seller/donors",{auth:true,maxAge:60000})];
   if(payload.id)tasks.push(C.api("/seller/listings/"+encodeURIComponent(payload.id),{auth:true}));
   const result=await Promise.all(tasks);
   categories=result[0].items||[];
@@ -461,7 +461,7 @@ const listingEditor=async(payload={})=>{
  document.getElementById("le-category").addEventListener("change",renderTransmission);
  document.getElementById("le-add-fitment").addEventListener("click",()=>void addExactFitment(fitments,renderFitments));
  document.getElementById("le-add-donor").addEventListener("click",()=>void createDonorModal(async id=>{
-  const result=await C.api("/seller/donors",{auth:true});donors=result.items||[];
+  C.invalidateCache("/seller/donors");const result=await C.apiCached("/seller/donors",{auth:true,maxAge:60000,refresh:true});donors=result.items||[];
   const select=document.getElementById("le-donor");if(select){select.innerHTML=donorOptions(donors,id);select.value=id;}
  }));
 
