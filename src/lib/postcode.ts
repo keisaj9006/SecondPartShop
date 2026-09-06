@@ -7,7 +7,7 @@ export const normalizePostcode=(value:string)=>value.toUpperCase().replace(/\s+/
 export const isPlausibleUkPostcode=(value:string)=>/^[A-Z]{1,2}[0-9][A-Z0-9]?[0-9][A-Z]{2}$/.test(normalizePostcode(value));
 const isPlausibleUkOutcode=(value:string)=>/^[A-Z]{1,2}[0-9][A-Z0-9]?$/.test(normalizePostcode(value));
 
-async function lookupLocation(postcode:string,allowOutcode=false){
+export async function lookupPostcodeLocation(postcode:string,allowOutcode=false){
  const normalized=normalizePostcode(postcode);
  const full=isPlausibleUkPostcode(normalized);
  const outcode=allowOutcode&&isPlausibleUkOutcode(normalized);
@@ -37,11 +37,11 @@ const milesBetween=(a:{latitude:number;longitude:number},b:{latitude:number;long
 
 export async function enrichListingsWithDistance(listings:Listing[],buyerPostcode?:string):Promise<Listing[]>{
  if(!buyerPostcode||!isPlausibleUkPostcode(buyerPostcode)||!listings.length)return listings;
- const buyer=await lookupLocation(buyerPostcode);
+ const buyer=await lookupPostcodeLocation(buyerPostcode);
  if(!buyer)return listings;
  const sellerPostcodes=[...new Set(listings.map(item=>item.seller.postcode).filter((value):value is string=>Boolean(value)))];
  const resolved=new Map<string,Awaited<ReturnType<typeof lookupLocation>>>();
- await Promise.all(sellerPostcodes.map(async postcode=>resolved.set(postcode,await lookupLocation(postcode,true))));
+ await Promise.all(sellerPostcodes.map(async postcode=>resolved.set(postcode,await lookupPostcodeLocation(postcode,true))));
  return listings.map(item=>{
   const sellerPostcode=item.seller.postcode;
   const seller=sellerPostcode?resolved.get(sellerPostcode):null;
