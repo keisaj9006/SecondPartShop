@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { getCategoryPath } from "@/lib/category-tree";
 import { compatibilityInfo,getCompatibilityMap } from "@/lib/data/compatibility";
+import { lookupPostcodeLocation } from "@/lib/postcode";
 import type { Category,Fitment,Listing,ListingImage,MarketplaceFilters,SearchSuggestionGroups,Seller,Vehicle,VehicleDataStatus } from "@/lib/types";
 
 export type DataResult<T>={data:T;error:string|null;configured:boolean};
@@ -120,6 +121,96 @@ export async function getMarketplacePage(
  }
 
  const sort=filters.sort??"best";
+
+ // Distance sorting is also paged inside PostgreSQL. Seller coordinates are persisted
+ // on profile save; only the buyer postcode is resolved for the current request.
+ if(sort==="distance"){
+  if(filters.vehicle&&!filters.catalogueVariant){
+   const result=await getListings(filters);
+   return {...result,pagination:{offset,limit,returned:result.data.length,total:result.data.length,hasMore:false}};
+  }
+  const buyer=filters.postcode?await lookupPostcodeLocation(filters.postcode):null;
+  if(!buyer)return {...failure([],"Enter a valid UK postcode to sort by distance."),pagination:emptyPagination};
+
+  let rankedIds:string[]|undefined;
+  if(filters.query?.trim()){
+   const searchText=filters.query.trim();
+   const {data,error}=await supabase.rpc("marketplace_search_part_ids",{p_query:searchText});
+   if(error)return {...failure([],"Marketplace search is temporarily unavailable."),pagination:emptyPagination};
+   rankedIds=(data??[]).map(row=>row.part_id);
+   if(!rankedIds.length){
+    const {data:synonym}=await supabase.from("marketplace_search_synonyms").select("canonical_query").eq("alias",searchText.toLowerCase()).maybeSingle();
+    if(synonym?.canonical_query){
+     const {data:fallback,error:fallbackError}=await supabase.rpc("marketplace_search_part_ids",{p_query:synonym.canonical_query});
+     if(fallbackError)return {...failure([],"Marketplace search is temporarily unavailable."),pagination:emptyPagination};
+     rankedIds=(fallback??[]).map(row=>row.part_id);
+    }
+   }
+   if(!rankedIds.length)return {data:[],error:null,configured:true,pagination:emptyPagination};
+  }
+
+  const common={
+   p_buyer_lat:buyer.latitude,
+   p_buyer_lon:buyer.longitude,
+   p_part_ids:rankedIds,
+   p_category_ids:categoryIds,
+   p_condition:filters.condition,
+   p_min_price_pence:Number.isFinite(filters.minPrice)?Math.round((filters.minPrice??0)*100):undefined,
+   p_max_price_pence:Number.isFinite(filters.maxPrice)?Math.round((filters.maxPrice??0)*100):undefined,
+   p_collection_only:Boolean(filters.collectionOnly),
+   p_limit:limit,
+   p_offset:offset
+  };
+
+  const distanceResult=filters.catalogueVariant&&filters.catalogueYear!==undefined
+   ?await supabase.rpc("marketplace_catalogue_distance_page",{
+     ...common,
+     p_variant_id:filters.catalogueVariant,
+     p_year:filters.catalogueYear,
+     p_fuel:filters.catalogueFuel,
+     p_engine:filters.catalogueEngineSize,
+     p_compatible_only:filters.compatibleOnly!==false
+    })
+   :await supabase.rpc("marketplace_distance_page",common);
+
+  if(distanceResult.error)return {...failure([],"Distance sorting is temporarily unavailable."),pagination:emptyPagination};
+  const pageRows=distanceResult.data??[];
+  const ids=pageRows.map(row=>row.part_id);
+  if(!ids.length)return {data:[],error:null,configured:true,pagination:{offset,limit,returned:0,total:offset===0?0:null,hasMore:false}};
+
+  const total=Number(pageRows[0]?.total_count??ids.length);
+  const distanceById=new Map(pageRows.map(row=>[row.part_id,{
+   miles:row.distance_miles===null?null:Math.round(Number(row.distance_miles)*10)/10,
+   approximate:Boolean(row.distance_approximate)
+  }] as const));
+  const confidenceById=new Map(pageRows.map(row=>[
+   row.part_id,
+   "confidence" in row?row.confidence:null
+  ] as const));
+
+  const {data:rows,error:rowError}=await supabase.from("parts").select(selectListing()).in("id",ids);
+  if(rowError)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
+  const byId=new Map((rows??[]).map(row=>{const raw=row as unknown as RawListing;return [raw.id,listingFrom(raw)] as const;}));
+  const listings=ids.flatMap(id=>{
+   const item=byId.get(id);
+   if(!item)return [];
+   const distance=distanceById.get(id);
+   const rawLevel=confidenceById.get(id);
+   const level=rawLevel==="confirmed"||rawLevel==="buyer_verified"||rawLevel==="family_match"||rawLevel==="unverified"?rawLevel:null;
+   return [{
+    ...item,
+    distanceMiles:distance?.miles??null,
+    distanceApproximate:distance?.approximate??false,
+    compatibility:filters.catalogueVariant?(level?compatibilityInfo(level):compatibilityInfo("unverified")):null
+   }];
+  });
+  return {
+   data:listings,
+   error:null,
+   configured:true,
+   pagination:{offset,limit,returned:listings.length,total,hasMore:offset+ids.length<total}
+  };
+ }
 
  // Catalogue compatibility is ranked and paged inside PostgreSQL. Only the IDs for
  // this page are hydrated with card images/details.
