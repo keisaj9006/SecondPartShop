@@ -1684,6 +1684,10 @@ export type Database = {
         Args: { p_report_id: string; p_status: string }
         Returns: undefined
       }
+      buyer_mark_order_item_received: {
+        Args: { p_accept_now?: boolean; p_order_item_id: string }
+        Returns: boolean
+      }
       cancel_checkout_order: {
         Args: { p_event_id?: string; p_event_type?: string; p_order_id: string }
         Returns: boolean
@@ -1703,6 +1707,12 @@ export type Database = {
           p_payment_intent_id: string
         }
         Returns: boolean
+      }
+      get_due_payout_order_items: {
+        Args: { p_limit?: number }
+        Returns: {
+          order_item_id: string
+        }[]
       }
       get_expired_unpaid_orders: {
         Args: { p_limit?: number }
@@ -1793,6 +1803,10 @@ export type Database = {
         }
         Returns: Json
       }
+      mark_order_item_payout_released: {
+        Args: { p_order_item_id: string; p_transfer_id: string }
+        Returns: boolean
+      }
       marketplace_catalogue_compatibility: {
         Args: {
           p_engine?: number
@@ -1844,6 +1858,15 @@ export type Database = {
         Returns: undefined
       }
       seller_checkout_ready: { Args: { p_seller_id: string }; Returns: boolean }
+      seller_set_order_item_fulfilment: {
+        Args: {
+          p_action: string
+          p_carrier?: string
+          p_order_item_id: string
+          p_tracking_number?: string
+        }
+        Returns: boolean
+      }
       submit_transaction_review: {
         Args: {
           p_buyer_conduct_rating?: number
