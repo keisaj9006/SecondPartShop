@@ -29,12 +29,12 @@ export function isStripeConnectConfigured(){
  return Boolean(
   process.env.STRIPE_SECRET_KEY?.trim()&&
   process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()&&
-  process.env.NEXT_PUBLIC_APP_URL?.trim()
+  (process.env.NEXT_PUBLIC_APP_URL?.trim()||process.env.NEXT_PUBLIC_SITE_URL?.trim())
  );
 }
 
 export function getAppUrl(){
- const value=process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/,"");
+ const value=(process.env.NEXT_PUBLIC_APP_URL?.trim()||process.env.NEXT_PUBLIC_SITE_URL?.trim())?.replace(/\/$/,"");
  if(!value||!value.startsWith("https://"))throw new Error("NEXT_PUBLIC_APP_URL must be an HTTPS URL.");
  return value;
 }
