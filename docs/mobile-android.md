@@ -69,20 +69,33 @@ Payment truth remains server-controlled through Stripe webhook processing and re
 
 The current preview return page is `/checkout/mobile-complete`. Native deep-link return handling is still a production gate.
 
+## Native Android capabilities now implemented
+
+The preview application now includes:
+
+- Android KeyStore-backed secure session storage through the Capacitor 8 secure-storage bridge;
+- migration away from legacy localStorage sessions on native Android;
+- Capacitor Browser for Stripe Checkout;
+- preview `secondpart://checkout` deep-link return handling, including cold-start URLs;
+- Android hardware Back integration with the app navigation stack;
+- app lifecycle refresh handling;
+- Camera / Photo Picker integration;
+- private transaction-case evidence uploads;
+- seller inventory photo capture / gallery selection against the existing `part-images` bucket.
+
 ## Remaining production mobile gates
 
 Before Google Play release:
 
-1. secure native token storage instead of preview localStorage;
-2. native deep links / verified App Links for checkout and email flows;
+1. replace the preview custom checkout scheme with verified HTTPS Android App Links;
+2. extend deep-link handling to production email confirmation/password flows;
 3. push notifications;
-4. native camera/photo picker integration for seller listings and case evidence;
-5. Android lifecycle/back-navigation hardening;
-6. release signing and Play App Signing;
-7. generate a release Android App Bundle (AAB);
-8. production API/domain configuration;
-9. Play Console Data safety / privacy / store listing review;
-10. final physical-device security and commerce QA.
+4. finish full mobile-native seller listing create/edit rather than using the web editor for non-photo fields;
+5. release signing and Play App Signing;
+6. generate a release Android App Bundle (AAB);
+7. production API/domain configuration;
+8. Play Console Data safety / privacy / store listing review;
+9. final physical-device security and commerce QA.
 
 ## Package identity
 
