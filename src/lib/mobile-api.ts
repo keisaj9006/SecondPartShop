@@ -77,3 +77,18 @@ export async function requireMobileUser(request:Request){
  if(!context)return {context:null,response:mobileJson(request,{ok:false,error:"unauthorized"},401)};
  return {context,response:null};
 }
+
+
+export async function requireMobileSeller(request:Request){
+ const auth=await requireMobileUser(request);
+ if(!auth.context)return {...auth,seller:null};
+ const {user,supabase}=auth.context;
+ const [{data:profile,error:profileError},{data:seller,error:sellerError}]=await Promise.all([
+  supabase.from("profiles").select("role").eq("id",user.id).maybeSingle(),
+  supabase.from("sellers").select("id,owner_id,business_name,slug").eq("owner_id",user.id).maybeSingle()
+ ]);
+ if(profileError||sellerError||!profile||!seller||!["seller","admin"].includes(profile.role)){
+  return {context:null,seller:null,response:mobileJson(request,{ok:false,error:"seller_required"},403)};
+ }
+ return {context:auth.context,seller,response:null};
+}
