@@ -1,0 +1,67 @@
+import {
+ getCatalogueEngines,
+ getCatalogueMakes,
+ getCatalogueModels,
+ getCatalogueVariants,
+ getCatalogueVariantsForModelYear,
+ getCatalogueYears,
+ getCatalogueYearsForModel
+} from "@/lib/data/vehicle-catalogue";
+import { mobileJson,mobileOptions } from "@/lib/mobile-api";
+
+export const dynamic="force-dynamic";
+export const runtime="nodejs";
+
+export function OPTIONS(request:Request){return mobileOptions(request);}
+
+const clean=(value:string|null)=>value?.trim().slice(0,100)??"";
+const yearValue=(value:string|null)=>{
+ const parsed=Number(value);
+ return Number.isInteger(parsed)&&parsed>=1900&&parsed<=2100?parsed:null;
+};
+
+export async function GET(request:Request){
+ const {searchParams}=new URL(request.url);
+ const level=clean(searchParams.get("level"));
+
+ try{
+  if(level==="makes")return mobileJson(request,{ok:true,items:await getCatalogueMakes()});
+  if(level==="models"){
+   const make=clean(searchParams.get("make"));
+   if(!make)return mobileJson(request,{ok:false,error:"make_required"},400);
+   return mobileJson(request,{ok:true,items:await getCatalogueModels(make)});
+  }
+  if(level==="years-model"){
+   const make=clean(searchParams.get("make"));
+   const model=clean(searchParams.get("model"));
+   if(!make||!model)return mobileJson(request,{ok:false,error:"make_model_required"},400);
+   return mobileJson(request,{ok:true,items:await getCatalogueYearsForModel(make,model)});
+  }
+  if(level==="variants-year"){
+   const make=clean(searchParams.get("make"));
+   const model=clean(searchParams.get("model"));
+   const year=yearValue(searchParams.get("year"));
+   if(!make||!model||!year)return mobileJson(request,{ok:false,error:"make_model_year_required"},400);
+   return mobileJson(request,{ok:true,items:await getCatalogueVariantsForModelYear(make,model,year)});
+  }
+  if(level==="variants"){
+   const make=clean(searchParams.get("make"));
+   const model=clean(searchParams.get("model"));
+   if(!make||!model)return mobileJson(request,{ok:false,error:"make_model_required"},400);
+   return mobileJson(request,{ok:true,items:await getCatalogueVariants(make,model)});
+  }
+  if(level==="years"){
+   const variantId=clean(searchParams.get("variantId"));
+   if(!variantId)return mobileJson(request,{ok:false,error:"variant_required"},400);
+   return mobileJson(request,{ok:true,items:await getCatalogueYears(variantId)});
+  }
+  if(level==="engines"){
+   const variantId=clean(searchParams.get("variantId"));
+   if(!variantId)return mobileJson(request,{ok:false,error:"variant_required"},400);
+   return mobileJson(request,{ok:true,items:await getCatalogueEngines(variantId)});
+  }
+  return mobileJson(request,{ok:false,error:"unknown_catalogue_level"},400);
+ }catch{
+  return mobileJson(request,{ok:false,error:"vehicle_catalogue_unavailable"},503);
+ }
+}
