@@ -1501,6 +1501,19 @@ export type Database = {
           reviewer_handle: string
         }[]
       }
+      get_review_opportunities: {
+        Args: never
+        Returns: {
+          counterpart_display_name: string
+          counterpart_handle: string
+          counterpart_profile_id: string
+          direction: string
+          existing_review_id: string
+          funds_released_at: string
+          order_item_id: string
+          part_title: string
+        }[]
+      }
       import_vehicle_catalogue_batch: {
         Args: {
           p_engines?: Json
@@ -1539,6 +1552,18 @@ export type Database = {
       replace_part_catalogue_fitments: {
         Args: { p_fitments: Json; p_part_id: string }
         Returns: undefined
+      }
+      submit_transaction_review: {
+        Args: {
+          p_buyer_conduct_rating?: number
+          p_comment?: string
+          p_communication_rating?: number
+          p_dispatch_rating?: number
+          p_item_as_described_rating?: number
+          p_order_item_id: string
+          p_overall_rating: number
+        }
+        Returns: string
       }
       upgrade_account_to_seller: { Args: never; Returns: boolean }
       vehicle_catalogue_makes: {
