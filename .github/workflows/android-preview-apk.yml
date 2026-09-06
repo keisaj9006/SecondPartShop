@@ -8,6 +8,8 @@ on:
     paths:
       - "capacitor.config.json"
       - "mobile-shell/**"
+      - "mobile-native-src/**"
+      - "scripts/patch-android-mobile.mjs"
       - ".github/workflows/android-preview-apk.yml"
 
 permissions:
@@ -62,6 +64,9 @@ jobs:
 
       - name: Generate Android project
         run: npx cap add android
+
+      - name: Patch Android deep links
+        run: node scripts/patch-android-mobile.mjs
 
       - name: Sync Capacitor project
         run: npx cap sync android
