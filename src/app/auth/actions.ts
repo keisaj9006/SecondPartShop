@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import type { ActionState,UserRole } from "@/lib/types";
+import { safeInternalPath } from "@/lib/navigation";
 
-const safeReturnTo=(value:FormDataEntryValue|null)=>{const target=typeof value==="string"?value:"/account";return target.startsWith("/")&&!target.startsWith("//")?target:"/account";};
 const siteUrl=()=>String(process.env.NEXT_PUBLIC_SITE_URL??"http://localhost:3000").replace(/\/$/,"");
 const emailValue=(formData:FormData)=>String(formData.get("email")??"").trim().toLowerCase();
 
@@ -18,7 +18,7 @@ export async function signIn(_previous:ActionState,formData:FormData):Promise<Ac
  const {error}=await supabase.auth.signInWithPassword({email,password});
  if(error)return {status:"error",message:error.message};
  revalidatePath("/","layout");
- redirect(safeReturnTo(formData.get("returnTo")));
+ redirect(safeInternalPath(formData.get("returnTo"),"/account"));
 }
 
 export async function signUp(_previous:ActionState,formData:FormData):Promise<ActionState>{
