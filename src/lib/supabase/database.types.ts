@@ -537,6 +537,8 @@ export type Database = {
           provider_checkout_session_id: string | null
           provider_payment_intent_id: string | null
           refunded_pence: number
+          shipping_address: Json | null
+          shipping_name: string | null
           shipping_pence: number
           status: string
           subtotal_pence: number
@@ -558,6 +560,8 @@ export type Database = {
           provider_checkout_session_id?: string | null
           provider_payment_intent_id?: string | null
           refunded_pence?: number
+          shipping_address?: Json | null
+          shipping_name?: string | null
           shipping_pence?: number
           status?: string
           subtotal_pence?: number
@@ -579,6 +583,8 @@ export type Database = {
           provider_checkout_session_id?: string | null
           provider_payment_intent_id?: string | null
           refunded_pence?: number
+          shipping_address?: Json | null
+          shipping_name?: string | null
           shipping_pence?: number
           status?: string
           subtotal_pence?: number
@@ -1808,6 +1814,8 @@ export type Database = {
           p_event_id: string
           p_order_id: string
           p_payment_intent_id: string
+          p_shipping_address?: Json
+          p_shipping_name?: string
         }
         Returns: boolean
       }
