@@ -29,7 +29,7 @@ export function VehicleCompatibilityToggle({vehicleLabel,checked}:{vehicleLabel:
    <span className="mt-1 block text-xs leading-5 text-[#63706a]">
     {checked
      ?`Only confirmed or same-family matches for ${vehicleLabel} are shown.`
-     :`Showing the full marketplace. Parts for ${vehicleLabel} are still labelled by compatibility.`}
+     :`Showing the full marketplace, including unverified parts that may not fit ${vehicleLabel}. Compatibility labels stay visible.`}
    </span>
   </span>
  </label>;
