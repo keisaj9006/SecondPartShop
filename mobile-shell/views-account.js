@@ -76,7 +76,7 @@ let authSignupRole="buyer";
 const renderAuth=(mode)=>{
  const signup=mode==="signup";
  const roleCard=(role,title,body)=>"<button type=\"button\" class=\"account-tile auth-role-choice"+(authSignupRole===role?" selected":"")+"\" data-auth-role=\""+role+"\"><strong>"+title+"</strong><small>"+body+"</small></button>";
- const html="<section class=\"auth-card\"><div class=\"segmented\"><button id=\"auth-signin-tab\" class=\""+(!signup?"active":"")+"\" type=\"button\">Sign in</button><button id=\"auth-signup-tab\" class=\""+(signup?"active":"")+"\" type=\"button\">Create account</button></div><p class=\"eyebrow\" style=\"margin-top:20px\">SecondPart account</p><h1 style=\"font-size:30px;margin:5px 0\">"+(signup?"Join SecondPart":"Welcome back")+"</h1><p class=\"subtle\">"+(signup?"Choose how you want to start. A seller account can also buy parts with the same login.":"One login for your Garage, purchases, selling and messages.")+"</p>"+(signup?"<section class=\"account-grid\" style=\"margin-top:14px\">"+roleCard("buyer","I want to buy parts","Garage, compatibility, saved parts and purchases.")+roleCard("seller","I want to sell parts","Includes all buyer features plus seller tools.")+"</section>":"")+"<form id=\"auth-form\" class=\"form-grid\" style=\"margin-top:14px\">"+(signup?"<input id=\"auth-role\" type=\"hidden\" value=\""+authSignupRole+"\"/><label class=\"label\">Your name / contact name<input id=\"auth-name\" class=\"input\" minlength=\"2\" required autocomplete=\"name\"/></label>":"")+"<label class=\"label\">Email<input id=\"auth-email\" class=\"input\" type=\"email\" required autocomplete=\"email\"/></label><label class=\"label\">Password<input id=\"auth-password\" class=\"input\" type=\"password\" minlength=\"8\" required autocomplete=\""+(signup?"new-password":"current-password")+"\"/></label><div id=\"auth-status\"></div><button id=\"auth-submit\" class=\"primary wide\" type=\"submit\">"+(signup?(authSignupRole==="seller"?"Create seller account":"Create buyer account"):"Sign in")+"</button></form>"+(!signup?"<button id=\"auth-forgot\" class=\"link-button\" style=\"margin-top:12px\" type=\"button\">Forgot password / resend confirmation</button>":"")+"</section>";
+ const html="<section class=\"auth-card\"><div class=\"segmented\"><button id=\"auth-signin-tab\" class=\""+(!signup?"active":"")+"\" type=\"button\">Sign in</button><button id=\"auth-signup-tab\" class=\""+(signup?"active":"")+"\" type=\"button\">Create account</button></div><p class=\"eyebrow\" style=\"margin-top:20px\">SecondPart account</p><h1 style=\"font-size:30px;margin:5px 0\">"+(signup?"Join SecondPart":"Welcome back")+"</h1><p class=\"subtle\">"+(signup?"Choose how you want to start. A seller account can also buy parts with the same login.":"One login for your Garage, purchases, selling and messages.")+"</p>"+(signup?"<section class=\"account-grid\" style=\"margin-top:14px\">"+roleCard("buyer","I want to buy parts","Garage, compatibility, saved parts and purchases.")+roleCard("seller","I want to sell parts","Includes all buyer features plus seller tools.")+"</section>":"")+"<form id=\"auth-form\" class=\"form-grid\" style=\"margin-top:14px\">"+(signup?"<input id=\"auth-role\" type=\"hidden\" value=\""+authSignupRole+"\"/><label class=\"label\">Your name / contact name<input id=\"auth-name\" class=\"input\" minlength=\"2\" required autocomplete=\"name\"/></label>":"")+"<label class=\"label\">Email<input id=\"auth-email\" class=\"input\" type=\"email\" required autocomplete=\"email\"/></label><label class=\"label\">Password<input id=\"auth-password\" class=\"input\" type=\"password\" minlength=\"8\" required autocomplete=\""+(signup?"new-password":"current-password")+"\"/></label><div id=\"auth-status\"></div><button id=\"auth-submit\" class=\"primary wide\" type=\"submit\">"+(signup?(authSignupRole==="seller"?"Create seller account":"Create buyer account"):"Sign in")+"</button></form>"+(!signup?"<div class=\"button-row\" style=\"margin-top:12px\"><button id=\"auth-forgot\" class=\"link-button\" type=\"button\">Forgot password</button><button id=\"auth-resend\" class=\"link-button\" type=\"button\">Resend confirmation</button></div>":"")+"</section>";
  UI.app.innerHTML=html;
 
  document.getElementById("auth-signin-tab").addEventListener("click",()=>renderAuth("signin"));
@@ -87,8 +87,31 @@ const renderAuth=(mode)=>{
   document.getElementById("auth-role").value=authSignupRole;
   document.getElementById("auth-submit").textContent=authSignupRole==="seller"?"Create seller account":"Create buyer account";
  }));
+ const recoveryEmail=()=>String(document.getElementById("auth-email")?.value||"").trim().toLowerCase();
  const forgot=document.getElementById("auth-forgot");
- if(forgot)forgot.addEventListener("click",()=>void C.Native.openBrowser(C.config.webBaseUrl.replace(/\/$/,"")+"/auth/forgot-password"));
+ if(forgot)forgot.addEventListener("click",async()=>{
+  const status=document.getElementById("auth-status");
+  const email=recoveryEmail();
+  if(!email.includes("@")){status.innerHTML="<div class=\"status warning\">Enter your email address first.</div>";return;}
+  forgot.disabled=true;forgot.textContent="Sending…";
+  try{
+   await C.requestPasswordReset(email);
+   status.innerHTML="<div class=\"status success\">Password reset email sent. Use only the secure link delivered to your inbox.</div>";
+  }catch(error){status.innerHTML="<div class=\"status error\">"+C.escapeHtml(error.message)+"</div>";}
+  finally{forgot.disabled=false;forgot.textContent="Forgot password";}
+ });
+ const resend=document.getElementById("auth-resend");
+ if(resend)resend.addEventListener("click",async()=>{
+  const status=document.getElementById("auth-status");
+  const email=recoveryEmail();
+  if(!email.includes("@")){status.innerHTML="<div class=\"status warning\">Enter your email address first.</div>";return;}
+  resend.disabled=true;resend.textContent="Sending…";
+  try{
+   await C.resendEmailConfirmation(email);
+   status.innerHTML="<div class=\"status success\">Confirmation email sent.</div>";
+  }catch(error){status.innerHTML="<div class=\"status error\">"+C.escapeHtml(error.message)+"</div>";}
+  finally{resend.disabled=false;resend.textContent="Resend confirmation";}
+ });
 
  document.getElementById("auth-form").addEventListener("submit",async event=>{
   event.preventDefault();
