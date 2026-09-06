@@ -219,6 +219,53 @@ const api=async(path,{method="GET",body,auth=false,retry=true}={})=>{
  return payload;
 };
 
+const apiForm=async(path,{method="POST",formData,retry=true}={})=>{
+ const token=await accessToken();
+ if(!token){
+  const error=new Error("Sign in required.");
+  error.code="unauthorized";
+  error.status=401;
+  throw error;
+ }
+ let response;
+ try{
+  response=await fetch(apiUrl(path),{
+   method,
+   headers:{Accept:"application/json",Authorization:"Bearer "+token},
+   body:formData,
+   cache:"no-store"
+  });
+ }catch{
+  const error=new Error("SecondPart could not upload the file. Check your connection.");
+  error.code="network";
+  throw error;
+ }
+ if(response.status===401&&retry){
+  const refreshed=await refreshSession();
+  if(refreshed)return apiForm(path,{method,formData,retry:false});
+ }
+ const payload=await response.json().catch(()=>({}));
+ if(!response.ok||payload?.ok===false){
+  const error=new Error(String(payload?.message||payload?.error||"Upload failed."));
+  error.code=payload?.error||"upload_failed";
+  error.status=response.status;
+  error.payload=payload;
+  throw error;
+ }
+ return payload;
+};
+
+const nativePhotoFile=async(photo,prefix="secondpart")=>{
+ if(!photo?.webPath)throw new Error("The selected photo could not be read.");
+ const response=await fetch(photo.webPath);
+ if(!response.ok)throw new Error("The selected photo could not be read.");
+ const blob=await response.blob();
+ const format=String(photo.format||"jpeg").toLowerCase().replace("jpg","jpeg");
+ const type=blob.type||"image/"+format;
+ const extension=type==="image/png"?"png":type==="image/webp"?"webp":"jpg";
+ return new File([blob],prefix+"-"+Date.now()+"."+extension,{type});
+};
+
 const signIn=async(email,password)=>{
  const payload=await authFetch("/token?grant_type=password",{body:{email:String(email).trim().toLowerCase(),password}});
  await storeSession(payload);
@@ -287,6 +334,8 @@ window.SecondPartCore=Object.freeze({
  state,
  initializeSession,
  api,
+ apiForm,
+ nativePhotoFile,
  authFetch,
  signIn,
  signUp,
