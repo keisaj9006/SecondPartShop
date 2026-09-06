@@ -22,7 +22,7 @@ export function VehicleContextPersistence(){
    restored.current=true;
    return;
   }
-  if(restored.current||current.get("vehicle"))return;
+  if(restored.current||current.get("vehicle")||current.get("addVehicle")==="1")return;
   restored.current=true;
   try{
    const raw=window.localStorage.getItem(STORAGE_KEY);
