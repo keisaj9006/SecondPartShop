@@ -4,15 +4,15 @@ import { Header } from "@/components/header";
 import { MarketplaceReportForm } from "@/components/marketplace-report-form";
 import { requireUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { safeInternalPath } from "@/lib/navigation";
 
 export const dynamic="force-dynamic";
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
-const safeReturnTo=(value:string|undefined)=>value&&value.startsWith("/")&&!value.startsWith("//")?value:"/";
 
 export default async function ReportPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
  const params=await searchParams;
  const partId=first(params.part)??"";
- const returnTo=safeReturnTo(first(params.returnTo));
+ const returnTo=safeInternalPath(first(params.returnTo),"/");
  const authReturn="/report?part="+encodeURIComponent(partId)+"&returnTo="+encodeURIComponent(returnTo);
  await requireUser(authReturn);
  const supabase=await createSupabaseServerClient();
