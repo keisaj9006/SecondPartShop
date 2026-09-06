@@ -21,3 +21,23 @@ input,select,textarea,button { min-width:0; max-width:100%; }
   body { padding-bottom:env(safe-area-inset-bottom); }
   .dot-grid { background-size:20px 20px; }
 }
+
+
+/* Native Android chrome polish. Applied only when Capacitor is detected. */
+html.native-app .app-topbar {
+  padding-top: env(safe-area-inset-top);
+}
+html.native-app .native-redundant-action {
+  display: none;
+}
+html.native-app body {
+  overscroll-behavior-y: none;
+}
+html.native-app a,
+html.native-app button {
+  touch-action: manipulation;
+}
+@media (max-width:767px) {
+  input,select,textarea { font-size:16px; }
+  button,a { min-height:44px; }
+}
