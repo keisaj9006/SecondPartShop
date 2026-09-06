@@ -333,50 +333,141 @@ export type Database = {
           },
         ]
       }
+      order_events: {
+        Row: {
+          actor_profile_id: string | null
+          created_at: string
+          event_type: string
+          from_status: string | null
+          id: string
+          metadata: Json
+          order_id: string
+          order_item_id: string | null
+          to_status: string | null
+        }
+        Insert: {
+          actor_profile_id?: string | null
+          created_at?: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json
+          order_id: string
+          order_item_id?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          actor_profile_id?: string | null
+          created_at?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json
+          order_id?: string
+          order_item_id?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_events_actor_profile_id_fkey"
+            columns: ["actor_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_events_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           accepted_at: string | null
           cancelled_at: string | null
           delivered_at: string | null
+          delivery_method: string
           dispatched_at: string | null
+          dispute_opened_at: string | null
           fulfilment_status: string
           funds_released_at: string | null
           id: string
           order_id: string
           part_id: string
+          payout_status: string
+          platform_fee_pence: number
+          provider_transfer_id: string | null
           quantity: number
           refunded_at: string | null
+          release_eligible_at: string | null
+          return_requested_at: string | null
           seller_id: string
+          seller_net_pence: number
+          shipping_pence: number
+          tracking_carrier: string | null
+          tracking_number: string | null
           unit_price_pence: number
         }
         Insert: {
           accepted_at?: string | null
           cancelled_at?: string | null
           delivered_at?: string | null
+          delivery_method?: string
           dispatched_at?: string | null
+          dispute_opened_at?: string | null
           fulfilment_status?: string
           funds_released_at?: string | null
           id?: string
           order_id: string
           part_id: string
+          payout_status?: string
+          platform_fee_pence?: number
+          provider_transfer_id?: string | null
           quantity: number
           refunded_at?: string | null
+          release_eligible_at?: string | null
+          return_requested_at?: string | null
           seller_id: string
+          seller_net_pence?: number
+          shipping_pence?: number
+          tracking_carrier?: string | null
+          tracking_number?: string | null
           unit_price_pence: number
         }
         Update: {
           accepted_at?: string | null
           cancelled_at?: string | null
           delivered_at?: string | null
+          delivery_method?: string
           dispatched_at?: string | null
+          dispute_opened_at?: string | null
           fulfilment_status?: string
           funds_released_at?: string | null
           id?: string
           order_id?: string
           part_id?: string
+          payout_status?: string
+          platform_fee_pence?: number
+          provider_transfer_id?: string | null
           quantity?: number
           refunded_at?: string | null
+          release_eligible_at?: string | null
+          return_requested_at?: string | null
           seller_id?: string
+          seller_net_pence?: number
+          shipping_pence?: number
+          tracking_carrier?: string | null
+          tracking_number?: string | null
           unit_price_pence?: number
         }
         Relationships: [
@@ -406,24 +497,57 @@ export type Database = {
       orders: {
         Row: {
           buyer_id: string
+          cancelled_at: string | null
           created_at: string
+          currency: string
           id: string
+          paid_at: string | null
+          payment_provider: string | null
+          payment_status: string
+          platform_fee_pence: number
+          provider_checkout_session_id: string | null
+          provider_payment_intent_id: string | null
+          shipping_pence: number
           status: string
+          subtotal_pence: number
           total_pence: number
+          updated_at: string
         }
         Insert: {
           buyer_id: string
+          cancelled_at?: string | null
           created_at?: string
+          currency?: string
           id?: string
+          paid_at?: string | null
+          payment_provider?: string | null
+          payment_status?: string
+          platform_fee_pence?: number
+          provider_checkout_session_id?: string | null
+          provider_payment_intent_id?: string | null
+          shipping_pence?: number
           status?: string
+          subtotal_pence?: number
           total_pence: number
+          updated_at?: string
         }
         Update: {
           buyer_id?: string
+          cancelled_at?: string | null
           created_at?: string
+          currency?: string
           id?: string
+          paid_at?: string | null
+          payment_provider?: string | null
+          payment_status?: string
+          platform_fee_pence?: number
+          provider_checkout_session_id?: string | null
+          provider_payment_intent_id?: string | null
+          shipping_pence?: number
           status?: string
+          subtotal_pence?: number
           total_pence?: number
+          updated_at?: string
         }
         Relationships: [
           {
@@ -1015,11 +1139,16 @@ export type Database = {
       sellers: {
         Row: {
           business_name: string
+          charges_enabled: boolean
           created_at: string
           description: string
           id: string
           location: string
           owner_id: string | null
+          payment_onboarding_status: string
+          payment_provider: string | null
+          payment_provider_account_id: string | null
+          payouts_enabled: boolean
           postcode: string | null
           seller_type: string
           slug: string
@@ -1028,11 +1157,16 @@ export type Database = {
         }
         Insert: {
           business_name: string
+          charges_enabled?: boolean
           created_at?: string
           description?: string
           id?: string
           location: string
           owner_id?: string | null
+          payment_onboarding_status?: string
+          payment_provider?: string | null
+          payment_provider_account_id?: string | null
+          payouts_enabled?: boolean
           postcode?: string | null
           seller_type?: string
           slug: string
@@ -1041,11 +1175,16 @@ export type Database = {
         }
         Update: {
           business_name?: string
+          charges_enabled?: boolean
           created_at?: string
           description?: string
           id?: string
           location?: string
           owner_id?: string | null
+          payment_onboarding_status?: string
+          payment_provider?: string | null
+          payment_provider_account_id?: string | null
+          payouts_enabled?: boolean
           postcode?: string | null
           seller_type?: string
           slug?: string
