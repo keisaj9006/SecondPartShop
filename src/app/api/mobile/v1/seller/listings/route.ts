@@ -1,4 +1,5 @@
 import { mobileJson,mobileOptions,requireMobileSeller } from "@/lib/mobile-api";
+import { listingRow,parseMobileListingInput,replaceMobileListingFitments,slugifyMobileListing,validateMobileListingInput } from "@/lib/mobile-seller-listing-write";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -44,4 +45,44 @@ export async function GET(request:Request){
    }))
   }))
  });
+}
+
+
+export async function POST(request:Request){
+ const auth=await requireMobileSeller(request);
+ if(!auth.context||!auth.seller)return auth.response;
+ const {supabase}=auth.context;
+
+ let body:unknown;
+ try{body=await request.json();}catch{return mobileJson(request,{ok:false,error:"invalid_json"},400);}
+
+ try{
+  const parsed=parseMobileListingInput(body);
+  const value=await validateMobileListingInput(supabase,auth.seller.id,parsed);
+  const slug=`${slugifyMobileListing(value.title)}-${crypto.randomUUID().slice(0,8)}`;
+  const {data,error}=await supabase
+   .from("parts")
+   .insert({...listingRow(value),seller_id:auth.seller.id,status:"draft",slug})
+   .select("id,slug")
+   .single();
+  if(error||!data)return mobileJson(request,{ok:false,error:"listing_create_failed"},503);
+
+  try{
+   await replaceMobileListingFitments(supabase,data.id,value.catalogueFitments);
+  }catch(error){
+   await supabase.from("parts").delete().eq("id",data.id).eq("seller_id",auth.seller.id);
+   throw error;
+  }
+
+  return mobileJson(request,{ok:true,id:data.id,slug:data.slug,status:"draft"},201);
+ }catch(error){
+  const code=error instanceof Error?error.message:"listing_create_failed";
+  const known=[
+   "title_too_short","description_too_short","invalid_category","invalid_condition","invalid_testing",
+   "invalid_price","invalid_shipping","invalid_stock","invalid_dispatch","invalid_warranty",
+   "invalid_delivery_range","invalid_donor","transmission_codes_required","invalid_fitments",
+   "duplicate_fitment","fitment_save_failed"
+  ];
+  return mobileJson(request,{ok:false,error:known.includes(code)?code:"listing_create_failed"},400);
+ }
 }
