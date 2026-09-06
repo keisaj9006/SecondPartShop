@@ -1,5 +1,7 @@
 import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabasePublicServerClient } from "@/lib/supabase/public-server";
+import { unstable_cache } from "next/cache";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { getCategoryPath } from "@/lib/category-tree";
 import { compatibilityInfo,getCompatibilityMap } from "@/lib/data/compatibility";
@@ -411,7 +413,17 @@ export async function getSearchSuggestions(queryText:string):Promise<SearchSugge
 }
 
 export async function getListingBySlug(slug:string):Promise<DataResult<Listing|null>>{if(!isSupabaseConfigured())return failure(null,"Connect Supabase to load this listing.",false);const supabase=await createSupabaseServerClient();const {data,error}=await supabase.from("parts").select(selectListing()).eq("slug",slug).eq("status","active").maybeSingle();if(error)return failure(null,"This listing is temporarily unavailable.");return {data:data?listingFrom(data as unknown as RawListing):null,error:null,configured:true};}
-export async function getCategories():Promise<Category[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();const {data}=await supabase.from("categories").select(categorySelect).order("sort_order").order("name");return (data??[]).map(c=>categoryFrom(c as RawCategory));}
+const loadCategories=unstable_cache(async():Promise<Category[]>=>{
+ const supabase=createSupabasePublicServerClient();
+ const {data,error}=await supabase.from("categories").select(categorySelect).order("sort_order").order("name");
+ if(error)throw error;
+ return (data??[]).map(c=>categoryFrom(c as RawCategory));
+},["marketplace-categories"],{revalidate:60*60});
+
+export async function getCategories():Promise<Category[]>{
+ if(!isSupabaseConfigured())return [];
+ return loadCategories().catch(()=>[]);
+}
 export async function getVehicles():Promise<Vehicle[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();const {data}=await supabase.from("vehicles").select("id,make,model,generation,year,engine,engine_code,fuel_type,gearbox_family,gearbox_code,data_status,source_reference").order("make").order("model").order("year");return (data??[]).map(v=>vehicleFrom(v as RawVehicle));}
 export async function getSavedPartIds(userId:string):Promise<string[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();const {data}=await supabase.from("saved_parts").select("part_id").eq("profile_id",userId);return (data??[]).map(item=>item.part_id);}
 export async function getSavedListings(userId:string):Promise<DataResult<Listing[]>>{const ids=await getSavedPartIds(userId);if(!ids.length)return {data:[],error:null,configured:isSupabaseConfigured()};return getListings({ids});}
