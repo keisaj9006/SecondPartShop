@@ -30,10 +30,10 @@ export async function submitReview(_previous:ActionState,formData:FormData):Prom
  const {error}=await supabase.rpc("submit_transaction_review",{
   p_order_item_id:orderItemId,
   p_overall_rating:overall as number,
-  p_item_as_described_rating:itemAsDescribed,
-  p_dispatch_rating:dispatch,
-  p_communication_rating:communication,
-  p_buyer_conduct_rating:buyerConduct,
+  p_item_as_described_rating:itemAsDescribed??undefined,
+  p_dispatch_rating:dispatch??undefined,
+  p_communication_rating:communication??undefined,
+  p_buyer_conduct_rating:buyerConduct??undefined,
   p_comment:comment||undefined
  });
 
