@@ -2,10 +2,11 @@ import Link from "next/link";
 import { Header } from "@/components/header";
 import { ListingForm } from "@/components/listing-form";
 import { requireSeller } from "@/lib/auth";
-import { getDonorVehicles } from "@/lib/data/donor-vehicles";
+import { getDonorVehicle,getDonorVehiclesPage } from "@/lib/data/donor-vehicles";
 import { getCategories,getSellerForOwner } from "@/lib/data/marketplace";
 import { getSellerPartRequestLeads } from "@/lib/data/seller-request-leads";
 import { redirect } from "next/navigation";
+import { isUuid } from "@/lib/identifiers";
 
 export const dynamic="force-dynamic";
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
@@ -14,8 +15,13 @@ export default async function NewListingPage({searchParams}:{searchParams:Promis
  const [{user},params]=await Promise.all([requireSeller("/dashboard/listings/new"),searchParams]);
  const seller=await getSellerForOwner(user.id);
  if(!seller)redirect("/dashboard");
- const [categories,donors,requestLeads]=await Promise.all([getCategories(),getDonorVehicles(seller.id),getSellerPartRequestLeads()]);
  const requestedDonor=first(params.donor);
+ const [categories,donorPage,requestLeads]=await Promise.all([getCategories(),getDonorVehiclesPage(seller.id,{limit:50}),getSellerPartRequestLeads()]);
+ let donors=donorPage.items;
+ if(requestedDonor&&isUuid(requestedDonor)&&!donors.some(donor=>donor.id===requestedDonor)){
+  const selected=await getDonorVehicle(requestedDonor,seller.id).catch(()=>null);
+  if(selected)donors=[selected,...donors];
+ }
  const defaultDonorId=donors.some(donor=>donor.id===requestedDonor)?requestedDonor:undefined;
  const requestedLead=requestLeads.find(lead=>lead.id===first(params.request));
  const leadCategory=requestedLead?.categoryId&&categories.find(category=>category.id===requestedLead.categoryId&&category.isSelectable)?requestedLead.categoryId:undefined;
