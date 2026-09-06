@@ -14,10 +14,14 @@ type BuyerOrderRow={
   id:string;
   quantity:number;
   unit_price_pence:number;
+  shipping_pence:number;
+  delivery_method:"shipping"|"collection";
   fulfilment_status:string;
   payout_status:string;
   tracking_carrier:string|null;
   tracking_number:string|null;
+  buyer_received_at:string|null;
+  release_eligible_at:string|null;
   funds_released_at:string|null;
   parts:{title:string;slug:string}|Array<{title:string;slug:string}>|null;
   sellers:{business_name:string;slug:string}|Array<{business_name:string;slug:string}>|null;
@@ -29,10 +33,14 @@ type SellerSaleRow={
  order_id:string;
  quantity:number;
  unit_price_pence:number;
+ shipping_pence:number;
+ seller_net_pence:number;
+ delivery_method:"shipping"|"collection";
  fulfilment_status:string;
  payout_status:string;
  tracking_carrier:string|null;
  tracking_number:string|null;
+ release_eligible_at:string|null;
  funds_released_at:string|null;
  parts:{title:string;slug:string}|Array<{title:string;slug:string}>|null;
  orders:{id:string;status:string;payment_status:string;created_at:string}|Array<{id:string;status:string;payment_status:string;created_at:string}>|null;
@@ -44,7 +52,7 @@ export async function getBuyerOrders(profileId:string):Promise<BuyerOrder[]>{
  const supabase=await createSupabaseServerClient();
  const {data,error}=await supabase
   .from("orders")
-  .select("id,status,payment_status,total_pence,currency,created_at,order_items(id,quantity,unit_price_pence,fulfilment_status,payout_status,tracking_carrier,tracking_number,funds_released_at,parts(title,slug),sellers(business_name,slug))")
+  .select("id,status,payment_status,total_pence,currency,created_at,order_items(id,quantity,unit_price_pence,shipping_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,buyer_received_at,release_eligible_at,funds_released_at,parts(title,slug),sellers(business_name,slug))")
   .eq("buyer_id",profileId)
   .order("created_at",{ascending:false});
  if(error)throw new Error("Purchases are temporarily unavailable.");
@@ -69,10 +77,14 @@ export async function getBuyerOrders(profileId:string):Promise<BuyerOrder[]>{
      sellerSlug:seller.slug,
      quantity:item.quantity,
      unitPricePence:item.unit_price_pence,
+     shippingPence:item.shipping_pence,
+     deliveryMethod:item.delivery_method,
      fulfilmentStatus:item.fulfilment_status,
      payoutStatus:item.payout_status,
      trackingCarrier:item.tracking_carrier,
      trackingNumber:item.tracking_number,
+     buyerReceivedAt:item.buyer_received_at,
+     releaseEligibleAt:item.release_eligible_at,
      fundsReleasedAt:item.funds_released_at
     }];
    })
@@ -84,7 +96,7 @@ export async function getSellerSales(sellerId:string):Promise<SellerSale[]>{
  const supabase=await createSupabaseServerClient();
  const {data,error}=await supabase
   .from("order_items")
-  .select("id,order_id,quantity,unit_price_pence,fulfilment_status,payout_status,tracking_carrier,tracking_number,funds_released_at,parts(title,slug),orders(id,status,payment_status,created_at)")
+  .select("id,order_id,quantity,unit_price_pence,shipping_pence,seller_net_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,release_eligible_at,funds_released_at,parts(title,slug),orders(id,status,payment_status,created_at)")
   .eq("seller_id",sellerId)
   .order("id",{ascending:false});
  if(error)throw new Error("Seller orders are temporarily unavailable.");
@@ -100,10 +112,14 @@ export async function getSellerSales(sellerId:string):Promise<SellerSale[]>{
    partSlug:part.slug,
    quantity:raw.quantity,
    unitPricePence:raw.unit_price_pence,
+   shippingPence:raw.shipping_pence,
+   sellerNetPence:raw.seller_net_pence,
+   deliveryMethod:raw.delivery_method,
    fulfilmentStatus:raw.fulfilment_status,
    payoutStatus:raw.payout_status,
    trackingCarrier:raw.tracking_carrier,
    trackingNumber:raw.tracking_number,
+   releaseEligibleAt:raw.release_eligible_at,
    fundsReleasedAt:raw.funds_released_at,
    orderStatus:order.status,
    paymentStatus:order.payment_status,
