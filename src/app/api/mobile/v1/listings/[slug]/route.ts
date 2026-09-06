@@ -1,4 +1,5 @@
 import { getListingBySlug } from "@/lib/data/marketplace";
+import { getPublicMemberProfileById } from "@/lib/data/reputation";
 import { mobileJson,mobileOptions } from "@/lib/mobile-api";
 
 export const dynamic="force-dynamic";
@@ -14,5 +15,6 @@ export async function GET(request:Request,{params}:{params:Promise<{slug:string}
  const result=await getListingBySlug(safeSlug);
  if(result.error)return mobileJson(request,{ok:false,error:"listing_unavailable"},503);
  if(!result.data)return mobileJson(request,{ok:false,error:"not_found"},404);
- return mobileJson(request,{ok:true,item:result.data});
+ const reputation=await getPublicMemberProfileById(result.data.seller.ownerId).catch(()=>null);
+ return mobileJson(request,{ok:true,item:result.data,sellerReputation:reputation});
 }
