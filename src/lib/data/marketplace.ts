@@ -170,7 +170,7 @@ export async function getMarketplacePage(
 
   const {data:rows,error:rowError}=await supabase.from("parts").select(selectListing()).in("id",pageIds);
   if(rowError)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
-  const byId=new Map((rows??[]).map(row=>[row.id,listingFrom(row as unknown as RawListing)]));
+  const byId=new Map((rows??[]).map(row=>{const raw=row as unknown as RawListing;return [raw.id,listingFrom(raw)] as const;}));
   const listings=pageIds.map(id=>byId.get(id)).filter((item):item is Listing=>Boolean(item));
   return {
    data:listings,
