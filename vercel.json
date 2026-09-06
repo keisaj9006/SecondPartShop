@@ -4,5 +4,9 @@
       "path": "/api/commerce/maintenance",
       "schedule": "15 4 * * *"
     }
+  ],
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "alias": [
+    "second-part-shop-preview.vercel.app"
   ]
 }
