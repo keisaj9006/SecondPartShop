@@ -76,13 +76,14 @@ function SearchableVehicleSelect({value,options,placeholder,disabled,onChange}:{
  </div>;
 }
 
-export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCatalogue,baseParams}:{vehicles:Vehicle[];catalogueModels:VehicleCatalogueModelOption[];selectedId?:string;selectedCatalogue:VehicleCatalogueSelection|null;baseParams:Record<string,string>}){
+export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCatalogue,baseParams,compatibleOnly}:{vehicles:Vehicle[];catalogueModels:VehicleCatalogueModelOption[];selectedId?:string;selectedCatalogue:VehicleCatalogueSelection|null;baseParams:Record<string,string>;compatibleOnly:boolean}){
  const selectedLegacy=vehicles.find(vehicle=>vehicle.id===selectedId);
  const router=useRouter();
  const [isApplying,startTransition]=useTransition();
  const makes=useMemo(()=>unique(catalogueModels.map(item=>item.make)).sort((a,b)=>a.localeCompare(b)),[catalogueModels]);
 
  const [registration,setRegistration]=useState("");
+ const [fitOnly,setFitOnly]=useState(compatibleOnly);
  const [lookup,setLookup]=useState<LookupState>({kind:"idle"});
  const [registrationVehicle,setRegistrationVehicle]=useState<RegistrationSummary|null>(null);
  const [manualOpen,setManualOpen]=useState(Boolean(selectedCatalogue||selectedLegacy));
@@ -100,6 +101,8 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
  const [loadingVariants,setLoadingVariants]=useState(Boolean(selectedCatalogue?.year));
  const [loadingEngines,setLoadingEngines]=useState(Boolean(selectedCatalogue?.variantId));
  const [catalogueError,setCatalogueError]=useState("");
+
+ useEffect(()=>{setFitOnly(compatibleOnly);},[compatibleOnly]);
 
  useEffect(()=>{
   if(!make||!model)return;
@@ -123,10 +126,18 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
   if(!variantId)return;
   const controller=new AbortController();
   void getItems<CatalogueEngine>(`/api/vehicle-catalogue?level=engines&variantId=${encodeURIComponent(variantId)}`,controller.signal)
-   .then(items=>{setEngines(items);if(items.length===1)setCatalogueEngine(engineKey(items[0]));setLoadingEngines(false);})
+   .then(items=>{
+    setEngines(items);
+    if(items.length===1)setCatalogueEngine(engineKey(items[0]));
+    else if(registrationVehicle?.catalogue?.engineMatched&&registrationVehicle.fuelType){
+     const matched=items.find(item=>item.fuelType.toLowerCase()===registrationVehicle.fuelType?.toLowerCase()&&(registrationVehicle.engineSizeSimple==null||item.engineSizeSimple===registrationVehicle.engineSizeSimple));
+     if(matched)setCatalogueEngine(engineKey(matched));
+    }
+    setLoadingEngines(false);
+   })
    .catch(error=>{if(error instanceof Error&&error.name!=="AbortError"){setCatalogueError(error.message);setLoadingEngines(false);}});
   return()=>controller.abort();
- },[variantId]);
+ },[variantId,registrationVehicle]);
 
  const pushVehicleParams=(params:URLSearchParams)=>{
   for(const key of ["vehicle","cv","cy","cf","ce","vr","vc"])params.delete(key);
@@ -151,6 +162,7 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
    if(engine.engineSizeSimple!==null)params.set("ce",String(engine.engineSizeSimple));
   }
   params.delete("vehicle");
+  params.set("fit",fitOnly?"1":"0");
   if(registrationVehicle?.registration)params.set("vr",registrationVehicle.registration);else params.delete("vr");
   if(registrationVehicle?.colour)params.set("vc",registrationVehicle.colour);else params.delete("vc");
   const qs=params.toString();
@@ -188,18 +200,9 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
     setCatalogueEngine("");
     if(catalogue.variants?.length===1){
      const only=catalogue.variants[0];
+     setLoadingEngines(true);
      setVariantId(only.id);
-     const params=new URLSearchParams(baseParams);
-     params.set("cv",only.id);
-     params.set("cy",String(payload.vehicle.year));
-     if(catalogue.engineMatched&&payload.vehicle.fuelType)params.set("cf",payload.vehicle.fuelType);
-     if(catalogue.engineMatched&&payload.vehicle.engineSizeSimple)params.set("ce",String(payload.vehicle.engineSizeSimple));
-     params.delete("vehicle");
-     params.set("vr",payload.registration);
-     if(payload.vehicle.colour)params.set("vc",payload.vehicle.colour);else params.delete("vc");
-     setLookup({kind:"info",message:"Vehicle found. Compatibility filter applied."});
-     const qs=params.toString();
-     router.push(`/?${qs}#marketplace`);
+     setLookup({kind:"info",message:"Vehicle found. Confirm how you want to use it below."});
      return;
     }
     setVariantId("");
@@ -234,6 +237,13 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
    <p className="mt-2 text-xs leading-5 text-[#63706a]">Registration lookup uses a real provider only when credentials are configured. We do not fabricate vehicle results.</p>
    {lookup.message&&<p role="status" className={`mt-3 rounded-xl px-3 py-2 text-sm ${lookup.kind==="error"?"bg-red-50 text-red-800":"bg-[#eef1eb] text-[#173c31]"}`}>{lookup.message}</p>}
    {registrationVehicle&&<div className="mt-3 grid gap-3 rounded-2xl border border-[#173c31]/15 bg-[#f4f7f2] p-4 md:grid-cols-[minmax(0,1fr)_minmax(260px,.9fr)] md:items-center"><div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#173c31] text-white"><CarFront size={19}/></span><div className="min-w-0"><p className="text-xs font-black uppercase tracking-[.12em] text-[#287154]">{registrationVehicle.registration}</p><p className="mt-1 text-lg font-black">{nameLabel(registrationVehicle.make)} {nameLabel(registrationVehicle.model)}</p><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#4f5e57]">{registrationVehicle.year&&<span>Year: <strong>{registrationVehicle.year}</strong></span>}{registrationVehicle.engineSizeSimple&&<span>Engine: <strong>{registrationVehicle.engineSizeSimple}cc</strong></span>}{registrationVehicle.fuelType&&<span>Fuel: <strong>{fuelLabel(registrationVehicle.fuelType)}</strong></span>}{registrationVehicle.colour&&<span>Colour: <strong>{nameLabel(registrationVehicle.colour)}</strong></span>}</div></div></div>{registrationVehicle.year&&<VehicleVisual make={nameLabel(registrationVehicle.make)} model={nameLabel(registrationVehicle.model)} year={registrationVehicle.year} colour={registrationVehicle.colour} registration={registrationVehicle.registration} engine={registrationVehicle.engineSizeSimple?registrationVehicle.engineSizeSimple+"cc":null} fuel={registrationVehicle.fuelType?fuelLabel(registrationVehicle.fuelType):null} compact/>}</div>}
+   {registrationVehicle&&variantId&&year&&<div className="mt-3 grid gap-3 rounded-2xl border border-[#173c31]/15 bg-white p-4">
+    <label className="flex cursor-pointer items-start gap-3">
+     <input type="checkbox" checked={fitOnly} onChange={event=>setFitOnly(event.target.checked)} className="mt-1 h-5 w-5 accent-[#173c31]"/>
+     <span><strong className="block text-sm">Show only parts that fit this vehicle</strong><small className="mt-1 block leading-5 text-[#63706a]">Apply compatibility filtering immediately when you use this vehicle.</small></span>
+    </label>
+    <button type="button" disabled={!canApply} onClick={applyCatalogue} className="rounded-xl bg-[#d4f44d] px-5 py-3 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50">{isApplying?"Applying vehicle…":"Use this vehicle"}</button>
+   </div>}
   </div>
 
   <button type="button" onClick={()=>setManualOpen(value=>!value)} className="mt-4 inline-flex items-center gap-2 text-sm font-black underline">{manualOpen?"Hide manual selection":"I don't know my registration / Select vehicle manually"}<ChevronDown size={15} className={manualOpen?"rotate-180 transition":"transition"}/></button>
@@ -248,6 +258,10 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
    </div>
    {catalogueError&&<p role="status" className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800">{catalogueError}</p>}
    {(loadingYears||loadingVariants||loadingEngines||isApplying)&&<p role="status" className="mt-3 rounded-xl bg-[#eef1eb] px-3 py-2 text-sm font-bold text-[#173c31]">{loadingYears?"Loading available years…":loadingVariants?"Loading exact versions…":loadingEngines?"Loading engine options…":"Applying vehicle and checking compatibility…"}</p>}
+   <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-[#173c31]/15 bg-white p-3">
+    <input type="checkbox" checked={fitOnly} onChange={event=>setFitOnly(event.target.checked)} className="mt-1 h-5 w-5 accent-[#173c31]"/>
+    <span><strong className="block text-sm">Show only parts that fit this vehicle</strong><small className="mt-1 block leading-5 text-[#63706a]">You can change this later from the marketplace vehicle card.</small></span>
+   </label>
    <div className="mt-3 flex flex-wrap gap-3"><button type="button" disabled={!canApply} onClick={applyCatalogue} className="rounded-xl bg-[#d4f44d] px-5 py-3 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50">{isApplying?"Applying vehicle…":"Use this vehicle"}</button>{(selectedId||selectedCatalogue)&&<button type="button" onClick={clearVehicle} className="inline-flex items-center gap-1 text-sm font-bold underline"><X size={14}/>Remove vehicle</button>}</div>
   </div>}
 
