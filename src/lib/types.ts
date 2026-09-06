@@ -47,6 +47,17 @@ export type PublicMemberProfile={
  buyerReviewCount:number;
 };
 
+export type ReviewOpportunity={
+ orderItemId:string;
+ direction:ReviewDirection;
+ counterpartProfileId:string;
+ counterpartHandle:string;
+ counterpartDisplayName:string;
+ partTitle:string;
+ fundsReleasedAt:string;
+ existingReviewId:string|null;
+};
+
 export type TransactionReview={
  id:string;
  reviewerHandle:string;
