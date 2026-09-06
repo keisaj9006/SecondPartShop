@@ -449,12 +449,12 @@ export async function getSellers():Promise<Seller[]>{if(!isSupabaseConfigured())
 export async function getSellerBySlug(slug:string):Promise<Seller|null>{if(!isSupabaseConfigured())return null;const supabase=await createSupabaseServerClient();const {data}=await supabase.from("sellers").select("id,owner_id,business_name,slug,location,postcode,description,verified_at,seller_type").eq("slug",slug).maybeSingle();return data?sellerFrom(data as RawSeller):null;}
 export async function getSellerListings(sellerId:string,includeInactive=false):Promise<Listing[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();let query=supabase.from("parts").select(selectListing()).eq("seller_id",sellerId).order("updated_at",{ascending:false});if(!includeInactive)query=query.eq("status","active");const {data}=await query;return (data??[]).map(row=>listingFrom(row as unknown as RawListing));}
 
-export async function getSellerListingsPage(sellerId:string,options:{includeInactive?:boolean;offset?:number;limit?:number;query?:string;status?:Listing["status"]|"all";importBatchId?:string}={}){
+export async function getSellerListingsPage(sellerId:string,options:{includeInactive?:boolean;offset?:number;limit?:number;query?:string;status?:Listing["status"]|"all";sourceChannel?:Listing["sourceChannel"]|"all";importBatchId?:string}={}){
  const limit=Math.max(1,Math.min(Math.floor(options.limit??25),100));
  const offset=Math.max(0,Math.floor(options.offset??0));
  if(!isSupabaseConfigured())return {data:[] as Listing[],hasMore:false,offset,limit};
  const supabase=await createSupabaseServerClient();
- let query=supabase.from("parts").select(selectListing()).eq("seller_id",sellerId).order("updated_at",{ascending:false}).order("id");
+ let query=supabase.from("parts").select(selectListingCard()).eq("seller_id",sellerId).order("updated_at",{ascending:false}).order("id");
  const search=options.query?.trim().slice(0,120);
  if(search){
   const escaped=search.replaceAll("%","\\%").replaceAll("_","\\_");
@@ -462,13 +462,14 @@ export async function getSellerListingsPage(sellerId:string,options:{includeInac
  }
  if(options.status&&options.status!=="all")query=query.eq("status",options.status);
  else if(!options.includeInactive)query=query.eq("status","active");
+ if(options.sourceChannel&&options.sourceChannel!=="all")query=query.eq("source_channel",options.sourceChannel);
  if(options.importBatchId)query=query.eq("import_batch_id",options.importBatchId);
  const {data,error}=await query.range(offset,offset+limit);
  if(error)throw new Error("Seller inventory is temporarily unavailable.");
  const raw=data??[];
  const hasMore=raw.length>limit;
  return {
-  data:raw.slice(0,limit).map(row=>listingFrom(row as unknown as RawListing)),
+  data:raw.slice(0,limit).map(row=>listingFrom({...row,part_images:[],part_fitments:[]} as unknown as RawListing)),
   hasMore,
   offset,
   limit
