@@ -12,7 +12,7 @@ export async function openTransactionCase(_previous:ActionState,formData:FormDat
  const reason=String(formData.get("reason")??"").trim();
  const details=String(formData.get("details")??"").trim();
 
- if(!(["return","dispute"] as string[]).includes(caseType))return {status:"error",message:"Choose return or dispute."};
+ if(!(["return","dispute","cancellation"] as string[]).includes(caseType))return {status:"error",message:"Choose return, dispute or cancellation."};
  if(reason.length<3)return {status:"error",message:"Choose a reason."};
  if(details.length<10)return {status:"error",message:"Please add at least a short explanation."};
 
