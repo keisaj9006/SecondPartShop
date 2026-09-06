@@ -1442,6 +1442,45 @@ export type Database = {
           },
         ]
       }
+      transaction_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          order_item_id: string
+          sender_profile_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          order_item_id: string
+          sender_profile_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          order_item_id?: string
+          sender_profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_messages_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_messages_sender_profile_id_fkey"
+            columns: ["sender_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transaction_reviews: {
         Row: {
           buyer_conduct_rating: number | null
@@ -2009,6 +2048,10 @@ export type Database = {
           p_tracking_number?: string
         }
         Returns: boolean
+      }
+      send_transaction_message: {
+        Args: { p_body: string; p_order_item_id: string }
+        Returns: string
       }
       submit_transaction_review: {
         Args: {
