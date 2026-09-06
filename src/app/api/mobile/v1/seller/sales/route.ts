@@ -18,15 +18,30 @@ export async function GET(request:Request){
  if(!auth.context||!auth.seller)return auth.response;
  const {supabase}=auth.context;
  const seller=auth.seller;
+ const url=new URL(request.url);
+ const rawLimit=Number(url.searchParams.get("limit")??30);
+ const rawOffset=Number(url.searchParams.get("offset")??0);
+ const limit=Number.isInteger(rawLimit)?Math.max(1,Math.min(rawLimit,100)):30;
+ const offset=Number.isInteger(rawOffset)?Math.max(0,rawOffset):0;
+ const fulfilment=url.searchParams.get("fulfilment")?.trim()??"";
+ const payout=url.searchParams.get("payout")?.trim()??"";
+ const validFulfilment=["pending","processing","dispatched","completed","cancelled"];
+ const validPayout=["pending","eligible","released","held","reversed"];
 
- const {data,error}=await supabase
+ let query=supabase
   .from("order_items")
   .select("id,order_id,quantity,unit_price_pence,shipping_pence,platform_fee_pence,seller_net_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,release_eligible_at,funds_released_at,parts(title,slug),orders(id,status,payment_status,created_at,shipping_name,shipping_address)")
   .eq("seller_id",seller.id)
   .order("id",{ascending:false});
+ if(validFulfilment.includes(fulfilment))query=query.eq("fulfilment_status",fulfilment as "pending"|"processing"|"dispatched"|"completed"|"cancelled");
+ if(validPayout.includes(payout))query=query.eq("payout_status",payout as "pending"|"eligible"|"released"|"held"|"reversed");
+ const {data,error}=await query.range(offset,offset+limit);
  if(error)return mobileJson(request,{ok:false,error:"sales_unavailable"},503);
+ const raw=data??[];
+ const hasMore=raw.length>limit;
+ const page=raw.slice(0,limit);
 
- const items=(data??[]).flatMap(row=>{
+ const items=page.flatMap(row=>{
   const part=one(row.parts);
   const order=one(row.orders);
   if(!part||!order)return [];
@@ -55,5 +70,5 @@ export async function GET(request:Request){
   }];
  });
 
- return mobileJson(request,{ok:true,seller:{id:seller.id,businessName:seller.business_name,slug:seller.slug},items});
+ return mobileJson(request,{ok:true,seller:{id:seller.id,businessName:seller.business_name,slug:seller.slug},items,pagination:{offset,limit,returned:items.length,hasMore}});
 }
