@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
-import type { User } from "@supabase/supabase-js";
+import type { SupabaseClient,User } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
@@ -50,7 +50,7 @@ const bearerToken=(request:Request)=>{
 
 export type MobileApiContext={
  user:User;
- supabase:ReturnType<typeof createClient<Database>>;
+ supabase:SupabaseClient<Database>;
  accessToken:string;
 };
 
