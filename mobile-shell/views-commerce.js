@@ -194,14 +194,25 @@ const seller=async()=>{
  if(!await UI.requireAuth("seller"))return;
  if(!C.state.me||!C.state.me.seller){UI.empty("□","Seller profile required","Enable selling on your SecondPart account before opening the seller dashboard.","Account",()=>UI.route("account"));return;}
  UI.loading("Loading seller dashboard");
- let sales=[],cases=[];
+ let sales=[],cases=[],readiness=null;
  try{
-  const results=await Promise.all([C.api("/seller/sales",{auth:true}),C.api("/seller/cases",{auth:true})]);
-  sales=results[0].items||[];cases=results[1].items||[];
+  const results=await Promise.all([
+   C.api("/seller/sales",{auth:true}),
+   C.api("/seller/cases",{auth:true}),
+   C.api("/seller/readiness",{auth:true})
+  ]);
+  sales=results[0].items||[];
+  cases=results[1].items||[];
+  readiness=results[2].readiness||null;
  }catch(error){UI.empty("□","Seller dashboard unavailable",error.message,"Try again",()=>UI.route("seller"));return;}
 
  const html=[];
  html.push("<section class=\"account-hero\"><p class=\"eyebrow\" style=\"color:#d4f44d\">Seller dashboard</p><h1>"+C.escapeHtml(C.state.me.seller.businessName)+"</h1><p>"+sales.length+" sale"+(sales.length===1?"":"s")+" · "+cases.filter(item=>!["resolved","rejected","cancelled"].includes(item.status)).length+" active case(s)</p><div class=\"button-row\" style=\"margin-top:14px\"><button id=\"seller-inventory\" class=\"lime-button small-button\" type=\"button\">Inventory & photos</button></div></section>");
+ if(readiness){
+  const required=readiness.required||[];
+  const done=required.filter(item=>item.done).length;
+  html.push("<section class=\"card\" style=\"margin-top:12px\"><div class=\"row-between\"><div><p class=\"eyebrow\">Seller readiness</p><h3 style=\"margin:4px 0\">"+(readiness.marketReady?"Ready to sell":"Complete your seller setup")+"</h3></div><span class=\"pill "+(readiness.marketReady?"success":"warning")+"\">"+done+"/"+required.length+" required</span></div><div style=\"margin-top:10px\">"+required.map(item=>"<div class=\"status "+(item.done?"success":"info")+"\" style=\"margin-top:7px\"><strong>"+(item.done?"✓ ":"○ ")+C.escapeHtml(item.label)+"</strong><div style=\"margin-top:2px\">"+C.escapeHtml(item.detail)+"</div></div>").join("")+"</div>"+((readiness.recommended||[]).length?"<details style=\"margin-top:10px\"><summary class=\"link-button\">Recommended trust steps</summary><div>"+readiness.recommended.map(item=>"<div class=\"status "+(item.done?"success":"info")+"\" style=\"margin-top:7px\"><strong>"+(item.done?"✓ ":"○ ")+C.escapeHtml(item.label)+"</strong><div style=\"margin-top:2px\">"+C.escapeHtml(item.detail)+"</div></div>").join("")+"</div></details>":"")+"<div class=\"button-row\" style=\"margin-top:12px\">"+(!readiness.checkoutReady?"<button id=\"seller-payment-setup\" class=\"lime-button small-button\" type=\"button\">Set up payouts</button>":"<span class=\"pill success\">Payments ready</span>")+"<button id=\"seller-payment-refresh\" class=\"secondary small-button\" type=\"button\">Refresh payment status</button>"+(readiness.activeListingCount<1?"<button id=\"seller-readiness-listing\" class=\"secondary small-button\" type=\"button\">Create listing</button>":"")+"</div></section>");
+ }
  html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Commerce</p><h2>Sales & payouts</h2></div></div>");
  if(sales.length)html.push(sales.map(sale=>"<section class=\"order-card\"><div class=\"row-between\"><div><h3>"+C.escapeHtml(sale.partTitle)+"</h3><p class=\"subtle\">"+C.dateOnly(sale.orderCreatedAt)+" · "+C.escapeHtml(C.human(sale.fulfilmentStatus))+"</p></div><span class=\"money\">"+C.money(sale.sellerNetPence)+" net</span></div><div class=\"chips\"><span class=\"pill "+statusClass(sale.paymentStatus)+"\">"+C.escapeHtml(C.human(sale.paymentStatus))+"</span><span class=\"pill "+statusClass(sale.payoutStatus)+"\">"+C.escapeHtml(C.human(sale.payoutStatus))+"</span></div><p class=\"subtle\" style=\"margin-top:8px\">Item "+C.money(sale.unitPricePence*sale.quantity)+" · Delivery "+C.money(sale.shippingPence)+" · SecondPart fee −"+C.money(sale.platformFeePence)+"</p><div class=\"button-row\" style=\"margin-top:10px\">"+(sale.paymentStatus==="paid"?"<button class=\"secondary small-button\" data-sale-chat=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Buyer chat</button>":"")+(sale.fulfilmentStatus==="paid"?"<button class=\"secondary small-button\" data-fulfil=\"preparing\" data-sale-id=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Preparing</button>":"")+(sale.deliveryMethod==="collection"&&["paid","preparing"].includes(sale.fulfilmentStatus)?"<button class=\"lime-button small-button\" data-fulfil=\"ready_for_collection\" data-sale-id=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Ready for collection</button>":"")+(sale.deliveryMethod==="shipping"&&["paid","preparing"].includes(sale.fulfilmentStatus)?"<button class=\"primary small-button\" data-dispatch=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Dispatch</button>":"")+"</div></section>").join(""));
  else html.push("<div class=\"empty\"><p>No paid sales yet.</p></div>");
@@ -212,6 +223,32 @@ const seller=async()=>{
 
  UI.app.innerHTML=html.join("");
  const inventory=document.getElementById("seller-inventory");if(inventory)inventory.addEventListener("click",()=>UI.route("inventory"));
+ const readinessListing=document.getElementById("seller-readiness-listing");if(readinessListing)readinessListing.addEventListener("click",()=>UI.route("listingEditor"));
+ const paymentSetup=document.getElementById("seller-payment-setup");
+ if(paymentSetup)paymentSetup.addEventListener("click",async()=>{
+  paymentSetup.disabled=true;paymentSetup.textContent="Opening Stripe…";
+  try{
+   const result=await C.api("/seller/payments/onboarding",{method:"POST",auth:true});
+   const url=C.safeHttpUrl(result.url);
+   if(!url)throw new Error("Stripe onboarding URL was invalid.");
+   await C.Native.openBrowser(url);
+  }catch(error){
+   UI.toast(error.message.replaceAll("_"," "),"error");
+   paymentSetup.disabled=false;paymentSetup.textContent="Set up payouts";
+  }
+ });
+ const paymentRefresh=document.getElementById("seller-payment-refresh");
+ if(paymentRefresh)paymentRefresh.addEventListener("click",async()=>{
+  paymentRefresh.disabled=true;paymentRefresh.textContent="Refreshing…";
+  try{
+   const result=await C.api("/seller/payments/refresh",{method:"POST",auth:true});
+   UI.toast(result.complete?"Payments & payouts are ready.":"Payment status refreshed.");
+   UI.route("seller");
+  }catch(error){
+   UI.toast(error.message.replaceAll("_"," "),"error");
+   paymentRefresh.disabled=false;paymentRefresh.textContent="Refresh payment status";
+  }
+ });
  UI.app.querySelectorAll("[data-sale-chat]").forEach(button=>button.addEventListener("click",()=>UI.route("transactionChat",{id:button.dataset.saleChat})));
  UI.app.querySelectorAll("[data-fulfil]").forEach(button=>button.addEventListener("click",()=>updateFulfilment(button.dataset.saleId,button.dataset.fulfil)));
  UI.app.querySelectorAll("[data-dispatch]").forEach(button=>button.addEventListener("click",()=>dispatchModal(button.dataset.dispatch)));
