@@ -513,6 +513,11 @@ export type Database = {
         Row: {
           accepted_at: string | null
           buyer_received_at: string | null
+          buyer_vehicle_engine_size: number | null
+          buyer_vehicle_fuel: string | null
+          buyer_vehicle_registration: string | null
+          buyer_vehicle_variant_id: string | null
+          buyer_vehicle_year: number | null
           cancelled_at: string | null
           delivered_at: string | null
           delivery_method: string
@@ -540,6 +545,11 @@ export type Database = {
         Insert: {
           accepted_at?: string | null
           buyer_received_at?: string | null
+          buyer_vehicle_engine_size?: number | null
+          buyer_vehicle_fuel?: string | null
+          buyer_vehicle_registration?: string | null
+          buyer_vehicle_variant_id?: string | null
+          buyer_vehicle_year?: number | null
           cancelled_at?: string | null
           delivered_at?: string | null
           delivery_method?: string
@@ -567,6 +577,11 @@ export type Database = {
         Update: {
           accepted_at?: string | null
           buyer_received_at?: string | null
+          buyer_vehicle_engine_size?: number | null
+          buyer_vehicle_fuel?: string | null
+          buyer_vehicle_registration?: string | null
+          buyer_vehicle_variant_id?: string | null
+          buyer_vehicle_year?: number | null
           cancelled_at?: string | null
           delivered_at?: string | null
           delivery_method?: string
@@ -592,6 +607,13 @@ export type Database = {
           unit_price_pence?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "order_items_buyer_vehicle_variant_id_fkey"
+            columns: ["buyer_vehicle_variant_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_catalogue_variants"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "order_items_order_id_fkey"
             columns: ["order_id"]
@@ -1963,6 +1985,80 @@ export type Database = {
         }
         Relationships: []
       }
+      verified_fit_feedback: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          engine_size_simple: number | null
+          fuel_type: string | null
+          id: string
+          notes: string | null
+          order_item_id: string
+          part_id: string
+          result: string
+          updated_at: string
+          variant_id: string
+          year: number
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          engine_size_simple?: number | null
+          fuel_type?: string | null
+          id?: string
+          notes?: string | null
+          order_item_id: string
+          part_id: string
+          result: string
+          updated_at?: string
+          variant_id: string
+          year: number
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          engine_size_simple?: number | null
+          fuel_type?: string | null
+          id?: string
+          notes?: string | null
+          order_item_id?: string
+          part_id?: string
+          result?: string
+          updated_at?: string
+          variant_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verified_fit_feedback_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verified_fit_feedback_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: true
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verified_fit_feedback_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verified_fit_feedback_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_catalogue_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2059,6 +2155,20 @@ export type Database = {
           order_id: string
         }[]
       }
+      get_part_verified_fit_summary: {
+        Args: {
+          p_engine?: number
+          p_fuel?: string
+          p_part_id: string
+          p_variant_id: string
+          p_year: number
+        }
+        Returns: {
+          did_not_fit_count: number
+          exact_fit_count: number
+          modified_fit_count: number
+        }[]
+      }
       get_public_member_profile: {
         Args: { p_handle: string }
         Returns: {
@@ -2131,6 +2241,25 @@ export type Database = {
           funds_released_at: string
           order_item_id: string
           part_title: string
+        }[]
+      }
+      get_verified_fit_opportunities: {
+        Args: never
+        Returns: {
+          existing_notes: string
+          existing_result: string
+          funds_released_at: string
+          order_item_id: string
+          part_id: string
+          part_slug: string
+          part_title: string
+          variant_id: string
+          vehicle_engine: number
+          vehicle_fuel: string
+          vehicle_make: string
+          vehicle_model: string
+          vehicle_variant: string
+          vehicle_year: number
         }[]
       }
       import_vehicle_catalogue_batch: {
@@ -2211,6 +2340,31 @@ export type Database = {
           unit_price_pence: number
         }[]
       }
+      prepare_checkout_order_v2: {
+        Args: {
+          p_delivery_method?: string
+          p_part_id: string
+          p_quantity?: number
+          p_vehicle_engine?: number
+          p_vehicle_fuel?: string
+          p_vehicle_registration?: string
+          p_vehicle_variant_id?: string
+          p_vehicle_year?: number
+        }
+        Returns: {
+          checkout_expires_at: string
+          order_id: string
+          order_item_id: string
+          part_title: string
+          platform_fee_pence: number
+          quantity: number
+          seller_name: string
+          seller_net_pence: number
+          shipping_pence: number
+          total_pence: number
+          unit_price_pence: number
+        }[]
+      }
       register_transaction_case_evidence: {
         Args: {
           p_case_id: string
@@ -2264,6 +2418,10 @@ export type Database = {
           p_order_item_id: string
           p_overall_rating: number
         }
+        Returns: string
+      }
+      submit_verified_fit_feedback: {
+        Args: { p_notes?: string; p_order_item_id: string; p_result: string }
         Returns: string
       }
       upgrade_account_to_seller: { Args: never; Returns: boolean }
