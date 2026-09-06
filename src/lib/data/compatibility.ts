@@ -15,8 +15,8 @@ const copy:Record<CompatibilityLevel,CompatibilityInfo>={
  },
  unverified:{
   level:"unverified",
-  label:"Compatibility not verified",
-  detail:"SecondPart does not have enough fitment evidence to confirm this part for the selected vehicle."
+  label:"Fit not verified — may not fit",
+  detail:"SecondPart does not have enough fitment evidence to confirm this part for the selected vehicle. It may fit, or it may be incompatible; verify OE/OEM numbers and seller evidence before ordering."
  }
 };
 
