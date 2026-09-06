@@ -10,6 +10,7 @@ type RawGarageVehicle={
  year:number;
  fuel_type:string|null;
  engine_size_simple:number|null;
+ colour:string|null;
  nickname:string|null;
  created_at:string;
  vehicle_catalogue_variants:{make:string;model_family:string;variant:string}|{make:string;model_family:string;variant:string}[]|null;
@@ -22,7 +23,7 @@ export async function getGarageVehicles(profileId:string):Promise<GarageVehicle[
  const supabase=await createSupabaseServerClient();
  const {data,error}=await supabase
   .from("garage_vehicles")
-  .select("id,catalogue_variant_id,registration,year,fuel_type,engine_size_simple,nickname,created_at,vehicle_catalogue_variants!inner(make,model_family,variant)")
+  .select("id,catalogue_variant_id,registration,year,fuel_type,engine_size_simple,colour,nickname,created_at,vehicle_catalogue_variants!inner(make,model_family,variant)")
   .eq("profile_id",profileId)
   .order("created_at",{ascending:false});
  if(error)throw error;
@@ -37,6 +38,7 @@ export async function getGarageVehicles(profileId:string):Promise<GarageVehicle[
    year:raw.year,
    fuelType:raw.fuel_type,
    engineSizeSimple:raw.engine_size_simple,
+   colour:raw.colour,
    nickname:raw.nickname,
    make:variant.make,
    modelFamily:variant.model_family,
