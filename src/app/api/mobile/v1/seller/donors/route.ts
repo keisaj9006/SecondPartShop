@@ -11,15 +11,30 @@ export async function GET(request:Request){
  const auth=await requireMobileSeller(request);
  if(!auth.context||!auth.seller)return auth.response;
  const {supabase}=auth.context;
+ const url=new URL(request.url);
+ const rawLimit=Number(url.searchParams.get("limit")??40);
+ const rawOffset=Number(url.searchParams.get("offset")??0);
+ const limit=Number.isInteger(rawLimit)?Math.max(1,Math.min(rawLimit,100)):40;
+ const offset=Number.isInteger(rawOffset)?Math.max(0,rawOffset):0;
+ const search=url.searchParams.get("q")?.trim().slice(0,80)??"";
 
- const {data,error}=await supabase
+ let query=supabase
   .from("donor_vehicles")
   .select("id,registration,make,model,variant,year,fuel_type,engine_size_simple,colour,notes,created_at")
   .eq("seller_id",auth.seller.id)
-  .order("created_at",{ascending:false});
+  .order("created_at",{ascending:false})
+  .order("id");
+ if(search){
+  const escaped=search.replaceAll("%","\\%").replaceAll("_","\\_");
+  query=query.or(`registration.ilike.%${escaped}%,make.ilike.%${escaped}%,model.ilike.%${escaped}%,variant.ilike.%${escaped}%`);
+ }
+ const {data,error}=await query.range(offset,offset+limit);
  if(error)return mobileJson(request,{ok:false,error:"donors_unavailable"},503);
+ const raw=data??[];
+ const hasMore=raw.length>limit;
+ const page=raw.slice(0,limit);
 
- return mobileJson(request,{ok:true,items:(data??[]).map(item=>({
+ return mobileJson(request,{ok:true,items:page.map(item=>({
   id:item.id,
   registration:item.registration,
   make:item.make,
@@ -31,7 +46,7 @@ export async function GET(request:Request){
   colour:item.colour,
   notes:item.notes,
   createdAt:item.created_at
- }))});
+ })),pagination:{offset,limit,returned:page.length,hasMore}});
 }
 
 export async function POST(request:Request){
