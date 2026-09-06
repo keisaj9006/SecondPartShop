@@ -66,6 +66,8 @@ export async function getPublicMemberReviews(profileId:string,limit=20):Promise<
     id:row.review_id,
     reviewerHandle:row.reviewer_handle,
     reviewerDisplayName:row.reviewer_display_name,
+    reviewerSoldCount:Number(row.reviewer_sold_count??0),
+    reviewerBoughtCount:Number(row.reviewer_bought_count??0),
     direction:row.direction as ReviewDirection,
     overallRating:Number(row.overall_rating),
     itemAsDescribedRating:row.item_as_described_rating===null?null:Number(row.item_as_described_rating),
