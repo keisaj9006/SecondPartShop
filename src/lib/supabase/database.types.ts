@@ -1351,6 +1351,51 @@ export type Database = {
           },
         ]
       }
+      transaction_case_evidence: {
+        Row: {
+          case_id: string
+          created_at: string
+          id: string
+          mime_type: string
+          original_name: string
+          storage_path: string
+          uploader_profile_id: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          id?: string
+          mime_type: string
+          original_name: string
+          storage_path: string
+          uploader_profile_id: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          id?: string
+          mime_type?: string
+          original_name?: string
+          storage_path?: string
+          uploader_profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_case_evidence_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_case_evidence_uploader_profile_id_fkey"
+            columns: ["uploader_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transaction_cases: {
         Row: {
           case_type: string
@@ -2061,6 +2106,15 @@ export type Database = {
           total_pence: number
           unit_price_pence: number
         }[]
+      }
+      register_transaction_case_evidence: {
+        Args: {
+          p_case_id: string
+          p_mime_type: string
+          p_original_name: string
+          p_storage_path: string
+        }
+        Returns: string
       }
       replace_part_catalogue_fitments: {
         Args: { p_fitments: Json; p_part_id: string }
