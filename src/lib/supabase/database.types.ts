@@ -1346,21 +1346,30 @@ export type Database = {
           match_reasons: string[]
           match_score: number
           request_id: string
+          responded_part_id: string | null
           seller_id: string
+          status: string
+          updated_at: string
         }
         Insert: {
           created_at?: string
           match_reasons?: string[]
           match_score: number
           request_id: string
+          responded_part_id?: string | null
           seller_id: string
+          status?: string
+          updated_at?: string
         }
         Update: {
           created_at?: string
           match_reasons?: string[]
           match_score?: number
           request_id?: string
+          responded_part_id?: string | null
           seller_id?: string
+          status?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -1368,6 +1377,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "part_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_part_request_matches_responded_part_id_fkey"
+            columns: ["responded_part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
             referencedColumns: ["id"]
           },
           {
@@ -2254,6 +2270,10 @@ export type Database = {
           p_shipping_address?: Json
           p_shipping_name?: string
         }
+        Returns: boolean
+      }
+      dismiss_seller_part_request_match: {
+        Args: { p_request_id: string }
         Returns: boolean
       }
       finalize_transaction_case_refund: {
