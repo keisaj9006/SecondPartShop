@@ -176,7 +176,7 @@ const openManualVehicleSelector=async(catalogue,vehicle)=>{
   model.disabled=true;year.disabled=true;variant.disabled=true;engine.disabled=true;apply.disabled=true;
   model.innerHTML="<option value=\"\">Loading models…</option>";
   try{
-   const result=await C.api("/vehicle-catalogue?level=models&make="+encodeURIComponent(make.value));
+   const result=await C.apiCached("/vehicle-catalogue?level=models&make="+encodeURIComponent(make.value),{auth:false,maxAge:5*60*1000});
    model.innerHTML="<option value=\"\">Choose model</option>"+optionHtml(result.items||[],"","");model.disabled=false;
   }catch(error){fail(error.message);}
  };
@@ -184,7 +184,7 @@ const openManualVehicleSelector=async(catalogue,vehicle)=>{
   year.disabled=true;variant.disabled=true;engine.disabled=true;apply.disabled=true;
   year.innerHTML="<option value=\"\">Loading years…</option>";
   try{
-   const result=await C.api("/vehicle-catalogue?level=years-model&make="+encodeURIComponent(make.value)+"&model="+encodeURIComponent(model.value));
+   const result=await C.apiCached("/vehicle-catalogue?level=years-model&make="+encodeURIComponent(make.value)+"&model="+encodeURIComponent(model.value),{auth:false,maxAge:5*60*1000});
    year.innerHTML="<option value=\"\">Choose year</option>"+optionHtml(result.items||[],"","");year.disabled=false;
   }catch(error){fail(error.message);}
  };
@@ -192,7 +192,7 @@ const openManualVehicleSelector=async(catalogue,vehicle)=>{
   variant.disabled=true;engine.disabled=true;apply.disabled=true;
   variant.innerHTML="<option value=\"\">Loading versions…</option>";
   try{
-   const result=await C.api("/vehicle-catalogue?level=variants-year&make="+encodeURIComponent(make.value)+"&model="+encodeURIComponent(model.value)+"&year="+encodeURIComponent(year.value));
+   const result=await C.apiCached("/vehicle-catalogue?level=variants-year&make="+encodeURIComponent(make.value)+"&model="+encodeURIComponent(model.value)+"&year="+encodeURIComponent(year.value),{auth:false,maxAge:5*60*1000});
    variant.innerHTML="<option value=\"\">Choose version</option>"+optionHtml(result.items||[],"id","variant");variant.disabled=false;
   }catch(error){fail(error.message);}
  };
@@ -240,7 +240,7 @@ const openManualVehicleSelector=async(catalogue,vehicle)=>{
  });
 
  try{
-  const makes=await C.api("/vehicle-catalogue?level=makes");
+  const makes=await C.apiCached("/vehicle-catalogue?level=makes",{auth:false,maxAge:10*60*1000});
   make.innerHTML="<option value=\"\">Choose make</option>"+optionHtml(makes.items||[],"","");
   if(catalogue&&catalogue.make){
    make.value=catalogue.make;
