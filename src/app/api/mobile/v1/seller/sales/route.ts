@@ -25,16 +25,16 @@ export async function GET(request:Request){
  const offset=Number.isInteger(rawOffset)?Math.max(0,rawOffset):0;
  const fulfilment=url.searchParams.get("fulfilment")?.trim()??"";
  const payout=url.searchParams.get("payout")?.trim()??"";
- const validFulfilment=["pending","processing","dispatched","completed","cancelled"];
- const validPayout=["pending","eligible","released","held","reversed"];
+ const validFulfilment=["pending","paid","preparing","ready_for_collection","dispatched","delivered","accepted","completed","cancelled","return_requested","return_approved","returned","refunded","dispute_open","dispute_resolved"];
+ const validPayout=["not_ready","scheduled","released","reversed","blocked"];
 
  let query=supabase
   .from("order_items")
   .select("id,order_id,quantity,unit_price_pence,shipping_pence,platform_fee_pence,seller_net_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,release_eligible_at,funds_released_at,parts(title,slug),orders(id,status,payment_status,created_at,shipping_name,shipping_address)")
   .eq("seller_id",seller.id)
   .order("id",{ascending:false});
- if(validFulfilment.includes(fulfilment))query=query.eq("fulfilment_status",fulfilment as "pending"|"processing"|"dispatched"|"completed"|"cancelled");
- if(validPayout.includes(payout))query=query.eq("payout_status",payout as "pending"|"eligible"|"released"|"held"|"reversed");
+ if(validFulfilment.includes(fulfilment))query=query.eq("fulfilment_status",fulfilment);
+ if(validPayout.includes(payout))query=query.eq("payout_status",payout);
  const {data,error}=await query.range(offset,offset+limit);
  if(error)return mobileJson(request,{ok:false,error:"sales_unavailable"},503);
  const raw=data??[];
