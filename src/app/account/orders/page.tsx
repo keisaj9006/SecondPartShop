@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PackageCheck,Star,Truck } from "lucide-react";
 import { Header } from "@/components/header";
+import { BuyerReceiptControls } from "@/components/buyer-receipt-controls";
 import { requireUser } from "@/lib/auth";
 import { getBuyerOrders } from "@/lib/data/orders";
 
@@ -25,11 +26,11 @@ export default async function PurchasesPage(){
    </div>
    <div className="mt-4 grid gap-4">{order.items.map(item=><div key={item.id} className="rounded-2xl bg-[#f8f7f2] p-4">
     <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-     <div><Link href={`/parts/${item.partSlug}`} className="font-black hover:underline">{item.partTitle}</Link><p className="mt-1 text-sm text-[#63706a]">Seller: <Link href={`/seller/${item.sellerSlug}`} className="font-bold hover:underline">{item.sellerName}</Link> · Qty {item.quantity}</p></div>
+     <div><Link href={`/parts/${item.partSlug}`} className="font-black hover:underline">{item.partTitle}</Link><p className="mt-1 text-sm text-[#63706a]">Seller: <Link href={`/seller/${item.sellerSlug}`} className="font-bold hover:underline">{item.sellerName}</Link> · Qty {item.quantity} · {item.deliveryMethod==="collection"?"Collection":item.shippingPence>0?`Delivery £${(item.shippingPence/100).toFixed(2)}`:"Free delivery"}</p></div>
      <p className="font-black">{money(item.unitPricePence*item.quantity,order.currency)}</p>
     </div>
     <div className="mt-3 flex flex-wrap gap-3 text-xs font-bold text-[#56625d]"><span className="inline-flex items-center gap-1"><PackageCheck size={14}/>{label(item.fulfilmentStatus)}</span>{item.trackingNumber&&<span className="inline-flex items-center gap-1"><Truck size={14}/>{item.trackingCarrier?`${item.trackingCarrier} · `:""}{item.trackingNumber}</span>}{item.fundsReleasedAt&&<Link href="/account/reviews" className="inline-flex items-center gap-1 text-[#287154] underline"><Star size={14}/>Leave verified review</Link>}</div>
-   </div>)}</div>
+   <BuyerReceiptControls item={item}/></div>)}</div>
    <div className="mt-4 flex justify-end"><p className="text-lg font-black">Total {money(order.totalPence,order.currency)}</p></div>
   </article>)}</div>:<div className="mt-8 rounded-3xl border border-dashed border-black/20 bg-white px-6 py-16 text-center"><PackageCheck className="mx-auto text-[#63706a]"/><h2 className="mt-4 text-xl font-black">No purchases yet</h2><p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#63706a]">Completed marketplace orders will appear here with payment and delivery status.</p><Link href="/#marketplace" className="mt-5 inline-block rounded-full bg-[#173c31] px-5 py-3 text-sm font-black text-white">Browse parts</Link></div>}
  </main></>;
