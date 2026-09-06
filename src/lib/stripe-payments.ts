@@ -11,10 +11,13 @@ type StripeErrorPayload={error?:{message?:string}};
 export type StripeCheckoutSession={
  id:string;
  url:string|null;
+ status:string|null;
  payment_status:string;
  payment_intent:string|{id:string}|null;
  client_reference_id:string|null;
  metadata?:Record<string,string>;
+ collected_information?:Record<string,unknown>|null;
+ shipping_details?:Record<string,unknown>|null;
 };
 
 export type StripePaymentIntent={
@@ -95,6 +98,10 @@ export async function createCheckoutSession(input:{
  }
 
  return stripeV1<StripeCheckoutSession>("/v1/checkout/sessions",{method:"POST",body,headers:{"Idempotency-Key":`secondpart-checkout-${input.orderId}`}});
+}
+
+export async function getCheckoutSession(sessionId:string){
+ return stripeV1<StripeCheckoutSession>(`/v1/checkout/sessions/${encodeURIComponent(sessionId)}`,{method:"GET"});
 }
 
 export async function getPaymentIntent(paymentIntentId:string){
