@@ -92,10 +92,14 @@ export type BuyerOrderItem={
  sellerSlug:string;
  quantity:number;
  unitPricePence:number;
+ shippingPence:number;
+ deliveryMethod:"shipping"|"collection";
  fulfilmentStatus:string;
  payoutStatus:string;
  trackingCarrier:string|null;
  trackingNumber:string|null;
+ buyerReceivedAt:string|null;
+ releaseEligibleAt:string|null;
  fundsReleasedAt:string|null;
 };
 
@@ -116,10 +120,14 @@ export type SellerSale={
  partSlug:string;
  quantity:number;
  unitPricePence:number;
+ shippingPence:number;
+ sellerNetPence:number;
+ deliveryMethod:"shipping"|"collection";
  fulfilmentStatus:string;
  payoutStatus:string;
  trackingCarrier:string|null;
  trackingNumber:string|null;
+ releaseEligibleAt:string|null;
  fundsReleasedAt:string|null;
  orderStatus:string;
  paymentStatus:string;
