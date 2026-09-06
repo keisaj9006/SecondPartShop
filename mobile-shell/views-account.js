@@ -140,7 +140,52 @@ const openNotification=(item)=>{
  window.location.href=C.config.webBaseUrl.replace(/\/$/,"")+href;
 };
 
+
+const member=async(payload)=>{
+ if(!payload.handle){UI.route("home");return;}
+ UI.loading("Loading member profile");
+ let result;
+ try{result=await C.api("/members/"+encodeURIComponent(payload.handle));}
+ catch(error){UI.empty("○","Member unavailable",error.message,"Back",()=>UI.back());return;}
+
+ const profile=result.profile;
+ const reviews=result.reviews||[];
+ const listings=result.listings||[];
+ const rating=(value,count)=>value===null||!count?"New":Number(value).toFixed(1);
+ const stars=value=>{
+  const score=Math.max(0,Math.min(5,Math.round(Number(value||0))));
+  return "★".repeat(score)+"☆".repeat(5-score);
+ };
+
+ const html=[];
+ html.push("<button class=\"back\" id=\"member-back\" type=\"button\">‹ Back</button>");
+ html.push("<section class=\"account-hero\"><p class=\"eyebrow\" style=\"color:#d4f44d\">SecondPart member</p><h1>"+C.escapeHtml(profile.displayName)+"</h1><p>@"+C.escapeHtml(profile.handle)+" · Member since "+C.dateOnly(profile.memberSince)+"</p>"+(profile.bio?"<p style=\"margin-top:12px;line-height:1.6\">"+C.escapeHtml(profile.bio)+"</p>":"")+(profile.sellerVerified?"<div class=\"status success\" style=\"margin-top:12px\">Verified business seller</div>":"")+"</section>");
+ html.push("<section class=\"account-grid\">"+
+  "<div class=\"account-tile\"><strong>★ "+C.escapeHtml(rating(profile.sellerRating,profile.sellerReviewCount))+"</strong><small>Seller rating · "+C.escapeHtml(profile.sellerReviewCount)+" verified review(s)</small></div>"+
+  "<div class=\"account-tile\"><strong>"+C.escapeHtml(profile.soldCount)+" sold</strong><small>Completed, funds-released sales.</small></div>"+
+  "<div class=\"account-tile\"><strong>★ "+C.escapeHtml(rating(profile.buyerRating,profile.buyerReviewCount))+"</strong><small>Buyer rating · "+C.escapeHtml(profile.buyerReviewCount)+" verified review(s)</small></div>"+
+  "<div class=\"account-tile\"><strong>"+C.escapeHtml(profile.boughtCount)+" bought</strong><small>Completed purchases.</small></div>"+
+ "</section>");
+
+ html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Reputation</p><h2>Verified transaction reviews</h2><p>Reviews are tied to completed SecondPart transactions.</p></div></div>");
+ if(reviews.length){
+  html.push(reviews.map(review=>
+   "<article class=\"order-card\"><div class=\"row-between\"><div><h3>"+C.escapeHtml(review.reviewerDisplayName)+"</h3><p class=\"subtle\">@"+C.escapeHtml(review.reviewerHandle)+" · "+C.escapeHtml(review.reviewerSoldCount)+" sold · "+C.escapeHtml(review.reviewerBoughtCount)+" bought</p></div><span style=\"color:#d97706;font-size:15px;letter-spacing:1px\">"+stars(review.overallRating)+"</span></div><p class=\"eyebrow\" style=\"margin-top:9px\">"+C.escapeHtml(review.direction==="buyer_to_seller"?"Buyer review of seller":"Seller review of buyer")+"</p><strong style=\"font-size:12px\">"+C.escapeHtml(review.partTitle)+"</strong>"+(review.comment?"<p style=\"font-size:11px;line-height:1.6\">"+C.escapeHtml(review.comment)+"</p>":"")+"<p class=\"subtle\">"+C.dateOnly(review.createdAt)+" · Verified transaction</p></article>"
+  ).join(""));
+ }else{
+  html.push("<div class=\"empty\"><div class=\"empty-icon\">☆</div><h3>No verified reviews yet</h3><p>This member is new or has not yet completed a reviewed transaction.</p></div>");
+ }
+
+ if(listings.length){
+  html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Seller inventory</p><h2>Available parts</h2></div></div><section class=\"list-grid\">"+listings.map(UI.listingCard).join("")+"</section>");
+ }
+ UI.app.innerHTML=html.join("");
+ document.getElementById("member-back").addEventListener("click",()=>void UI.back());
+ UI.bindListingActions(UI.app);
+};
+
 UI.register("account",account);
 UI.register("saved",saved);
 UI.register("notifications",notifications);
+UI.register("member",member);
 })();
