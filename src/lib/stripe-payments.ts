@@ -64,6 +64,7 @@ export async function createCheckoutSession(input:{
  quantity:number;
  unitPricePence:number;
  shippingPence:number;
+ deliveryMethod:"shipping"|"collection";
  customerEmail?:string|null;
  expiresAt:string;
 }){
@@ -77,6 +78,9 @@ export async function createCheckoutSession(input:{
  append(body,"payment_intent_data[transfer_group]",`order_${input.orderId}`);
  append(body,"payment_intent_data[metadata][order_id]",input.orderId);
  append(body,"expires_at",Math.floor(new Date(input.expiresAt).getTime()/1000));
+ if(input.deliveryMethod==="shipping"){
+  append(body,"shipping_address_collection[allowed_countries][0]","GB");
+ }
 
  append(body,"line_items[0][price_data][currency]","gbp");
  append(body,"line_items[0][price_data][product_data][name]",input.partTitle);
