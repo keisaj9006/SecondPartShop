@@ -8,10 +8,16 @@ const modalRoot=document.getElementById("modal-root");
 const notificationBadge=document.getElementById("notification-badge");
 const registry=new Map();
 let toastTimer=null;
+let currentRoute=null;
+const routeStack=[];
 
-const route=async(name,payload)=>{
+const routeKey=(route)=>route?route.name+"|"+JSON.stringify(route.payload||{}):"";
+
+const route=async(name,payload,options={})=>{
+ const next={name,payload:payload||{}};
+ if(currentRoute&&!options.fromBack&&routeKey(currentRoute)!==routeKey(next))routeStack.push(currentRoute);
+ currentRoute=next;
  C.state.currentView=name;
- const mainNav=["home","garage","orders","inbox","account"];
  document.querySelectorAll("[data-nav]").forEach(button=>{
   button.classList.toggle("active",button.dataset.nav===name||(name==="listing"&&button.dataset.nav==="home")||(name==="order"&&button.dataset.nav==="orders")||(name==="conversation"&&button.dataset.nav==="inbox")||(["saved","notifications","seller"].includes(name)&&button.dataset.nav==="account"));
  });
@@ -31,6 +37,19 @@ const route=async(name,payload)=>{
 };
 
 const register=(name,handler)=>registry.set(name,handler);
+
+const back=async()=>{
+ if(modalRoot.innerHTML){closeModal();return true;}
+ const previous=routeStack.pop();
+ if(!previous)return false;
+ await route(previous.name,previous.payload,{fromBack:true});
+ return true;
+};
+
+const refreshCurrent=async()=>{
+ if(!currentRoute)return route("home",{}, {fromBack:true});
+ return route(currentRoute.name,currentRoute.payload,{fromBack:true});
+};
 
 const loading=(label)=>{
  app.innerHTML="<section class=\"boot-screen\"><span class=\"spinner\"></span><h1>"+C.escapeHtml(label||"Loading")+"</h1><p>Please wait a moment…</p></section>";
@@ -63,6 +82,7 @@ const empty=(icon,title,body,actionLabel,action)=>{
 };
 
 const requireAuth=async(returnView)=>{
+ await C.initializeSession();
  if(C.state.session)return true;
  C.state.afterAuth=returnView||C.state.currentView||"home";
  await route("account",{mode:"signin"});
@@ -76,6 +96,7 @@ const updateBadge=()=>{
 };
 
 const refreshUserChrome=async()=>{
+ await C.initializeSession();
  if(C.state.session){
   await Promise.all([C.refreshSaved(),C.refreshNotifications()]);
  }else{
@@ -133,7 +154,7 @@ const bindListingActions=(container)=>{
 };
 
 window.SecondPartUI=Object.freeze({
- C,app,register,route,loading,toast,modal,closeModal,empty,requireAuth,updateBadge,refreshUserChrome,
+ C,app,register,route,back,refreshCurrent,loading,toast,modal,closeModal,empty,requireAuth,updateBadge,refreshUserChrome,
  listingCard,vehicleVisual,bindListingActions,firstImage
 });
 })();
