@@ -73,6 +73,15 @@ export type TransactionReview={
  partTitle:string;
 };
 
+export type SellerPaymentAccount={
+ sellerId:string;
+ provider:"stripe";
+ onboardingStatus:"not_started"|"pending"|"restricted"|"complete";
+ transfersEnabled:boolean;
+ payoutsEnabled:boolean;
+ detailsSubmitted:boolean;
+};
+
 export type BuyerOrderItem={
  id:string;
  partTitle:string;
