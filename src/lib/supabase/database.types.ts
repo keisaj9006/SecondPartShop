@@ -935,6 +935,7 @@ export type Database = {
           gearbox_code: string | null
           gearbox_family: string | null
           id: string
+          import_batch_id: string | null
           manufacturer: string | null
           oem_number: string | null
           part_number: string | null
@@ -942,6 +943,8 @@ export type Database = {
           seller_id: string
           shipping_pence: number
           slug: string
+          source_channel: string
+          source_external_id: string | null
           source_request_id: string | null
           status: Database["public"]["Enums"]["listing_status"]
           stock: number
@@ -965,6 +968,7 @@ export type Database = {
           gearbox_code?: string | null
           gearbox_family?: string | null
           id?: string
+          import_batch_id?: string | null
           manufacturer?: string | null
           oem_number?: string | null
           part_number?: string | null
@@ -972,6 +976,8 @@ export type Database = {
           seller_id: string
           shipping_pence?: number
           slug: string
+          source_channel?: string
+          source_external_id?: string | null
           source_request_id?: string | null
           status?: Database["public"]["Enums"]["listing_status"]
           stock?: number
@@ -995,6 +1001,7 @@ export type Database = {
           gearbox_code?: string | null
           gearbox_family?: string | null
           id?: string
+          import_batch_id?: string | null
           manufacturer?: string | null
           oem_number?: string | null
           part_number?: string | null
@@ -1002,6 +1009,8 @@ export type Database = {
           seller_id?: string
           shipping_pence?: number
           slug?: string
+          source_channel?: string
+          source_external_id?: string | null
           source_request_id?: string | null
           status?: Database["public"]["Enums"]["listing_status"]
           stock?: number
@@ -1023,6 +1032,13 @@ export type Database = {
             columns: ["donor_vehicle_id"]
             isOneToOne: false
             referencedRelation: "donor_vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parts_import_batch_id_fkey"
+            columns: ["import_batch_id"]
+            isOneToOne: false
+            referencedRelation: "seller_inventory_imports"
             referencedColumns: ["id"]
           },
           {
@@ -1209,6 +1225,53 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_inventory_imports: {
+        Row: {
+          created_at: string
+          error_summary: Json
+          filename: string | null
+          id: string
+          rows_created: number
+          rows_received: number
+          rows_rejected: number
+          seller_id: string
+          source_channel: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error_summary?: Json
+          filename?: string | null
+          id?: string
+          rows_created?: number
+          rows_received?: number
+          rows_rejected?: number
+          seller_id: string
+          source_channel: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          error_summary?: Json
+          filename?: string | null
+          id?: string
+          rows_created?: number
+          rows_received?: number
+          rows_rejected?: number
+          seller_id?: string
+          source_channel?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_inventory_imports_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
             referencedColumns: ["id"]
           },
         ]
