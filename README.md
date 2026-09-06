@@ -147,11 +147,10 @@ GitHub Actions runs the rebuild QA workflow for `rebuild-nextjs`.
 
 ## Current roadmap
 
-The pre-payments build is complete. The next sequence is:
+The pre-payments build and pre-QA cleanup are complete. The next sequence is:
 
-1. pre-QA cleanup
-2. full acceptance QA on a fresh Vercel Preview
-3. QA fix pass
-4. design and implementation of the commerce/order/payment layer
+1. full acceptance QA on a fresh Vercel Preview
+2. QA fix pass
+3. design and implementation of the commerce/order/payment layer
 
 See `docs/pre-payments-roadmap.md` and `docs/product-decisions.md` for the current product decisions and deferred commerce work.
