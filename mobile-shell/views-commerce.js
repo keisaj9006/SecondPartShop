@@ -169,6 +169,27 @@ const conversation=async(payload)=>{
  });
 };
 
+const sellerSales=async()=>{
+ if(!await UI.requireAuth("sellerSales"))return;
+ if(!C.state.me||!C.state.me.seller){UI.empty("□","Seller profile required","Enable selling before opening sales.","Account",()=>UI.route("account",{view:"selling"}));return;}
+ UI.loading("Loading sales");
+ let sales=[];
+ try{sales=(await C.api("/seller/sales",{auth:true})).items||[];}
+ catch(error){UI.empty("□","Sales unavailable",error.message,"Try again",()=>UI.route("sellerSales"));return;}
+
+ const html=[];
+ html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Selling</p><h2>Sales & payouts</h2><p>"+sales.length+" sale"+(sales.length===1?"":"s")+" in your transaction history.</p></div></div>");
+ if(sales.length){
+  html.push(sales.map(sale=>"<section class=\"order-card\"><div class=\"row-between\"><div><h3>"+C.escapeHtml(sale.partTitle)+"</h3><p class=\"subtle\">"+C.dateOnly(sale.orderCreatedAt)+" · "+C.escapeHtml(C.human(sale.fulfilmentStatus))+"</p></div><span class=\"money\">"+C.money(sale.sellerNetPence)+" net</span></div><div class=\"chips\"><span class=\"pill "+statusClass(sale.paymentStatus)+"\">"+C.escapeHtml(C.human(sale.paymentStatus))+"</span><span class=\"pill "+statusClass(sale.payoutStatus)+"\">"+C.escapeHtml(C.human(sale.payoutStatus))+"</span></div><p class=\"subtle\" style=\"margin-top:8px\">Item "+C.money(sale.unitPricePence*sale.quantity)+" · Delivery "+C.money(sale.shippingPence)+" · SecondPart fee −"+C.money(sale.platformFeePence)+"</p><div class=\"button-row\" style=\"margin-top:10px\">"+(sale.paymentStatus==="paid"?"<button class=\"secondary small-button\" data-sale-chat=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Buyer chat</button>":"")+(sale.fulfilmentStatus==="paid"?"<button class=\"secondary small-button\" data-sales-fulfil=\"preparing\" data-sale-id=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Preparing</button>":"")+(sale.deliveryMethod==="collection"&&["paid","preparing"].includes(sale.fulfilmentStatus)?"<button class=\"lime-button small-button\" data-sales-fulfil=\"ready_for_collection\" data-sale-id=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Ready for collection</button>":"")+(sale.deliveryMethod==="shipping"&&["paid","preparing"].includes(sale.fulfilmentStatus)?"<button class=\"primary small-button\" data-sales-dispatch=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Dispatch</button>":"")+"</div></section>").join(""));
+ }else{
+  html.push("<div class=\"empty\"><div class=\"empty-icon\">▣</div><h3>No paid sales yet</h3><p>Your paid transactions will appear here.</p></div>");
+ }
+ UI.app.innerHTML=html.join("");
+ UI.app.querySelectorAll("[data-sale-chat]").forEach(button=>button.addEventListener("click",()=>UI.route("transactionChat",{id:button.dataset.saleChat})));
+ UI.app.querySelectorAll("[data-sales-fulfil]").forEach(button=>button.addEventListener("click",()=>updateFulfilment(button.dataset.saleId,button.dataset.salesFulfil,null,null,"sellerSales")));
+ UI.app.querySelectorAll("[data-sales-dispatch]").forEach(button=>button.addEventListener("click",()=>dispatchModal(button.dataset.salesDispatch,"sellerSales")));
+};
+
 const seller=async()=>{
  if(!await UI.requireAuth("seller"))return;
  if(!C.state.me||!C.state.me.seller){UI.empty("□","Seller profile required","Enable selling on your SecondPart account before opening the seller dashboard.","Account",()=>UI.route("account"));return;}
@@ -199,21 +220,21 @@ const seller=async()=>{
  UI.app.querySelectorAll("[data-seller-evidence]").forEach(button=>button.addEventListener("click",()=>void window.SecondPartMedia.openEvidence(button.dataset.sellerEvidence)));
 };
 
-const updateFulfilment=async(id,action,carrier,trackingNumber)=>{
+const updateFulfilment=async(id,action,carrier,trackingNumber,returnRoute="seller")=>{
  try{
   await C.api("/seller/order-items/"+encodeURIComponent(id)+"/fulfilment",{method:"POST",auth:true,body:{action,carrier,trackingNumber}});
-  UI.toast("Sale updated.");UI.route("seller");
+  UI.toast("Sale updated.");UI.route(returnRoute);
  }catch(error){UI.toast(error.message,"error");}
 };
 
-const dispatchModal=(id)=>{
+const dispatchModal=(id,returnRoute="seller")=>{
  UI.modal("Record dispatch","<form id=\"dispatch-form\" class=\"form-grid\"><label class=\"label\">Carrier<input id=\"dispatch-carrier\" class=\"input\" maxlength=\"80\" placeholder=\"Royal Mail, DPD, Evri…\"/></label><label class=\"label\">Tracking / shipment reference<input id=\"dispatch-tracking\" class=\"input\" minlength=\"3\" maxlength=\"160\" required/></label><button class=\"primary wide\" type=\"submit\">Mark dispatched</button></form>");
  document.getElementById("dispatch-form").addEventListener("submit",event=>{
   event.preventDefault();
   const carrier=String(document.getElementById("dispatch-carrier").value||"").trim();
   const tracking=String(document.getElementById("dispatch-tracking").value||"").trim();
   if(tracking.length<3){UI.toast("Add a tracking or shipment reference.");return;}
-  UI.closeModal();updateFulfilment(id,"dispatch",carrier,tracking);
+  UI.closeModal();updateFulfilment(id,"dispatch",carrier,tracking,returnRoute);
  });
 };
 
@@ -239,4 +260,5 @@ UI.register("transactionChat",transactionChat);
 UI.register("inbox",inbox);
 UI.register("conversation",conversation);
 UI.register("seller",seller);
+UI.register("sellerSales",sellerSales);
 })();
