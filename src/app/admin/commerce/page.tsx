@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Scale } from "lucide-react";
+import { Scale,Settings2 } from "lucide-react";
 import { AdminCaseResolution } from "@/components/admin-case-resolution";
 import { CaseEvidencePanel } from "@/components/case-evidence-panel";
 import { Header } from "@/components/header";
@@ -16,7 +16,7 @@ export default async function CommerceAdminPage(){
  const evidenceByCase=await getTransactionCaseEvidence(cases.map(item=>item.id)).catch(()=>new Map());
 
  return <><Header/><main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
-  <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-xs font-black uppercase tracking-[.2em] text-[#287154]">Marketplace operations</p><h1 className="mt-2 text-4xl font-black tracking-[-.045em]">Commerce cases</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-[#63706a]">Review buyer returns and disputes. Full refund runs the controlled Stripe reversal/refund path; rejecting the case re-opens an eligible blocked payout.</p></div><Link href="/admin/moderation" className="w-fit rounded-full border border-black/15 px-4 py-2.5 text-sm font-black">Moderation</Link></div>
+  <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-xs font-black uppercase tracking-[.2em] text-[#287154]">Marketplace operations</p><h1 className="mt-2 text-4xl font-black tracking-[-.045em]">Commerce cases</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-[#63706a]">Review buyer returns and disputes. Full refund runs the controlled Stripe reversal/refund path; rejecting the case re-opens an eligible blocked payout.</p></div><div className="flex flex-wrap gap-2"><Link href="/admin/moderation" className="w-fit rounded-full border border-black/15 px-4 py-2.5 text-sm font-black">Moderation</Link><Link href="/admin/system" className="inline-flex w-fit items-center gap-2 rounded-full border border-black/15 px-4 py-2.5 text-sm font-black"><Settings2 size={15}/>System readiness</Link></div></div>
 
   {cases.length?<div className="mt-8 grid gap-5">{cases.map(item=><article key={item.id} className="rounded-3xl border border-black/10 bg-white p-5 sm:p-6">
    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wide text-[#287154]">{label(item.caseType)}</p><Link href={"/parts/"+item.partSlug} className="mt-1 block text-xl font-black hover:underline">{item.partTitle}</Link><p className="mt-1 text-sm text-[#63706a]">Seller: {item.sellerName} · Case {item.id.slice(0,8).toUpperCase()}</p></div><span className="rounded-full bg-[#eef1eb] px-3 py-1 text-xs font-black">{label(item.status)}</span></div>
