@@ -34,7 +34,7 @@ const account=async(payload)=>{
   if(!seller){
    html.push("<section class=\"card\" style=\"margin-top:14px\"><p class=\"eyebrow\">Selling setup</p><h3 style=\"margin:5px 0\">Finish your seller profile</h3><p class=\"subtle\">Your account can still buy parts. Complete seller details to publish listings and receive sales.</p><button id=\"account-finish-selling\" class=\"lime-button wide\" style=\"margin-top:12px\" type=\"button\">Finish seller setup</button></section>");
   }else{
-   html.push("<section class=\"account-grid\" style=\"margin-top:14px\"><button class=\"account-tile\" id=\"account-seller\" type=\"button\"><strong>Seller dashboard</strong><small>Readiness, sales, payouts, fulfilment and cases.</small></button><button class=\"account-tile\" id=\"account-inventory\" type=\"button\"><strong>Inventory</strong><small>Create, edit and photograph listings.</small></button><button class=\"account-tile\" id=\"account-seller-profile\" type=\"button\"><strong>Seller profile</strong><small>Edit your public seller identity and location.</small></button>"+(seller.sellerType==="business"?"<button class=\"account-tile\" id=\"account-seller-verification\" type=\"button\"><strong>Business verification</strong><small>"+(seller.verified?"Verified business":"Verification status and request")+".</small></button>":"")+"<button class=\"account-tile\" id=\"account-inbox\" type=\"button\"><strong>Buyer questions</strong><small>Pre-purchase messages about your parts.</small></button><button class=\"account-tile\" id=\"account-notifications\" type=\"button\"><strong>Seller notifications</strong><small>"+C.escapeHtml(C.state.unreadNotifications)+" unread update(s).</small></button><button class=\"account-tile\" id=\"account-cases\" type=\"button\"><strong>Returns & cases</strong><small>Transaction problems and evidence.</small></button><button class=\"account-tile\" id=\"account-new-listing\" type=\"button\"><strong>Create listing</strong><small>Add a part directly from the app.</small></button></section>");
+   html.push("<section class=\"account-grid\" style=\"margin-top:14px\"><button class=\"account-tile\" id=\"account-seller\" type=\"button\"><strong>Seller dashboard</strong><small>Readiness, sales, payouts, fulfilment and cases.</small></button><button class=\"account-tile\" id=\"account-inventory\" type=\"button\"><strong>Inventory</strong><small>Create, edit and photograph listings.</small></button><button class=\"account-tile\" id=\"account-seller-profile\" type=\"button\"><strong>Seller profile</strong><small>Edit your public seller identity and location.</small></button>"+(seller.sellerType==="business"?"<button class=\"account-tile\" id=\"account-seller-verification\" type=\"button\"><strong>Business verification</strong><small>"+(seller.verified?"Verified business":"Verification status and request")+".</small></button>":"")+"<button class=\"account-tile\" id=\"account-reviews\" type=\"button\"><strong>Reviews</strong><small>Rate completed buyers and see review opportunities.</small></button><button class=\"account-tile\" id=\"account-inbox\" type=\"button\"><strong>Buyer questions</strong><small>Pre-purchase messages about your parts.</small></button><button class=\"account-tile\" id=\"account-notifications\" type=\"button\"><strong>Seller notifications</strong><small>"+C.escapeHtml(C.state.unreadNotifications)+" unread update(s).</small></button><button class=\"account-tile\" id=\"account-cases\" type=\"button\"><strong>Returns & cases</strong><small>Transaction problems and evidence.</small></button><button class=\"account-tile\" id=\"account-new-listing\" type=\"button\"><strong>Create listing</strong><small>Add a part directly from the app.</small></button></section>");
   }
  }
 
@@ -49,6 +49,7 @@ const account=async(payload)=>{
  const notifications=document.getElementById("account-notifications");if(notifications)notifications.addEventListener("click",()=>UI.route("notifications"));
  const garage=document.getElementById("account-garage");if(garage)garage.addEventListener("click",()=>UI.route("garage"));
  const orders=document.getElementById("account-orders");if(orders)orders.addEventListener("click",()=>UI.route("orders"));
+ const reviewsButton=document.getElementById("account-reviews");if(reviewsButton)reviewsButton.addEventListener("click",()=>UI.route("reviews"));
  const cases=document.getElementById("account-cases");if(cases)cases.addEventListener("click",()=>UI.route("cases"));
  const inbox=document.getElementById("account-inbox");if(inbox)inbox.addEventListener("click",()=>UI.route("inbox"));
  const sellerButton=document.getElementById("account-seller");if(sellerButton)sellerButton.addEventListener("click",()=>UI.route("seller"));
@@ -302,6 +303,87 @@ const openNotification=(item)=>{
 };
 
 
+const reviews=async()=>{
+ if(!await UI.requireAuth("reviews"))return;
+ UI.loading("Loading reviews");
+
+ let items=[];
+ try{items=(await C.api("/reviews",{auth:true})).items||[];}
+ catch(error){UI.empty("☆","Reviews unavailable",error.message,"Try again",()=>UI.route("reviews"));return;}
+
+ const pending=items.filter(item=>!item.existingReviewId);
+ const submitted=items.filter(item=>Boolean(item.existingReviewId));
+ const ratings={};
+
+ const starField=(itemId,field,label,required=false)=>
+  "<fieldset class=\"review-rating\" data-rating-group=\""+C.escapeHtml(itemId)+"|"+C.escapeHtml(field)+"\"><legend style=\"font-size:12px;font-weight:800\">"+C.escapeHtml(label)+(required?" · required":"")+"</legend><div style=\"display:flex;gap:3px;margin-top:5px\">"+[1,2,3,4,5].map(value=>"<button type=\"button\" data-review-id=\""+C.escapeHtml(itemId)+"\" data-review-field=\""+C.escapeHtml(field)+"\" data-review-value=\""+value+"\" aria-label=\""+value+" star"+(value===1?"":"s")+"\" style=\"border:0;background:transparent;padding:2px;font-size:25px;line-height:1;color:#b8b8b0\">☆</button>").join("")+"</div></fieldset>";
+
+ const html=[];
+ html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Trust & reputation</p><h2>Transaction reviews</h2><p>Reviews unlock only after a successfully completed, non-refunded transaction and released seller funds.</p></div></div>");
+
+ if(pending.length){
+  html.push("<section><p class=\"eyebrow\">Waiting for your review</p>"+pending.map(item=>{
+   const buyer=item.direction==="buyer_to_seller";
+   return "<article class=\"order-card\" style=\"margin-top:10px\"><p class=\"eyebrow\">"+(buyer?"You bought this item":"You sold this item")+"</p><h3>"+C.escapeHtml(item.partTitle)+"</h3><p class=\"subtle\">Reviewing "+C.escapeHtml(item.counterpartDisplayName)+" · @"+C.escapeHtml(item.counterpartHandle)+"</p><div class=\"form-grid\" style=\"margin-top:14px\">"+
+    starField(item.orderItemId,"overall","Overall rating",true)+
+    (buyer?starField(item.orderItemId,"itemAsDescribed","Item as described")+starField(item.orderItemId,"dispatch","Dispatch"):starField(item.orderItemId,"buyerConduct","Buyer conduct"))+
+    starField(item.orderItemId,"communication","Communication")+
+    "<label class=\"label\">Written review <span class=\"subtle\">(optional)</span><textarea class=\"textarea\" data-review-comment=\""+C.escapeHtml(item.orderItemId)+"\" maxlength=\"2000\" placeholder=\"Share useful, factual feedback about this transaction.\"></textarea></label><div data-review-status=\""+C.escapeHtml(item.orderItemId)+"\"></div><button type=\"button\" class=\"primary wide\" data-review-submit=\""+C.escapeHtml(item.orderItemId)+"\">Submit verified review</button></div></article>";
+  }).join("")+"</section>");
+ }else{
+  html.push("<div class=\"empty\"><div class=\"empty-icon\">☆</div><h3>No reviews waiting</h3><p>Completed transactions that become eligible for review will appear here.</p></div>");
+ }
+
+ if(submitted.length){
+  html.push("<div class=\"section-head\" style=\"margin-top:18px\"><div><p class=\"eyebrow\">Submitted</p><h2>Your completed reviews</h2></div></div>"+submitted.map(item=>"<article class=\"order-card\"><h3>"+C.escapeHtml(item.partTitle)+"</h3><p class=\"subtle\">Your review of @"+C.escapeHtml(item.counterpartHandle)+" has been submitted.</p></article>").join(""));
+ }
+
+ UI.app.innerHTML=html.join("");
+
+ UI.app.querySelectorAll("[data-review-value]").forEach(button=>button.addEventListener("click",()=>{
+  const id=button.dataset.reviewId;
+  const field=button.dataset.reviewField;
+  const value=Number(button.dataset.reviewValue);
+  if(!id||!field||!value)return;
+  if(!ratings[id])ratings[id]={};
+  ratings[id][field]=value;
+  UI.app.querySelectorAll("[data-review-id=\""+CSS.escape(id)+"\"][data-review-field=\""+CSS.escape(field)+"\"]").forEach(star=>{
+   const active=Number(star.dataset.reviewValue)<=value;
+   star.textContent=active?"★":"☆";
+   star.style.color=active?"#d97706":"#b8b8b0";
+  });
+ }));
+
+ UI.app.querySelectorAll("[data-review-submit]").forEach(button=>button.addEventListener("click",async()=>{
+  const id=button.dataset.reviewSubmit;
+  const item=items.find(value=>value.orderItemId===id);
+  if(!id||!item)return;
+  const values=ratings[id]||{};
+  const status=UI.app.querySelector("[data-review-status=\""+CSS.escape(id)+"\"]");
+  if(!values.overall){
+   if(status)status.innerHTML="<div class=\"status warning\">Choose an overall star rating first.</div>";
+   return;
+  }
+  button.disabled=true;button.textContent="Submitting…";
+  try{
+   await C.api("/reviews",{method:"POST",auth:true,body:{
+    orderItemId:id,
+    overall:values.overall,
+    itemAsDescribed:values.itemAsDescribed||null,
+    dispatch:values.dispatch||null,
+    communication:values.communication||null,
+    buyerConduct:values.buyerConduct||null,
+    comment:String(UI.app.querySelector("[data-review-comment=\""+CSS.escape(id)+"\"]")?.value||"").trim()
+   }});
+   UI.toast("Verified review submitted.");
+   UI.route("reviews");
+  }catch(error){
+   if(status)status.innerHTML="<div class=\"status error\">"+C.escapeHtml(error.message.replaceAll("_"," "))+"</div>";
+   button.disabled=false;button.textContent="Submit verified review";
+  }
+ }));
+};
+
 const member=async(payload)=>{
  if(!payload.handle){UI.route("home");return;}
  UI.loading("Loading member profile");
@@ -348,6 +430,7 @@ const member=async(payload)=>{
 UI.register("account",account);
 UI.register("saved",saved);
 UI.register("notifications",notifications);
+UI.register("reviews",reviews);
 UI.register("member",member);
 UI.register("sellerSetup",sellerSetup);
 UI.register("sellerProfile",sellerProfile);
