@@ -1,24 +1,38 @@
 import Link from "next/link";
-import { CheckCircle2,Clock3 } from "lucide-react";
+import { CheckCircle2,Clock3,ShieldCheck } from "lucide-react";
 import { Header } from "@/components/header";
 import { TransactionReviewForm } from "@/components/transaction-review-form";
+import { VerifiedFitFeedbackForm } from "@/components/verified-fit-feedback-form";
 import { requireUser } from "@/lib/auth";
 import { getReviewOpportunities } from "@/lib/data/reviews";
+import { getFitFeedbackOpportunities } from "@/lib/data/fit-feedback";
 
 export const dynamic="force-dynamic";
 
 export default async function ReviewsPage(){
  await requireUser("/account/reviews");
- const opportunities=await getReviewOpportunities().catch(()=>[]);
+ const [opportunities,fitOpportunities]=await Promise.all([
+  getReviewOpportunities().catch(()=>[]),
+  getFitFeedbackOpportunities().catch(()=>[])
+ ]);
  const pending=opportunities.filter(item=>!item.existingReviewId);
  const submitted=opportunities.filter(item=>Boolean(item.existingReviewId));
+ const fitPending=fitOpportunities.filter(item=>!item.existingResult||item.existingResult==="not_installed");
+ const fitSubmitted=fitOpportunities.filter(item=>item.existingResult&&item.existingResult!=="not_installed");
 
  return <><Header/><main className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
   <p className="text-xs font-black uppercase tracking-[.2em] text-[#287154]">Trust & reputation</p>
-  <h1 className="mt-2 text-4xl font-black tracking-[-.045em]">Transaction reviews</h1>
-  <p className="mt-2 max-w-2xl text-sm leading-6 text-[#63706a]">A review can only be submitted after SecondPart has released the transaction funds. This prevents reviews from people who never completed a real purchase or sale.</p>
+  <h1 className="mt-2 text-3xl font-black tracking-[-.045em] sm:text-4xl">Reviews & fitment</h1>
+  <p className="mt-2 max-w-2xl text-sm leading-6 text-[#63706a]">Transaction reviews build member reputation. Verified fitment feedback separately improves vehicle compatibility data using completed purchases linked to the checkout vehicle.</p>
 
-  <section className="mt-8">
+  {fitOpportunities.length>0&&<section className="mt-8">
+   <div className="flex items-center gap-2"><ShieldCheck size={20} className="text-cyan-800"/><h2 className="text-2xl font-black">Verified fitment feedback</h2></div>
+   <p className="mt-2 max-w-2xl text-sm leading-6 text-[#63706a]">Tell SecondPart whether a purchased part actually fitted the vehicle selected at checkout. These answers become transaction-backed compatibility evidence, not anonymous votes.</p>
+   {fitPending.length>0&&<div className="mt-5 grid gap-5">{fitPending.map(item=><article key={item.orderItemId} className="rounded-3xl border border-cyan-200 bg-white p-5 sm:p-6"><p className="text-xs font-black uppercase tracking-wide text-cyan-900">You bought this part</p><Link href={"/parts/"+item.partSlug} className="mt-1 block text-xl font-black hover:underline">{item.partTitle}</Link><VerifiedFitFeedbackForm opportunity={item}/></article>)}</div>}
+   {fitSubmitted.length>0&&<details className="mt-5 rounded-2xl border border-black/10 bg-white p-4"><summary className="cursor-pointer text-sm font-black">{fitSubmitted.length} submitted fitment confirmation{fitSubmitted.length===1?"":"s"}</summary><div className="mt-4 grid gap-4">{fitSubmitted.map(item=><div key={item.orderItemId} className="rounded-2xl bg-[#f8f7f2] p-4"><p className="font-black">{item.partTitle}</p><VerifiedFitFeedbackForm opportunity={item}/></div>)}</div></details>}
+  </section>}
+
+  <section className="mt-10">
    <div className="flex items-center gap-2"><Clock3 size={20} className="text-[#287154]"/><h2 className="text-2xl font-black">Waiting for your review</h2></div>
    {pending.length?<div className="mt-5 grid gap-5">{pending.map(item=><article key={item.orderItemId} className="rounded-3xl border border-black/10 bg-white p-5 sm:p-6">
     <p className="text-xs font-black uppercase tracking-wide text-[#287154]">{item.direction==="buyer_to_seller"?"You bought this item":"You sold this item"}</p>
