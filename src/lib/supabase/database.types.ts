@@ -1754,6 +1754,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_prepare_transaction_case_refund: {
+        Args: { p_case_id: string; p_notes: string }
+        Returns: boolean
+      }
       admin_reject_transaction_case: {
         Args: { p_case_id: string; p_notes: string }
         Returns: boolean
