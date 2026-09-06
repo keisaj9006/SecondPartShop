@@ -27,7 +27,8 @@ export default async function GaragePage(){
    <Link href="/#marketplace" className="w-fit rounded-full bg-[#173c31] px-5 py-3 text-sm font-black text-white">Add a vehicle</Link>
   </div>
   {vehicles.length?<div className="mt-8 grid gap-4 md:grid-cols-2">{vehicles.map(vehicle=><article key={vehicle.id} className="rounded-3xl border border-black/10 bg-white p-5 shadow-sm">
-   <div className="flex items-start justify-between gap-4">
+   <VehicleVisual make={vehicle.make} model={vehicle.modelFamily} year={vehicle.year} colour={vehicle.colour} variant={vehicle.variant} registration={vehicle.registration} engine={vehicle.engineSizeSimple?vehicle.engineSizeSimple+"cc":null} fuel={vehicle.fuelType}/>
+   <div className="mt-4 flex items-start justify-between gap-4">
     <div className="flex items-start gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#173c31] text-[#d4f44d]"><CarFront size={21}/></span><div>{vehicle.registration&&<p className="text-xs font-black uppercase tracking-[.14em] text-[#287154]">{vehicle.registration}</p>}<h2 className="mt-1 text-xl font-black">{vehicle.make} {vehicle.modelFamily}</h2><p className="mt-1 text-sm text-[#63706a]">{vehicle.year} · {vehicle.variant}{vehicle.engineSizeSimple?` · ${vehicle.engineSizeSimple}cc`:""}{vehicle.fuelType?` · ${vehicle.fuelType}`:""}</p>{vehicle.nickname&&<p className="mt-2 text-sm font-bold">{vehicle.nickname}</p>}</div></div>
     <form action={removeGarageVehicle}><input type="hidden" name="id" value={vehicle.id}/><button aria-label={`Remove ${vehicle.make} ${vehicle.modelFamily} from garage`} className="rounded-full border border-red-200 p-2 text-red-700 hover:bg-red-50"><Trash2 size={17}/></button></form>
    </div>
