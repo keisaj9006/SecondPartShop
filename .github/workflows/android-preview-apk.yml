@@ -32,8 +32,24 @@ jobs:
       - name: Install web dependencies
         run: npm ci
 
-      - name: Install Capacitor 8 toolchain
-        run: npm install --no-save --package-lock=false @capacitor/core@8.5.1 @capacitor/cli@8.5.1 @capacitor/android@8.5.1
+      - name: Install Capacitor 8 toolchain and native plugins
+        run: |
+          npm install --no-save --package-lock=false \
+            @capacitor/core@8.5.1 \
+            @capacitor/cli@8.5.1 \
+            @capacitor/android@8.5.1 \
+            @capacitor/app@8.1.1 \
+            @capacitor/browser@8.0.4 \
+            @capacitor/camera@8.2.4 \
+            @aparajita/capacitor-secure-storage@8.0.0 \
+            esbuild@0.25.9
+          npm pkg set "dependencies.@capacitor/app=8.1.1"
+          npm pkg set "dependencies.@capacitor/browser=8.0.4"
+          npm pkg set "dependencies.@capacitor/camera=8.2.4"
+          npm pkg set "dependencies.@aparajita/capacitor-secure-storage=8.0.0"
+
+      - name: Build native JavaScript bridge
+        run: npx esbuild mobile-native-src/native.ts --bundle --platform=browser --format=iife --target=es2020 --outfile=mobile-shell/native.js
 
       - name: Set up Java 21
         uses: actions/setup-java@v4
