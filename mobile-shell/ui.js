@@ -55,7 +55,7 @@ const route=async(name,payload,options={})=>{
    ||(name==="order"&&button.dataset.nav==="orders")
    ||(["conversation","transactionChat"].includes(name)&&button.dataset.nav==="inbox")
    ||(name==="listingEditor"&&button.dataset.nav==="inventory")
-   ||(["saved","notifications","reviews","cases","sellerSetup","sellerProfile","sellerVerification"].includes(name)&&button.dataset.nav==="account");
+   ||(["saved","notifications","reviews","cases","profile","security","sellerSetup","sellerProfile","sellerVerification"].includes(name)&&button.dataset.nav==="account");
   button.classList.toggle("active",active);
  });
  if(!registry.has(name)){
