@@ -332,26 +332,47 @@ export type Database = {
       }
       order_items: {
         Row: {
+          accepted_at: string | null
+          cancelled_at: string | null
+          delivered_at: string | null
+          dispatched_at: string | null
+          fulfilment_status: string
+          funds_released_at: string | null
           id: string
           order_id: string
           part_id: string
           quantity: number
+          refunded_at: string | null
           seller_id: string
           unit_price_pence: number
         }
         Insert: {
+          accepted_at?: string | null
+          cancelled_at?: string | null
+          delivered_at?: string | null
+          dispatched_at?: string | null
+          fulfilment_status?: string
+          funds_released_at?: string | null
           id?: string
           order_id: string
           part_id: string
           quantity: number
+          refunded_at?: string | null
           seller_id: string
           unit_price_pence: number
         }
         Update: {
+          accepted_at?: string | null
+          cancelled_at?: string | null
+          delivered_at?: string | null
+          dispatched_at?: string | null
+          fulfilment_status?: string
+          funds_released_at?: string | null
           id?: string
           order_id?: string
           part_id?: string
           quantity?: number
+          refunded_at?: string | null
           seller_id?: string
           unit_price_pence?: number
         }
@@ -734,24 +755,30 @@ export type Database = {
       }
       profiles: {
         Row: {
+          bio: string | null
           created_at: string
           display_name: string
+          handle: string
           id: string
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
         }
         Insert: {
+          bio?: string | null
           created_at?: string
           display_name: string
+          handle: string
           id: string
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
         Update: {
+          bio?: string | null
           created_at?: string
           display_name?: string
+          handle?: string
           id?: string
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
@@ -991,6 +1018,7 @@ export type Database = {
           location: string
           owner_id: string | null
           postcode: string | null
+          seller_type: string
           slug: string
           updated_at: string
           verified_at: string | null
@@ -1003,6 +1031,7 @@ export type Database = {
           location: string
           owner_id?: string | null
           postcode?: string | null
+          seller_type?: string
           slug: string
           updated_at?: string
           verified_at?: string | null
@@ -1015,6 +1044,7 @@ export type Database = {
           location?: string
           owner_id?: string | null
           postcode?: string | null
+          seller_type?: string
           slug?: string
           updated_at?: string
           verified_at?: string | null
@@ -1061,6 +1091,79 @@ export type Database = {
           {
             foreignKeyName: "support_requests_profile_id_fkey"
             columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transaction_reviews: {
+        Row: {
+          buyer_conduct_rating: number | null
+          comment: string | null
+          communication_rating: number | null
+          created_at: string
+          direction: string
+          dispatch_rating: number | null
+          id: string
+          item_as_described_rating: number | null
+          order_item_id: string
+          overall_rating: number
+          reviewee_id: string
+          reviewer_id: string
+          status: string
+          visible_at: string
+        }
+        Insert: {
+          buyer_conduct_rating?: number | null
+          comment?: string | null
+          communication_rating?: number | null
+          created_at?: string
+          direction: string
+          dispatch_rating?: number | null
+          id?: string
+          item_as_described_rating?: number | null
+          order_item_id: string
+          overall_rating: number
+          reviewee_id: string
+          reviewer_id: string
+          status?: string
+          visible_at?: string
+        }
+        Update: {
+          buyer_conduct_rating?: number | null
+          comment?: string | null
+          communication_rating?: number | null
+          created_at?: string
+          direction?: string
+          dispatch_rating?: number | null
+          id?: string
+          item_as_described_rating?: number | null
+          order_item_id?: string
+          overall_rating?: number
+          reviewee_id?: string
+          reviewer_id?: string
+          status?: string
+          visible_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_reviews_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_reviews_reviewee_id_fkey"
+            columns: ["reviewee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1339,6 +1442,65 @@ export type Database = {
           id: string
         }[]
       }
+      get_public_member_profile: {
+        Args: { p_handle: string }
+        Returns: {
+          bio: string
+          bought_count: number
+          buyer_rating: number
+          buyer_review_count: number
+          display_name: string
+          handle: string
+          member_since: string
+          profile_id: string
+          seller_id: string
+          seller_name: string
+          seller_rating: number
+          seller_review_count: number
+          seller_slug: string
+          seller_type: string
+          seller_verified: boolean
+          sold_count: number
+        }[]
+      }
+      get_public_member_profile_by_id: {
+        Args: { p_profile_id: string }
+        Returns: {
+          bio: string
+          bought_count: number
+          buyer_rating: number
+          buyer_review_count: number
+          display_name: string
+          handle: string
+          member_since: string
+          profile_id: string
+          seller_id: string
+          seller_name: string
+          seller_rating: number
+          seller_review_count: number
+          seller_slug: string
+          seller_type: string
+          seller_verified: boolean
+          sold_count: number
+        }[]
+      }
+      get_public_member_reviews: {
+        Args: { p_limit?: number; p_profile_id: string }
+        Returns: {
+          buyer_conduct_rating: number
+          comment: string
+          communication_rating: number
+          created_at: string
+          direction: string
+          dispatch_rating: number
+          item_as_described_rating: number
+          overall_rating: number
+          part_title: string
+          review_id: string
+          reviewer_display_name: string
+          reviewer_handle: string
+        }[]
+      }
       import_vehicle_catalogue_batch: {
         Args: {
           p_engines?: Json
@@ -1378,6 +1540,7 @@ export type Database = {
         Args: { p_fitments: Json; p_part_id: string }
         Returns: undefined
       }
+      upgrade_account_to_seller: { Args: never; Returns: boolean }
       vehicle_catalogue_makes: {
         Args: never
         Returns: {
