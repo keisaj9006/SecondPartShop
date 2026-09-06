@@ -46,7 +46,12 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
 
   <label className="text-sm font-bold lg:col-span-2">Listing title<input required minLength={5} name="title" defaultValue={listing?.title??defaultTitle} className={input} placeholder="e.g. Golf Mk7 LED headlight"/></label>
   <label className="text-sm font-bold lg:col-span-2">Description<textarea required minLength={20} rows={5} name="description" defaultValue={listing?.description} className={input} placeholder="Describe condition, testing and what is included."/></label>
-  <label className="text-sm font-bold lg:col-span-2">Donor vehicle <span className="font-normal text-[#63706a]">(optional)</span><select name="donorVehicleId" defaultValue={listing?.donorVehicleId??defaultDonorId??""} className={input}><option value="">Not linked to a donor vehicle</option>{donors.map(donor=><option key={donor.id} value={donor.id}>{donor.registration?donor.registration+" · ":""}{donor.make} {donor.model} · {donor.year}{donor.engineSizeSimple?" · "+donor.engineSizeSimple+"cc":""}</option>)}</select><small className="mt-2 block font-normal text-[#63706a]">Reuse one donor across many listings instead of re-entering the same vehicle details. <a href="/dashboard/donors" className="font-bold underline">Manage donor vehicles</a>.</small></label>
+  <fieldset className="rounded-2xl border border-[#173c31]/15 bg-[#f4f7f2] p-4 lg:col-span-2">
+   <legend className="px-1 text-sm font-black">1. Which vehicle did this part come from?</legend>
+   <p className="mt-1 text-sm leading-6 text-[#63706a]">This is the easiest way to give buyers a useful compatibility signal. A donor vehicle creates a conservative <strong>vehicle-family match</strong>; it never becomes a guaranteed exact fit automatically.</p>
+   <label className="mt-3 block text-sm font-bold">Donor vehicle<select name="donorVehicleId" defaultValue={listing?.donorVehicleId??defaultDonorId??""} className={input}><option value="">No donor / new stock / unknown</option>{donors.map(donor=><option key={donor.id} value={donor.id}>{donor.registration?donor.registration+" · ":""}{donor.make} {donor.model} · {donor.year}{donor.engineSizeSimple?" · "+donor.engineSizeSimple+"cc":""}{donor.fuelType?" · "+donor.fuelType:""}</option>)}</select></label>
+   <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#63706a]"><span>Use one donor across many listings.</span><a href="/dashboard/donors" className="font-black text-[#173c31] underline">{donors.length?"Manage donor vehicles":"+ Add donor vehicle"}</a></div>
+  </fieldset>
 
   <fieldset className="rounded-2xl border border-black/10 bg-[#f8f7f2] p-4 lg:col-span-2">
    <legend className="px-1 text-sm font-black">Part category</legend>
@@ -76,10 +81,13 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
    <label className="text-sm font-bold">Gearbox code<input required name="gearboxCode" defaultValue={listing?.gearboxCode??""} className={input} placeholder="02E"/></label>
   </div>}
 
-  <label className="text-sm font-bold">OE/OEM number<input name="oemNumber" defaultValue={listing?.oemNumber??""} className={input} placeholder="e.g. 02E 300 062"/></label>
-  <label className="text-sm font-bold">Your part number<input name="partNumber" defaultValue={listing?.partNumber??""} className={input}/></label>
-  <label className="text-sm font-bold">Manufacturer / brand<input name="manufacturer" defaultValue={listing?.manufacturer??""} className={input}/></label>
-  <label className="text-sm font-bold">Dispatch time<select name="dispatchDays" defaultValue={listing?.dispatchDays??2} className={input}><option value="0">Same working day</option><option value="1">1 working day</option><option value="2">2 working days</option><option value="3">3 working days</option><option value="5">5 working days</option></select></label>
+  <fieldset className="grid gap-4 rounded-2xl border border-black/10 bg-[#f8f7f2] p-4 lg:col-span-2 sm:grid-cols-2">
+   <div className="sm:col-span-2"><p className="text-sm font-black">2. Identify the part</p><p className="mt-1 text-xs leading-5 text-[#63706a]">Add the numbers you can actually read from the part, label, packaging or supplier record. Do not guess. These identifiers help buyers verify compatibility even when an exact vehicle fitment is not known.</p></div>
+   <label className="text-sm font-bold">OE/OEM number <span className="font-normal text-[#63706a]">(best if available)</span><input name="oemNumber" defaultValue={listing?.oemNumber??""} className={input} placeholder="e.g. 02E 300 062"/></label>
+   <label className="text-sm font-bold">Manufacturer / brand<input name="manufacturer" defaultValue={listing?.manufacturer??""} className={input} placeholder="e.g. Bosch, Valeo, Vauxhall"/></label>
+   <label className="text-sm font-bold">Manufacturer / part number<input name="partNumber" defaultValue={listing?.partNumber??""} className={input} placeholder="Number printed on the part or packaging"/></label>
+   <label className="text-sm font-bold">Dispatch time<select name="dispatchDays" defaultValue={listing?.dispatchDays??2} className={input}><option value="0">Same working day</option><option value="1">1 working day</option><option value="2">2 working days</option><option value="3">3 working days</option><option value="5">5 working days</option></select></label>
+  </fieldset>
   <fieldset className="grid gap-4 rounded-2xl border border-black/10 bg-[#f8f7f2] p-4 lg:col-span-2 sm:grid-cols-2">
    <div className="sm:col-span-2"><p className="text-sm font-black">Collection & delivery</p><p className="mt-1 text-xs text-[#63706a]">Give buyers a realistic seller estimate. This is not a courier guarantee.</p></div>
    <label className="flex items-center gap-3 rounded-xl bg-white p-3 text-sm font-bold"><input type="checkbox" name="collectionAvailable" defaultChecked={listing?.collectionAvailable??false}/>Local collection available</label>
