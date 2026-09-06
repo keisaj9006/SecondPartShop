@@ -25,7 +25,7 @@ const refreshActiveScreen=async()=>{
   await C.loadMe();
   await UI.refreshUserChrome();
  }
- if(["orders","order","inbox","conversation","transactionChat","seller","notifications","saved","garage"].includes(C.state.currentView)){
+ if(["orders","order","inbox","conversation","transactionChat","seller","sellerSales","inventory","notifications","saved","garage"].includes(C.state.currentView)){
   await UI.refreshCurrent();
  }
 };
@@ -77,11 +77,52 @@ const handleCheckoutDeepLink=async(rawUrl)=>{
  }
 };
 
+const handleSellerPaymentDeepLink=async(rawUrl)=>{
+ try{
+  const url=new URL(rawUrl);
+  if(url.protocol!=="secondpart:"||url.hostname!=="seller-payments")return false;
+
+  await C.Native.closeBrowser();
+  await C.initializeSession();
+  if(!C.state.session){
+   C.state.afterAuth="seller";
+   C.state.accountMode="selling";
+   UI.toast("Sign in to continue seller payment setup.");
+   await UI.route("account",{mode:"signin"});
+   return true;
+  }
+
+  let complete=false;
+  try{
+   const result=await C.api("/seller/payments/refresh",{method:"POST",auth:true});
+   complete=Boolean(result.complete);
+  }catch(error){
+   console.warn("Could not refresh seller payment status",error);
+  }
+
+  await C.loadMe();
+  C.state.accountMode="selling";
+  await UI.refreshUserChrome();
+  await UI.route("seller");
+  UI.toast(complete?"Payments & payouts are ready.":"Stripe status refreshed. Complete any remaining payout requirements.");
+  return true;
+ }catch(error){
+  console.error("Seller payment deep-link handling failed",error);
+  return false;
+ }
+};
+
+const handleDeepLink=async(rawUrl)=>{
+ if(await handleCheckoutDeepLink(rawUrl))return true;
+ if(await handleSellerPaymentDeepLink(rawUrl))return true;
+ return false;
+};
+
 const bindNativeListeners=async()=>{
  if(nativeListenersBound)return;
  nativeListenersBound=true;
 
- await C.Native.onUrlOpen(url=>{void handleCheckoutDeepLink(url);});
+ await C.Native.onUrlOpen(url=>{void handleDeepLink(url);});
  await C.Native.onBackButton(()=>{
   void (async()=>{
    const handled=await UI.back();
@@ -114,7 +155,7 @@ const boot=async()=>{
   await bindNativeListeners();
 
   const launchUrl=await C.Native.getLaunchUrl();
-  if(launchUrl&&await handleCheckoutDeepLink(launchUrl))return;
+  if(launchUrl&&await handleDeepLink(launchUrl))return;
 
   await UI.route("home");
  }catch(error){
