@@ -18,10 +18,12 @@ Do not move or reuse that branch for development.
 
 - Never hydrate the full active marketplace to render a result page.
 - Default page size: 24 web listings.
+- Use `limit + 1` on hot result paths to determine `hasMore`; avoid exact `COUNT(*)` on every marketplace page.
 - Mobile APIs must paginate in PostgreSQL/Supabase before returning listing payloads.
 - Text search may rank a bounded candidate ID set first, then hydrate only the current page.
 - Price, delivery and warranty sorting should be performed by PostgreSQL.
-- Distance sorting must not permanently rely on hydrating all listings; seller coordinates should be persisted and distance moved into database-side ranking.
+- Seller postcode is geocoded once on profile save and coordinates are persisted.
+- Distance sorting must run inside PostgreSQL and return only the current page, including compatibility-aware distance sorting.
 
 ## Compatibility
 
@@ -42,9 +44,16 @@ Evidence priority:
 ## Images
 
 - Marketplace cards render one optimized image only.
+- Immutable listing image objects use long-lived cache headers because uploads have UUID paths.
 - Use responsive image sizes and lazy loading.
 - Full galleries load on the listing page, not marketplace search.
 - Long-term seller upload pipeline should create thumbnail / medium / full derivatives and retain the original only when product evidence requires it.
+
+## Public catalogue caches
+
+- Public category data is cached server-side.
+- Vehicle make/model map is cached server-side using a cookie-free public Supabase client.
+- Never place authenticated/session-specific data into a shared cache.
 
 ## Search
 
