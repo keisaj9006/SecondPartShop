@@ -33,7 +33,7 @@ const renderVehicleContext=()=>{
  const vehicle=C.state.activeVehicle;
  if(!vehicle)return "<div class=\"status info\">No vehicle selected. Search all parts or identify your vehicle first.</div>";
  return UI.vehicleVisual(vehicle,true)+
-  "<label class=\"card flat\" style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0;padding:12px\"><input id=\"vehicle-fit-only\" type=\"checkbox\" "+(C.state.vehicleCompatibleOnly?"checked":"")+" style=\"width:20px;height:20px;accent-color:#173c31;margin-top:1px\"/><span><strong style=\"font-size:12px\">Show only parts that fit this vehicle</strong><small style=\"display:block;margin-top:3px;color:#63706a;line-height:1.45\">"+(C.state.vehicleCompatibleOnly?"Only confirmed or same-family matches are shown.":"Showing the full marketplace; compatibility labels stay visible.")+"</small></span></label>"+
+  "<label class=\"card flat\" style=\"display:flex;gap:10px;align-items:flex-start;margin:8px 0;padding:12px\"><input id=\"vehicle-fit-only\" type=\"checkbox\" "+(C.state.vehicleCompatibleOnly?"checked":"")+" style=\"width:20px;height:20px;accent-color:#173c31;margin-top:1px\"/><span><strong style=\"font-size:12px\">Show only parts that fit this vehicle</strong><small style=\"display:block;margin-top:3px;color:#63706a;line-height:1.45\">"+(C.state.vehicleCompatibleOnly?"Only confirmed or same-family matches are shown.":"Showing all parts, including unverified parts that may not fit; compatibility labels stay visible.")+"</small></span></label>"+
   "<div class=\"button-row\"><button id=\"change-vehicle\" class=\"secondary small-button\" type=\"button\">Change vehicle</button><button id=\"clear-vehicle\" class=\"link-button\" type=\"button\">Remove vehicle</button></div>";
 };
 
