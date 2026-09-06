@@ -449,13 +449,19 @@ export async function getSellers():Promise<Seller[]>{if(!isSupabaseConfigured())
 export async function getSellerBySlug(slug:string):Promise<Seller|null>{if(!isSupabaseConfigured())return null;const supabase=await createSupabaseServerClient();const {data}=await supabase.from("sellers").select("id,owner_id,business_name,slug,location,postcode,description,verified_at,seller_type").eq("slug",slug).maybeSingle();return data?sellerFrom(data as RawSeller):null;}
 export async function getSellerListings(sellerId:string,includeInactive=false):Promise<Listing[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();let query=supabase.from("parts").select(selectListing()).eq("seller_id",sellerId).order("updated_at",{ascending:false});if(!includeInactive)query=query.eq("status","active");const {data}=await query;return (data??[]).map(row=>listingFrom(row as unknown as RawListing));}
 
-export async function getSellerListingsPage(sellerId:string,options:{includeInactive?:boolean;offset?:number;limit?:number}={}){
+export async function getSellerListingsPage(sellerId:string,options:{includeInactive?:boolean;offset?:number;limit?:number;query?:string;status?:Listing["status"]|"all"}={}){
  const limit=Math.max(1,Math.min(Math.floor(options.limit??25),100));
  const offset=Math.max(0,Math.floor(options.offset??0));
  if(!isSupabaseConfigured())return {data:[] as Listing[],hasMore:false,offset,limit};
  const supabase=await createSupabaseServerClient();
  let query=supabase.from("parts").select(selectListing()).eq("seller_id",sellerId).order("updated_at",{ascending:false}).order("id");
- if(!options.includeInactive)query=query.eq("status","active");
+ const search=options.query?.trim().slice(0,120);
+ if(search){
+  const escaped=search.replaceAll("%","\\%").replaceAll("_","\\_");
+  query=query.or(`title.ilike.%${escaped}%,oem_number.ilike.%${escaped}%,part_number.ilike.%${escaped}%,manufacturer.ilike.%${escaped}%`);
+ }
+ if(options.status&&options.status!=="all")query=query.eq("status",options.status);
+ else if(!options.includeInactive)query=query.eq("status","active");
  const {data,error}=await query.range(offset,offset+limit);
  if(error)throw new Error("Seller inventory is temporarily unavailable.");
  const raw=data??[];
