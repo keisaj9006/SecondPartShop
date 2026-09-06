@@ -11,15 +11,15 @@ export type PassportReadiness=ListingQuality&{
  totalSignals:number;
 };
 
-export function getPartPassportReadiness(listing:Listing,catalogueFitmentCount=0):PassportReadiness{
+export function getPartPassportReadiness(listing:Listing,catalogueFitmentCount=0,photoCount=listing.images.length):PassportReadiness{
  let score=0;
  const missing:string[]=[];
  let evidenceSignals=0;
  const totalSignals=7;
 
- if(listing.images.length>=3){score+=20;evidenceSignals+=1;}
- else if(listing.images.length===2){score+=14;evidenceSignals+=1;missing.push("Add a third product photo");}
- else if(listing.images.length===1){score+=8;evidenceSignals+=1;missing.push("Add more product photos");}
+ if(photoCount>=3){score+=20;evidenceSignals+=1;}
+ else if(photoCount===2){score+=14;evidenceSignals+=1;missing.push("Add a third product photo");}
+ else if(photoCount===1){score+=8;evidenceSignals+=1;missing.push("Add more product photos");}
  else missing.push("Add real product photos");
 
  if(listing.oemNumber){score+=15;evidenceSignals+=1;}
