@@ -38,7 +38,7 @@ export default async function BuyerOrderDetailPage({params,searchParams}:{params
      <div className="mt-4 grid gap-2 rounded-2xl bg-[#f8f7f2] p-4 text-sm">
       <p className="flex items-center gap-2 font-bold"><PackageCheck size={16}/>{label(item.fulfilmentStatus)}</p>
       <p className="flex items-center gap-2 text-[#56625d]">{item.deliveryMethod==="collection"?"Collection":item.shippingPence>0?"Delivery "+money(item.shippingPence,order.currency):"Free delivery"}</p>
-      {item.trackingNumber&&<p className="flex items-center gap-2 text-[#287154]"><Truck size={16}/>{item.trackingCarrier?item.trackingCarrier+" · ":""}{item.trackingNumber}</p>}
+      {item.trackingNumber&&<p className="flex min-w-0 items-center gap-2 break-all text-[#287154]"><Truck size={16} className="shrink-0"/>{item.trackingCarrier?item.trackingCarrier+" · ":""}{item.trackingNumber}</p>}
      </div>
      <div className="mt-4 flex flex-wrap gap-3 text-xs font-black">
       {order.paymentStatus==="paid"&&<Link href={"/messages/"+item.id} className="inline-flex items-center gap-1 text-[#287154] underline"><MessageSquareText size={14}/>Message seller</Link>}
