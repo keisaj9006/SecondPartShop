@@ -15,6 +15,8 @@ const knownMessage=(message:string)=>{
  if(lower.includes("not available for checkout"))return "This listing is no longer available.";
  if(lower.includes("collection is not available"))return "Collection is not available for this listing.";
  if(lower.includes("not ready to receive"))return "This seller is still completing marketplace payout setup.";
+ if(lower.includes("active checkout reservation for this part"))return "You already have an active checkout for this part. Open Purchases to continue or wait for it to expire.";
+ if(lower.includes("too many active checkout reservations"))return "You already have several active checkouts. Complete or cancel one before reserving another part.";
  return "Checkout could not be started. Please try again.";
 };
 
