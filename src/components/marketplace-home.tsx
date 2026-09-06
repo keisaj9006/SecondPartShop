@@ -24,6 +24,7 @@ const vehicleParams=(filters:MarketplaceFilters)=>{
  if(Number.isFinite(filters.maxPrice))params.set("max",String(filters.maxPrice));
  if(filters.vehicle)params.set("vehicle",filters.vehicle);
  if(filters.vehicleRegistration)params.set("vr",filters.vehicleRegistration);
+ if(filters.vehicleColour)params.set("vc",filters.vehicleColour);
  if(filters.catalogueVariant)params.set("cv",filters.catalogueVariant);
  if(filters.catalogueYear!==undefined)params.set("cy",String(filters.catalogueYear));
  if(filters.catalogueFuel)params.set("cf",filters.catalogueFuel);
@@ -38,6 +39,7 @@ const savedVehicleHref=(vehicle:GarageVehicle,baseParams:Record<string,string>)=
  if(vehicle.fuelType)params.set("cf",vehicle.fuelType);else params.delete("cf");
  if(vehicle.engineSizeSimple!==null)params.set("ce",String(vehicle.engineSizeSimple));else params.delete("ce");
  if(vehicle.registration)params.set("vr",vehicle.registration);else params.delete("vr");
+ if(vehicle.colour)params.set("vc",vehicle.colour);else params.delete("vc");
  params.delete("vehicle");
  return `/?${params.toString()}#marketplace`;
 };
@@ -47,7 +49,7 @@ export function MarketplaceHome({listings,categories,vehicles,catalogueModels,ga
  const selectedCategory=categories.find(category=>category.id===filters.category);
  const baseParams=Object.fromEntries(Object.entries({q:filters.query,category:filters.category,condition:filters.condition,sort:filters.sort,min:filters.minPrice?.toString(),max:filters.maxPrice?.toString()}).filter((entry):entry is [string,string]=>Boolean(entry[1])));
  const activeVehicleLabel=selectedCatalogue
-  ?`${filters.vehicleRegistration?`${filters.vehicleRegistration} · `:""}${selectedCatalogue.make} ${selectedCatalogue.modelFamily} ${selectedCatalogue.year}`
+  ?`${filters.vehicleRegistration?`${filters.vehicleRegistration} · `:""}${selectedCatalogue.make} ${selectedCatalogue.modelFamily} ${selectedCatalogue.year}${filters.vehicleColour?` · ${filters.vehicleColour}`:""}`
   :selectedLegacy?`${selectedLegacy.make} ${selectedLegacy.model} ${selectedLegacy.year}`:undefined;
  const contextQuery=vehicleParams(filters).toString();
  const offerGroups=groupListingsForOffers(listings);
@@ -86,6 +88,7 @@ export function MarketplaceHome({listings,categories,vehicles,catalogueModels,ga
        {selectedCatalogue.fuelType&&<input type="hidden" name="fuel" value={selectedCatalogue.fuelType}/>}
        {selectedCatalogue.engineSizeSimple!==null&&<input type="hidden" name="engine" value={selectedCatalogue.engineSizeSimple}/>}
        {filters.vehicleRegistration&&<input type="hidden" name="registration" value={filters.vehicleRegistration}/>}
+       {filters.vehicleColour&&<input type="hidden" name="colour" value={filters.vehicleColour}/>}
        <button className="rounded-full border border-[#173c31]/20 bg-white px-4 py-2 text-sm font-black">+ Save this vehicle to Garage</button>
       </form>:<Link href="/account?returnTo=%2F" className="text-sm font-black underline">Sign in to save this vehicle</Link>}
      </div>}
