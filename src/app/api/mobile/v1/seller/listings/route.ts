@@ -26,7 +26,7 @@ export async function GET(request:Request){
 
  let query=supabase
   .from("parts")
-  .select("id,slug,title,status,stock,price_pence,condition,testing_status,warranty_days,donor_vehicle_id,source_channel,source_external_id,import_batch_id,created_at,updated_at,part_images(id,storage_path,alt_text,position)")
+  .select("id,slug,title,status,stock,price_pence,condition,testing_status,warranty_days,donor_vehicle_id,source_channel,source_external_id,import_batch_id,created_at,updated_at")
   .eq("seller_id",seller.id)
   .order("updated_at",{ascending:false})
   .order("id");
@@ -44,35 +44,44 @@ export async function GET(request:Request){
  const raw=data??[];
  const hasMore=raw.length>limit;
  const page=raw.slice(0,limit);
+ const ids=page.map(item=>item.id);
+ const {data:coverRows,error:coverError}=ids.length
+  ?await supabase.from("part_images").select("id,part_id,storage_path,alt_text,position").in("part_id",ids).eq("position",0)
+  :{data:[],error:null};
+ if(coverError)return mobileJson(request,{ok:false,error:"inventory_images_unavailable"},503);
+ const covers=new Map((coverRows??[]).map(image=>[image.part_id,image] as const));
 
  const urlBase=process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/,"")??"";
  const publicUrl=(path:string)=>urlBase+"/storage/v1/object/public/part-images/"+path.split("/").map(encodeURIComponent).join("/");
 
  return mobileJson(request,{
   ok:true,
-  items:page.map(item=>({
-   id:item.id,
-   slug:item.slug,
-   title:item.title,
-   status:item.status,
-   stock:item.stock,
-   pricePence:item.price_pence,
-   condition:item.condition,
-   testingStatus:item.testing_status,
-   warrantyDays:item.warranty_days,
-   donorVehicleId:item.donor_vehicle_id,
-   sourceChannel:item.source_channel,
-   sellerReference:item.source_external_id,
-   importBatchId:item.import_batch_id,
-   createdAt:item.created_at,
-   updatedAt:item.updated_at,
-   images:(item.part_images??[]).sort((a,b)=>a.position-b.position).slice(0,1).map(image=>({
-    id:image.id,
-    url:publicUrl(image.storage_path),
-    alt:image.alt_text,
-    position:image.position
-   }))
-  })),
+  items:page.map(item=>{
+   const image=covers.get(item.id);
+   return {
+    id:item.id,
+    slug:item.slug,
+    title:item.title,
+    status:item.status,
+    stock:item.stock,
+    pricePence:item.price_pence,
+    condition:item.condition,
+    testingStatus:item.testing_status,
+    warrantyDays:item.warranty_days,
+    donorVehicleId:item.donor_vehicle_id,
+    sourceChannel:item.source_channel,
+    sellerReference:item.source_external_id,
+    importBatchId:item.import_batch_id,
+    createdAt:item.created_at,
+    updatedAt:item.updated_at,
+    images:image?[{
+     id:image.id,
+     url:publicUrl(image.storage_path),
+     alt:image.alt_text,
+     position:image.position
+    }]:[]
+   };
+  }),
   pagination:{offset,limit,returned:page.length,hasMore}
  });
 }
