@@ -13,7 +13,7 @@ type ThreadRow={
 
 const one=<T>(value:T|T[]|null)=>Array.isArray(value)?value[0]??null:value;
 
-export async function getTransactionThread(orderItemId:string):Promise<TransactionThread|null>{
+export async function getTransactionThread(orderItemId:string,options:{offset?:number;limit?:number}={}):Promise<TransactionThread|null>{
  const supabase=await createSupabaseServerClient();
  const {data:item,error:itemError}=await supabase
   .from("order_items")
@@ -28,14 +28,21 @@ export async function getTransactionThread(orderItemId:string):Promise<Transacti
  const order=one(raw.orders);
  if(!part||!seller||!order)return null;
 
- const {data:messages,error:messageError}=await supabase
+ const offset=Math.max(0,Math.floor(options.offset??0));
+ const limit=Math.max(1,Math.min(Math.floor(options.limit??100),200));
+ const {data:messageRows,error:messageError}=await supabase
   .from("transaction_messages")
   .select("id,sender_profile_id,body,created_at")
   .eq("order_item_id",orderItemId)
-  .order("created_at");
+  .order("created_at",{ascending:false})
+  .order("id",{ascending:false})
+  .range(offset,offset+limit);
+ const rawMessages=messageRows??[];
+ const hasOlder=rawMessages.length>limit;
+ const messages=rawMessages.slice(0,limit).reverse();
  if(messageError)throw new Error("Transaction messages are temporarily unavailable.");
 
- const senderIds=[...new Set((messages??[]).map(message=>message.sender_profile_id))];
+ const senderIds=[...new Set(messages.map(message=>message.sender_profile_id))];
  const senderProfiles=await Promise.all(senderIds.map(id=>getPublicMemberProfileById(id).catch(()=>null)));
  const profiles=new Map(senderProfiles.filter((profile):profile is NonNullable<typeof profile>=>Boolean(profile)).map(profile=>[profile.id,profile]));
 
@@ -47,7 +54,7 @@ export async function getTransactionThread(orderItemId:string):Promise<Transacti
   buyerId:order.buyer_id,
   sellerOwnerId:seller.owner_id,
   paymentStatus:order.payment_status,
-  messages:(messages??[]).map(message=>{
+  messages:messages.map(message=>{
    const profile=profiles.get(message.sender_profile_id);
    return {
     id:message.id,
@@ -57,6 +64,7 @@ export async function getTransactionThread(orderItemId:string):Promise<Transacti
     body:message.body,
     createdAt:message.created_at
    };
-  })
+  }),
+  messagePagination:{offset,limit,hasOlder,hasNewer:offset>0}
  };
 }
