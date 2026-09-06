@@ -58,6 +58,7 @@ Marketplace query parameters mirror the web marketplace where applicable, includ
 - `POST /checkout`
 - `POST /order-items/:orderItemId/receipt`
 - `GET|POST /cases`
+- `GET|POST /cases/:caseId/evidence`
 - `GET /inbox`
 - `GET|POST /inbox/:conversationId`
 - `POST /listings/:partId/question`
@@ -70,6 +71,8 @@ Seller routes require both an authenticated user and an owned seller record with
 - `GET /seller/sales`
 - `POST /seller/order-items/:orderItemId/fulfilment`
 - `GET|POST /seller/cases`
+- `GET /seller/listings`
+- `GET|POST|DELETE /seller/listings/:partId/photos`
 
 ## Commerce rules
 
