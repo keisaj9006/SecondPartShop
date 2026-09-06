@@ -321,6 +321,20 @@ const signUp=async({email,password,displayName,role})=>{
  return payload;
 };
 
+const requestPasswordReset=async(email)=>{
+ const redirectTo=config.webBaseUrl.replace(/\/$/,"")+"/auth/callback?next="+encodeURIComponent("/auth/reset-password");
+ return authFetch("/recover?redirect_to="+encodeURIComponent(redirectTo),{
+  body:{email:String(email).trim().toLowerCase()}
+ });
+};
+
+const resendEmailConfirmation=async(email)=>{
+ const redirectTo=config.webBaseUrl.replace(/\/$/,"")+"/auth/callback?next="+encodeURIComponent("/account");
+ return authFetch("/resend?redirect_to="+encodeURIComponent(redirectTo),{
+  body:{email:String(email).trim().toLowerCase(),type:"signup"}
+ });
+};
+
 const signOut=async()=>{
  const current=await accessToken();
  if(current){
@@ -378,6 +392,8 @@ window.SecondPartCore=Object.freeze({
  authFetch,
  signIn,
  signUp,
+ requestPasswordReset,
+ resendEmailConfirmation,
  signOut,
  refreshSession,
  accessToken,
