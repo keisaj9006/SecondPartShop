@@ -75,6 +75,26 @@ export type TransactionReview={
  partTitle:string;
 };
 
+export type TransactionMessage={
+ id:string;
+ senderProfileId:string;
+ senderHandle:string;
+ senderDisplayName:string;
+ body:string;
+ createdAt:string;
+};
+
+export type TransactionThread={
+ orderItemId:string;
+ partTitle:string;
+ partSlug:string;
+ sellerName:string;
+ buyerId:string;
+ sellerOwnerId:string|null;
+ paymentStatus:string;
+ messages:TransactionMessage[];
+};
+
 export type TransactionCase={
  id:string;
  orderItemId:string;
