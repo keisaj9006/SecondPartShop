@@ -469,7 +469,7 @@ export async function getSellerListingsPage(sellerId:string,options:{includeInac
  const raw=data??[];
  const hasMore=raw.length>limit;
  return {
-  data:raw.slice(0,limit).map(row=>listingFrom({...row,part_images:[],part_fitments:[]} as unknown as RawListing)),
+  data:raw.slice(0,limit).map(row=>{const base=row as unknown as Omit<RawListing,"part_images"|"part_fitments">;return listingFrom({...base,part_images:[],part_fitments:[]} as RawListing);}),
   hasMore,
   offset,
   limit
