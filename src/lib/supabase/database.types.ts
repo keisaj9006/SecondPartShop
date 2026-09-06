@@ -1351,9 +1351,12 @@ export type Database = {
           created_at: string
           details: string
           id: string
-          opened_by: string
+          opened_by: string | null
           order_item_id: string
           previous_fulfilment_status: string
+          provider_dispute_id: string | null
+          provider_dispute_reason: string | null
+          provider_dispute_status: string | null
           provider_refund_id: string | null
           provider_transfer_reversal_id: string | null
           reason: string
@@ -1370,9 +1373,12 @@ export type Database = {
           created_at?: string
           details: string
           id?: string
-          opened_by: string
+          opened_by?: string | null
           order_item_id: string
           previous_fulfilment_status: string
+          provider_dispute_id?: string | null
+          provider_dispute_reason?: string | null
+          provider_dispute_status?: string | null
           provider_refund_id?: string | null
           provider_transfer_reversal_id?: string | null
           reason: string
@@ -1389,9 +1395,12 @@ export type Database = {
           created_at?: string
           details?: string
           id?: string
-          opened_by?: string
+          opened_by?: string | null
           order_item_id?: string
           previous_fulfilment_status?: string
+          provider_dispute_id?: string | null
+          provider_dispute_reason?: string | null
+          provider_dispute_status?: string | null
           provider_refund_id?: string | null
           provider_transfer_reversal_id?: string | null
           reason?: string
@@ -1788,6 +1797,10 @@ export type Database = {
           id: string
         }[]
       }
+      close_provider_payment_dispute: {
+        Args: { p_dispute_id: string; p_event_id: string; p_status: string }
+        Returns: boolean
+      }
       confirm_checkout_paid: {
         Args: {
           p_charge_id: string
@@ -1931,6 +1944,16 @@ export type Database = {
         Returns: {
           part_id: string
         }[]
+      }
+      open_provider_payment_dispute: {
+        Args: {
+          p_charge_id: string
+          p_dispute_id: string
+          p_event_id: string
+          p_reason?: string
+          p_status: string
+        }
+        Returns: string
       }
       open_transaction_case: {
         Args: {
