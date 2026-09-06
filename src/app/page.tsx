@@ -49,7 +49,8 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   catalogueVariant:selectedCatalogue?.variantId,
   catalogueYear:selectedCatalogue?.year,
   catalogueFuel:selectedCatalogue?.fuelType??undefined,
-  catalogueEngineSize:selectedCatalogue?.engineSizeSimple??undefined
+  catalogueEngineSize:selectedCatalogue?.engineSizeSimple??undefined,
+  compatibleOnly:Boolean(selectedCatalogue||isUuid(first(params.vehicle)))&&first(params.fit)!=="0"
  };
  const [result,vehicles,savedIds,catalogueModels,garageVehicles,recentlyViewed]=await Promise.all([
   getListings(filters),
