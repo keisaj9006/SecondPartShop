@@ -4,6 +4,7 @@ import { saveGarageVehicle } from "@/app/garage/actions";
 import type { Category,GarageVehicle,Listing,MarketplaceFilters,Vehicle,VehicleCatalogueModelOption,VehicleCatalogueSelection } from "@/lib/types";
 import { ProductCard } from "./product-card";
 import { VehicleSelector } from "./vehicle-selector";
+import { VehicleVisual } from "./vehicle-visual";
 import { MarketplaceFiltersPanel } from "./marketplace-filters";
 import { MarketplaceSearch } from "./marketplace-search";
 import { PartRequestCard } from "./part-request-card";
@@ -80,6 +81,8 @@ export function MarketplaceHome({listings,categories,vehicles,catalogueModels,ga
      </div>}
 
      <VehicleSelector vehicles={vehicles} catalogueModels={catalogueModels} selectedId={filters.vehicle} selectedCatalogue={selectedCatalogue} baseParams={baseParams}/>
+
+     {selectedCatalogue&&<div className="mt-4"><VehicleVisual make={selectedCatalogue.make} model={selectedCatalogue.modelFamily} year={selectedCatalogue.year} colour={filters.vehicleColour} variant={selectedCatalogue.variant} registration={filters.vehicleRegistration} engine={selectedCatalogue.engineSizeSimple?selectedCatalogue.engineSizeSimple+"cc":null} fuel={selectedCatalogue.fuelType}/></div>}
 
      {selectedCatalogue&&<div className="mt-4 flex flex-wrap items-center gap-3 border-t border-black/10 pt-4">
       {selectedSaved?<><span className="inline-flex items-center gap-2 text-sm font-black text-[#287154]"><Check size={16}/>Saved in your Garage</span><Link href="/garage" className="text-xs font-bold underline">Manage</Link></>:signedIn?<form action={saveGarageVehicle}>
