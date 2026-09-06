@@ -34,11 +34,11 @@ const account=async(payload)=>{
   if(!seller){
    html.push("<section class=\"card\" style=\"margin-top:14px\"><p class=\"eyebrow\">Selling setup</p><h3 style=\"margin:5px 0\">Finish your seller profile</h3><p class=\"subtle\">Your account can still buy parts. Complete seller details to publish listings and receive sales.</p><button id=\"account-finish-selling\" class=\"lime-button wide\" style=\"margin-top:12px\" type=\"button\">Finish seller setup</button></section>");
   }else{
-   html.push("<section class=\"account-grid\" style=\"margin-top:14px\"><button class=\"account-tile\" id=\"account-seller\" type=\"button\"><strong>Seller dashboard</strong><small>Sales, payouts, fulfilment and cases.</small></button><button class=\"account-tile\" id=\"account-inventory\" type=\"button\"><strong>Inventory</strong><small>Create, edit and photograph listings.</small></button><button class=\"account-tile\" id=\"account-inbox\" type=\"button\"><strong>Buyer questions</strong><small>Pre-purchase messages about your parts.</small></button><button class=\"account-tile\" id=\"account-notifications\" type=\"button\"><strong>Seller notifications</strong><small>"+C.escapeHtml(C.state.unreadNotifications)+" unread update(s).</small></button><button class=\"account-tile\" id=\"account-cases\" type=\"button\"><strong>Returns & cases</strong><small>Transaction problems and evidence.</small></button><button class=\"account-tile\" id=\"account-new-listing\" type=\"button\"><strong>Create listing</strong><small>Add a part directly from the app.</small></button></section>");
+   html.push("<section class=\"account-grid\" style=\"margin-top:14px\"><button class=\"account-tile\" id=\"account-seller\" type=\"button\"><strong>Seller dashboard</strong><small>Readiness, sales, payouts, fulfilment and cases.</small></button><button class=\"account-tile\" id=\"account-inventory\" type=\"button\"><strong>Inventory</strong><small>Create, edit and photograph listings.</small></button><button class=\"account-tile\" id=\"account-seller-profile\" type=\"button\"><strong>Seller profile</strong><small>Edit your public seller identity and location.</small></button>"+(seller.sellerType==="business"?"<button class=\"account-tile\" id=\"account-seller-verification\" type=\"button\"><strong>Business verification</strong><small>"+(seller.verified?"Verified business":"Verification status and request")+".</small></button>":"")+"<button class=\"account-tile\" id=\"account-inbox\" type=\"button\"><strong>Buyer questions</strong><small>Pre-purchase messages about your parts.</small></button><button class=\"account-tile\" id=\"account-notifications\" type=\"button\"><strong>Seller notifications</strong><small>"+C.escapeHtml(C.state.unreadNotifications)+" unread update(s).</small></button><button class=\"account-tile\" id=\"account-cases\" type=\"button\"><strong>Returns & cases</strong><small>Transaction problems and evidence.</small></button><button class=\"account-tile\" id=\"account-new-listing\" type=\"button\"><strong>Create listing</strong><small>Add a part directly from the app.</small></button></section>");
   }
  }
 
- if(profile)html.push("<section class=\"card\" style=\"margin-top:12px\"><p class=\"eyebrow\">Account capabilities</p><div class=\"spec-grid\"><div class=\"spec\"><small>Buying</small><strong>Enabled</strong></div><div class=\"spec\"><small>Selling</small><strong>"+(sellingEnabled?"Enabled":"Not enabled")+"</strong></div></div>"+(seller?"<div class=\"status "+(seller.verified?"success":"info")+"\" style=\"margin-top:10px\">"+C.escapeHtml(seller.businessName)+" · "+(seller.verified?"Verified seller":"Seller verification pending / not completed")+"</div>":"")+"</section>");
+ if(profile)html.push("<section class=\"card\" style=\"margin-top:12px\"><p class=\"eyebrow\">Account capabilities</p><div class=\"spec-grid\"><div class=\"spec\"><small>Buying</small><strong>Enabled</strong></div><div class=\"spec\"><small>Selling</small><strong>"+(sellingEnabled?"Enabled":"Not enabled")+"</strong></div></div>"+(seller?"<div class=\"status "+(seller.verified?"success":"info")+"\" style=\"margin-top:10px\">"+C.escapeHtml(seller.businessName)+" · "+(seller.verified?"Verified business":seller.sellerType==="business"?"Business verification not complete":"Private seller profile")+"</div>":"")+"</section>");
 
  html.push("<div class=\"button-row\" style=\"margin-top:14px\"><button id=\"account-web\" class=\"secondary small-button\" type=\"button\">Profile & security on web</button><button id=\"account-signout\" class=\"danger-button small-button\" type=\"button\">Sign out</button></div>");
  UI.app.innerHTML=html.join("");
@@ -53,6 +53,8 @@ const account=async(payload)=>{
  const inbox=document.getElementById("account-inbox");if(inbox)inbox.addEventListener("click",()=>UI.route("inbox"));
  const sellerButton=document.getElementById("account-seller");if(sellerButton)sellerButton.addEventListener("click",()=>UI.route("seller"));
  const inventory=document.getElementById("account-inventory");if(inventory)inventory.addEventListener("click",()=>UI.route("inventory"));
+ const sellerProfileButton=document.getElementById("account-seller-profile");if(sellerProfileButton)sellerProfileButton.addEventListener("click",()=>UI.route("sellerProfile"));
+ const sellerVerificationButton=document.getElementById("account-seller-verification");if(sellerVerificationButton)sellerVerificationButton.addEventListener("click",()=>UI.route("sellerVerification"));
  const newListing=document.getElementById("account-new-listing");if(newListing)newListing.addEventListener("click",()=>UI.route("listingEditor"));
  const startSelling=document.getElementById("account-start-selling");if(startSelling)startSelling.addEventListener("click",()=>UI.route("sellerSetup"));
  const finishSelling=document.getElementById("account-finish-selling");if(finishSelling)finishSelling.addEventListener("click",()=>UI.route("sellerSetup"));
@@ -163,6 +165,89 @@ const sellerSetup=async()=>{
  });
 };
 
+const sellerProfile=async()=>{
+ if(!await UI.requireAuth("sellerProfile"))return;
+ if(!C.state.me)await C.loadMe();
+ if(!C.state.me?.seller){UI.route("sellerSetup");return;}
+
+ UI.loading("Loading seller profile");
+ let seller;
+ try{seller=(await C.api("/seller/profile",{auth:true})).seller;}
+ catch(error){UI.empty("○","Seller profile unavailable",error.message,"Back",()=>UI.route("account",{view:"selling"}));return;}
+ if(!seller){UI.route("sellerSetup");return;}
+
+ UI.app.innerHTML="<button class=\"back\" id=\"seller-profile-back\" type=\"button\">‹ Back to Selling</button><section class=\"auth-card\"><p class=\"eyebrow\">Seller settings</p><h1 style=\"font-size:28px;margin:5px 0\">Edit seller profile</h1><p class=\"subtle\">These details are public and help buyers understand who they are buying from.</p>"+(seller.verified?"<div class=\"status warning\" style=\"margin-top:12px\"><strong>Verified business</strong><div style=\"margin-top:3px\">Changing seller type, seller name, town/city or postcode removes the verified badge until the updated identity is reviewed again.</div></div>":"")+"<form id=\"seller-profile-form\" class=\"form-grid\" style=\"margin-top:16px\"><label class=\"label\">Seller type<select id=\"sp-type\" class=\"select\"><option value=\"private\">Private seller</option><option value=\"business\">Business / garage / breaker</option></select></label><label class=\"label\">Seller / business name<input id=\"sp-name\" class=\"input\" minlength=\"2\" maxlength=\"140\" required value=\""+C.escapeHtml(seller.businessName||"")+"\"></label><label class=\"label\">Town or city<input id=\"sp-location\" class=\"input\" maxlength=\"140\" required value=\""+C.escapeHtml(seller.location||"")+"\"></label><label class=\"label\">Postcode <span class=\"subtle\">(optional)</span><input id=\"sp-postcode\" class=\"input\" maxlength=\"20\" value=\""+C.escapeHtml(seller.postcode||"")+"\"></label><label class=\"label\">About the seller<textarea id=\"sp-description\" class=\"textarea\" minlength=\"20\" maxlength=\"2000\" required>"+C.escapeHtml(seller.description||"")+"</textarea></label><div id=\"seller-profile-status\"></div><button id=\"seller-profile-save\" class=\"primary wide\" type=\"submit\">Save seller profile</button></form></section>";
+ document.getElementById("sp-type").value=seller.sellerType||"private";
+ document.getElementById("seller-profile-back").addEventListener("click",()=>UI.route("account",{view:"selling"}));
+ document.getElementById("seller-profile-form").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const button=document.getElementById("seller-profile-save");
+  const status=document.getElementById("seller-profile-status");
+  button.disabled=true;button.textContent="Saving…";
+  try{
+   const result=await C.api("/seller/profile",{method:"PATCH",auth:true,body:{
+    sellerType:document.getElementById("sp-type").value,
+    businessName:String(document.getElementById("sp-name").value||"").trim(),
+    location:String(document.getElementById("sp-location").value||"").trim(),
+    postcode:String(document.getElementById("sp-postcode").value||"").trim(),
+    description:String(document.getElementById("sp-description").value||"").trim()
+   }});
+   await C.loadMe();
+   const stillVerified=Boolean(result.seller?.verified);
+   UI.toast(stillVerified?"Seller profile saved.":"Seller profile saved.");
+   if(seller.verified&&!stillVerified)UI.toast("Identity details changed. Business verification needs to be reviewed again.","warning");
+   UI.route("sellerProfile");
+  }catch(error){
+   status.innerHTML="<div class=\"status error\">"+C.escapeHtml(error.message.replaceAll("_"," "))+"</div>";
+   button.disabled=false;button.textContent="Save seller profile";
+  }
+ });
+};
+
+const sellerVerification=async()=>{
+ if(!await UI.requireAuth("sellerVerification"))return;
+ if(!C.state.me)await C.loadMe();
+ if(!C.state.me?.seller){UI.route("sellerSetup");return;}
+
+ UI.loading("Loading verification");
+ let result;
+ try{result=await C.api("/seller/verification",{auth:true});}
+ catch(error){UI.empty("✓","Verification unavailable",error.message,"Back",()=>UI.route("account",{view:"selling"}));return;}
+
+ const request=result.request;
+ const html=[];
+ html.push("<button class=\"back\" id=\"seller-verification-back\" type=\"button\">‹ Back to Selling</button>");
+ html.push("<section class=\"account-hero\"><p class=\"eyebrow\" style=\"color:#d4f44d\">Seller trust</p><h1>Business verification</h1><p>Manual SecondPart review for businesses, garages and breakers.</p></section>");
+
+ if(result.sellerType!=="business"){
+  html.push("<section class=\"card\" style=\"margin-top:12px\"><div class=\"status info\"><strong>Not applicable to a private seller</strong><div style=\"margin-top:3px\">Private sellers can sell without a business badge. Change seller type only if you operate as a business, garage or breaker.</div></div><button id=\"verification-profile\" class=\"secondary wide\" style=\"margin-top:12px\" type=\"button\">Edit seller profile</button></section>");
+ }else if(result.verified){
+  html.push("<section class=\"card\" style=\"margin-top:12px\"><div class=\"status success\"><strong>✓ Verified business</strong><div style=\"margin-top:3px\">Your public seller profile can display the SecondPart verified badge.</div></div></section>");
+ }else if(request?.status==="pending"){
+  html.push("<section class=\"card\" style=\"margin-top:12px\"><div class=\"status warning\"><strong>Review pending</strong><div style=\"margin-top:3px\">Requested "+C.escapeHtml(C.dateOnly(request.requestedAt))+". No verified badge is shown until the request is approved.</div></div>"+(request.message?"<p class=\"subtle\" style=\"margin-top:10px\">Your note: "+C.escapeHtml(request.message)+"</p>":"")+"</section>");
+ }else{
+  html.push("<section class=\"auth-card\" style=\"margin-top:12px\">"+(request?.status==="rejected"?"<div class=\"status error\"><strong>Previous request was not approved</strong>"+(request.reviewNote?"<div style=\"margin-top:3px\">"+C.escapeHtml(request.reviewNote)+"</div>":"")+"</div>":"")+"<h3 style=\"margin:12px 0 4px\">Request manual verification</h3><p class=\"subtle\">Verification is a trust badge, not a requirement for Stripe payouts. SecondPart reviews the business identity separately.</p><form id=\"seller-verification-form\" class=\"form-grid\" style=\"margin-top:14px\"><label class=\"label\">Anything we should know? <span class=\"subtle\">(optional)</span><textarea id=\"verification-message\" class=\"textarea\" maxlength=\"500\" placeholder=\"Registered business name, specialist area or information that helps us review the profile.\"></textarea></label><div id=\"verification-status\"></div><button id=\"verification-submit\" class=\"primary wide\" type=\"submit\">Request verification</button></form></section>");
+ }
+ UI.app.innerHTML=html.join("");
+ document.getElementById("seller-verification-back").addEventListener("click",()=>UI.route("account",{view:"selling"}));
+ const profileButton=document.getElementById("verification-profile");if(profileButton)profileButton.addEventListener("click",()=>UI.route("sellerProfile"));
+ const form=document.getElementById("seller-verification-form");
+ if(form)form.addEventListener("submit",async event=>{
+  event.preventDefault();
+  const button=document.getElementById("verification-submit");
+  const status=document.getElementById("verification-status");
+  button.disabled=true;button.textContent="Submitting…";
+  try{
+   await C.api("/seller/verification",{method:"POST",auth:true,body:{message:String(document.getElementById("verification-message").value||"").trim()}});
+   UI.toast("Verification request submitted for manual review.");
+   UI.route("sellerVerification");
+  }catch(error){
+   status.innerHTML="<div class=\"status error\">"+C.escapeHtml(error.message.replaceAll("_"," "))+"</div>";
+   button.disabled=false;button.textContent="Request verification";
+  }
+ });
+};
+
 const saved=async()=>{
  if(!await UI.requireAuth("saved"))return;
  UI.loading("Loading saved parts");
@@ -265,4 +350,6 @@ UI.register("saved",saved);
 UI.register("notifications",notifications);
 UI.register("member",member);
 UI.register("sellerSetup",sellerSetup);
+UI.register("sellerProfile",sellerProfile);
+UI.register("sellerVerification",sellerVerification);
 })();
