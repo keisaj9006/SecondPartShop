@@ -1385,9 +1385,13 @@ export type Database = {
           created_at: string
           description: string
           id: string
+          latitude: number | null
           location: string
+          longitude: number | null
           owner_id: string | null
           postcode: string | null
+          postcode_geocode_approximate: boolean
+          postcode_geocoded_at: string | null
           seller_type: string
           slug: string
           updated_at: string
@@ -1398,9 +1402,13 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          latitude?: number | null
           location: string
+          longitude?: number | null
           owner_id?: string | null
           postcode?: string | null
+          postcode_geocode_approximate?: boolean
+          postcode_geocoded_at?: string | null
           seller_type?: string
           slug: string
           updated_at?: string
@@ -1411,9 +1419,13 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          latitude?: number | null
           location?: string
+          longitude?: number | null
           owner_id?: string | null
           postcode?: string | null
+          postcode_geocode_approximate?: boolean
+          postcode_geocoded_at?: string | null
           seller_type?: string
           slug?: string
           updated_at?: string
@@ -2288,6 +2300,32 @@ export type Database = {
           part_id: string
         }[]
       }
+      marketplace_catalogue_distance_page: {
+        Args: {
+          p_buyer_lat: number
+          p_buyer_lon: number
+          p_category_ids?: string[]
+          p_collection_only?: boolean
+          p_compatible_only?: boolean
+          p_condition?: string
+          p_engine?: number
+          p_fuel?: string
+          p_limit?: number
+          p_max_price_pence?: number
+          p_min_price_pence?: number
+          p_offset?: number
+          p_part_ids?: string[]
+          p_variant_id: string
+          p_year: number
+        }
+        Returns: {
+          confidence: string
+          distance_approximate: boolean
+          distance_miles: number
+          part_id: string
+          total_count: number
+        }[]
+      }
       marketplace_catalogue_page: {
         Args: {
           p_category_ids?: string[]
@@ -2306,6 +2344,26 @@ export type Database = {
         }
         Returns: {
           confidence: string
+          part_id: string
+          total_count: number
+        }[]
+      }
+      marketplace_distance_page: {
+        Args: {
+          p_buyer_lat: number
+          p_buyer_lon: number
+          p_category_ids?: string[]
+          p_collection_only?: boolean
+          p_condition?: string
+          p_limit?: number
+          p_max_price_pence?: number
+          p_min_price_pence?: number
+          p_offset?: number
+          p_part_ids?: string[]
+        }
+        Returns: {
+          distance_approximate: boolean
+          distance_miles: number
           part_id: string
           total_count: number
         }[]
