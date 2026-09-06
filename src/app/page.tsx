@@ -9,6 +9,7 @@ import { normalizeRegistration } from "@/lib/vehicle-registration";
 import { enrichListingsWithDistance,normalizePostcode } from "@/lib/postcode";
 import type { MarketplaceFilters,MarketplaceSort,PartCondition } from "@/lib/types";
 import { sortMarketplaceListings } from "@/lib/marketplace-sort";
+import { isUuid } from "@/lib/identifiers";
 
 export const dynamic="force-dynamic";
 
@@ -20,7 +21,7 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
  const condition=first(params.condition);
  const requestedSort=first(params.sort);
  const sort=(["best","price_asc","price_desc","distance","delivery","warranty"] as string[]).includes(requestedSort??"")?requestedSort as MarketplaceSort:"best";
- const requestedCatalogueVariant=first(params.cv);
+ const requestedCatalogueVariant=isUuid(first(params.cv))?first(params.cv):undefined;
  const requestedCatalogueYear=integer(first(params.cy));
  const requestedCatalogueFuel=first(params.cf);
  const requestedCatalogueEngine=integer(first(params.ce));
@@ -41,7 +42,7 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   maxPrice:first(params.max)?Number(first(params.max)):undefined,
   postcode,
   collectionOnly:first(params.collection)==="1",
-  vehicle:first(params.vehicle),
+  vehicle:isUuid(first(params.vehicle))?first(params.vehicle):undefined,
   vehicleRegistration:vehicleRegistration||undefined,
   catalogueVariant:selectedCatalogue?.variantId,
   catalogueYear:selectedCatalogue?.year,
