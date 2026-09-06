@@ -33,7 +33,7 @@ export function MarketplaceFiltersPanel({filters}:{filters:MarketplaceFilters}){
 
   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto_auto]">
    <label className="text-xs font-black uppercase tracking-[.08em] text-[#63706a]">Sort<select name="sort" defaultValue={filters.sort??"best"} className={"mt-1.5 "+input}><option value="best">Best match</option><option value="price_asc">Price: low to high</option><option value="price_desc">Price: high to low</option><option value="distance">Nearest first</option><option value="delivery">Fastest delivery</option><option value="warranty">Longest warranty</option></select></label>
-   <label className="text-xs font-black uppercase tracking-[.08em] text-[#63706a]">Condition<select name="condition" defaultValue={filters.condition??""} className={"mt-1.5 "+input}><option value="">Any condition</option><option value="new">New</option><option value="reconditioned">Reconditioned</option><option value="used">Used</option></select></label>
+   <label className="text-xs font-black uppercase tracking-[.08em] text-[#63706a]">Condition<select name="condition" defaultValue={filters.condition??""} className={"mt-1.5 "+input}><option value="">Any condition</option><option value="new">Used</option><option value="new">New</option><option value="reconditioned">Remanufactured / professionally refurbished</option></select></label>
    <button className="self-end rounded-xl bg-[#173c31] px-5 py-3 text-sm font-black text-white">Apply</button>
    <Link href={resetHref} className="grid self-end place-items-center rounded-xl border border-black/12 px-5 py-3 text-sm font-bold">Reset</Link>
   </div>
