@@ -148,6 +148,25 @@ const boot=async()=>{
   if(C.state.session)await C.loadMe();
   await UI.refreshUserChrome();
   if(C.state.session){
+   if(!C.state.activeVehicle){
+    try{
+     const garage=(await C.apiCached("/garage",{auth:true,maxAge:60000})).items||[];
+     if(garage.length===1){
+      const item=garage[0];
+      C.setActiveVehicle({
+       variantId:item.catalogueVariantId,
+       year:item.year,
+       fuelType:item.fuelType,
+       engineSizeSimple:item.engineSizeSimple,
+       make:item.make,
+       modelFamily:item.modelFamily,
+       variant:item.variant,
+       registration:item.registration,
+       colour:item.colour
+      },{compatibleOnly:true});
+     }
+    }catch(error){console.warn("Could not restore Garage vehicle",error);}
+   }
    C.prefetch("/garage",{auth:true,maxAge:60000});
    C.prefetch("/notifications",{auth:true,maxAge:20000});
   }
