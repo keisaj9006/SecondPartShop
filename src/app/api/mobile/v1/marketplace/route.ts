@@ -1,5 +1,5 @@
 import { getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
-import { getListings } from "@/lib/data/marketplace";
+import { getListings,getMarketplacePage } from "@/lib/data/marketplace";
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions } from "@/lib/mobile-api";
 import { sortMarketplaceListings } from "@/lib/marketplace-sort";
@@ -55,24 +55,31 @@ export async function GET(request:Request){
   compatibleOnly:Boolean(selectedCatalogue)&&url.searchParams.get("fit")!=="0"
  };
 
- const result=await getListings(filters);
- if(result.error)return mobileJson(request,{ok:false,error:"marketplace_unavailable",message:result.error},503);
- const withDistance=await enrichListingsWithDistance(result.data,postcode);
- const sorted=sortMarketplaceListings(withDistance,sort);
  const limit=Math.max(1,Math.min(integer(url.searchParams.get("limit"))??40,100));
  const offset=Math.max(0,integer(url.searchParams.get("offset"))??0);
- const page=sorted.slice(offset,offset+limit);
+
+ if(sort==="distance"){
+  const result=await getListings(filters);
+  if(result.error)return mobileJson(request,{ok:false,error:"marketplace_unavailable",message:result.error},503);
+  const withDistance=await enrichListingsWithDistance(result.data,postcode);
+  const sorted=sortMarketplaceListings(withDistance,sort);
+  const page=sorted.slice(offset,offset+limit);
+  return mobileJson(request,{
+   ok:true,
+   items:page,
+   pagination:{offset,limit,returned:page.length,total:sorted.length,hasMore:offset+page.length<sorted.length},
+   vehicle:selectedCatalogue
+  });
+ }
+
+ const result=await getMarketplacePage(filters,{offset,limit});
+ if(result.error)return mobileJson(request,{ok:false,error:"marketplace_unavailable",message:result.error},503);
+ const withDistance=await enrichListingsWithDistance(result.data,postcode);
 
  return mobileJson(request,{
   ok:true,
-  items:page,
-  pagination:{
-   offset,
-   limit,
-   returned:page.length,
-   total:sorted.length,
-   hasMore:offset+page.length<sorted.length
-  },
+  items:withDistance,
+  pagination:result.pagination,
   vehicle:selectedCatalogue
  });
 }
