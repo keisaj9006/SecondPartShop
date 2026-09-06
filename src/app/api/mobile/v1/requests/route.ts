@@ -13,12 +13,19 @@ export async function GET(request:Request){
  const auth=await requireMobileUser(request);
  if(!auth.context)return auth.response;
  const {user,supabase}=auth.context;
- const {data,error}=await supabase
-  .from("part_requests")
-  .select("id,query_text,oem_number,notes,status,registration,year,fuel_type,engine_size_simple,created_at,categories(name),vehicle_catalogue_variants(make,model_family,variant)")
-  .eq("profile_id",user.id)
-  .order("created_at",{ascending:false});
- if(error)return mobileJson(request,{ok:false,error:"part_requests_unavailable"},503);
+ const [{data,error},{data:matchRows,error:matchError}]=await Promise.all([
+  supabase
+   .from("part_requests")
+   .select("id,query_text,oem_number,notes,status,registration,year,fuel_type,engine_size_simple,created_at,categories(name),vehicle_catalogue_variants(make,model_family,variant)")
+   .eq("profile_id",user.id)
+   .order("created_at",{ascending:false}),
+  supabase.rpc("buyer_part_request_match_counts")
+ ]);
+ if(error||matchError)return mobileJson(request,{ok:false,error:"part_requests_unavailable"},503);
+ const matchMap=new Map((matchRows??[]).map(row=>[row.request_id,{
+  matching:Number(row.matching_seller_count??0),
+  verified:Number(row.verified_seller_count??0)
+ }] as const));
 
  return mobileJson(request,{ok:true,items:(data??[]).map(row=>{
   const category=one(row.categories);
@@ -37,7 +44,9 @@ export async function GET(request:Request){
    categoryName:category?.name??null,
    vehicleLabel:vehicle
     ?[vehicle.make+" "+vehicle.model_family,row.year?String(row.year):null,row.engine_size_simple?String(row.engine_size_simple)+"cc":null,row.fuel_type].filter(Boolean).join(" · ")
-    :null
+    :null,
+   matchingSellerCount:matchMap.get(row.id)?.matching??0,
+   verifiedSellerCount:matchMap.get(row.id)?.verified??0
   };
  })});
 }
