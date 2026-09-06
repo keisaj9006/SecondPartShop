@@ -2,7 +2,7 @@ import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { getCategoryPath } from "@/lib/category-tree";
-import { getCompatibilityMap } from "@/lib/data/compatibility";
+import { compatibilityInfo,getCompatibilityMap } from "@/lib/data/compatibility";
 import type { Category,Fitment,Listing,ListingImage,MarketplaceFilters,SearchSuggestionGroups,Seller,Vehicle,VehicleDataStatus } from "@/lib/types";
 
 export type DataResult<T>={data:T;error:string|null;configured:boolean};
@@ -29,14 +29,17 @@ export async function getListings(filters:MarketplaceFilters={}):Promise<DataRes
  const supabase=await createSupabaseServerClient();
  let allowedPartIds:string[]|undefined;
  let compatibilityMap:Awaited<ReturnType<typeof getCompatibilityMap>>|undefined;
- if(filters.vehicle||filters.catalogueVariant){
+ const hasVehicleContext=Boolean(filters.vehicle||filters.catalogueVariant);
+ if(hasVehicleContext){
   try{
    compatibilityMap=await getCompatibilityMap(filters);
   }catch{
    return failure([],"Compatibility data is temporarily unavailable.");
   }
-  allowedPartIds=[...compatibilityMap.keys()];
-  if(!allowedPartIds.length)return {data:[],error:null,configured:true};
+  if(filters.compatibleOnly!==false){
+   allowedPartIds=[...compatibilityMap.keys()];
+   if(!allowedPartIds.length)return {data:[],error:null,configured:true};
+  }
  }
 
  let rankedIds:string[]|undefined;
@@ -76,7 +79,7 @@ export async function getListings(filters:MarketplaceFilters={}):Promise<DataRes
  if(error)return failure([],"Marketplace listings are temporarily unavailable.");
  const listings=(data??[]).map(row=>{
   const item=listingFrom(row as unknown as RawListing);
-  return {...item,compatibility:compatibilityMap?.get(item.id)??null};
+  return {...item,compatibility:hasVehicleContext?(compatibilityMap?.get(item.id)??compatibilityInfo("unverified")):null};
  });
  const searchRank=rankedIds?new Map(rankedIds.map((id,index)=>[id,index])):null;
  const compatibilityRank=(level:string|undefined)=>level==="confirmed"?2:level==="family_match"?1:0;
