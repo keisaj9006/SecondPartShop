@@ -70,11 +70,13 @@ export async function createCheckoutSession(input:{
  deliveryMethod:"shipping"|"collection";
  customerEmail?:string|null;
  expiresAt:string;
+ successUrl?:string;
+ cancelUrl?:string;
 }){
  const body=new URLSearchParams();
  append(body,"mode","payment");
- append(body,"success_url",`${getAppUrl()}/checkout/success?order=${encodeURIComponent(input.orderId)}&session_id={CHECKOUT_SESSION_ID}`);
- append(body,"cancel_url",`${getAppUrl()}/checkout/cancel?order=${encodeURIComponent(input.orderId)}`);
+ append(body,"success_url",input.successUrl??`${getAppUrl()}/checkout/success?order=${encodeURIComponent(input.orderId)}&session_id={CHECKOUT_SESSION_ID}`);
+ append(body,"cancel_url",input.cancelUrl??`${getAppUrl()}/checkout/cancel?order=${encodeURIComponent(input.orderId)}`);
  append(body,"client_reference_id",input.orderId);
  append(body,"customer_email",input.customerEmail);
  append(body,"metadata[order_id]",input.orderId);
