@@ -18,6 +18,7 @@ export async function saveGarageVehicle(formData:FormData){
  const rawRegistration=text(formData.get("registration"));
  const registration=rawRegistration?normalizeRegistration(rawRegistration):null;
  const nickname=text(formData.get("nickname")).slice(0,50)||null;
+ const colour=text(formData.get("colour")).slice(0,40)||null;
  if(!variantId||!Number.isInteger(year))return;
  if(registration&&!isPlausibleUkRegistration(registration))return;
  const selection=await getCatalogueSelection(variantId,year,fuel,Number.isInteger(engine)?engine:undefined);
@@ -25,11 +26,11 @@ export async function saveGarageVehicle(formData:FormData){
  const supabase=await createSupabaseServerClient();
  const {data:existing}=await supabase
   .from("garage_vehicles")
-  .select("id,registration,fuel_type,engine_size_simple")
+  .select("id,registration,fuel_type,engine_size_simple,colour,nickname")
   .eq("profile_id",user.id)
   .eq("catalogue_variant_id",variantId)
   .eq("year",year);
- const duplicate=(existing??[]).some(row=>
+ const duplicate=(existing??[]).find(row=>
   (row.registration??null)===(registration??null)&&
   (row.fuel_type??null)===(selection.fuelType??null)&&
   (row.engine_size_simple??null)===(selection.engineSizeSimple??null)
@@ -42,8 +43,14 @@ export async function saveGarageVehicle(formData:FormData){
    year,
    fuel_type:selection.fuelType,
    engine_size_simple:selection.engineSizeSimple,
+   colour,
    nickname
   });
+ }else if((colour&&!duplicate.colour)||(nickname&&!duplicate.nickname)){
+  await supabase.from("garage_vehicles").update({
+   colour:duplicate.colour??colour,
+   nickname:duplicate.nickname??nickname
+  }).eq("id",duplicate.id).eq("profile_id",user.id);
  }
  revalidatePath("/");
  revalidatePath("/garage");
