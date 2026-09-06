@@ -70,7 +70,7 @@ export default async function BulkImportPage(){
     {recent.map(item=><div key={item.id} className="grid gap-2 border-b border-black/8 p-4 last:border-0 sm:grid-cols-[1fr_110px_190px] sm:items-center">
      <div><p className="font-black">{item.filename||"CSV import"}</p><p className="mt-1 text-xs text-[#63706a]">{new Date(item.created_at).toLocaleString("en-GB")}</p></div>
      <span className={"w-fit rounded-full px-2.5 py-1 text-xs font-black capitalize "+(item.status==="completed"?"bg-emerald-50 text-emerald-800":item.status==="partial"?"bg-amber-50 text-amber-900":"bg-red-50 text-red-800")}>{item.status}</span>
-     <p className="text-sm"><strong>{item.rows_created}</strong> created · <strong>{item.rows_rejected}</strong> rejected · {item.rows_received} rows</p>
+     <div className="flex items-center justify-between gap-3"><p className="text-sm"><strong>{item.rows_created}</strong> created · <strong>{item.rows_rejected}</strong> rejected · {item.rows_received} rows</p>{item.rows_created>0&&<Link href={"/dashboard?inventoryStatus=draft&importBatch="+item.id} className="shrink-0 text-xs font-black underline">Open drafts</Link>}</div>
     </div>)}
    </div>:<p className="mt-3 text-sm text-[#63706a]">No CSV imports yet.</p>}
   </section>
