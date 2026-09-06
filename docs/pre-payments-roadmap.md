@@ -82,15 +82,23 @@ Validated against the real Supabase project and current `rebuild-nextjs` source:
 - seller demand-lead storage contains request/part/vehicle context but no buyer profile ID, email or registration
 - saved-search vehicle notifications now use the same legacy/catalogue compatibility resolver as marketplace results
 - CI lint, typecheck and production build pass on QA-fix commits
+- malformed vehicle UUIDs in marketplace/product/compare URLs are ignored instead of crashing SSR
+- auth/report return paths use one same-origin redirect sanitizer, including backslash open-redirect protection
+- public marketplace database failures no longer expose raw Postgres/Supabase errors
+- marketplace/product/compare remain usable when vehicle-catalogue or compatibility enrichment is temporarily unavailable
+- mobile static pass: product gallery height reduced on small screens and active vehicle chip now retains the selected registration
+- buyer redirected from seller/admin-only routes now gets a clear access explanation and seller-upgrade CTA
+- public Sellers empty state no longer exposes development/setup instructions
 
 ### Fresh Preview visual/browser acceptance — PENDING
 
-A fresh Vercel Preview must still be tested on desktop and mobile for buyer, seller and admin interaction/visual behaviour before commerce starts. The currently connected Vercel integration does not have access to the original project team scope, so browser-level Preview QA requires that Vercel scope to be re-authorized.
+A fresh Vercel Preview must still be tested on desktop and mobile for buyer, seller and admin interaction/visual behaviour before commerce starts. The currently connected Vercel plugin is enabled but returns zero teams and 403 for the previous Preview URL, so browser-level Preview QA requires re-authorizing the Vercel connection to the original project team scope.
 
 Do not start the payment/order layer until this fresh Preview pass is complete.
 
 ### Remaining launch hardening
 
+- after browser acceptance, add a small PWA/installability pass if phone home-screen installation is desired; the current project has no web manifest/service worker yet
 - enable Supabase leaked-password protection before public launch
 - complete final legal review before real commerce
 
