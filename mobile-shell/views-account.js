@@ -40,7 +40,8 @@ const account=async(payload)=>{
 
  if(profile)html.push("<section class=\"card\" style=\"margin-top:12px\"><p class=\"eyebrow\">Account capabilities</p><div class=\"spec-grid\"><div class=\"spec\"><small>Buying</small><strong>Enabled</strong></div><div class=\"spec\"><small>Selling</small><strong>"+(sellingEnabled?"Enabled":"Not enabled")+"</strong></div></div>"+(seller?"<div class=\"status "+(seller.verified?"success":"info")+"\" style=\"margin-top:10px\">"+C.escapeHtml(seller.businessName)+" · "+(seller.verified?"Verified business":seller.sellerType==="business"?"Business verification not complete":"Private seller profile")+"</div>":"")+"</section>");
 
- html.push("<div class=\"button-row\" style=\"margin-top:14px\"><button id=\"account-web\" class=\"secondary small-button\" type=\"button\">Profile & security on web</button><button id=\"account-signout\" class=\"danger-button small-button\" type=\"button\">Sign out</button></div>");
+ html.push("<section class=\"account-grid\" style=\"margin-top:12px\"><button class=\"account-tile\" id=\"account-member-profile\" type=\"button\"><strong>Profile & username</strong><small>Public name, @username, bio and private phone.</small></button><button class=\"account-tile\" id=\"account-security\" type=\"button\"><strong>Security & account</strong><small>Email, password recovery and account controls.</small></button></section>");
+ html.push("<div class=\"button-row\" style=\"margin-top:14px\"><button id=\"account-signout\" class=\"danger-button small-button\" type=\"button\">Sign out</button></div>");
  UI.app.innerHTML=html.join("");
 
  const buying=document.getElementById("mode-buying");if(buying)buying.addEventListener("click",()=>{C.state.accountMode="buying";UI.route("account",{view:"buying"});});
@@ -59,7 +60,8 @@ const account=async(payload)=>{
  const newListing=document.getElementById("account-new-listing");if(newListing)newListing.addEventListener("click",()=>UI.route("listingEditor"));
  const startSelling=document.getElementById("account-start-selling");if(startSelling)startSelling.addEventListener("click",()=>UI.route("sellerSetup"));
  const finishSelling=document.getElementById("account-finish-selling");if(finishSelling)finishSelling.addEventListener("click",()=>UI.route("sellerSetup"));
- document.getElementById("account-web").addEventListener("click",()=>void C.Native.openBrowser(C.config.webBaseUrl.replace(/\/$/,"")+"/account"));
+ const memberProfileButton=document.getElementById("account-member-profile");if(memberProfileButton)memberProfileButton.addEventListener("click",()=>UI.route("profile"));
+ const securityButton=document.getElementById("account-security");if(securityButton)securityButton.addEventListener("click",()=>UI.route("security"));
  document.getElementById("account-signout").addEventListener("click",async()=>{
   await C.signOut();
   C.state.accountMode="buying";
@@ -245,6 +247,108 @@ const sellerVerification=async()=>{
   }catch(error){
    status.innerHTML="<div class=\"status error\">"+C.escapeHtml(error.message.replaceAll("_"," "))+"</div>";
    button.disabled=false;button.textContent="Request verification";
+  }
+ });
+};
+
+const memberProfileSettings=async()=>{
+ if(!await UI.requireAuth("profile"))return;
+ UI.loading("Loading profile");
+ let profile;
+ try{profile=(await C.api("/profile",{auth:true})).profile;}
+ catch(error){UI.empty("○","Profile unavailable",error.message,"Back",()=>UI.route("account"));return;}
+
+ UI.app.innerHTML="<button class=\"back\" id=\"profile-back\" type=\"button\">‹ Back to account</button><section class=\"auth-card\"><p class=\"eyebrow\">Public identity</p><h1 style=\"font-size:28px;margin:5px 0\">Profile & username</h1><p class=\"subtle\">Your display name, username and bio can be seen by other members. Your phone number stays private.</p><form id=\"member-profile-form\" class=\"form-grid\" style=\"margin-top:16px\"><label class=\"label\">Display name<input id=\"mp-name\" class=\"input\" minlength=\"2\" maxlength=\"100\" required value=\""+C.escapeHtml(profile.displayName||"")+"\"></label><label class=\"label\">Username<div class=\"input-prefix\"><span>@</span><input id=\"mp-handle\" class=\"input\" minlength=\"3\" maxlength=\"32\" pattern=\"[a-z0-9][a-z0-9-]{2,31}\" required value=\""+C.escapeHtml(profile.handle||"")+"\"></div><small class=\"subtle\">Lowercase letters, numbers and hyphens.</small></label><label class=\"label\">Public bio<textarea id=\"mp-bio\" class=\"textarea\" maxlength=\"500\" placeholder=\"Tell buyers and sellers a little about yourself.\">"+C.escapeHtml(profile.bio||"")+"</textarea></label><label class=\"label\">Phone number <span class=\"subtle\">(private)</span><input id=\"mp-phone\" class=\"input\" maxlength=\"50\" value=\""+C.escapeHtml(profile.phone||"")+"\"><small class=\"subtle\">Never displayed on your public member profile.</small></label><div id=\"member-profile-status\"></div><button id=\"member-profile-save\" class=\"primary wide\" type=\"submit\">Save profile</button></form><button id=\"member-profile-public\" class=\"secondary wide\" style=\"margin-top:10px\" type=\"button\">View public profile</button></section>";
+ document.getElementById("profile-back").addEventListener("click",()=>UI.route("account"));
+ document.getElementById("member-profile-public").addEventListener("click",()=>UI.route("member",{handle:profile.handle}));
+ document.getElementById("member-profile-form").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const button=document.getElementById("member-profile-save");
+  const status=document.getElementById("member-profile-status");
+  button.disabled=true;button.textContent="Saving…";
+  try{
+   const result=await C.api("/profile",{method:"PATCH",auth:true,body:{
+    displayName:String(document.getElementById("mp-name").value||"").trim(),
+    handle:String(document.getElementById("mp-handle").value||"").trim().toLowerCase(),
+    bio:String(document.getElementById("mp-bio").value||"").trim(),
+    phone:String(document.getElementById("mp-phone").value||"").trim()
+   }});
+   await C.loadMe();
+   UI.toast("Profile saved.");
+   UI.route("profile");
+   profile=result.profile;
+  }catch(error){
+   status.innerHTML="<div class=\"status error\">"+C.escapeHtml(error.message.replaceAll("_"," "))+"</div>";
+   button.disabled=false;button.textContent="Save profile";
+  }
+ });
+};
+
+const security=async()=>{
+ if(!await UI.requireAuth("security"))return;
+ UI.loading("Loading security");
+ let result;
+ try{result=await C.api("/security",{auth:true});}
+ catch(error){UI.empty("◇","Security unavailable",error.message,"Back",()=>UI.route("account"));return;}
+
+ const deletion=result.deletionRequest;
+ const html=[];
+ html.push("<button class=\"back\" id=\"security-back\" type=\"button\">‹ Back to account</button>");
+ html.push("<section class=\"account-hero\"><p class=\"eyebrow\" style=\"color:#d4f44d\">Your account</p><h1>Security & account</h1><p>"+C.escapeHtml(result.email||"")+"</p></section>");
+ html.push("<section class=\"card\" style=\"margin-top:12px\"><p class=\"eyebrow\">Email & recovery</p><div class=\"status "+(result.emailConfirmed?"success":"warning")+"\"><strong>"+(result.emailConfirmed?"✓ Email verified":"Email verification pending")+"</strong><div style=\"margin-top:3px\">"+(result.emailConfirmed?"Your email address has been confirmed.":"Resend the official confirmation message if your previous link expired.")+"</div></div><div class=\"button-row\" style=\"margin-top:10px\"><button id=\"security-password\" class=\"secondary small-button\" type=\"button\">Send password reset email</button>"+(!result.emailConfirmed?"<button id=\"security-verify\" class=\"secondary small-button\" type=\"button\">Resend verification email</button>":"")+"</div><div id=\"security-auth-status\"></div></section>");
+ html.push("<section class=\"card\" style=\"margin-top:12px\"><p class=\"eyebrow\">Account protection</p><p class=\"subtle\">SecondPart never asks you to send your password or recovery links to another user. Recovery emails should only be used by you.</p></section>");
+ if(deletion){
+  html.push("<section class=\"card danger-card\" style=\"margin-top:12px\"><p class=\"eyebrow\">Delete account</p><div class=\"status warning\"><strong>Deletion request pending</strong><div style=\"margin-top:3px\">Requested "+C.escapeHtml(C.dateOnly(deletion.requestedAt))+". Your account remains active until the request is processed.</div></div><button id=\"security-cancel-delete\" class=\"secondary wide\" style=\"margin-top:10px\" type=\"button\">Cancel deletion request</button></section>");
+ }else{
+  html.push("<section class=\"card danger-card\" style=\"margin-top:12px\"><p class=\"eyebrow\">Delete account</p><p class=\"subtle\">Submitting a request does not immediately erase the account. Active orders, disputes and legal retention requirements may need to be resolved first.</p><label class=\"label\" style=\"display:block;margin-top:10px\">Reason <span class=\"subtle\">(optional)</span><textarea id=\"security-delete-reason\" class=\"textarea\" maxlength=\"500\" placeholder=\"Tell us why you want to leave.\"></textarea></label><div id=\"security-delete-status\"></div><button id=\"security-delete\" class=\"danger-button wide\" style=\"margin-top:10px\" type=\"button\">Request account deletion</button></section>");
+ }
+ UI.app.innerHTML=html.join("");
+ document.getElementById("security-back").addEventListener("click",()=>UI.route("account"));
+
+ const authStatus=document.getElementById("security-auth-status");
+ document.getElementById("security-password").addEventListener("click",async event=>{
+  const button=event.currentTarget;button.disabled=true;button.textContent="Sending…";
+  try{
+   await C.requestPasswordReset(result.email);
+   authStatus.innerHTML="<div class=\"status success\" style=\"margin-top:8px\">Password reset email sent. Use only the link delivered to your inbox.</div>";
+  }catch(error){
+   authStatus.innerHTML="<div class=\"status error\" style=\"margin-top:8px\">"+C.escapeHtml(error.message)+"</div>";
+  }finally{button.disabled=false;button.textContent="Send password reset email";}
+ });
+ const verify=document.getElementById("security-verify");
+ if(verify)verify.addEventListener("click",async()=>{
+  verify.disabled=true;verify.textContent="Sending…";
+  try{
+   await C.resendEmailConfirmation(result.email);
+   authStatus.innerHTML="<div class=\"status success\" style=\"margin-top:8px\">Verification email sent.</div>";
+  }catch(error){
+   authStatus.innerHTML="<div class=\"status error\" style=\"margin-top:8px\">"+C.escapeHtml(error.message)+"</div>";
+  }finally{verify.disabled=false;verify.textContent="Resend verification email";}
+ });
+
+ const cancel=document.getElementById("security-cancel-delete");
+ if(cancel)cancel.addEventListener("click",async()=>{
+  cancel.disabled=true;cancel.textContent="Cancelling…";
+  try{
+   await C.api("/security",{method:"DELETE",auth:true});
+   UI.toast("Deletion request cancelled.");
+   UI.route("security");
+  }catch(error){UI.toast(error.message.replaceAll("_"," "),"error");cancel.disabled=false;cancel.textContent="Cancel deletion request";}
+ });
+
+ const remove=document.getElementById("security-delete");
+ if(remove)remove.addEventListener("click",async()=>{
+  const reason=String(document.getElementById("security-delete-reason").value||"").trim();
+  const status=document.getElementById("security-delete-status");
+  if(!window.confirm("Submit an account deletion request? Your account will remain active until the request is processed."))return;
+  remove.disabled=true;remove.textContent="Submitting…";
+  try{
+   await C.api("/security",{method:"POST",auth:true,body:{reason}});
+   UI.toast("Account deletion request submitted.");
+   UI.route("security");
+  }catch(error){
+   status.innerHTML="<div class=\"status error\">"+C.escapeHtml(error.message.replaceAll("_"," "))+"</div>";
+   remove.disabled=false;remove.textContent="Request account deletion";
   }
  });
 };
@@ -438,6 +542,8 @@ const member=async(payload)=>{
 };
 
 UI.register("account",account);
+UI.register("profile",memberProfileSettings);
+UI.register("security",security);
 UI.register("saved",saved);
 UI.register("notifications",notifications);
 UI.register("reviews",reviews);
