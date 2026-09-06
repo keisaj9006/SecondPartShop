@@ -1,58 +1,157 @@
-# SecondPart — Supabase marketplace MVP
+# SecondPart — UK automotive-parts marketplace
 
-Modern rebuild of the SecondPart UK automotive-parts marketplace. The legacy PHP application remains on `main`; all rebuild work lives on `rebuild-nextjs`.
+SecondPart is a modern marketplace for used automotive parts in the UK. The legacy PHP application remains on `main`; active rebuild work is isolated to `rebuild-nextjs`.
 
-## Current stack
+## Current product state
 
-- Next.js App Router, React and strict TypeScript
+The current branch contains the pre-payments marketplace layer:
+
+- buyer and seller authentication
+- public marketplace listings and product detail pages
+- hierarchical automotive categories
+- UK vehicle-first search with registration lookup support and manual fallback
+- provider-neutral DfT vehicle catalogue integration
+- explicit seller fitments and compatibility confidence
+- unified search for part names, categories, OE/OEM numbers, part numbers, brands and keywords
+- saved parts, saved searches and recently viewed parts
+- SecondPart Garage
+- buyer part requests and seller demand leads
+- donor vehicles
+- seller listing create/edit/archive/stock/photo management
+- listing quality and trust evidence
+- seller verification and marketplace reporting
+- notifications
+- account security and deletion-request flow
+- support, help, privacy, terms and buyer-protection pages
+- Row Level Security across application tables
+
+Payments, checkout, buyer/seller transaction settlement, refunds, disputes and payouts are intentionally not implemented yet. Those belong to the next commerce phase after full Preview acceptance QA.
+
+## Stack
+
+- Next.js App Router
+- React
+- strict TypeScript
 - Tailwind CSS
-- Supabase Auth, PostgreSQL and Storage
-- Server Components for data reads and Server Actions for authenticated writes
+- Supabase Auth
+- PostgreSQL
+- Supabase Storage
+- Supabase Edge Functions
+- Server Components for data reads
+- Server Actions for authenticated writes
 
-## Supabase setup
+## Branch safety
 
-Use a new Supabase project for this milestone. No service-role key is required by the application.
+Development for this rebuild must remain on:
 
-1. Open **SQL Editor** in Supabase and run `supabase/migrations/0001_marketplace.sql` once.
-2. Run `supabase/seed.sql` once to create the development categories, sellers, vehicles, DSG parts and fitments.
-3. In **Authentication → URL Configuration**, set the local Site URL to `http://localhost:3000` and add `http://localhost:3000/auth/callback` as a redirect URL.
-4. Copy `.env.example` to `.env.local` and replace the placeholder URL and anon key with values from **Project Settings → API**.
-5. Start the app with `npm run dev`.
+```text
+rebuild-nextjs
+```
 
-The migration creates the public `part-images` Storage bucket and its ownership policies. Product images accept JPG, PNG or WebP files up to 5 MB.
+Do not merge into or deploy `main` while the rebuild is under active validation.
 
-If the earlier prototype migration was already applied to a Supabase project, use a fresh project or reset that development database before running this migration. The prototype schema was incomplete and is intentionally replaced rather than patched in production.
+## Supabase
 
-## Environment variables
+The active Supabase project is migration-driven. The authoritative SQL history is the ordered set of files in:
+
+```text
+supabase/migrations/
+```
+
+Do not run an old single-file prototype migration. Apply missing migrations in order using the normal Supabase migration workflow for the target environment.
+
+Development seed/reference data lives in:
+
+```text
+supabase/seed.sql
+```
+
+The imported DfT vehicle catalogue is provider-neutral statistical/licensing data. It must not be described as a complete OEM fitment catalogue. Vehicle existence and part compatibility are separate concepts; buyer compatibility claims come from explicit fitment evidence.
+
+## Vehicle registration lookup
+
+The application includes a server-side DVSA MOT History adapter. Configure it only with server-side environment variables:
+
+```bash
+VEHICLE_LOOKUP_PROVIDER=dvsa_mot_history
+DVSA_MOT_CLIENT_ID=
+DVSA_MOT_CLIENT_SECRET=
+DVSA_MOT_SCOPE=
+DVSA_MOT_TOKEN_URL=
+DVSA_MOT_API_KEY=
+DVSA_MOT_API_BASE_URL=https://history.mot.api.gov.uk
+```
+
+When provider credentials are not configured, the application must return a controlled unavailable state and must not fabricate a vehicle result.
+
+## Core environment variables
+
+Copy `.env.example` to `.env.local` for local development.
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_your-key
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-Never commit `.env.local` or privileged Supabase keys.
+Never commit `.env.local`, service-role keys or provider credentials.
+
+## Product images
+
+Seller listings support:
+
+- JPG, PNG and WebP
+- maximum 5 MB per image
+- maximum 6 images per listing
+- at least one real product image before an active listing can be published
+
+The Server Action request limit is sized to support six 5 MB images plus multipart overhead. Server-side validation still enforces the per-file and per-listing limits.
+
+## Local development
+
+```bash
+npm install
+npm run dev
+```
+
+Default local URL:
+
+```text
+http://localhost:3000
+```
 
 ## Validation
 
+Run all checks before creating a Preview:
+
 ```bash
+git diff --check
 npm run lint
 npm run typecheck
 npm run build
 ```
 
-## Implemented product flows
+GitHub Actions runs the rebuild QA workflow for `rebuild-nextjs`.
 
-- Public database-backed marketplace and product details
-- Search by title, OEM number, part number, gearbox code and family
-- Category, condition, gearbox and price filters
-- Relational Make → Model → Generation → Year → Engine → Gearbox selection
-- Supabase sign-up, confirmation callback, sign-in, sign-out and profile creation
-- Persistent saved listings
-- Public seller directory and profile pages
-- Protected seller profile onboarding
-- Seller listing create, edit, archive and stock management
-- Product image upload to Supabase Storage
-- Row Level Security for public, buyer, seller and future admin access
+## Important architecture rules
 
-Payments, checkout, VIN lookup, messaging, reviews and advanced administration are intentionally outside this milestone.
+- ordinary buyers should not need gearbox codes to find normal parts
+- gearbox metadata is contextual for transmission-related categories
+- do not fabricate registration results
+- do not fabricate part compatibility
+- preserve imported vehicle provenance
+- preserve existing QA fitments until they are safely migrated
+- keep privileged Supabase credentials server-side
+- do not weaken RLS to solve application bugs
+- active listings should only become public after required related data has been saved
+
+## Current roadmap
+
+The pre-payments build is complete. The next sequence is:
+
+1. pre-QA cleanup
+2. full acceptance QA on a fresh Vercel Preview
+3. QA fix pass
+4. design and implementation of the commerce/order/payment layer
+
+See `docs/pre-payments-roadmap.md` and `docs/product-decisions.md` for the current product decisions and deferred commerce work.
