@@ -41,7 +41,7 @@ export function isStripeCheckoutConfigured(){
   process.env.STRIPE_SECRET_KEY?.trim()&&
   process.env.STRIPE_WEBHOOK_SECRET?.trim()&&
   process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()&&
-  process.env.NEXT_PUBLIC_APP_URL?.trim()
+  (process.env.NEXT_PUBLIC_APP_URL?.trim()||process.env.NEXT_PUBLIC_SITE_URL?.trim())
  );
 }
 
