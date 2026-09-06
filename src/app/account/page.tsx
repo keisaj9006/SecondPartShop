@@ -1,12 +1,13 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowRight,Bell,Bookmark,CarFront,Clock3,Heart,Search,ShieldCheck,Wrench } from "lucide-react";
+import { ArrowRight,Bell,Bookmark,CarFront,Clock3,Heart,Search,ShieldCheck,Star,UserRound,Wrench } from "lucide-react";
 import { Header } from "@/components/header";
 import { AuthForm } from "@/components/auth-form";
 import { ProductCard } from "@/components/product-card";
 import { getCurrentProfile,getCurrentUser } from "@/lib/auth";
 import { getBuyerAccountCounts,getRecentlyViewedListings } from "@/lib/data/buyer-account";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { getPublicMemberProfileById } from "@/lib/data/reputation";
 
 export const dynamic="force-dynamic";
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
@@ -18,8 +19,10 @@ export default async function AccountPage({searchParams}:{searchParams:Promise<R
  const [user,profile]=await Promise.all([getCurrentUser(),getCurrentProfile()]);
  if(!user||!profile){const notice=first(params.reason)==="signin-required"?"Please sign in to continue. Your previous session may have expired.":first(params.error)==="confirmation-failed"?"We could not confirm that email link. Request a fresh confirmation email and try again.":undefined;return <><Header/><main className="mx-auto grid min-h-[70vh] max-w-7xl place-items-center px-4 py-12"><AuthForm defaultMode={first(params.mode)==="signup"?"signup":"signin"} defaultRole={first(params.role)==="seller"?"seller":"buyer"} returnTo={first(params.returnTo)??"/account"} configured={isSupabaseConfigured()} notice={notice}/></main></>;}
  const accessError=first(params.error);
- const [counts,recent]=await Promise.all([getBuyerAccountCounts(user.id),getRecentlyViewedListings(user.id,3)]);
+ const [counts,recent,trust]=await Promise.all([getBuyerAccountCounts(user.id),getRecentlyViewedListings(user.id,3),getPublicMemberProfileById(user.id).catch(()=>null)]);
  const items=[
+  card("/account/profile","Profile & username",0,"Edit your public name, username, bio and private phone number.",<UserRound size={22}/>),
+  card("/account/reviews","Reviews",trust?.sellerReviewCount??0+(trust?.buyerReviewCount??0),"Verified transaction reviews and reviews waiting for you.",<Star size={22}/>),
   card("/garage","SecondPart Garage",counts.garage,"Saved vehicles and one-click compatibility searches.",<CarFront size={22}/>),
   card("/saved","Saved parts",counts.savedParts,"Parts you want to come back to.",<Heart size={22}/>),
   card("/saved-searches","Saved searches",counts.savedSearches,"Vehicle, part and filter combinations ready to run again.",<Bookmark size={22}/>),
@@ -34,7 +37,7 @@ export default async function AccountPage({searchParams}:{searchParams:Promise<R
   {!user.email_confirmed_at&&<div className="mb-6 flex flex-col justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center"><div><p className="font-black text-amber-950">Confirm your email address</p><p className="mt-1 text-sm text-amber-900/75">Email verification helps protect saved vehicles, requests and future orders.</p></div><Link href="/auth/verify-email" className="w-fit rounded-xl bg-amber-900 px-4 py-2.5 text-sm font-black text-white">Resend email</Link></div>}
   <section className="overflow-hidden rounded-[32px] bg-[#173c31] p-6 text-white sm:p-9">
    <p className="text-xs font-black uppercase tracking-[.2em] text-[#d4f44d]">Your account</p>
-   <div className="mt-3 flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><h1 className="text-4xl font-black tracking-[-.05em] sm:text-5xl">{profile.displayName}</h1><p className="mt-2 text-white/65">{user.email}</p></div><div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3 text-sm"><span className="text-white/60">Account type</span><strong className="ml-2 capitalize">{profile.role}</strong></div></div>
+   <div className="mt-3 flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><h1 className="text-4xl font-black tracking-[-.05em] sm:text-5xl">{profile.displayName}</h1><p className="mt-1 font-bold text-[#d4f44d]">@{profile.handle}</p><p className="mt-2 text-white/65">{user.email}</p>{trust&&<p className="mt-3 text-sm font-bold text-white/75">★ {trust.sellerRating?.toFixed(1)??"New"} seller · {trust.soldCount} sold · {trust.boughtCount} bought</p>}</div><div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3 text-sm"><span className="text-white/60">Account type</span><strong className="ml-2 capitalize">{profile.role}</strong></div></div>
   </section>
 
   <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
