@@ -18,6 +18,7 @@ const knownError=(message:string)=>{
  if(lower.includes("not ready to receive"))return "seller_payout_setup_required";
  if(lower.includes("active checkout reservation for this part"))return "duplicate_reservation";
  if(lower.includes("too many active checkout reservations"))return "reservation_limit";
+ if(lower.includes("vehicle")||lower.includes("engine/fuel")||lower.includes("registration"))return "invalid_vehicle_context";
  return "checkout_unavailable";
 };
 
@@ -34,18 +35,33 @@ export async function POST(request:Request){
  const partId=String(input.partId??"");
  const quantity=Math.floor(Number(input.quantity??1));
  const deliveryMethod=String(input.deliveryMethod??"shipping");
+ const vehicle=input.vehicle&&typeof input.vehicle==="object"?input.vehicle as Record<string,unknown>:{};
+ const vehicleVariantId=String(vehicle.variantId??input.vehicleVariantId??"").trim();
+ const vehicleYearRaw=vehicle.year??input.vehicleYear;
+ const vehicleYear=vehicleYearRaw===undefined||vehicleYearRaw===null||vehicleYearRaw===""?undefined:Number(vehicleYearRaw);
+ const vehicleFuel=String(vehicle.fuel??input.vehicleFuel??"").trim();
+ const vehicleEngineRaw=vehicle.engine??input.vehicleEngine;
+ const vehicleEngine=vehicleEngineRaw===undefined||vehicleEngineRaw===null||vehicleEngineRaw===""?undefined:Number(vehicleEngineRaw);
+ const vehicleRegistration=String(vehicle.registration??input.vehicleRegistration??"").trim();
 
  if(!isUuid(partId))return mobileJson(request,{ok:false,error:"invalid_part"},400);
  if(!Number.isInteger(quantity)||quantity<1||quantity>10)return mobileJson(request,{ok:false,error:"invalid_quantity"},400);
  if(!["shipping","collection"].includes(deliveryMethod))return mobileJson(request,{ok:false,error:"invalid_delivery_method"},400);
+ if(vehicleVariantId&&(!isUuid(vehicleVariantId)||!Number.isInteger(vehicleYear)))return mobileJson(request,{ok:false,error:"invalid_vehicle_context"},400);
+ if(vehicleEngine!==undefined&&!Number.isInteger(vehicleEngine))return mobileJson(request,{ok:false,error:"invalid_vehicle_context"},400);
 
  const {data:part}=await supabase.from("parts").select("slug").eq("id",partId).maybeSingle();
  if(!part)return mobileJson(request,{ok:false,error:"listing_unavailable"},404);
 
- const {data,error}=await supabase.rpc("prepare_checkout_order",{
+ const {data,error}=await supabase.rpc("prepare_checkout_order_v2",{
   p_part_id:partId,
   p_quantity:quantity,
-  p_delivery_method:deliveryMethod
+  p_delivery_method:deliveryMethod,
+  p_vehicle_variant_id:vehicleVariantId||undefined,
+  p_vehicle_year:vehicleYear,
+  p_vehicle_fuel:vehicleFuel||undefined,
+  p_vehicle_engine:vehicleEngine,
+  p_vehicle_registration:vehicleRegistration||undefined
  });
  const reservation=data?.[0];
  if(error||!reservation)return mobileJson(request,{ok:false,error:knownError(error?.message??"")},409);
