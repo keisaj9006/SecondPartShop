@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowRight,Bell,Bookmark,CarFront,Clock3,Heart,PackageCheck,Search,ShieldCheck,Star,UserRound,Wrench } from "lucide-react";
+import { ArrowRight,Bell,Bookmark,CarFront,Clock3,Heart,PackageCheck,RotateCcw,Search,ShieldCheck,Star,UserRound,Wrench } from "lucide-react";
 import { Header } from "@/components/header";
 import { AuthForm } from "@/components/auth-form";
 import { ProductCard } from "@/components/product-card";
@@ -23,6 +23,7 @@ export default async function AccountPage({searchParams}:{searchParams:Promise<R
  const items=[
   card("/account/profile","Profile & username",0,"Edit your public name, username, bio and private phone number.",<UserRound size={22}/>),
   card("/account/orders","Purchases",counts.orders,"Payment, delivery and buyer-protection status for your orders.",<PackageCheck size={22}/>),
+  card("/account/cases","Returns & cases",0,"Return requests, transaction problems and case resolutions.",<RotateCcw size={22}/>),
   card("/account/reviews","Reviews",(trust?.sellerReviewCount??0)+(trust?.buyerReviewCount??0),"Verified transaction reviews and reviews waiting for you.",<Star size={22}/>),
   card("/garage","SecondPart Garage",counts.garage,"Saved vehicles and one-click compatibility searches.",<CarFront size={22}/>),
   card("/saved","Saved parts",counts.savedParts,"Parts you want to come back to.",<Heart size={22}/>),
