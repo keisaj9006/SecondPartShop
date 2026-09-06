@@ -161,17 +161,54 @@ const listingCard=(item)=>{
   "<div class=\"listing-bottom\"><span class=\"price\">"+C.money(item.pricePence)+"</span><button type=\"button\" class=\"heart"+(saved?" saved":"")+"\" data-save-part=\""+C.escapeHtml(item.id)+"\" aria-label=\"Save part\">"+(saved?"♥":"♡")+"</button></div></div></article>";
 };
 
-const carColour=(value)=>{
- const key=String(value||"").toLowerCase();
- const colours={black:"#202325",blue:"#2563eb",brown:"#795548",beige:"#d6c7a1",cream:"#f3ead3",gold:"#c8a64b",green:"#2f7d4a",grey:"#6b7280",gray:"#6b7280",maroon:"#7f1d1d",orange:"#ea580c",pink:"#db6b9a",purple:"#7c3aed",red:"#dc2626",silver:"#a8b0b8",white:"#f8fafc",yellow:"#eab308"};
- return colours[key]||"#7c8a8d";
+const vehiclePaint=(value)=>{
+ const key=String(value||"").trim().toLowerCase();
+ const colours={
+  black:{body:"#202325",shade:"#0f1112",highlight:"#4a4f52"},
+  blue:{body:"#2563eb",shade:"#1748aa",highlight:"#60a5fa"},
+  brown:{body:"#795548",shade:"#53382f",highlight:"#a57a69"},
+  beige:{body:"#d6c7a1",shade:"#aa9b78",highlight:"#eee5cf"},
+  cream:{body:"#f3ead3",shade:"#c9bea4",highlight:"#fffaf0"},
+  gold:{body:"#c8a64b",shade:"#96782c",highlight:"#ead47f"},
+  green:{body:"#2f7d4a",shade:"#1f5a34",highlight:"#66a879"},
+  grey:{body:"#6b7280",shade:"#4b515c",highlight:"#9ca3af"},
+  gray:{body:"#6b7280",shade:"#4b515c",highlight:"#9ca3af"},
+  maroon:{body:"#7f1d1d",shade:"#561313",highlight:"#a94a4a"},
+  orange:{body:"#ea580c",shade:"#a83d07",highlight:"#fb923c"},
+  pink:{body:"#db6b9a",shade:"#a54970",highlight:"#efa2c0"},
+  purple:{body:"#7c3aed",shade:"#5824b4",highlight:"#a78bfa"},
+  red:{body:"#dc2626",shade:"#991b1b",highlight:"#f87171"},
+  silver:{body:"#a8b0b8",shade:"#747e87",highlight:"#d8dde1"},
+  white:{body:"#f8fafc",shade:"#cbd5e1",highlight:"#ffffff"},
+  yellow:{body:"#eab308",shade:"#a87e05",highlight:"#fde047"}
+ };
+ return colours[key]||{body:"#94a3b8",shade:"#64748b",highlight:"#cbd5e1"};
 };
 
 const vehicleVisual=(vehicle,compact)=>{
  const registration=vehicle.registration?String(vehicle.registration).toUpperCase():"";
+ const paint=vehiclePaint(vehicle.colour);
  const engine=vehicle.engineSizeSimple?vehicle.engineSizeSimple+"cc":"";
  const meta=[vehicle.year,vehicle.variant,engine,vehicle.fuelType,vehicle.colour].filter(Boolean).join(" · ");
- return "<div class=\"vehicle-card"+(compact?" flat":"")+"\"><div class=\"vehicle-visual\"><div class=\"vehicle-car\" style=\"--car:"+carColour(vehicle.colour)+"\"><span class=\"wheel left\"></span><span class=\"wheel right\"></span>"+(registration?"<span class=\"plate\">"+C.escapeHtml(registration.slice(0,8))+"</span>":"")+"</div></div><div class=\"vehicle-info\">"+(registration?"<p class=\"eyebrow\" style=\"margin-bottom:5px\">"+C.escapeHtml(registration)+"</p>":"")+"<h3>"+C.escapeHtml((vehicle.make||"")+" "+(vehicle.modelFamily||vehicle.model||""))+"</h3><p>"+C.escapeHtml(meta)+"</p></div></div>";
+ const title=((vehicle.make||"")+" "+(vehicle.modelFamily||vehicle.model||"")).trim();
+ const aria=["Representative preview of",vehicle.colour||"",title,vehicle.year||""].filter(Boolean).join(" ");
+ const svg=[
+  "<svg class=\"vehicle-svg\" viewBox=\"0 0 520 230\" role=\"img\" aria-label=\""+C.escapeHtml(aria)+"\">",
+  "<ellipse cx=\"258\" cy=\"190\" rx=\"191\" ry=\"18\" fill=\"rgba(15,23,42,.10)\"/>",
+  "<path d=\"M67 148c8-24 22-43 45-55l74-38c15-8 31-12 48-12h75c22 0 42 7 59 21l52 43 42 11c19 5 31 18 34 38l2 17H42l4-10c4-9 11-14 21-15Z\" fill=\""+paint.body+"\" stroke=\"#16211e\" stroke-width=\"4\" stroke-linejoin=\"round\"/>",
+  "<path d=\"M202 61 142 99h235l-40-34c-10-8-22-12-36-12h-65c-12 0-24 3-34 8Z\" fill=\"#bfd1d4\" stroke=\"#16211e\" stroke-width=\"3\"/>",
+  "<path d=\"M268 53v46M139 101h243\" stroke=\"#16211e\" stroke-width=\"3\" opacity=\".75\"/>",
+  "<path d=\"M104 111c-11 7-20 18-26 34M420 115c22 3 38 11 48 24\" stroke=\""+paint.highlight+"\" stroke-width=\"4\" stroke-linecap=\"round\" opacity=\".65\"/>",
+  "<path d=\"M57 143h48\" stroke=\"#f8fafc\" stroke-width=\"9\" stroke-linecap=\"round\"/>",
+  "<path d=\"M432 143h48\" stroke=\"#f4d44d\" stroke-width=\"9\" stroke-linecap=\"round\"/>",
+  "<path d=\"M171 113h38M293 113h38\" stroke=\"#16211e\" stroke-width=\"3\" stroke-linecap=\"round\" opacity=\".5\"/>",
+  "<path d=\"M109 172c4-30 24-49 53-49s50 19 54 49M350 172c4-30 24-49 53-49s50 19 54 49\" fill=\"none\" stroke=\"#16211e\" stroke-width=\"5\"/>",
+  "<circle cx=\"162\" cy=\"171\" r=\"31\" fill=\"#171c1b\"/><circle cx=\"162\" cy=\"171\" r=\"17\" fill=\"#9aa4aa\"/><circle cx=\"162\" cy=\"171\" r=\"6\" fill=\"#dce2e5\"/>",
+  "<circle cx=\"403\" cy=\"171\" r=\"31\" fill=\"#171c1b\"/><circle cx=\"403\" cy=\"171\" r=\"17\" fill=\"#9aa4aa\"/><circle cx=\"403\" cy=\"171\" r=\"6\" fill=\"#dce2e5\"/>",
+  registration?"<g><rect x=\"238\" y=\"148\" width=\"72\" height=\"19\" rx=\"3\" fill=\"#f6df3e\" stroke=\"#17221f\" stroke-width=\"1.5\"/><text x=\"274\" y=\"161.5\" text-anchor=\"middle\" font-size=\"9\" font-family=\"monospace\" font-weight=\"800\" fill=\"#111\">"+C.escapeHtml(registration.slice(0,8))+"</text></g>":"",
+  "</svg>"
+ ].join("");
+ return "<div class=\"vehicle-card"+(compact?" flat":"")+"\"><div class=\"vehicle-preview-head\"><span class=\"eyebrow\">Vehicle preview</span><div class=\"vehicle-preview-tags\">"+(vehicle.colour?"<span class=\"vehicle-colour-chip\"><i style=\"background:"+paint.body+"\"></i>"+C.escapeHtml(vehicle.colour)+"</span>":"")+(registration?"<span class=\"vehicle-reg-chip\">"+C.escapeHtml(registration)+"</span>":"")+"</div></div><div class=\"vehicle-visual\">"+svg+"</div><div class=\"vehicle-info\"><h3>"+C.escapeHtml(title)+"</h3><p>"+C.escapeHtml(meta)+"</p>"+(!compact?"<small class=\"vehicle-disclaimer\">Representative visual for confirmation only. Body shape, trim and wheels may differ from the exact vehicle.</small>":"")+"</div></div>";
 };
 
 const bindListingActions=(container)=>{
