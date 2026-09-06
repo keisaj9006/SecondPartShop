@@ -401,20 +401,6 @@ after update on public.part_catalogue_fitments
 referencing old table as old_rows new table as new_rows
 for each statement execute function private.queue_requests_after_fitments_change();
 
-create or replace function private.queue_requests_for_donor_rows(
-  p_use_old boolean,
-  p_use_new boolean
-)
-returns trigger
-language plpgsql
-security definer
-set search_path=''
-as $$
-begin
-  return null;
-end;
-$$;
-
 create or replace function private.queue_requests_after_donors_insert()
 returns trigger
 language plpgsql
