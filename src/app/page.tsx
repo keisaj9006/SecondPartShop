@@ -20,6 +20,7 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
  const condition=first(params.condition);
  const requestedSort=first(params.sort);
  const sort=(["best","price_asc","price_desc","distance","delivery","warranty"] as string[]).includes(requestedSort??"")?requestedSort as MarketplaceSort:"best";
+ const legacyVehicleId=isUuid(first(params.vehicle))?first(params.vehicle):undefined;
  const requestedCatalogueVariant=isUuid(first(params.cv))?first(params.cv):undefined;
  const requestedCatalogueYear=integer(first(params.cy));
  const requestedCatalogueFuel=first(params.cf);
@@ -44,7 +45,7 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   maxPrice:first(params.max)?Number(first(params.max)):undefined,
   postcode,
   collectionOnly:first(params.collection)==="1",
-  vehicle:isUuid(first(params.vehicle))?first(params.vehicle):undefined,
+  vehicle:legacyVehicleId,
   vehicleRegistration:vehicleRegistration||undefined,
   vehicleColour,
   catalogueVariant:selectedCatalogue?.variantId,
@@ -55,7 +56,7 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
  };
  const [result,vehicles,savedIds,catalogueModels,garageVehicles,recentlyViewed]=await Promise.all([
   getMarketplacePage(filters,{offset:(requestedPage-1)*pageSize,limit:pageSize}),
-  getVehicles(),
+  legacyVehicleId?getVehicles():Promise.resolve([]),
   user?getSavedPartIds(user.id):Promise.resolve([]),
   getCatalogueModelMap().catch(()=>[]),
   user?getGarageVehicles(user.id):Promise.resolve([]),
