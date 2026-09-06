@@ -37,3 +37,24 @@ export async function openTransactionCase(_previous:ActionState,formData:FormDat
  revalidatePath("/dashboard/orders");
  return {status:"success",message:"Case opened. Any unreleased seller payout is now blocked while the case is reviewed."};
 }
+
+
+export async function markReturnShipped(_previous:ActionState,formData:FormData):Promise<ActionState>{
+ await requireUser("/account/cases");
+ const caseId=String(formData.get("caseId")??"");
+ const carrier=String(formData.get("carrier")??"").trim();
+ const tracking=String(formData.get("tracking")??"").trim();
+ if(tracking.length<3)return {status:"error",message:"Add a return tracking or shipment reference."};
+
+ const supabase=await createSupabaseServerClient();
+ const {error}=await supabase.rpc("buyer_mark_transaction_return_shipped",{
+  p_case_id:caseId,
+  p_carrier:carrier,
+  p_tracking_number:tracking
+ });
+ if(error)return {status:"error",message:"We could not record the return shipment right now."};
+
+ revalidatePath("/account/cases");
+ revalidatePath("/dashboard/cases");
+ return {status:"success",message:"Return shipment recorded. The seller has been notified."};
+}
