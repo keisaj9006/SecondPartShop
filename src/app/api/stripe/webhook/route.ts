@@ -18,6 +18,37 @@ const idValue=(value:unknown)=>{
  return null;
 };
 
+
+const shippingSnapshot=(object:Record<string,unknown>)=>{
+ const collected=object.collected_information;
+ const collectedShipping=collected&&typeof collected==="object"&&!Array.isArray(collected)
+  ?(collected as Record<string,unknown>).shipping_details
+  :null;
+ const legacyShipping=object.shipping_details;
+ const shipping=(collectedShipping&&typeof collectedShipping==="object"&&!Array.isArray(collectedShipping))
+  ?collectedShipping as Record<string,unknown>
+  :(legacyShipping&&typeof legacyShipping==="object"&&!Array.isArray(legacyShipping))
+   ?legacyShipping as Record<string,unknown>
+   :null;
+ if(!shipping)return {name:null,address:null};
+ const name=typeof shipping.name==="string"?shipping.name.slice(0,160):null;
+ const rawAddress=shipping.address;
+ if(!rawAddress||typeof rawAddress!=="object"||Array.isArray(rawAddress))return {name,address:null};
+ const source=rawAddress as Record<string,unknown>;
+ const clean=(key:string,max=160)=>typeof source[key]==="string"?(source[key] as string).slice(0,max):null;
+ return {
+  name,
+  address:{
+   line1:clean("line1"),
+   line2:clean("line2"),
+   city:clean("city"),
+   state:clean("state"),
+   postal_code:clean("postal_code",30),
+   country:clean("country",2)
+  }
+ };
+};
+
 const metadataOrderId=(object:Record<string,unknown>)=>{
  const metadata=object.metadata;
  if(metadata&&typeof metadata==="object"&&!Array.isArray(metadata)){
@@ -56,12 +87,15 @@ export async function POST(request:Request){
     const paymentIntent=await getPaymentIntent(paymentIntentId);
     const chargeId=idValue(paymentIntent.latest_charge);
     if(!chargeId)throw new Error("Paid PaymentIntent did not contain a charge.");
+    const shipping=shippingSnapshot(object);
     const {error}=await admin.rpc("confirm_checkout_paid",{
      p_order_id:orderId,
      p_event_id:event.id,
      p_checkout_session_id:sessionId,
      p_payment_intent_id:paymentIntentId,
-     p_charge_id:chargeId
+     p_charge_id:chargeId,
+     p_shipping_name:shipping.name??undefined,
+     p_shipping_address:shipping.address??undefined
     });
     if(error)throw error;
    }
