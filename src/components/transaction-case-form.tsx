@@ -7,15 +7,16 @@ import type { ActionState } from "@/lib/types";
 
 const initial:ActionState={status:"idle"};
 
-export function TransactionCaseForm({orderItemId,partTitle}:{orderItemId:string;partTitle:string}){
+export function TransactionCaseForm({orderItemId,partTitle,defaultCaseType="return"}:{orderItemId:string;partTitle:string;defaultCaseType?:"return"|"dispute"|"cancellation"}){
  const [state,action,pending]=useActionState(openTransactionCase,initial);
  const input="mt-2 w-full rounded-xl border border-black/15 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#173c31]";
  return <form action={action} className="mt-5 grid gap-4 rounded-3xl border border-black/10 bg-white p-5">
   <input type="hidden" name="orderItemId" value={orderItemId}/>
   <div><p className="text-xs font-black uppercase tracking-wide text-[#287154]">Transaction item</p><p className="mt-1 font-black">{partTitle}</p></div>
   <label className="text-sm font-bold">What do you need?
-   <select name="caseType" defaultValue="return" className={input}>
+   <select name="caseType" defaultValue={defaultCaseType} className={input}>
     <option value="return">Request a return / refund review</option>
+    <option value="cancellation">Request cancellation before dispatch</option>
     <option value="dispute">Open a transaction dispute</option>
    </select>
   </label>
@@ -26,6 +27,8 @@ export function TransactionCaseForm({orderItemId,partTitle}:{orderItemId:string;
     <option>Item arrived damaged</option>
     <option>Item does not work as stated</option>
     <option>Delivery / collection issue</option>
+    <option>Changed my mind before dispatch</option>
+    <option>Ordered the wrong part before dispatch</option>
     <option>Other transaction problem</option>
    </select>
   </label>
