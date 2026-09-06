@@ -73,4 +73,46 @@ export type TransactionReview={
  partTitle:string;
 };
 
+export type BuyerOrderItem={
+ id:string;
+ partTitle:string;
+ partSlug:string;
+ sellerName:string;
+ sellerSlug:string;
+ quantity:number;
+ unitPricePence:number;
+ fulfilmentStatus:string;
+ payoutStatus:string;
+ trackingCarrier:string|null;
+ trackingNumber:string|null;
+ fundsReleasedAt:string|null;
+};
+
+export type BuyerOrder={
+ id:string;
+ status:string;
+ paymentStatus:string;
+ totalPence:number;
+ currency:string;
+ createdAt:string;
+ items:BuyerOrderItem[];
+};
+
+export type SellerSale={
+ orderItemId:string;
+ orderId:string;
+ partTitle:string;
+ partSlug:string;
+ quantity:number;
+ unitPricePence:number;
+ fulfilmentStatus:string;
+ payoutStatus:string;
+ trackingCarrier:string|null;
+ trackingNumber:string|null;
+ fundsReleasedAt:string|null;
+ orderStatus:string;
+ paymentStatus:string;
+ orderCreatedAt:string;
+};
+
 export type ActionState={status:"idle"|"success"|"error";message?:string;fieldErrors?:Record<string,string>};
