@@ -1080,7 +1080,6 @@ export type Database = {
       }
       seller_payment_accounts: {
         Row: {
-          charges_enabled: boolean
           created_at: string
           details_submitted: boolean
           onboarding_status: string
@@ -1088,10 +1087,10 @@ export type Database = {
           payouts_enabled: boolean
           provider_account_id: string | null
           seller_id: string
+          transfers_enabled: boolean
           updated_at: string
         }
         Insert: {
-          charges_enabled?: boolean
           created_at?: string
           details_submitted?: boolean
           onboarding_status?: string
@@ -1099,10 +1098,10 @@ export type Database = {
           payouts_enabled?: boolean
           provider_account_id?: string | null
           seller_id: string
+          transfers_enabled?: boolean
           updated_at?: string
         }
         Update: {
-          charges_enabled?: boolean
           created_at?: string
           details_submitted?: boolean
           onboarding_status?: string
@@ -1110,6 +1109,7 @@ export type Database = {
           payouts_enabled?: boolean
           provider_account_id?: string | null
           seller_id?: string
+          transfers_enabled?: boolean
           updated_at?: string
         }
         Relationships: [
