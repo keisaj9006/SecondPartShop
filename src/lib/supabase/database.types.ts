@@ -1553,6 +1553,8 @@ export type Database = {
           item_as_described_rating: number | null
           order_item_id: string
           overall_rating: number
+          removed_at: string | null
+          removed_reason: string | null
           reviewee_id: string
           reviewer_id: string
           status: string
@@ -1569,6 +1571,8 @@ export type Database = {
           item_as_described_rating?: number | null
           order_item_id: string
           overall_rating: number
+          removed_at?: string | null
+          removed_reason?: string | null
           reviewee_id: string
           reviewer_id: string
           status?: string
@@ -1585,6 +1589,8 @@ export type Database = {
           item_as_described_rating?: number | null
           order_item_id?: string
           overall_rating?: number
+          removed_at?: string | null
+          removed_reason?: string | null
           reviewee_id?: string
           reviewer_id?: string
           status?: string
