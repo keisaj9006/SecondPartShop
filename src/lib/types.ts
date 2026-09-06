@@ -3,12 +3,14 @@ export type PartCondition="new"|"reconditioned"|"used";
 export type ListingStatus="draft"|"active"|"reserved"|"sold"|"archived";
 export type VehicleDataStatus="verified"|"qa_seed"|"external_import";
 export type PartTestingStatus="tested_working"|"removed_from_running_vehicle"|"visually_inspected"|"untested"|"not_specified";
-export type CompatibilityLevel="confirmed"|"family_match"|"unverified";
+export type CompatibilityLevel="confirmed"|"buyer_verified"|"family_match"|"unverified";
 export type MarketplaceSort="best"|"price_asc"|"price_desc"|"distance"|"delivery"|"warranty";
 export type SellerType="business"|"private";
 export type ReviewDirection="buyer_to_seller"|"seller_to_buyer";
+export type FitFeedbackResult="exact_fit"|"fit_with_modification"|"did_not_fit"|"not_installed";
 
-export type CompatibilityInfo={level:CompatibilityLevel;label:string;detail:string};
+export type VerifiedFitSummary={exactFitCount:number;modifiedFitCount:number;didNotFitCount:number};
+export type CompatibilityInfo={level:CompatibilityLevel;label:string;detail:string;verifiedFit?:VerifiedFitSummary};
 export type Profile={id:string;role:UserRole;displayName:string;handle:string;bio:string|null;phone:string|null};
 export type Seller={id:string;ownerId:string|null;businessName:string;slug:string;location:string;postcode:string|null;description:string;verified:boolean;sellerType:SellerType};
 export type Category={id:string;parentId:string|null;name:string;slug:string;isTransmissionRelated:boolean;isSelectable:boolean;sortOrder:number;searchTerms:string[]};
@@ -56,6 +58,23 @@ export type ReviewOpportunity={
  partTitle:string;
  fundsReleasedAt:string;
  existingReviewId:string|null;
+};
+
+export type FitFeedbackOpportunity={
+ orderItemId:string;
+ partId:string;
+ partTitle:string;
+ partSlug:string;
+ variantId:string;
+ vehicleMake:string;
+ vehicleModel:string;
+ vehicleVariant:string;
+ vehicleYear:number;
+ vehicleFuel:string|null;
+ vehicleEngine:number|null;
+ existingResult:FitFeedbackResult|null;
+ existingNotes:string|null;
+ fundsReleasedAt:string;
 };
 
 export type TransactionReview={
