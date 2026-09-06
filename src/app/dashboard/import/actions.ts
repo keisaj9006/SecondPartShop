@@ -103,7 +103,7 @@ async function validateCsv(file:File,sellerId:string){
  const references=[...new Set(parsed.rows.map(row=>text(row.seller_reference,120)).filter(Boolean))];
  const existingReferences=new Set<string>();
  if(references.length){
-  const {data,error}=await supabase.from("parts").select("source_external_id").eq("seller_id",sellerId).eq("source_channel","csv").not("source_external_id","is",null);
+  const {data,error}=await supabase.rpc("get_existing_csv_inventory_references",{p_references:references});
   if(error)return {fatal:"Existing seller references could not be checked.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:parsed.rows.length};
   for(const item of data??[])if(item.source_external_id)existingReferences.add(item.source_external_id.toLowerCase());
  }
