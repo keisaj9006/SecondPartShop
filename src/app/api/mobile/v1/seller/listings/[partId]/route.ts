@@ -19,7 +19,7 @@ export async function GET(request:Request,{params}:{params:Promise<{partId:strin
 
  const {data,error}=await supabase
   .from("parts")
-  .select("id,slug,title,description,category_id,donor_vehicle_id,condition,price_pence,shipping_pence,stock,manufacturer,part_number,oem_number,gearbox_family,gearbox_code,dispatch_days,testing_status,warranty_days,condition_notes,damage_notes,collection_available,delivery_days_min,delivery_days_max,status,categories(name,is_transmission_related),part_catalogue_fitments(variant_id,year_from,year_to,fuel_type,engine_size_simple,notes,vehicle_catalogue_variants(make,model_family,variant))")
+  .select("id,slug,title,description,category_id,donor_vehicle_id,condition,price_pence,shipping_pence,stock,manufacturer,part_number,oem_number,gearbox_family,gearbox_code,dispatch_days,testing_status,warranty_days,condition_notes,damage_notes,collection_available,delivery_days_min,delivery_days_max,status,categories(name,is_transmission_related),part_images(id),part_catalogue_fitments(variant_id,year_from,year_to,fuel_type,engine_size_simple,notes,vehicle_catalogue_variants(make,model_family,variant))")
   .eq("id",partId)
   .eq("seller_id",auth.seller.id)
   .maybeSingle();
@@ -27,6 +27,13 @@ export async function GET(request:Request,{params}:{params:Promise<{partId:strin
  if(!data)return mobileJson(request,{ok:false,error:"not_found"},404);
 
  const category=one(data.categories);
+ const imageCount=(data.part_images??[]).length;
+ const exactFitmentCount=(data.part_catalogue_fitments??[]).length;
+ const compatibilityEvidence=Boolean(data.donor_vehicle_id||exactFitmentCount||data.oem_number||(data.manufacturer&&data.part_number));
+ const missing=[
+  ...(imageCount<1?["real_product_photo"]:[]),
+  ...(!compatibilityEvidence?["compatibility_or_part_identity_evidence"]:[])
+ ];
  return mobileJson(request,{ok:true,item:{
   id:data.id,
   slug:data.slug,
@@ -54,6 +61,8 @@ export async function GET(request:Request,{params}:{params:Promise<{partId:strin
   deliveryDaysMin:data.delivery_days_min,
   deliveryDaysMax:data.delivery_days_max,
   status:data.status,
+  imageCount,
+  publishReadiness:{ready:missing.length===0,missing},
   catalogueFitments:(data.part_catalogue_fitments??[]).flatMap(fitment=>{
    if(fitment.year_from===null||fitment.year_to===null||fitment.year_from!==fitment.year_to)return [];
    const vehicle=one(fitment.vehicle_catalogue_variants);
