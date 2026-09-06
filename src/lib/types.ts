@@ -62,6 +62,8 @@ export type TransactionReview={
  id:string;
  reviewerHandle:string;
  reviewerDisplayName:string;
+ reviewerSoldCount:number;
+ reviewerBoughtCount:number;
  direction:ReviewDirection;
  overallRating:number;
  itemAsDescribedRating:number|null;
