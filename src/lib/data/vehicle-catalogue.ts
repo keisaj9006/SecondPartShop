@@ -1,5 +1,7 @@
 import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabasePublicServerClient } from "@/lib/supabase/public-server";
+import { unstable_cache } from "next/cache";
 import type { VehicleCatalogueSelection } from "@/lib/types";
 
 export type CatalogueModelOption={make:string;modelFamily:string};
@@ -7,8 +9,8 @@ export type CatalogueVariant={id:string;make:string;modelFamily:string;variant:s
 export type CatalogueVariantOption={id:string;variant:string};
 export type CatalogueEngine={fuelType:string;engineSizeSimple:number|null;engineSizeDesc:string|null};
 
-export async function getCatalogueModelMap():Promise<CatalogueModelOption[]>{
- const supabase=await createSupabaseServerClient();
+const loadCatalogueModelMap=unstable_cache(async():Promise<CatalogueModelOption[]>=>{
+ const supabase=createSupabasePublicServerClient();
  const {data,error}=await supabase.rpc("vehicle_catalogue_model_map_json");
  if(error)throw error;
  if(!Array.isArray(data))return [];
@@ -17,6 +19,10 @@ export async function getCatalogueModelMap():Promise<CatalogueModelOption[]>{
   const row=item as {make?:unknown;modelFamily?:unknown};
   return typeof row.make==="string"&&typeof row.modelFamily==="string"?[{make:row.make,modelFamily:row.modelFamily}]:[];
  });
+},["vehicle-catalogue-model-map"],{revalidate:60*60*24});
+
+export async function getCatalogueModelMap():Promise<CatalogueModelOption[]>{
+ return loadCatalogueModelMap();
 }
 
 export async function getCatalogueMakes(){
