@@ -22,7 +22,7 @@ export default async function AccountPage({searchParams}:{searchParams:Promise<R
  const [counts,recent,trust]=await Promise.all([getBuyerAccountCounts(user.id),getRecentlyViewedListings(user.id,3),getPublicMemberProfileById(user.id).catch(()=>null)]);
  const items=[
   card("/account/profile","Profile & username",0,"Edit your public name, username, bio and private phone number.",<UserRound size={22}/>),
-  card("/account/reviews","Reviews",trust?.sellerReviewCount??0+(trust?.buyerReviewCount??0),"Verified transaction reviews and reviews waiting for you.",<Star size={22}/>),
+  card("/account/reviews","Reviews",(trust?.sellerReviewCount??0)+(trust?.buyerReviewCount??0),"Verified transaction reviews and reviews waiting for you.",<Star size={22}/>),
   card("/garage","SecondPart Garage",counts.garage,"Saved vehicles and one-click compatibility searches.",<CarFront size={22}/>),
   card("/saved","Saved parts",counts.savedParts,"Parts you want to come back to.",<Heart size={22}/>),
   card("/saved-searches","Saved searches",counts.savedSearches,"Vehicle, part and filter combinations ready to run again.",<Bookmark size={22}/>),
