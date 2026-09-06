@@ -25,7 +25,7 @@ export default async function ComparePage({searchParams}:{searchParams:Promise<R
  const requestedYear=integer(first(params.cy));
  const requestedFuel=first(params.cf);
  const requestedEngine=integer(first(params.ce));
- const selectedCatalogue=requestedVariant&&requestedYear?await getCatalogueSelection(requestedVariant,requestedYear,requestedFuel,requestedEngine):null;
+ const selectedCatalogue=requestedVariant&&requestedYear?await getCatalogueSelection(requestedVariant,requestedYear,requestedFuel,requestedEngine).catch(()=>null):null;
  const postcodeRaw=first(params.pc);
  const filters:MarketplaceFilters={
   query:number,
