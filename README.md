@@ -4,7 +4,7 @@ SecondPart is a modern marketplace for used automotive parts in the UK. The lega
 
 ## Current product state
 
-The current branch contains the pre-payments marketplace layer:
+The current branch contains the marketplace foundation plus the first trust and commerce-core layers:
 
 - buyer and seller authentication
 - public marketplace listings and product detail pages
@@ -24,8 +24,17 @@ The current branch contains the pre-payments marketplace layer:
 - account security and deletion-request flow
 - support, help, privacy, terms and buyer-protection pages
 - Row Level Security across application tables
+- public member usernames and reputation profiles
+- verified-transaction buyer/seller reviews with double-blind publication
+- seller type (business/private), seller profile editing and reputation metrics
+- buyer Purchases and seller Sales & payouts hubs
+- transaction/order/payout state foundation and audit events
+- representative vehicle visuals in SecondPart Garage using persisted vehicle colour
+- installable PWA metadata plus a developer Android APK workflow
+- private seller payment-account state separated from public seller profiles
+- Stripe Connect Accounts v2 onboarding integration scaffold
 
-Payments, checkout, buyer/seller transaction settlement, refunds, disputes and payouts are intentionally not implemented yet. Those belong to the next commerce phase after full Preview acceptance QA.
+**Live payment capture is not enabled yet.** Checkout, Stripe webhooks, transfer release, automated refunds/returns/disputes and real seller payouts still require Stripe test credentials, end-to-end testing and release-policy approval.
 
 ## Stack
 
@@ -92,6 +101,12 @@ Copy `.env.example` to `.env.local` for local development.
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_your-key
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# Commerce / Stripe Connect (server-side unless explicitly NEXT_PUBLIC)
+NEXT_PUBLIC_APP_URL=https://your-https-preview-or-domain
+SUPABASE_SERVICE_ROLE_KEY=
+STRIPE_SECRET_KEY=
+STRIPE_CONNECT_API_VERSION=2026-08-26.preview
 ```
 
 Never commit `.env.local`, service-role keys or provider credentials.
@@ -147,10 +162,12 @@ GitHub Actions runs the rebuild QA workflow for `rebuild-nextjs`.
 
 ## Current roadmap
 
-The pre-payments build and pre-QA cleanup are complete. The next sequence is:
+The marketplace foundation and Trust Layer are implemented. Commerce Core is now in progress. The next sequence is:
 
-1. full acceptance QA on a fresh Vercel Preview
-2. QA fix pass
-3. design and implementation of the commerce/order/payment layer
+1. fresh Vercel/mobile QA of the Trust + Vehicle Visual changes
+2. connect Stripe **test-mode** credentials and validate seller onboarding
+3. implement checkout + webhook-driven payment state
+4. implement protected transfer release, delivery/acceptance, refunds/returns/disputes
+5. end-to-end buyer/seller transaction QA before any live payments
 
 See `docs/pre-payments-roadmap.md` and `docs/product-decisions.md` for the current product decisions and deferred commerce work.
