@@ -78,6 +78,9 @@ Validated against the real Supabase project and current `rebuild-nextjs` source:
 - seller/admin/new/edit/moderation/account route guards reviewed
 - vehicle lookup and catalogue API failures return controlled messages without exposing raw database errors
 - Part Request copy reflects the implemented privacy-safe seller demand-lead flow
+- Part Request trigger verified: anonymous seller lead + seller notification are created for matching demand
+- seller demand-lead storage contains request/part/vehicle context but no buyer profile ID, email or registration
+- saved-search vehicle notifications now use the same legacy/catalogue compatibility resolver as marketplace results
 - CI lint, typecheck and production build pass on QA-fix commits
 
 ### Fresh Preview visual/browser acceptance — PENDING
