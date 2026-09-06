@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft,Check,Flag,MapPin,ShieldCheck,Truck } from "lucide-react";
+import { BuyNowForm } from "@/components/buy-now-form";
 import { CompatibilityBadge } from "@/components/compatibility-badge";
 import { Header } from "@/components/header";
 import { ProductGallery } from "@/components/product-gallery";
@@ -8,12 +9,14 @@ import { SaveButton } from "@/components/save-button";
 import { RecentlyViewedTracker } from "@/components/recently-viewed-tracker";
 import { getCurrentUser } from "@/lib/auth";
 import { getPartCompatibility } from "@/lib/data/compatibility";
+import { isSellerCheckoutReady } from "@/lib/data/checkout";
 import { getListingBySlug,getSavedPartIds,getVehicles } from "@/lib/data/marketplace";
 import { getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
 import { getPublicMemberProfileById } from "@/lib/data/reputation";
 import type { MarketplaceFilters } from "@/lib/types";
 import { testingStatusLabel,warrantyLabel } from "@/lib/listing-trust";
 import { isUuid } from "@/lib/identifiers";
+import { isStripeCheckoutConfigured } from "@/lib/stripe-payments";
 
 export const dynamic="force-dynamic";
 
@@ -55,9 +58,10 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
  }
  if(filters.vehicleRegistration&&vehicleLabel)vehicleLabel=`${filters.vehicleRegistration} · ${vehicleLabel}`;
 
- const [savedIds,sellerTrust]=await Promise.all([
+ const [savedIds,sellerTrust,sellerCheckoutReady]=await Promise.all([
   user?getSavedPartIds(user.id):Promise.resolve([]),
-  getPublicMemberProfileById(item.seller.ownerId).catch(()=>null)
+  getPublicMemberProfileById(item.seller.ownerId).catch(()=>null),
+  isSellerCheckoutReady(item.sellerId).catch(()=>false)
  ]);
  const backHref=context.toString()?`/?${context.toString()}#marketplace`:"/#marketplace";
  const currentHref=context.toString()?`/parts/${slug}?${context.toString()}`:`/parts/${slug}`;
@@ -71,6 +75,7 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
     <div className="flex flex-wrap gap-2"><span className="rounded-full bg-[#e8eee9] px-3 py-1 text-xs font-bold capitalize">{item.condition}</span><span className="rounded-full bg-[#e8eee9] px-3 py-1 text-xs font-bold">{item.stock} in stock</span>{compatibility&&<CompatibilityBadge info={compatibility}/>}</div>
     <h1 className="mt-5 text-4xl font-black tracking-[-.045em]">{item.title}</h1>
     <p className="mt-7 text-4xl font-black">£{(item.pricePence/100).toLocaleString("en-GB",{minimumFractionDigits:2})}</p>
+    <p className="mt-1 text-sm font-bold text-[#63706a]">{item.shippingPence>0?`Delivery £${(item.shippingPence/100).toFixed(2)}`:"Free delivery"}{item.collectionAvailable?" · Collection available":""}</p>
 
     {compatibility&&<section className="mt-6 rounded-2xl border border-black/10 bg-[#f8f7f2] p-5">
      <p className="text-xs font-black uppercase tracking-[.14em] text-[#287154]">Compatibility confidence</p>
@@ -86,6 +91,16 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
 
     <div className="mt-6 rounded-2xl border border-black/10 bg-white p-5"><p className="font-bold">Recorded compatibility</p>{item.fitments.length?<ul className="mt-3 space-y-3">{item.fitments.map(({vehicle,notes})=><li key={vehicle.id} className="flex items-start gap-2 text-sm"><Check size={16} className="mt-0.5 shrink-0 text-[#287154]"/><span><strong>{vehicle.make} {vehicle.model} {vehicle.generation}</strong> · {vehicle.year} · {vehicle.engine}{vehicle.fuelType?` · ${vehicle.fuelType}`:""}{notes&&<small className="mt-1 block text-[#63706a]">{notes}</small>}</span></li>)}</ul>:<p className="mt-2 text-sm text-[#63706a]">Compatibility has not been confirmed for a specific legacy QA vehicle. Use the compatibility confidence above when shopping with a selected catalogue vehicle.</p>}</div>
 
+    <BuyNowForm
+      partId={item.id}
+      stock={item.stock}
+      shippingPence={item.shippingPence}
+      collectionAvailable={item.collectionAvailable}
+      signedIn={Boolean(user)}
+      ownListing={Boolean(user&&item.seller.ownerId===user.id)}
+      checkoutReady={isStripeCheckoutConfigured()&&sellerCheckoutReady}
+      returnTo={currentHref}
+    />
     <div className="mt-5 grid grid-cols-2 gap-3"><SaveButton partId={item.id} initialSaved={savedIds.includes(item.id)}/><Link href={`/seller/${item.seller.slug}`} className="grid place-items-center rounded-xl bg-[#d4f44d] px-5 py-3 text-center font-black">View seller</Link></div>
     <div className="mt-6 grid gap-3 rounded-2xl bg-[#173c31] p-5 text-sm text-white">
       <div className="flex flex-wrap items-center gap-2">
