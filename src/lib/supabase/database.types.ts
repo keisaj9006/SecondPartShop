@@ -1668,8 +1668,10 @@ export type Database = {
           overall_rating: number
           part_title: string
           review_id: string
+          reviewer_bought_count: number
           reviewer_display_name: string
           reviewer_handle: string
+          reviewer_sold_count: number
         }[]
       }
       get_review_opportunities: {
