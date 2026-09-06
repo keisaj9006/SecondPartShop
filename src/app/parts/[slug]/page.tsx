@@ -6,6 +6,7 @@ import { BuyNowForm } from "@/components/buy-now-form";
 import { CompatibilityBadge } from "@/components/compatibility-badge";
 import { Header } from "@/components/header";
 import { ProductGallery } from "@/components/product-gallery";
+import { PartPassport } from "@/components/part-passport";
 import { SaveButton } from "@/components/save-button";
 import { RecentlyViewedTracker } from "@/components/recently-viewed-tracker";
 import { getCurrentUser } from "@/lib/auth";
@@ -14,8 +15,9 @@ import { isSellerCheckoutReady } from "@/lib/data/checkout";
 import { getListingBySlug,getSavedPartIds,getVehicles } from "@/lib/data/marketplace";
 import { getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
 import { getPublicMemberProfileById } from "@/lib/data/reputation";
+import { getPartPassportEvidence } from "@/lib/data/part-passport";
 import type { MarketplaceFilters } from "@/lib/types";
-import { conditionLabel,testingStatusLabel,warrantyLabel } from "@/lib/listing-trust";
+import { conditionLabel } from "@/lib/listing-trust";
 import { isUuid } from "@/lib/identifiers";
 import { isStripeCheckoutConfigured } from "@/lib/stripe-payments";
 
@@ -69,10 +71,11 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
  }
  if(filters.vehicleRegistration&&vehicleLabel)vehicleLabel=`${filters.vehicleRegistration} · ${vehicleLabel}`;
 
- const [savedIds,sellerTrust,sellerCheckoutReady]=await Promise.all([
+ const [savedIds,sellerTrust,sellerCheckoutReady,passportEvidence]=await Promise.all([
   user?getSavedPartIds(user.id):Promise.resolve([]),
   getPublicMemberProfileById(item.seller.ownerId).catch(()=>null),
-  isSellerCheckoutReady(item.sellerId).catch(()=>false)
+  isSellerCheckoutReady(item.sellerId).catch(()=>false),
+  getPartPassportEvidence(item.id).catch(()=>null)
  ]);
  const backHref=context.toString()?`/?${context.toString()}#marketplace`:"/#marketplace";
  const currentHref=context.toString()?`/parts/${slug}?${context.toString()}`:`/parts/${slug}`;
@@ -96,8 +99,8 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
      <details className="mt-3 text-sm"><summary className="cursor-pointer font-black underline">Why this match?</summary><p className="mt-2 leading-6 text-[#63706a]">{compatibility.level==="confirmed"?"SecondPart found an explicit fitment record for this exact selected vehicle configuration.":compatibility.level==="buyer_verified"?"At least two different buyers completed real SecondPart transactions for this part and confirmed an exact fit on this selected vehicle configuration.":compatibility.level==="family_match"?"SecondPart found fitment evidence for another derivative in the same vehicle family. That is useful evidence, but it is not enough to claim an exact fit.":"No explicit exact-fit, buyer-verified fit or same-family evidence is available for this listing and vehicle."}{item.oemNumber?` Compare the vehicle's OE/OEM requirement with ${item.oemNumber} before ordering.`:""}</p></details>
     </section>}
 
-    <dl className="mt-6 grid grid-cols-1 gap-3 rounded-2xl bg-[#eef1eb] p-4 text-sm min-[390px]:grid-cols-2"><div><dt className="text-[#63706a]">OE/OEM number</dt><dd className="font-bold">{item.oemNumber??"Not supplied"}</dd></div><div><dt className="text-[#63706a]">Part number</dt><dd className="font-bold">{item.partNumber??"Not supplied"}</dd></div><div><dt className="text-[#63706a]">Manufacturer</dt><dd className="font-bold">{item.manufacturer??"Not supplied"}</dd></div><div><dt className="text-[#63706a]">Dispatch</dt><dd className="font-bold">{item.dispatchDays===0?"Same day":`${item.dispatchDays} working day${item.dispatchDays===1?"":"s"}`}</dd></div></dl>
-    <section className="mt-6 rounded-2xl border border-black/10 bg-white p-5"><p className="text-xs font-black uppercase tracking-[.14em] text-[#287154]">Part condition & seller evidence</p><dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2"><div><dt className="text-[#63706a]">Condition</dt><dd className="font-black capitalize">{conditionLabel(item.condition)}</dd></div><div><dt className="text-[#63706a]">Testing</dt><dd className="font-black">{testingStatusLabel(item.testingStatus)}</dd></div><div><dt className="text-[#63706a]">Seller warranty</dt><dd className="font-black">{warrantyLabel(item.warrantyDays)}</dd></div><div><dt className="text-[#63706a]">Photos</dt><dd className="font-black">{item.images.length} real product photo{item.images.length===1?"":"s"}</dd></div></dl>{item.conditionNotes&&<div className="mt-4 rounded-xl bg-[#f8f7f2] p-3 text-sm"><p className="font-black">Condition notes</p><p className="mt-1 leading-6 text-[#63706a]">{item.conditionNotes}</p></div>}{item.damageNotes&&<div className="mt-3 rounded-xl bg-amber-50 p-3 text-sm"><p className="font-black text-amber-900">Visible damage / wear disclosed by seller</p><p className="mt-1 leading-6 text-amber-900/80">{item.damageNotes}</p></div>}</section><p className="mt-5 leading-7 text-[#63706a]">{item.description}</p>
+    <PartPassport listing={item} evidence={passportEvidence}/>
+    <p className="mt-5 leading-7 text-[#63706a]">{item.description}</p>
 
     {item.category.isTransmissionRelated&&(item.gearboxFamily||item.gearboxCode)&&<details className="mt-5 rounded-2xl border border-black/10 bg-white p-4"><summary className="cursor-pointer text-sm font-black">Technical details</summary><dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">{item.gearboxFamily&&<div><dt className="text-[#63706a]">Transmission family</dt><dd className="font-mono font-bold">{item.gearboxFamily}</dd></div>}{item.gearboxCode&&<div><dt className="text-[#63706a]">Transmission code</dt><dd className="font-mono font-bold">{item.gearboxCode}</dd></div>}</dl></details>}
 
