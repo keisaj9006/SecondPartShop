@@ -2224,6 +2224,12 @@ export type Database = {
           order_item_id: string
         }[]
       }
+      get_existing_csv_inventory_references: {
+        Args: { p_references: string[] }
+        Returns: {
+          source_external_id: string
+        }[]
+      }
       get_expired_unpaid_orders: {
         Args: { p_limit?: number }
         Returns: {
