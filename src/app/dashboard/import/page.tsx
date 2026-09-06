@@ -27,7 +27,7 @@ export default async function BulkImportPage(){
     <h1 className="mt-2 text-3xl font-black tracking-[-.045em] sm:text-4xl">Bulk CSV Import</h1>
     <p className="mt-2 max-w-2xl text-sm leading-6 text-[#63706a]">Bring existing garage or breaker inventory into SecondPart without creating every listing manually.</p>
    </div>
-   <a href="/secondpart-bulk-import-template.csv" download className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-black/15 bg-white px-5 py-3 text-sm font-black"><FileSpreadsheet size={17}/>Download CSV template</a>
+   <div className="flex flex-wrap gap-2"><a href="/secondpart-bulk-import-template.csv" download className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-black/15 bg-white px-5 py-3 text-sm font-black"><FileSpreadsheet size={17}/>Download CSV template</a><a href="/api/catalogue/categories.csv" className="inline-flex min-h-12 items-center justify-center rounded-full border border-black/15 bg-white px-5 py-3 text-sm font-black">Category reference</a></div>
   </div>
 
   <section className="mt-7 rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
