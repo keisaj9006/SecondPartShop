@@ -102,7 +102,7 @@ async function validateCsv(file:File,sellerId:string){
  const references=[...new Set(parsed.rows.map(row=>text(row.seller_reference,120)).filter(Boolean))];
  const existingReferences=new Set<string>();
  if(references.length){
-  const {data,error}=await supabase.from("parts").select("source_external_id").eq("seller_id",sellerId).eq("source_channel","csv").in("source_external_id",references);
+  const {data,error}=await supabase.from("parts").select("source_external_id").eq("seller_id",sellerId).eq("source_channel","csv").not("source_external_id","is",null);
   if(error)return {fatal:"Existing seller references could not be checked.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:parsed.rows.length};
   for(const item of data??[])if(item.source_external_id)existingReferences.add(item.source_external_id.toLowerCase());
  }
@@ -120,7 +120,8 @@ async function validateCsv(file:File,sellerId:string){
   const description=text(row.description,5000);
   const categoryInput=text(row.category,160);
   const pricePence=moneyPence(row.price_gbp);
-  const shippingPence=moneyPence(row.shipping_gbp)??0;
+  const shippingRaw=text(row.shipping_gbp,32);
+  const shippingPence=shippingRaw?moneyPence(shippingRaw):0;
   const stock=integer(row.stock,1);
   const dispatchDays=integer(row.dispatch_days,2);
   const warrantyDays=integer(row.warranty_days,0);
