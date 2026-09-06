@@ -1,3 +1,6 @@
 [db.seed]
 enabled = true
 sql_paths = ["./seed.sql"]
+
+[functions.dft-catalogue-import]
+verify_jwt = true
