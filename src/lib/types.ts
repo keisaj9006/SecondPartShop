@@ -135,7 +135,7 @@ export type TransactionThread={
 export type TransactionCase={
  id:string;
  orderItemId:string;
- caseType:"return"|"dispute";
+ caseType:"return"|"dispute"|"cancellation";
  reason:string;
  details:string;
  status:"open"|"seller_response"|"under_review"|"return_authorized"|"return_shipped"|"returned"|"resolved"|"rejected"|"cancelled";
