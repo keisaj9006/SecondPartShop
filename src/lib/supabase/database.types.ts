@@ -2167,6 +2167,20 @@ export type Database = {
           order_id: string
         }[]
       }
+      get_part_passport_evidence: {
+        Args: { p_part_id: string }
+        Returns: {
+          donor_colour: string
+          donor_engine_size_simple: number
+          donor_fuel_type: string
+          donor_make: string
+          donor_model: string
+          donor_variant: string
+          donor_year: number
+          explicit_fitment_count: number
+          verified_fit_report_count: number
+        }[]
+      }
       get_part_verified_fit_summary: {
         Args: {
           p_engine?: number
