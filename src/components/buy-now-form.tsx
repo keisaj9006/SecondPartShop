@@ -16,7 +16,8 @@ export function BuyNowForm({
  signedIn,
  ownListing,
  checkoutReady,
- returnTo
+ returnTo,
+ vehicleContext
 }:{
  partId:string;
  stock:number;
@@ -26,6 +27,7 @@ export function BuyNowForm({
  ownListing:boolean;
  checkoutReady:boolean;
  returnTo:string;
+ vehicleContext?:{variantId:string;year:number;fuel?:string;engine?:number;registration?:string};
 }){
  const [state,action,pending]=useActionState(startCheckout,initial);
  const maxQuantity=Math.max(1,Math.min(stock,10));
@@ -36,6 +38,7 @@ export function BuyNowForm({
 
  return <form action={action} className="mt-5 rounded-2xl border border-black/10 bg-white p-4">
   <input type="hidden" name="partId" value={partId}/>
+  {vehicleContext&&<><input type="hidden" name="vehicleVariantId" value={vehicleContext.variantId}/><input type="hidden" name="vehicleYear" value={vehicleContext.year}/>{vehicleContext.fuel&&<input type="hidden" name="vehicleFuel" value={vehicleContext.fuel}/>} {vehicleContext.engine!==undefined&&<input type="hidden" name="vehicleEngine" value={vehicleContext.engine}/>} {vehicleContext.registration&&<input type="hidden" name="vehicleRegistration" value={vehicleContext.registration}/>}</>}
   <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
    <label className="text-sm font-bold">Quantity
     <select name="quantity" defaultValue="1" disabled={!checkoutReady||pending} className="mt-2 w-full rounded-xl border border-black/15 bg-white px-3 py-3">
@@ -51,6 +54,7 @@ export function BuyNowForm({
    </fieldset>
   </div>
 
+  {vehicleContext&&<p className="mt-3 rounded-xl bg-[#eef1eb] p-3 text-xs font-bold text-[#56625d]">This purchase will be linked to your selected vehicle so SecondPart can ask for verified fitment feedback after the transaction.</p>}
   {!checkoutReady&&<p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm font-bold text-amber-900">Checkout is not available for this seller yet.</p>}
   {state.message&&<p role="status" className={"mt-3 rounded-xl p-3 text-sm font-bold "+(state.status==="error"?"bg-red-50 text-red-800":"bg-emerald-50 text-emerald-800")}>{state.message}</p>}
 
