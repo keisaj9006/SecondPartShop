@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PackageCheck,Star,Truck } from "lucide-react";
 import { Header } from "@/components/header";
 import { BuyerReceiptControls } from "@/components/buyer-receipt-controls";
+import { resumeCheckout } from "@/app/account/orders/checkout-actions";
 import { requireUser } from "@/lib/auth";
 import { getBuyerOrders } from "@/lib/data/orders";
 
@@ -31,7 +32,7 @@ export default async function PurchasesPage(){
     </div>
     <div className="mt-3 flex flex-wrap gap-3 text-xs font-bold text-[#56625d]"><span className="inline-flex items-center gap-1"><PackageCheck size={14}/>{label(item.fulfilmentStatus)}</span>{item.trackingNumber&&<span className="inline-flex items-center gap-1"><Truck size={14}/>{item.trackingCarrier?`${item.trackingCarrier} · `:""}{item.trackingNumber}</span>}{item.fundsReleasedAt&&<Link href="/account/reviews" className="inline-flex items-center gap-1 text-[#287154] underline"><Star size={14}/>Leave verified review</Link>}{order.paymentStatus==="paid"&&<Link href={"/messages/"+item.id} className="font-black text-[#287154] underline">Message seller</Link>}{order.paymentStatus==="paid"&&!["cancelled","refunded","returned","return_requested","dispute_open"].includes(item.fulfilmentStatus)&&<Link href={"/account/cases?item="+encodeURIComponent(item.id)} className="font-black text-amber-800 underline">Report problem / return</Link>}</div>
    <BuyerReceiptControls item={item}/></div>)}</div>
-   <div className="mt-4 flex justify-end"><p className="text-lg font-black">Total {money(order.totalPence,order.currency)}</p></div>
+   <div className="mt-4 flex flex-wrap items-center justify-between gap-3">{["unpaid","requires_action","processing"].includes(order.paymentStatus)&&<form action={resumeCheckout}><input type="hidden" name="orderId" value={order.id}/><button className="rounded-xl bg-[#173c31] px-4 py-2.5 text-sm font-black text-white">Resume secure checkout</button></form>}<p className="ml-auto text-lg font-black">Total {money(order.totalPence,order.currency)}</p></div>
   </article>)}</div>:<div className="mt-8 rounded-3xl border border-dashed border-black/20 bg-white px-6 py-16 text-center"><PackageCheck className="mx-auto text-[#63706a]"/><h2 className="mt-4 text-xl font-black">No purchases yet</h2><p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#63706a]">Completed marketplace orders will appear here with payment and delivery status.</p><Link href="/#marketplace" className="mt-5 inline-block rounded-full bg-[#173c31] px-5 py-3 text-sm font-black text-white">Browse parts</Link></div>}
  </main></>;
 }
