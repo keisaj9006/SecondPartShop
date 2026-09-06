@@ -116,8 +116,11 @@ export type ListingConversationMessage={
  createdAt:string;
 };
 
+export type MessagePagination={offset:number;limit:number;hasOlder:boolean;hasNewer:boolean};
+
 export type ListingConversationThread=ListingConversationSummary&{
  messages:ListingConversationMessage[];
+ messagePagination:MessagePagination;
 };
 
 export type TransactionCaseEvidence={
@@ -150,6 +153,7 @@ export type TransactionThread={
  sellerOwnerId:string|null;
  paymentStatus:string;
  messages:TransactionMessage[];
+ messagePagination:MessagePagination;
 };
 
 export type TransactionCase={
