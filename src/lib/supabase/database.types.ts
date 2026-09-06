@@ -90,6 +90,30 @@ export type Database = {
           },
         ]
       }
+      commerce_settings: {
+        Row: {
+          auto_release_hours: number
+          checkout_reservation_minutes: number
+          platform_fee_bps: number
+          singleton: boolean
+          updated_at: string
+        }
+        Insert: {
+          auto_release_hours?: number
+          checkout_reservation_minutes?: number
+          platform_fee_bps?: number
+          singleton?: boolean
+          updated_at?: string
+        }
+        Update: {
+          auto_release_hours?: number
+          checkout_reservation_minutes?: number
+          platform_fee_bps?: number
+          singleton?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       donor_vehicles: {
         Row: {
           colour: string | null
@@ -394,6 +418,7 @@ export type Database = {
       order_items: {
         Row: {
           accepted_at: string | null
+          buyer_received_at: string | null
           cancelled_at: string | null
           delivered_at: string | null
           delivery_method: string
@@ -420,6 +445,7 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
+          buyer_received_at?: string | null
           cancelled_at?: string | null
           delivered_at?: string | null
           delivery_method?: string
@@ -446,6 +472,7 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
+          buyer_received_at?: string | null
           cancelled_at?: string | null
           delivered_at?: string | null
           delivery_method?: string
@@ -498,6 +525,7 @@ export type Database = {
         Row: {
           buyer_id: string
           cancelled_at: string | null
+          checkout_expires_at: string | null
           created_at: string
           currency: string
           id: string
@@ -505,8 +533,10 @@ export type Database = {
           payment_provider: string | null
           payment_status: string
           platform_fee_pence: number
+          provider_charge_id: string | null
           provider_checkout_session_id: string | null
           provider_payment_intent_id: string | null
+          refunded_pence: number
           shipping_pence: number
           status: string
           subtotal_pence: number
@@ -516,6 +546,7 @@ export type Database = {
         Insert: {
           buyer_id: string
           cancelled_at?: string | null
+          checkout_expires_at?: string | null
           created_at?: string
           currency?: string
           id?: string
@@ -523,8 +554,10 @@ export type Database = {
           payment_provider?: string | null
           payment_status?: string
           platform_fee_pence?: number
+          provider_charge_id?: string | null
           provider_checkout_session_id?: string | null
           provider_payment_intent_id?: string | null
+          refunded_pence?: number
           shipping_pence?: number
           status?: string
           subtotal_pence?: number
@@ -534,6 +567,7 @@ export type Database = {
         Update: {
           buyer_id?: string
           cancelled_at?: string | null
+          checkout_expires_at?: string | null
           created_at?: string
           currency?: string
           id?: string
@@ -541,8 +575,10 @@ export type Database = {
           payment_provider?: string | null
           payment_status?: string
           platform_fee_pence?: number
+          provider_charge_id?: string | null
           provider_checkout_session_id?: string | null
           provider_payment_intent_id?: string | null
+          refunded_pence?: number
           shipping_pence?: number
           status?: string
           subtotal_pence?: number
@@ -782,6 +818,7 @@ export type Database = {
           part_number: string | null
           price_pence: number
           seller_id: string
+          shipping_pence: number
           slug: string
           source_request_id: string | null
           status: Database["public"]["Enums"]["listing_status"]
@@ -811,6 +848,7 @@ export type Database = {
           part_number?: string | null
           price_pence: number
           seller_id: string
+          shipping_pence?: number
           slug: string
           source_request_id?: string | null
           status?: Database["public"]["Enums"]["listing_status"]
@@ -840,6 +878,7 @@ export type Database = {
           part_number?: string | null
           price_pence?: number
           seller_id?: string
+          shipping_pence?: number
           slug?: string
           source_request_id?: string | null
           status?: Database["public"]["Enums"]["listing_status"]
@@ -876,6 +915,44 @@ export type Database = {
             columns: ["source_request_id"]
             isOneToOne: false
             referencedRelation: "part_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_events: {
+        Row: {
+          event_type: string
+          id: string
+          order_id: string | null
+          payload_ref: Json
+          processed_at: string
+          provider: string
+          provider_event_id: string
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          order_id?: string | null
+          payload_ref?: Json
+          processed_at?: string
+          provider: string
+          provider_event_id: string
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          order_id?: string | null
+          payload_ref?: Json
+          processed_at?: string
+          provider?: string
+          provider_event_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -1607,10 +1684,30 @@ export type Database = {
         Args: { p_report_id: string; p_status: string }
         Returns: undefined
       }
+      cancel_checkout_order: {
+        Args: { p_event_id?: string; p_event_type?: string; p_order_id: string }
+        Returns: boolean
+      }
       category_descendant_ids: {
         Args: { p_category_id: string }
         Returns: {
           id: string
+        }[]
+      }
+      confirm_checkout_paid: {
+        Args: {
+          p_charge_id: string
+          p_checkout_session_id: string
+          p_event_id: string
+          p_order_id: string
+          p_payment_intent_id: string
+        }
+        Returns: boolean
+      }
+      get_expired_unpaid_orders: {
+        Args: { p_limit?: number }
+        Returns: {
+          order_id: string
         }[]
       }
       get_public_member_profile: {
@@ -1722,10 +1819,31 @@ export type Database = {
           part_id: string
         }[]
       }
+      prepare_checkout_order: {
+        Args: {
+          p_delivery_method?: string
+          p_part_id: string
+          p_quantity?: number
+        }
+        Returns: {
+          checkout_expires_at: string
+          order_id: string
+          order_item_id: string
+          part_title: string
+          platform_fee_pence: number
+          quantity: number
+          seller_name: string
+          seller_net_pence: number
+          shipping_pence: number
+          total_pence: number
+          unit_price_pence: number
+        }[]
+      }
       replace_part_catalogue_fitments: {
         Args: { p_fitments: Json; p_part_id: string }
         Returns: undefined
       }
+      seller_checkout_ready: { Args: { p_seller_id: string }; Returns: boolean }
       submit_transaction_review: {
         Args: {
           p_buyer_conduct_rating?: number
