@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft,Check,Flag,MapPin,ShieldCheck,Truck } from "lucide-react";
+import { AskSellerForm } from "@/components/ask-seller-form";
 import { BuyNowForm } from "@/components/buy-now-form";
 import { CompatibilityBadge } from "@/components/compatibility-badge";
 import { Header } from "@/components/header";
@@ -101,6 +102,7 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
       checkoutReady={isStripeCheckoutConfigured()&&sellerCheckoutReady}
       returnTo={currentHref}
     />
+    <div className="mt-3"><AskSellerForm partId={item.id} signedIn={Boolean(user)} ownListing={Boolean(user&&item.seller.ownerId===user.id)} returnTo={currentHref}/></div>
     <div className="mt-5 grid grid-cols-2 gap-3"><SaveButton partId={item.id} initialSaved={savedIds.includes(item.id)}/><Link href={`/seller/${item.seller.slug}`} className="grid place-items-center rounded-xl bg-[#d4f44d] px-5 py-3 text-center font-black">View seller</Link></div>
     <div className="mt-6 grid gap-3 rounded-2xl bg-[#173c31] p-5 text-sm text-white">
       <div className="flex flex-wrap items-center gap-2">
