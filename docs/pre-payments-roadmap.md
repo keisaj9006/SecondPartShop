@@ -1,6 +1,6 @@
 # SecondPart — Pre-payments roadmap
 
-Status: **build complete on `rebuild-nextjs`; pre-QA cleanup complete; full acceptance QA is the next gate before commerce work.**
+Status: **build complete on `rebuild-nextjs`; pre-QA cleanup complete; backend/static acceptance QA is passing after the first QA Fix Pass. Fresh Preview browser/mobile acceptance remains the final gate before commerce work.**
 
 ## Completed before payments
 
@@ -60,11 +60,36 @@ Status: **build complete on `rebuild-nextjs`; pre-QA cleanup complete; full acce
 - no database schema, RLS or authentication behaviour was changed in this cleanup
 - Supabase leaked-password protection remains a launch hardening setting to enable before public release
 
-## Final pre-payments step
+## Acceptance QA — IN PROGRESS
 
-**FULL ACCEPTANCE QA — NOT STARTED YET BY DESIGN**
+### Backend/static acceptance pass — PASS after QA fixes
 
-Run one consolidated desktop/mobile buyer/seller/admin QA after the current build is deployed to a fresh Preview. Fix all failures in one QA Fix Pass before starting real commerce.
+Validated against the real Supabase project and current `rebuild-nextjs` source:
+
+- marketplace search precision: sibling category aliases no longer create unrelated matches
+- unrelated search text returns no marketplace results
+- legacy vehicle fitments can support DfT catalogue searches only as `family_match`, never false `confirmed`
+- DfT make alias handling includes Skoda/Škoda normalization for the legacy compatibility bridge
+- buyer RLS isolation: own profile/activity visible, inactive foreign listings hidden
+- seller lifecycle tested transactionally: buyer → seller upgrade, own seller profile and draft listing creation
+- seller RLS prevented updating another seller's listing
+- buyer saved-part functionality remains available after seller upgrade
+- buyer → admin privilege escalation remains blocked
+- seller/admin/new/edit/moderation/account route guards reviewed
+- vehicle lookup and catalogue API failures return controlled messages without exposing raw database errors
+- Part Request copy reflects the implemented privacy-safe seller demand-lead flow
+- CI lint, typecheck and production build pass on QA-fix commits
+
+### Fresh Preview visual/browser acceptance — PENDING
+
+A fresh Vercel Preview must still be tested on desktop and mobile for buyer, seller and admin interaction/visual behaviour before commerce starts. The currently connected Vercel integration does not have access to the original project team scope, so browser-level Preview QA requires that Vercel scope to be re-authorized.
+
+Do not start the payment/order layer until this fresh Preview pass is complete.
+
+### Remaining launch hardening
+
+- enable Supabase leaked-password protection before public launch
+- complete final legal review before real commerce
 
 ## Payment/order phase after QA
 
