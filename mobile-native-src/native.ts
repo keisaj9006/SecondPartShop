@@ -1,7 +1,7 @@
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { Browser } from "@capacitor/browser";
-import { Camera,CameraResultType,CameraSource } from "@capacitor/camera";
+import { Camera,MediaTypeSelection } from "@capacitor/camera";
 import { SecureStorage } from "@aparajita/capacitor-secure-storage";
 
 const prefixReady=SecureStorage.setKeyPrefix("secondpart_").catch(()=>undefined);
@@ -46,22 +46,38 @@ const nativeApi={
   if(!isNative)return null;
   try{return (await App.getLaunchUrl()).url??null;}catch{return null;}
  },
- async pickPhoto(){
+ async takePhoto(){
   if(!isNative)return null;
-  const photo=await Camera.getPhoto({
+  const photo=await Camera.takePhoto({
    quality:82,
-   allowEditing:false,
-   resultType:CameraResultType.DataUrl,
-   source:CameraSource.Prompt,
-   saveToGallery:false,
+   includeMetadata:true,
    correctOrientation:true,
-   width:2200
+   targetWidth:2200,
+   targetHeight:2200
   });
   return {
-   dataUrl:photo.dataUrl??null,
-   format:photo.format,
-   saved:false
+   webPath:photo.webPath,
+   format:photo.metadata?.format??"jpeg",
+   saved:photo.saved
   };
+ },
+ async choosePhotos(limit=6){
+  if(!isNative)return [];
+  const result=await Camera.chooseFromGallery({
+   mediaType:MediaTypeSelection.Photo,
+   allowMultipleSelection:true,
+   limit:Math.max(1,Math.min(limit,6)),
+   includeMetadata:true,
+   quality:82,
+   correctOrientation:true,
+   targetWidth:2200,
+   targetHeight:2200
+  });
+  return result.results.map(photo=>({
+   webPath:photo.webPath,
+   format:photo.metadata?.format??"jpeg",
+   saved:photo.saved
+  }));
  },
  onUrlOpen(callback:(url:string)=>void){
   if(!isNative)return Promise.resolve({remove:async()=>{}});
