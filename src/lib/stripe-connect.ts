@@ -85,8 +85,16 @@ export async function getStripeRecipientAccount(accountId:string){
  return stripeV2<StripeRecipientAccount>(`/v2/core/accounts/${encodeURIComponent(accountId)}?${include.toString()}`);
 }
 
-export async function createStripeOnboardingLink(accountId:string){
+export async function createStripeOnboardingLink(accountId:string,urls?:{refreshUrl?:string;returnUrl?:string}){
  const appUrl=getAppUrl();
+ const safeUrl=(value:string|undefined,fallback:string)=>{
+  if(!value)return fallback;
+  const parsed=new URL(value);
+  if(parsed.protocol!=="https:")throw new Error("Stripe onboarding return URLs must use HTTPS.");
+  return parsed.toString();
+ };
+ const refreshUrl=safeUrl(urls?.refreshUrl,`${appUrl}/dashboard/payments?refresh=1`);
+ const returnUrl=safeUrl(urls?.returnUrl,`${appUrl}/dashboard/payments?returned=1`);
  const result=await stripeV2<StripeAccountLink>("/v2/core/account_links",{
   method:"POST",
   body:JSON.stringify({
@@ -95,8 +103,8 @@ export async function createStripeOnboardingLink(accountId:string){
     type:"account_onboarding",
     account_onboarding:{
      configurations:["recipient"],
-     refresh_url:`${appUrl}/dashboard/payments?refresh=1`,
-     return_url:`${appUrl}/dashboard/payments?returned=1`,
+     refresh_url:refreshUrl,
+     return_url:returnUrl,
      collection_options:{fields:"eventually_due"}
     }
    }
