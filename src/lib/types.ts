@@ -144,6 +144,17 @@ export type SellerPaymentAccount={
  detailsSubmitted:boolean;
 };
 
+export type OrderTimelineEvent={
+ id:string;
+ orderId:string;
+ orderItemId:string|null;
+ eventType:string;
+ fromStatus:string|null;
+ toStatus:string|null;
+ actorProfileId:string|null;
+ createdAt:string;
+};
+
 export type ShippingAddress={
  line1:string|null;
  line2:string|null;
