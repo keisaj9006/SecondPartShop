@@ -15,6 +15,7 @@ const state={
  savedIds:new Set(),
  unreadNotifications:0,
  activeVehicle:null,
+ vehicleCompatibleOnly:true,
  currentSearch:"",
  currentView:"home"
 };
