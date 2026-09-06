@@ -91,6 +91,36 @@ export async function POST(request:Request){
    }
   }
 
+  if(event.type==="charge.dispute.created"){
+   const disputeId=typeof object.id==="string"?object.id:"";
+   const chargeId=idValue(object.charge);
+   const status=typeof object.status==="string"?object.status:"unknown";
+   const reason=typeof object.reason==="string"?object.reason:undefined;
+   if(disputeId&&chargeId){
+    const {error}=await admin.rpc("open_provider_payment_dispute",{
+     p_event_id:event.id,
+     p_dispute_id:disputeId,
+     p_charge_id:chargeId,
+     p_status:status,
+     p_reason:reason
+    });
+    if(error)throw error;
+   }
+  }
+
+  if(event.type==="charge.dispute.closed"){
+   const disputeId=typeof object.id==="string"?object.id:"";
+   const status=typeof object.status==="string"?object.status:"unknown";
+   if(disputeId){
+    const {error}=await admin.rpc("close_provider_payment_dispute",{
+     p_event_id:event.id,
+     p_dispute_id:disputeId,
+     p_status:status
+    });
+    if(error)throw error;
+   }
+  }
+
   return NextResponse.json({received:true});
  }catch{
   return NextResponse.json({received:false},{status:500});
