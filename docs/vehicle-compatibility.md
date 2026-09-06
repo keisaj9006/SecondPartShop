@@ -19,6 +19,14 @@ Use only when the listing contains an explicit catalogue fitment for the selecte
 
 Seller confirmation must be based on actual fitment knowledge, OE/OEM information, supplier data or similarly defensible evidence.
 
+### Verified fit by SecondPart buyers
+
+Transaction-backed evidence for the exact selected catalogue vehicle.
+
+SecondPart may show this level when at least two different buyers completed real marketplace transactions for the same part and exact vehicle context, confirmed an exact fit, and the evidence is not materially contradicted by verified non-fit reports.
+
+This level is deliberately separate from **Confirmed for your vehicle** so community evidence is never presented as manufacturer/OE catalogue confirmation.
+
 ### Vehicle family match — verify details
 
 A useful but non-final compatibility signal.
@@ -79,14 +87,36 @@ To publish an active listing, at least one compatibility/identity basis is requi
 
 Real product photography remains a separate publication requirement.
 
+## Verified post-purchase fit feedback
+
+When checkout starts with a selected catalogue vehicle, SecondPart snapshots the vehicle variant, year, fuel, engine and normalized registration onto the order item.
+
+After a successfully completed, non-refunded transaction with released funds, the buyer can report:
+
+- exact fit;
+- fit with modification / coding / adaptation;
+- did not fit; or
+- not installed yet.
+
+The buyer cannot substitute a different vehicle after the transaction. Public compatibility statistics expose only aggregate counts; the registration remains private transaction data.
+
+A buyer-verified compatibility signal requires evidence from distinct buyers rather than raw feedback-row counts.
+
+## Registration / VRM lookup
+
+Registration lookup is provider-neutral at the product level. The current adapter is prepared for the official DVSA service and maps returned vehicle data into the internal DfT/provider-neutral catalogue.
+
+Until API credentials are configured, the user can continue with manual vehicle selection. Provider credentials must remain server-side.
+
 ## Search ordering
 
 When a vehicle is selected, Best match should prioritize:
 
-1. confirmed;
-2. family match;
-3. unverified.
+1. explicit confirmed fitment;
+2. verified fit by SecondPart buyers;
+3. family match;
+4. unverified.
 
-When compatible-only is checked, level 3 is excluded.
+When compatible-only is checked, unverified listings are excluded.
 
-When compatible-only is unchecked, level 3 remains browseable but clearly marked.
+When compatible-only is unchecked, unverified listings remain browseable but clearly marked.
