@@ -4,7 +4,7 @@
   "webDir": "mobile-shell",
   "loggingBehavior": "debug",
   "server": {
-    "url": "https://second-part-shop-preview.vercel.app",
+    "url": "https://second-part-shop-27up04qoj-joannakwapis11-5369.vercel.app",
     "cleartext": false
   },
   "android": {
