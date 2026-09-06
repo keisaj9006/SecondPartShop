@@ -5,9 +5,12 @@ export type VehicleDataStatus="verified"|"qa_seed"|"external_import";
 export type PartTestingStatus="tested_working"|"removed_from_running_vehicle"|"visually_inspected"|"untested"|"not_specified";
 export type CompatibilityLevel="confirmed"|"family_match"|"unverified";
 export type MarketplaceSort="best"|"price_asc"|"price_desc"|"distance"|"delivery"|"warranty";
+export type SellerType="business"|"private";
+export type ReviewDirection="buyer_to_seller"|"seller_to_buyer";
+
 export type CompatibilityInfo={level:CompatibilityLevel;label:string;detail:string};
-export type Profile={id:string;role:UserRole;displayName:string;phone:string|null};
-export type Seller={id:string;ownerId:string|null;businessName:string;slug:string;location:string;postcode:string|null;description:string;verified:boolean};
+export type Profile={id:string;role:UserRole;displayName:string;handle:string;bio:string|null;phone:string|null};
+export type Seller={id:string;ownerId:string|null;businessName:string;slug:string;location:string;postcode:string|null;description:string;verified:boolean;sellerType:SellerType};
 export type Category={id:string;parentId:string|null;name:string;slug:string;isTransmissionRelated:boolean;isSelectable:boolean;sortOrder:number;searchTerms:string[]};
 export type Vehicle={id:string;make:string;model:string;generation:string;year:number;engine:string;engineCode:string|null;fuelType:string|null;gearboxFamily:string|null;gearboxCode:string|null;dataStatus:VehicleDataStatus;sourceReference:string|null};
 export type VehicleCatalogueSelection={variantId:string;make:string;modelFamily:string;variant:string;year:number;fuelType:string|null;engineSizeSimple:number|null};
@@ -24,4 +27,39 @@ export type Listing={id:string;sellerId:string;categoryId:string;donorVehicleId:
 export type MarketplaceFilters={query?:string;category?:string;condition?:PartCondition;sort?:MarketplaceSort;gearboxFamily?:string;gearboxCode?:string;minPrice?:number;maxPrice?:number;postcode?:string;collectionOnly?:boolean;vehicle?:string;vehicleRegistration?:string;catalogueVariant?:string;catalogueYear?:number;catalogueFuel?:string;catalogueEngineSize?:number;ids?:string[]};
 export type MarketplaceSuggestion={kind:"category"|"listing"|"number"|"brand";label:string;query:string;categoryId?:string;meta?:string};
 export type SearchSuggestionGroups={categories:MarketplaceSuggestion[];listings:MarketplaceSuggestion[];numbers:MarketplaceSuggestion[];brands:MarketplaceSuggestion[]};
+
+export type PublicMemberProfile={
+ id:string;
+ handle:string;
+ displayName:string;
+ bio:string|null;
+ memberSince:string;
+ sellerId:string|null;
+ sellerSlug:string|null;
+ sellerName:string|null;
+ sellerType:SellerType|null;
+ sellerVerified:boolean;
+ soldCount:number;
+ boughtCount:number;
+ sellerRating:number|null;
+ sellerReviewCount:number;
+ buyerRating:number|null;
+ buyerReviewCount:number;
+};
+
+export type TransactionReview={
+ id:string;
+ reviewerHandle:string;
+ reviewerDisplayName:string;
+ direction:ReviewDirection;
+ overallRating:number;
+ itemAsDescribedRating:number|null;
+ dispatchRating:number|null;
+ communicationRating:number|null;
+ buyerConductRating:number|null;
+ comment:string|null;
+ createdAt:string;
+ partTitle:string;
+};
+
 export type ActionState={status:"idle"|"success"|"error";message?:string;fieldErrors?:Record<string,string>};
