@@ -1078,6 +1078,50 @@ export type Database = {
           },
         ]
       }
+      seller_payment_accounts: {
+        Row: {
+          charges_enabled: boolean
+          created_at: string
+          details_submitted: boolean
+          onboarding_status: string
+          payment_provider: string
+          payouts_enabled: boolean
+          provider_account_id: string | null
+          seller_id: string
+          updated_at: string
+        }
+        Insert: {
+          charges_enabled?: boolean
+          created_at?: string
+          details_submitted?: boolean
+          onboarding_status?: string
+          payment_provider?: string
+          payouts_enabled?: boolean
+          provider_account_id?: string | null
+          seller_id: string
+          updated_at?: string
+        }
+        Update: {
+          charges_enabled?: boolean
+          created_at?: string
+          details_submitted?: boolean
+          onboarding_status?: string
+          payment_provider?: string
+          payouts_enabled?: boolean
+          provider_account_id?: string | null
+          seller_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_payment_accounts_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: true
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seller_verification_requests: {
         Row: {
           id: string
@@ -1139,16 +1183,11 @@ export type Database = {
       sellers: {
         Row: {
           business_name: string
-          charges_enabled: boolean
           created_at: string
           description: string
           id: string
           location: string
           owner_id: string | null
-          payment_onboarding_status: string
-          payment_provider: string | null
-          payment_provider_account_id: string | null
-          payouts_enabled: boolean
           postcode: string | null
           seller_type: string
           slug: string
@@ -1157,16 +1196,11 @@ export type Database = {
         }
         Insert: {
           business_name: string
-          charges_enabled?: boolean
           created_at?: string
           description?: string
           id?: string
           location: string
           owner_id?: string | null
-          payment_onboarding_status?: string
-          payment_provider?: string | null
-          payment_provider_account_id?: string | null
-          payouts_enabled?: boolean
           postcode?: string | null
           seller_type?: string
           slug: string
@@ -1175,16 +1209,11 @@ export type Database = {
         }
         Update: {
           business_name?: string
-          charges_enabled?: boolean
           created_at?: string
           description?: string
           id?: string
           location?: string
           owner_id?: string | null
-          payment_onboarding_status?: string
-          payment_provider?: string | null
-          payment_provider_account_id?: string | null
-          payouts_enabled?: boolean
           postcode?: string | null
           seller_type?: string
           slug?: string
