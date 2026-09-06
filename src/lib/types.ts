@@ -201,6 +201,7 @@ export type SellerSale={
  quantity:number;
  unitPricePence:number;
  shippingPence:number;
+ platformFeePence:number;
  sellerNetPence:number;
  deliveryMethod:"shipping"|"collection";
  fulfilmentStatus:string;
