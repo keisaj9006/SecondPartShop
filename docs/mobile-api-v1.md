@@ -71,8 +71,10 @@ Seller routes require both an authenticated user and an owned seller record with
 - `GET /seller/sales`
 - `POST /seller/order-items/:orderItemId/fulfilment`
 - `GET|POST /seller/cases`
-- `GET /seller/listings`
+- `GET|POST /seller/listings`
+- `GET|PATCH /seller/listings/:partId`
 - `GET|POST|DELETE /seller/listings/:partId/photos`
+- `GET|POST|DELETE /seller/donors`
 
 ## Commerce rules
 
