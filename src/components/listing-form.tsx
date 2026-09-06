@@ -80,9 +80,10 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
   <label className="text-sm font-bold">Your part number<input name="partNumber" defaultValue={listing?.partNumber??""} className={input}/></label>
   <label className="text-sm font-bold">Manufacturer / brand<input name="manufacturer" defaultValue={listing?.manufacturer??""} className={input}/></label>
   <label className="text-sm font-bold">Dispatch time<select name="dispatchDays" defaultValue={listing?.dispatchDays??2} className={input}><option value="0">Same working day</option><option value="1">1 working day</option><option value="2">2 working days</option><option value="3">3 working days</option><option value="5">5 working days</option></select></label>
-  <fieldset className="grid gap-4 rounded-2xl border border-black/10 bg-[#f8f7f2] p-4 lg:col-span-2 sm:grid-cols-3">
-   <div className="sm:col-span-3"><p className="text-sm font-black">Collection & delivery</p><p className="mt-1 text-xs text-[#63706a]">Give buyers a realistic seller estimate. This is not a courier guarantee.</p></div>
+  <fieldset className="grid gap-4 rounded-2xl border border-black/10 bg-[#f8f7f2] p-4 lg:col-span-2 sm:grid-cols-2">
+   <div className="sm:col-span-2"><p className="text-sm font-black">Collection & delivery</p><p className="mt-1 text-xs text-[#63706a]">Give buyers a realistic seller estimate. This is not a courier guarantee.</p></div>
    <label className="flex items-center gap-3 rounded-xl bg-white p-3 text-sm font-bold"><input type="checkbox" name="collectionAvailable" defaultChecked={listing?.collectionAvailable??false}/>Local collection available</label>
+   <label className="text-sm font-bold">Delivery price (£)<input type="number" min="0" max="10000" step="0.01" name="shippingPrice" defaultValue={listing?listing.shippingPence/100:0} className={input} placeholder="0.00"/></label>
    <label className="text-sm font-bold">Delivery min days<input type="number" min="0" max="30" name="deliveryDaysMin" defaultValue={listing?.deliveryDaysMin??""} className={input} placeholder="1"/></label>
    <label className="text-sm font-bold">Delivery max days<input type="number" min="0" max="30" name="deliveryDaysMax" defaultValue={listing?.deliveryDaysMax??""} className={input} placeholder="3"/></label>
   </fieldset>
