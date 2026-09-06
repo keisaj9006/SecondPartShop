@@ -102,7 +102,6 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
  const [loadingEngines,setLoadingEngines]=useState(Boolean(selectedCatalogue?.variantId));
  const [catalogueError,setCatalogueError]=useState("");
 
- useEffect(()=>{setFitOnly(compatibleOnly);},[compatibleOnly]);
 
  useEffect(()=>{
   if(!make||!model)return;
