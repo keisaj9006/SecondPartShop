@@ -6,6 +6,15 @@ import { compatibilityInfo,getCompatibilityMap } from "@/lib/data/compatibility"
 import type { Category,Fitment,Listing,ListingImage,MarketplaceFilters,SearchSuggestionGroups,Seller,Vehicle,VehicleDataStatus } from "@/lib/types";
 
 export type DataResult<T>={data:T;error:string|null;configured:boolean};
+export type MarketplacePagination={
+ offset:number;
+ limit:number;
+ returned:number;
+ total:number|null;
+ hasMore:boolean;
+};
+export type MarketplacePageResult=DataResult<Listing[]>&{pagination:MarketplacePagination};
+
 type RawCategory={id:string;parent_id:string|null;name:string;slug:string;is_transmission_related:boolean;is_selectable:boolean;sort_order:number;search_terms:string[]};
 type RawSeller={id:string;owner_id:string|null;business_name:string;slug:string;location:string;postcode:string|null;description:string;verified_at:string|null;seller_type:"business"|"private"};
 type RawVehicle={id:string;make:string;model:string;generation:string;year:number;engine:string;engine_code:string|null;fuel_type:string|null;gearbox_family:string|null;gearbox_code:string|null;data_status:VehicleDataStatus;source_reference:string|null};
@@ -90,6 +99,123 @@ export async function getListings(filters:MarketplaceFilters={}):Promise<DataRes
   return 0;
  });
  return {data:listings,error:null,configured:true};
+}
+
+export async function getMarketplacePage(
+ filters:MarketplaceFilters={},
+ options:{offset?:number;limit?:number}={}
+):Promise<MarketplacePageResult>{
+ const limit=Math.max(1,Math.min(Math.floor(options.limit??24),60));
+ const offset=Math.max(0,Math.floor(options.offset??0));
+ const emptyPagination={offset,limit,returned:0,total:0,hasMore:false};
+ if(!isSupabaseConfigured())return {...failure([],"Connect Supabase to load marketplace data.",false),pagination:emptyPagination};
+
+ // Complex vehicle ranking still uses the compatibility engine first so correctness is
+ // preserved while compatibility-specific SQL pagination is introduced separately.
+ if(filters.vehicle||filters.catalogueVariant){
+  const result=await getListings(filters);
+  const page=result.data.slice(offset,offset+limit);
+  return {
+   ...result,
+   data:page,
+   pagination:{
+    offset,
+    limit,
+    returned:page.length,
+    total:result.data.length,
+    hasMore:offset+page.length<result.data.length
+   }
+  };
+ }
+
+ const supabase=await createSupabaseServerClient();
+ let categoryIds:string[]|undefined;
+ if(filters.category){
+  const {data,error}=await supabase.rpc("category_descendant_ids",{p_category_id:filters.category});
+  if(error)return {...failure([],"Category filtering is temporarily unavailable."),pagination:emptyPagination};
+  categoryIds=(data??[]).map(row=>row.id);
+  if(!categoryIds.length)return {data:[],error:null,configured:true,pagination:emptyPagination};
+ }
+
+ // Text search already returns a bounded ranked candidate set. Filter only lightweight
+ // IDs first, then hydrate the current page so card images/details are never loaded for
+ // hundreds of search results at once.
+ if(filters.query?.trim()){
+  const searchText=filters.query.trim();
+  const {data,error}=await supabase.rpc("marketplace_search_part_ids",{p_query:searchText});
+  if(error)return {...failure([],"Marketplace search is temporarily unavailable."),pagination:emptyPagination};
+  let rankedIds=(data??[]).map(row=>row.part_id);
+  if(!rankedIds.length){
+   const {data:synonym}=await supabase.from("marketplace_search_synonyms").select("canonical_query").eq("alias",searchText.toLowerCase()).maybeSingle();
+   if(synonym?.canonical_query){
+    const {data:fallback,error:fallbackError}=await supabase.rpc("marketplace_search_part_ids",{p_query:synonym.canonical_query});
+    if(fallbackError)return {...failure([],"Marketplace search is temporarily unavailable."),pagination:emptyPagination};
+    rankedIds=(fallback??[]).map(row=>row.part_id);
+   }
+  }
+  if(!rankedIds.length)return {data:[],error:null,configured:true,pagination:emptyPagination};
+
+  let idQuery=supabase.from("parts").select("id").eq("status","active").in("id",rankedIds);
+  if(categoryIds)idQuery=idQuery.in("category_id",categoryIds);
+  if(filters.condition)idQuery=idQuery.eq("condition",filters.condition);
+  if(filters.collectionOnly)idQuery=idQuery.eq("collection_available",true);
+  if(Number.isFinite(filters.minPrice))idQuery=idQuery.gte("price_pence",Math.round((filters.minPrice??0)*100));
+  if(Number.isFinite(filters.maxPrice))idQuery=idQuery.lte("price_pence",Math.round((filters.maxPrice??0)*100));
+  const {data:idRows,error:idError}=await idQuery.limit(500);
+  if(idError)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
+  const allowed=new Set((idRows??[]).map(row=>row.id));
+  const filteredIds=rankedIds.filter(id=>allowed.has(id));
+  const pageIds=filteredIds.slice(offset,offset+limit);
+  if(!pageIds.length)return {data:[],error:null,configured:true,pagination:{offset,limit,returned:0,total:filteredIds.length,hasMore:false}};
+
+  const {data:rows,error:rowError}=await supabase.from("parts").select(selectListing()).in("id",pageIds);
+  if(rowError)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
+  const byId=new Map((rows??[]).map(row=>[row.id,listingFrom(row as unknown as RawListing)]));
+  const listings=pageIds.map(id=>byId.get(id)).filter((item):item is Listing=>Boolean(item));
+  return {
+   data:listings,
+   error:null,
+   configured:true,
+   pagination:{
+    offset,
+    limit,
+    returned:listings.length,
+    total:filteredIds.length,
+    hasMore:offset+pageIds.length<filteredIds.length
+   }
+  };
+ }
+
+ let query=supabase.from("parts").select(selectListing(),{count:"exact"}).eq("status","active");
+ if(categoryIds)query=query.in("category_id",categoryIds);
+ if(filters.condition)query=query.eq("condition",filters.condition);
+ if(filters.collectionOnly)query=query.eq("collection_available",true);
+ if(Number.isFinite(filters.minPrice))query=query.gte("price_pence",Math.round((filters.minPrice??0)*100));
+ if(Number.isFinite(filters.maxPrice))query=query.lte("price_pence",Math.round((filters.maxPrice??0)*100));
+
+ const sort=filters.sort??"best";
+ if(sort==="price_asc")query=query.order("price_pence",{ascending:true}).order("created_at",{ascending:false});
+ else if(sort==="price_desc")query=query.order("price_pence",{ascending:false}).order("created_at",{ascending:false});
+ else if(sort==="delivery")query=query.order("delivery_days_min",{ascending:true,nullsFirst:false}).order("created_at",{ascending:false});
+ else if(sort==="warranty")query=query.order("warranty_days",{ascending:false}).order("created_at",{ascending:false});
+ else query=query.order("created_at",{ascending:false});
+
+ const {data,error,count}=await query.range(offset,offset+limit-1);
+ if(error)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
+ const listings=(data??[]).map(row=>listingFrom(row as unknown as RawListing));
+ const total=count??null;
+ return {
+  data:listings,
+  error:null,
+  configured:true,
+  pagination:{
+   offset,
+   limit,
+   returned:listings.length,
+   total,
+   hasMore:total===null?listings.length===limit:offset+listings.length<total
+  }
+ };
 }
 
 export async function getSearchSuggestions(queryText:string):Promise<SearchSuggestionGroups>{
