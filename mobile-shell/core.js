@@ -2,11 +2,15 @@
 "use strict";
 
 const config=window.SecondPartConfig;
+const Native=window.SecondPartNative;
 if(!config)throw new Error("SecondPart client configuration is missing.");
+if(!Native)throw new Error("SecondPart native bridge is missing.");
 
-const SESSION_KEY="secondpart.mobile.session.v1";
+const SESSION_KEY="mobile_session_v1";
+const LEGACY_SESSION_KEY="secondpart.mobile.session.v1";
 const state={
  session:null,
+ sessionReady:false,
  me:null,
  savedIds:new Set(),
  unreadNotifications:0,
@@ -48,17 +52,52 @@ const safeHttpUrl=(value)=>{
  }catch{return "";}
 };
 
-const loadSession=()=>{
+const validSession=(parsed)=>Boolean(
+ parsed&&
+ typeof parsed==="object"&&
+ typeof parsed.accessToken==="string"&&
+ typeof parsed.refreshToken==="string"&&
+ Number.isFinite(Number(parsed.expiresAt))
+);
+
+const loadSession=async()=>{
  try{
-  const raw=localStorage.getItem(SESSION_KEY);
-  if(!raw)return null;
-  const parsed=JSON.parse(raw);
-  if(!parsed||typeof parsed!=="object"||!parsed.refreshToken)return null;
-  return parsed;
- }catch{return null;}
+  const raw=await Native.storage.get(SESSION_KEY);
+  if(raw){
+   const parsed=JSON.parse(raw);
+   if(validSession(parsed)){state.session=parsed;return parsed;}
+  }
+
+  if(Native.isNative){
+   const legacy=localStorage.getItem(LEGACY_SESSION_KEY);
+   if(legacy){
+    try{
+     const parsed=JSON.parse(legacy);
+     if(validSession(parsed)){
+      await Native.storage.set(SESSION_KEY,JSON.stringify(parsed));
+      localStorage.removeItem(LEGACY_SESSION_KEY);
+      state.session=parsed;
+      return parsed;
+     }
+    }catch{}
+    localStorage.removeItem(LEGACY_SESSION_KEY);
+   }
+  }
+ }catch(error){
+  console.error("Secure session storage unavailable",error);
+ }
+ state.session=null;
+ return null;
 };
 
-const storeSession=(payload)=>{
+const initializeSession=async()=>{
+ if(state.sessionReady)return state.session;
+ await loadSession();
+ state.sessionReady=true;
+ return state.session;
+};
+
+const storeSession=async(payload)=>{
  if(!payload?.access_token||!payload?.refresh_token)return null;
  const expiresIn=Number(payload.expires_in??3600);
  const session={
@@ -66,17 +105,21 @@ const storeSession=(payload)=>{
   refreshToken:payload.refresh_token,
   expiresAt:Date.now()+Math.max(60,expiresIn)*1000
  };
+ await Native.storage.set(SESSION_KEY,JSON.stringify(session));
+ localStorage.removeItem(LEGACY_SESSION_KEY);
  state.session=session;
- localStorage.setItem(SESSION_KEY,JSON.stringify(session));
+ state.sessionReady=true;
  return session;
 };
 
-const clearSession=()=>{
+const clearSession=async()=>{
  state.session=null;
+ state.sessionReady=true;
  state.me=null;
  state.savedIds=new Set();
  state.unreadNotifications=0;
- localStorage.removeItem(SESSION_KEY);
+ localStorage.removeItem(LEGACY_SESSION_KEY);
+ try{await Native.storage.remove(SESSION_KEY);}catch(error){console.error("Could not clear secure session storage",error);}
 };
 
 const authFetch=async(path,{method="POST",body,accessToken}={})=>{
@@ -99,19 +142,20 @@ const authFetch=async(path,{method="POST",body,accessToken}={})=>{
 };
 
 const refreshSession=async()=>{
- const current=state.session||loadSession();
- if(!current?.refreshToken){clearSession();return null;}
+ if(!state.sessionReady)await initializeSession();
+ const current=state.session;
+ if(!current?.refreshToken){await clearSession();return null;}
  try{
   const payload=await authFetch("/token?grant_type=refresh_token",{body:{refresh_token:current.refreshToken}});
-  return storeSession(payload);
+  return await storeSession(payload);
  }catch{
-  clearSession();
+  await clearSession();
   return null;
  }
 };
 
 const accessToken=async()=>{
- if(!state.session)state.session=loadSession();
+ if(!state.sessionReady)await initializeSession();
  if(!state.session)return null;
  if(state.session.expiresAt-Date.now()<90000){
   const refreshed=await refreshSession();
@@ -176,7 +220,7 @@ const api=async(path,{method="GET",body,auth=false,retry=true}={})=>{
 
 const signIn=async(email,password)=>{
  const payload=await authFetch("/token?grant_type=password",{body:{email:String(email).trim().toLowerCase(),password}});
- storeSession(payload);
+ await storeSession(payload);
  return payload;
 };
 
@@ -189,7 +233,7 @@ const signUp=async({email,password,displayName,role})=>{
    data:{display_name:String(displayName).trim(),role:role==="seller"?"seller":"buyer"}
   }
  });
- if(payload?.access_token)storeSession(payload);
+ if(payload?.access_token)await storeSession(payload);
  return payload;
 };
 
@@ -198,7 +242,7 @@ const signOut=async()=>{
  if(current){
   try{await authFetch("/logout",{method:"POST",accessToken:current});}catch{}
  }
- clearSession();
+ await clearSession();
 };
 
 const loadMe=async()=>{
@@ -207,13 +251,14 @@ const loadMe=async()=>{
   state.me=payload;
   return payload;
  }catch(error){
-  if(error?.status===401)clearSession();
+  if(error?.status===401)void clearSession();
   state.me=null;
   return null;
  }
 };
 
 const refreshSaved=async()=>{
+ if(!state.sessionReady)await initializeSession();
  if(!state.session){state.savedIds=new Set();return [];}
  try{
   const payload=await api("/saved",{auth:true});
@@ -223,6 +268,7 @@ const refreshSaved=async()=>{
 };
 
 const refreshNotifications=async()=>{
+ if(!state.sessionReady)await initializeSession();
  if(!state.session){state.unreadNotifications=0;return [];}
  try{
   const payload=await api("/notifications",{auth:true});
@@ -234,11 +280,11 @@ const refreshNotifications=async()=>{
  }
 };
 
-state.session=loadSession();
-
 window.SecondPartCore=Object.freeze({
  config,
+ Native,
  state,
+ initializeSession,
  api,
  authFetch,
  signIn,
