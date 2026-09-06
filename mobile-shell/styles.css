@@ -71,3 +71,65 @@ a{color:inherit}
 @media(min-width:620px){.app-main{padding:24px}.hero{padding:30px}.list-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.modal-backdrop{align-items:center}.account-grid{grid-template-columns:repeat(3,1fr)}}
 
 .input-prefix{position:relative;margin-top:6px}.input-prefix>span{position:absolute;left:12px;top:50%;transform:translateY(-50%);z-index:1;color:var(--muted);font-size:12px;font-weight:900}.input-prefix .input{margin-top:0;padding-left:28px}.danger-card{border-color:#fecaca;background:#fffafa}.danger-card .eyebrow{color:#991b1b}
+
+
+/* Mobile stability: keep every native screen inside the device viewport. */
+html,body,#app-shell,.app-main{width:100%;max-width:100%;overflow-x:hidden}
+.app-main>*,
+.card,.vehicle-card,.listing-card,.order-card,.conversation-card,.notification-card,
+.account-tile,.auth-card,.detail-hero,.section-head>*,.row-between>*{min-width:0;max-width:100%}
+button,input,select,textarea{min-width:0;max-width:100%}
+h1,h2,h3,p,small,strong,span{overflow-wrap:anywhere}
+
+/* Always-visible compatibility control; do not rely on the WebView's native checkbox styling. */
+.vehicle-fit-toggle{
+ display:flex;align-items:flex-start;gap:12px;width:100%;margin:9px 0 10px;padding:13px;
+ border:1px solid rgba(18,34,29,.14);border-radius:16px;background:#fff;
+ box-shadow:0 5px 18px rgba(18,34,29,.035)
+}
+.fit-checkbox{
+ appearance:none;-webkit-appearance:none;flex:0 0 24px;width:24px;height:24px;margin:0;
+ border:2px solid var(--deep);border-radius:6px;background:#fff;display:grid;place-items:center
+}
+.fit-checkbox:checked{background:var(--deep)}
+.fit-checkbox:checked:after{content:"✓";color:#fff;font-size:16px;font-weight:950;line-height:1}
+.fit-checkbox:focus-visible{outline:3px solid rgba(23,60,49,.18);outline-offset:2px}
+.vehicle-fit-copy{display:block;min-width:0}
+.vehicle-fit-copy strong{display:block;font-size:12px;line-height:1.35}
+.vehicle-fit-copy small{display:block;margin-top:4px;color:var(--muted);font-size:10px;line-height:1.45}
+.vehicle-visual{width:100%;overflow:hidden}
+.vehicle-svg{width:100%;height:auto;max-width:520px}
+
+@media(max-width:480px){
+ .app-main{padding:14px 10px 24px}
+ .topbar{gap:8px;padding:calc(8px + env(safe-area-inset-top)) 10px 8px}
+ .brand{min-width:0;gap:8px}.brand-mark{width:35px;height:35px;border-radius:11px}
+ .brand strong{font-size:14px}.brand small{font-size:8px}
+ .top-actions{gap:6px}.icon-button{width:36px;height:36px;border-radius:12px;font-size:19px}
+ .hero{padding:20px 16px;border-radius:22px}.hero h1{font-size:31px}.hero p{font-size:12px}
+ .card{padding:14px;border-radius:18px}
+ .search-row,.spec-grid,.account-grid{grid-template-columns:1fr}
+ .section-head,.row-between{flex-direction:column;align-items:stretch}
+ .section-head{gap:7px;margin-top:18px}
+ .button-row{display:grid;grid-template-columns:1fr;width:100%;gap:8px}
+ .button-row>button,.button-row>.primary,.button-row>.secondary,.button-row>.danger-button,.button-row>.lime-button{width:100%}
+ .list-grid{grid-template-columns:1fr}
+ .listing-card{border-radius:17px}.listing-image{aspect-ratio:16/10}
+ .vehicle-card{border-radius:18px}
+ .vehicle-preview-head{align-items:flex-start;flex-direction:column}
+ .vehicle-preview-tags{justify-content:flex-start}
+ .vehicle-visual{min-height:112px;padding:2px 4px}
+ .vehicle-card.flat .vehicle-visual{min-height:96px}
+ .vehicle-svg{max-height:none}
+ .vehicle-info{padding:9px 11px 12px}.vehicle-info h3{font-size:16px}
+ .vehicle-fit-toggle{padding:12px;gap:10px}
+ .modal-backdrop{padding:8px}.modal{max-height:92dvh;padding:15px;border-radius:20px}
+ .bottom-nav{padding-left:3px;padding-right:3px}
+ .nav-item{font-size:9px;min-width:0}.nav-icon{font-size:19px}
+}
+@media(max-width:350px){
+ .brand small{display:none}
+ .brand strong{font-size:13px}
+ .top-actions .icon-button{width:34px;height:34px}
+ .nav-item{font-size:8px}
+}
