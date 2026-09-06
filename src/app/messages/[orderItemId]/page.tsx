@@ -8,10 +8,15 @@ import { getTransactionThread } from "@/lib/data/transaction-messages";
 
 export const dynamic="force-dynamic";
 
-export default async function TransactionMessagesPage({params}:{params:Promise<{orderItemId:string}>}){
- const {orderItemId}=await params;
+const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
+const pageNumber=(value:string|undefined)=>{const parsed=Number(value);return Number.isInteger(parsed)&&parsed>0?parsed:1;};
+
+export default async function TransactionMessagesPage({params,searchParams}:{params:Promise<{orderItemId:string}>;searchParams:Promise<Record<string,string|string[]|undefined>>}){
+ const [{orderItemId},query]=await Promise.all([params,searchParams]);
  const user=await requireUser("/messages/"+orderItemId);
- const thread=await getTransactionThread(orderItemId).catch(()=>null);
+ const historyPage=pageNumber(first(query.history));
+ const messageLimit=100;
+ const thread=await getTransactionThread(orderItemId,{offset:(historyPage-1)*messageLimit,limit:messageLimit}).catch(()=>null);
  if(!thread)notFound();
 
  const sellerSide=thread.sellerOwnerId===user.id;
@@ -25,6 +30,7 @@ export default async function TransactionMessagesPage({params}:{params:Promise<{
     <Link href={"/parts/"+thread.partSlug} className="mt-2 block text-2xl font-black hover:underline">{thread.partTitle}</Link>
     <p className="mt-1 text-sm text-white/65">{sellerSide?"Buyer conversation":"Seller: "+thread.sellerName}</p>
    </header>
+   <div className="border-b border-black/8 bg-white/70 px-4 py-2 text-center text-xs font-bold text-[#63706a]">{thread.messagePagination.hasOlder&&<Link href={"/messages/"+thread.orderItemId+"?history="+(historyPage+1)} className="mr-4 underline">Older messages</Link>}{thread.messagePagination.hasNewer&&<Link href={historyPage===2?"/messages/"+thread.orderItemId:"/messages/"+thread.orderItemId+"?history="+(historyPage-1)} className="underline">Newer messages</Link>}</div>
    <div className="max-h-[58vh] min-h-72 overflow-y-auto p-4 sm:p-5">
     {thread.messages.length?<div className="grid gap-3">{thread.messages.map(message=>{
      const mine=message.senderProfileId===user.id;
