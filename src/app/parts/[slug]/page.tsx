@@ -49,9 +49,19 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
  };
  const compatibility=await getPartCompatibility(item.id,filters).catch(()=>null);
  let vehicleLabel:string|null=null;
+ let checkoutVehicleContext:{variantId:string;year:number;fuel?:string;engine?:number;registration?:string}|undefined;
  if(filters.catalogueVariant&&filters.catalogueYear!==undefined){
   const selected=await getCatalogueSelection(filters.catalogueVariant,filters.catalogueYear,filters.catalogueFuel,filters.catalogueEngineSize).catch(()=>null);
-  if(selected)vehicleLabel=`${selected.make} ${selected.modelFamily} · ${selected.year}${selected.engineSizeSimple?` · ${selected.engineSizeSimple}cc`:""}${selected.fuelType?` · ${selected.fuelType}`:""}`;
+  if(selected){
+   vehicleLabel=`${selected.make} ${selected.modelFamily} · ${selected.year}${selected.engineSizeSimple?` · ${selected.engineSizeSimple}cc`:""}${selected.fuelType?` · ${selected.fuelType}`:""}`;
+   checkoutVehicleContext={
+    variantId:selected.variantId,
+    year:selected.year,
+    fuel:selected.fuelType??undefined,
+    engine:selected.engineSizeSimple??undefined,
+    registration:filters.vehicleRegistration
+   };
+  }
  }else if(filters.vehicle){
   const vehicles=await getVehicles();
   const selected=vehicles.find(vehicle=>vehicle.id===filters.vehicle);
@@ -101,6 +111,7 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
       ownListing={Boolean(user&&item.seller.ownerId===user.id)}
       checkoutReady={isStripeCheckoutConfigured()&&sellerCheckoutReady}
       returnTo={currentHref}
+      vehicleContext={checkoutVehicleContext}
     />
     <div className="mt-3"><AskSellerForm partId={item.id} signedIn={Boolean(user)} ownListing={Boolean(user&&item.seller.ownerId===user.id)} returnTo={currentHref}/></div>
     <div className="mt-5 grid grid-cols-1 gap-3 min-[360px]:grid-cols-2"><SaveButton partId={item.id} initialSaved={savedIds.includes(item.id)}/><Link href={`/seller/${item.seller.slug}`} className="grid place-items-center rounded-xl bg-[#d4f44d] px-5 py-3 text-center font-black">View seller</Link></div>
