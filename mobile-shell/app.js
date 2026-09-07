@@ -25,7 +25,7 @@ const refreshActiveScreen=async()=>{
   await C.loadMe();
   await UI.refreshUserChrome();
  }
- if(["orders","order","inbox","conversation","transactionChat","seller","sellerSales","inventory","notifications","saved","savedSearches","recentlyViewed","requests","sellerRequests","sellerDonors","garage","fittingRequests","garagePartner","garagePartnerRequests"].includes(C.state.currentView)){
+ if(["orders","order","inbox","conversation","transactionChat","seller","sellerSales","inventory","notifications","saved","savedSearches","recentlyViewed","requests","sellerRequests","sellerDonors","garage","fittingRequests","garagePartner","garagePartnerRequests","fittingChat"].includes(C.state.currentView)){
   await UI.refreshCurrent();
  }
 };

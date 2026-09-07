@@ -89,11 +89,12 @@ const fittingRequests=async()=>{
  if(items.length)html.push(items.map(item=>
   "<article class=\"order-card\"><div class=\"row-between\"><div><span class=\"pill\">"+C.escapeHtml(C.human(item.status))+"</span><h3 style=\"margin-top:8px\">"+C.escapeHtml(item.partTitle)+"</h3><p class=\"subtle\">"+C.escapeHtml(item.garageName)+" · "+C.escapeHtml(item.garageLocation)+"</p><p class=\"subtle\">"+C.escapeHtml((item.vehicleRegistration?item.vehicleRegistration+" · ":"")+item.vehicleMake+" "+item.vehicleModel+" · "+item.vehicleYear+(item.vehicleEngineSize?" · "+item.vehicleEngineSize+"cc":"")+(item.vehicleFuel?" · "+item.vehicleFuel:""))+"</p></div>"+(item.quotePence!==null?"<strong style=\"font-size:20px\">"+C.money(item.quotePence)+"<small style=\"display:block;font-size:10px\">labour</small></strong>":"")+"</div>"+(item.quoteNote?"<div class=\"status info\" style=\"margin-top:10px\"><strong>Garage note:</strong> "+C.escapeHtml(item.quoteNote)+"</div>":"")+
   (item.status==="quoted"?"<div class=\"button-row\" style=\"margin-top:10px\"><button class=\"primary small-button\" data-fit-action=\"accept\" data-fit-id=\""+C.escapeHtml(item.id)+"\" type=\"button\">Accept quote</button><button class=\"secondary small-button\" data-fit-action=\"cancel\" data-fit-id=\""+C.escapeHtml(item.id)+"\" type=\"button\">Cancel</button></div>":["requested","accepted"].includes(item.status)?"<button class=\"link-button\" style=\"margin-top:10px\" data-fit-action=\"cancel\" data-fit-id=\""+C.escapeHtml(item.id)+"\" type=\"button\">Cancel request</button>":"")+
-  (item.status==="accepted"?"<div class=\"status warning\" style=\"margin-top:10px\">Quote accepted. SecondPart has not taken a labour payment.</div>":"")+"</article>"
+  (["accepted","completed"].includes(item.status)?"<div class=\"button-row\" style=\"margin-top:10px\"><button class=\"primary small-button\" data-fit-chat=\""+C.escapeHtml(item.id)+"\" type=\"button\">"+(item.status==="accepted"?"Arrange fitting":"View fitting chat")+"</button></div>":"")+(item.status==="accepted"?"<div class=\"status warning\" style=\"margin-top:10px\">Quote accepted. SecondPart has not taken a labour payment.</div>":"")+"</article>"
  ).join(""));
  else html.push("<div class=\"empty\"><div class=\"empty-icon\">⌁</div><h3>No fitting requests</h3><p>Open a part with an active vehicle and choose Buy + Fit.</p></div>");
  UI.app.innerHTML=html.join("");
  document.getElementById("fitting-back").addEventListener("click",()=>UI.route("account",{view:"buying"}));
+ UI.app.querySelectorAll("[data-fit-chat]").forEach(button=>button.addEventListener("click",()=>UI.route("fittingChat",{id:button.dataset.fitChat})));
  UI.app.querySelectorAll("[data-fit-action]").forEach(button=>button.addEventListener("click",async()=>{
   button.disabled=true;
   try{await C.api("/fitting-requests/"+encodeURIComponent(button.dataset.fitId),{method:"PATCH",auth:true,body:{action:button.dataset.fitAction}});UI.toast(button.dataset.fitAction==="accept"?"Fitting quote accepted.":"Fitting request cancelled.");UI.route("fittingRequests");}
@@ -148,11 +149,12 @@ const garagePartnerRequests=async()=>{
  if(result.partnerStatus!=="active")html.push("<div class=\"status warning\">Your garage must be active before receiving Buy + Fit requests.</div>");
  else if(items.length)html.push(items.map(item=>
   "<article class=\"order-card\"><div class=\"row-between\"><div><span class=\"pill\">"+C.escapeHtml(C.human(item.status))+"</span><h3 style=\"margin-top:8px\">"+C.escapeHtml(item.partTitle)+"</h3><p class=\"subtle\">"+C.escapeHtml((item.vehicleRegistration?item.vehicleRegistration+" · ":"")+item.vehicleMake+" "+item.vehicleModel+" · "+item.vehicleYear+(item.vehicleEngineSize?" · "+item.vehicleEngineSize+"cc":"")+(item.vehicleFuel?" · "+item.vehicleFuel:""))+"</p></div>"+(item.quotePence!==null?"<strong>"+C.money(item.quotePence)+"</strong>":"")+"</div>"+(item.buyerNotes?"<div class=\"status info\" style=\"margin-top:10px\"><strong>Buyer note:</strong> "+C.escapeHtml(item.buyerNotes)+"</div>":"")+
-  (["requested","quoted"].includes(item.status)?"<button class=\"primary wide\" style=\"margin-top:10px\" data-garage-quote=\""+C.escapeHtml(item.id)+"\" type=\"button\">"+(item.status==="quoted"?"Update quote":"Send quote")+"</button><button class=\"link-button\" style=\"margin-top:8px\" data-garage-decline=\""+C.escapeHtml(item.id)+"\" type=\"button\">Decline</button>":item.status==="accepted"?"<button class=\"lime-button wide\" style=\"margin-top:10px\" data-garage-complete=\""+C.escapeHtml(item.id)+"\" type=\"button\">Mark fitting complete</button>":"")+"</article>"
+  (["requested","quoted"].includes(item.status)?"<button class=\"primary wide\" style=\"margin-top:10px\" data-garage-quote=\""+C.escapeHtml(item.id)+"\" type=\"button\">"+(item.status==="quoted"?"Update quote":"Send quote")+"</button><button class=\"link-button\" style=\"margin-top:8px\" data-garage-decline=\""+C.escapeHtml(item.id)+"\" type=\"button\">Decline</button>":item.status==="accepted"?"<div class=\"button-row\" style=\"margin-top:10px\"><button class=\"primary small-button\" data-garage-chat=\""+C.escapeHtml(item.id)+"\" type=\"button\">Arrange fitting</button><button class=\"lime-button small-button\" data-garage-complete=\""+C.escapeHtml(item.id)+"\" type=\"button\">Mark complete</button></div>":item.status==="completed"?"<button class=\"secondary wide\" style=\"margin-top:10px\" data-garage-chat=\""+C.escapeHtml(item.id)+"\" type=\"button\">View fitting chat</button>":"")+"</article>"
  ).join(""));
  else html.push("<div class=\"empty\"><div class=\"empty-icon\">⌁</div><h3>No fitting requests</h3><p>Buyer quote requests will appear here.</p></div>");
  UI.app.innerHTML=html.join("");
  document.getElementById("garage-requests-back").addEventListener("click",()=>UI.route("garagePartner"));
+ UI.app.querySelectorAll("[data-garage-chat]").forEach(button=>button.addEventListener("click",()=>UI.route("fittingChat",{id:button.dataset.garageChat})));
  UI.app.querySelectorAll("[data-garage-quote]").forEach(button=>button.addEventListener("click",()=>{
   const item=items.find(value=>value.id===button.dataset.garageQuote);if(!item)return;
   UI.modal("Send labour quote","<form id=\"garage-quote-form\" class=\"form-grid\"><label class=\"label\">Labour quote £<input id=\"garage-quote-price\" class=\"input\" type=\"number\" min=\"0\" max=\"20000\" step=\"0.01\" required value=\""+C.escapeHtml(item.quotePence!==null?item.quotePence/100:"")+"\"></label><label class=\"label\">Quote / booking note<input id=\"garage-quote-note\" class=\"input\" maxlength=\"1000\" value=\""+C.escapeHtml(item.quoteNote||"")+"\" placeholder=\"What is included, estimated time, booking instructions\"></label><div id=\"garage-quote-status\"></div><button id=\"garage-quote-submit\" class=\"primary wide\" type=\"submit\">Send quote</button></form>");
@@ -170,9 +172,43 @@ const garagePartnerRequests=async()=>{
  UI.app.querySelectorAll("[data-garage-complete]").forEach(button=>button.addEventListener("click",async()=>{button.disabled=true;try{await C.api("/garage-partner/requests",{method:"PATCH",auth:true,body:{requestId:button.dataset.garageComplete,action:"complete"}});UI.toast("Fitting marked complete.");UI.route("garagePartnerRequests");}catch(error){UI.toast(error.message,"error");button.disabled=false;}}));
 };
 
+
+const fittingChat=async(payload={})=>{
+ if(!payload.id){UI.route("fittingRequests");return;}
+ if(!await UI.requireAuth("fittingChat"))return;
+ UI.loading("Loading fitting chat");
+ let result;
+ try{result=await C.api("/fitting-requests/"+encodeURIComponent(payload.id)+"/messages",{auth:true});}
+ catch(error){UI.empty("◫","Fitting chat unavailable",error.message,"Back",()=>UI.back());return;}
+ const request=result.request;
+ const messages=result.messages||[];
+ const html=[];
+ html.push("<button class=\"back\" id=\"fitting-chat-back\" type=\"button\">‹ Back to fitting requests</button>");
+ html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Private Buy + Fit chat</p><h2>"+C.escapeHtml(request.partTitle)+"</h2><p>"+C.escapeHtml(request.garageName)+" · "+C.escapeHtml(request.garageLocation)+"</p></div></div>");
+ html.push("<div class=\"status info\"><strong>"+C.escapeHtml((request.vehicleRegistration?request.vehicleRegistration+" · ":"")+request.vehicleMake+" "+request.vehicleModel+" · "+request.vehicleYear+(request.vehicleEngineSize?" · "+request.vehicleEngineSize+"cc":"")+(request.vehicleFuel?" · "+request.vehicleFuel:""))+"</strong><div style=\"margin-top:4px\">Use this chat to arrange the appointment. Labour remains separate from the part payment.</div></div>");
+ if(request.quoteNote)html.push("<div class=\"status info\" style=\"margin-top:10px\"><strong>Garage quote note:</strong> "+C.escapeHtml(request.quoteNote)+"</div>");
+ html.push("<section class=\"card\" style=\"margin-top:12px\"><p class=\"eyebrow\">Messages</p><div id=\"fitting-chat-thread\" style=\"display:grid;gap:8px;margin-top:10px\">"+(messages.length?messages.map(message=>"<div style=\"max-width:88%;padding:10px 12px;border-radius:14px;"+(message.mine?"margin-left:auto;background:#173c31;color:white":"background:#f4f7f2;color:#173c31")+"\"><div style=\"white-space:pre-wrap;font-size:12px;line-height:1.55\">"+C.escapeHtml(message.body)+"</div><small style=\"display:block;margin-top:4px;opacity:.65\">"+C.escapeHtml(message.mine?"You":request.viewerRole==="buyer"?request.garageName:"Buyer")+" · "+C.dateTime(message.createdAt)+"</small></div>").join(""):"<p class=\"subtle\">"+(result.canMessage?"No messages yet. Send the first message to arrange fitting.":"No fitting messages.")+"</p>")+"</div></section>");
+ if(result.canMessage)html.push("<form id=\"fitting-chat-form\" class=\"form-grid\" style=\"margin-top:12px\"><label class=\"label\">Message<textarea id=\"fitting-chat-body\" class=\"textarea\" maxlength=\"2000\" required placeholder=\"Suggest a date/time or ask a fitting question\"></textarea></label><div id=\"fitting-chat-status\"></div><button id=\"fitting-chat-send\" class=\"primary wide\" type=\"submit\">Send message</button></form>");
+ else if(request.status==="completed")html.push("<div class=\"status success\" style=\"margin-top:12px\">Fitting completed. This chat is now read-only.</div>");
+ else html.push("<div class=\"status warning\" style=\"margin-top:12px\">Messages are available after the buyer accepts the labour quote.</div>");
+ UI.app.innerHTML=html.join("");
+ document.getElementById("fitting-chat-back").addEventListener("click",()=>UI.route(request.viewerRole==="garage"?"garagePartnerRequests":"fittingRequests"));
+ const form=document.getElementById("fitting-chat-form");
+ if(form)form.addEventListener("submit",async event=>{
+  event.preventDefault();
+  const body=String(document.getElementById("fitting-chat-body").value||"").trim();
+  const status=document.getElementById("fitting-chat-status"),button=document.getElementById("fitting-chat-send");
+  if(!body){status.innerHTML="<div class=\"status warning\">Write a message first.</div>";return;}
+  button.disabled=true;button.textContent="Sending…";
+  try{await C.api("/fitting-requests/"+encodeURIComponent(payload.id)+"/messages",{method:"POST",auth:true,body:{body}});UI.route("fittingChat",{id:payload.id});}
+  catch(error){status.innerHTML="<div class=\"status error\">"+C.escapeHtml(error.message)+"</div>";button.disabled=false;button.textContent="Send message";}
+ });
+};
+
 UI.register("garages",garages);
 UI.register("fitPart",fitPart);
 UI.register("fittingRequests",fittingRequests);
 UI.register("garagePartner",garagePartner);
 UI.register("garagePartnerRequests",garagePartnerRequests);
+UI.register("fittingChat",fittingChat);
 })();
