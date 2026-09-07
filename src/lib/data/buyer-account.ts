@@ -14,15 +14,26 @@ const safeParams=(value:unknown):Record<string,string>=>{
  return result;
 };
 
-export async function getSavedSearches(profileId:string):Promise<SavedSearch[]>{
+export async function getSavedSearchesPage(profileId:string,options:{offset?:number;limit?:number}={}):Promise<{items:SavedSearch[];hasMore:boolean;offset:number;limit:number}>{
+ const offset=Math.max(0,Math.floor(options.offset??0));
+ const limit=Math.max(1,Math.min(Math.floor(options.limit??20),60));
  const supabase=await createSupabaseServerClient();
  const {data,error}=await supabase
   .from("saved_searches")
   .select("id,name,search_params,created_at")
   .eq("profile_id",profileId)
-  .order("created_at",{ascending:false});
+  .order("created_at",{ascending:false})
+  .order("id")
+  .range(offset,offset+limit);
  if(error)throw error;
- return (data??[]).map(row=>({id:row.id,name:row.name,params:safeParams(row.search_params),createdAt:row.created_at}));
+ const raw=data??[];
+ const hasMore=raw.length>limit;
+ const items=raw.slice(0,limit).map(row=>({id:row.id,name:row.name,params:safeParams(row.search_params),createdAt:row.created_at}));
+ return {items,hasMore,offset,limit};
+}
+
+export async function getSavedSearches(profileId:string):Promise<SavedSearch[]>{
+ return (await getSavedSearchesPage(profileId,{limit:60})).items;
 }
 
 export async function getRecentlyViewedListings(profileId:string,limit=12):Promise<Listing[]>{
