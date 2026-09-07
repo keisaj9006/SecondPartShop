@@ -1450,36 +1450,60 @@ export type Database = {
       }
       seller_verification_requests: {
         Row: {
+          business_kind_snapshot: string | null
+          business_name_snapshot: string | null
+          business_reference: string | null
           id: string
+          legal_business_name: string | null
+          location_snapshot: string | null
           message: string | null
+          postcode_snapshot: string | null
+          reference_url: string | null
           requested_at: string
           requester_id: string
           review_note: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           seller_id: string
+          seller_type_snapshot: string | null
           status: string
         }
         Insert: {
+          business_kind_snapshot?: string | null
+          business_name_snapshot?: string | null
+          business_reference?: string | null
           id?: string
+          legal_business_name?: string | null
+          location_snapshot?: string | null
           message?: string | null
+          postcode_snapshot?: string | null
+          reference_url?: string | null
           requested_at?: string
           requester_id: string
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           seller_id: string
+          seller_type_snapshot?: string | null
           status?: string
         }
         Update: {
+          business_kind_snapshot?: string | null
+          business_name_snapshot?: string | null
+          business_reference?: string | null
           id?: string
+          legal_business_name?: string | null
+          location_snapshot?: string | null
           message?: string | null
+          postcode_snapshot?: string | null
+          reference_url?: string | null
           requested_at?: string
           requester_id?: string
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           seller_id?: string
+          seller_type_snapshot?: string | null
           status?: string
         }
         Relationships: [
