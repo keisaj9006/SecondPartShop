@@ -232,7 +232,7 @@ export async function getMarketplacePage(
 
  // Catalogue compatibility is ranked and paged inside PostgreSQL. Only the IDs for
  // this page are hydrated with card images/details.
- if(filters.catalogueVariant&&filters.catalogueYear!==undefined&&sort!=="distance"){
+ if(filters.catalogueVariant&&filters.catalogueYear!==undefined){
   let rankedIds:string[]|undefined;
   if(filters.query?.trim()){
    const searchText=filters.query.trim();
