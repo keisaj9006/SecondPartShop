@@ -940,6 +940,7 @@ export type Database = {
           oem_number: string | null
           part_number: string | null
           price_pence: number
+          search_document: unknown
           seller_id: string
           shipping_pence: number
           slug: string
@@ -973,6 +974,7 @@ export type Database = {
           oem_number?: string | null
           part_number?: string | null
           price_pence: number
+          search_document?: unknown
           seller_id: string
           shipping_pence?: number
           slug: string
@@ -1006,6 +1008,7 @@ export type Database = {
           oem_number?: string | null
           part_number?: string | null
           price_pence?: number
+          search_document?: unknown
           seller_id?: string
           shipping_pence?: number
           slug?: string
@@ -2660,6 +2663,12 @@ export type Database = {
       }
       marketplace_search_part_ids: {
         Args: { p_query: string }
+        Returns: {
+          part_id: string
+        }[]
+      }
+      marketplace_search_part_ids_limited: {
+        Args: { p_limit?: number; p_query: string }
         Returns: {
           part_id: string
         }[]
