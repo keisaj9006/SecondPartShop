@@ -11,6 +11,7 @@ export function VehicleCompatibilityToggle({vehicleLabel,checked}:{vehicleLabel:
  const change=(next:boolean)=>{
   const params=new URLSearchParams(searchParams.toString());
   params.set("fit",next?"1":"0");
+  params.delete("page");
   router.push(`${pathname}?${params.toString()}#marketplace`,{scroll:false});
  };
 

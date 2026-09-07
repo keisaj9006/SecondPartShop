@@ -52,7 +52,7 @@ export function MarketplaceHome({listings,categories,vehicles,garageVehicles,rec
  const selectedLegacy=vehicles.find(v=>v.id===filters.vehicle);
  const selectedCategory=categories.find(category=>category.id===filters.category);
  const hasActiveVehicle=Boolean(selectedCatalogue||selectedLegacy);
- const baseParams=Object.fromEntries(Object.entries({q:filters.query,category:filters.category,condition:filters.condition,sort:filters.sort,min:filters.minPrice?.toString(),max:filters.maxPrice?.toString(),fit:hasActiveVehicle&&filters.compatibleOnly===false?"0":undefined}).filter((entry):entry is [string,string]=>Boolean(entry[1])));
+ const baseParams=Object.fromEntries(Object.entries({q:filters.query,category:filters.category,condition:filters.condition,sort:filters.sort,min:filters.minPrice?.toString(),max:filters.maxPrice?.toString(),pc:filters.postcode,collection:filters.collectionOnly?"1":undefined,fit:hasActiveVehicle&&filters.compatibleOnly===false?"0":undefined}).filter((entry):entry is [string,string]=>Boolean(entry[1])));
  const activeVehicleLabel=selectedCatalogue
   ?`${filters.vehicleRegistration?`${filters.vehicleRegistration} · `:""}${selectedCatalogue.make} ${selectedCatalogue.modelFamily} ${selectedCatalogue.year}${filters.vehicleColour?` · ${filters.vehicleColour}`:""}`
   :selectedLegacy?`${selectedLegacy.make} ${selectedLegacy.model} ${selectedLegacy.year}`:undefined;
