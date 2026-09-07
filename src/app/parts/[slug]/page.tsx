@@ -116,6 +116,7 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
       checkoutReady={isStripeCheckoutConfigured()&&sellerCheckoutReady}
       returnTo={currentHref}
       vehicleContext={checkoutVehicleContext}
+      compatibility={compatibility}
     />
     <div className="mt-3"><AskSellerForm partId={item.id} signedIn={Boolean(user)} ownListing={Boolean(user&&item.seller.ownerId===user.id)} returnTo={currentHref}/></div>
     <div className="mt-5 grid grid-cols-1 gap-3 min-[360px]:grid-cols-2"><SaveButton partId={item.id} initialSaved={savedIds.includes(item.id)}/><Link href={`/seller/${item.seller.slug}`} className="grid place-items-center rounded-xl bg-[#d4f44d] px-5 py-3 text-center font-black">View seller</Link></div>
