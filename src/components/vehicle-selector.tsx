@@ -2,13 +2,12 @@
 
 const VEHICLE_CONTEXT_KEY="secondpart.web.vehicle-context.v1";
 
-import { useEffect,useMemo,useState,useTransition } from "react";
+import { useEffect,useState,useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CarFront,ChevronDown,Search,X } from "lucide-react";
 import { VehicleVisual } from "@/components/vehicle-visual";
-import type { Vehicle,VehicleCatalogueModelOption,VehicleCatalogueSelection } from "@/lib/types";
+import type { Vehicle,VehicleCatalogueSelection } from "@/lib/types";
 
-const unique=(values:string[])=>[...new Set(values)];
 type LookupState={kind:"idle"|"loading"|"error"|"info";message?:string};
 type CatalogueVariantOption={id:string;variant:string};
 type CatalogueEngine={fuelType:string;engineSizeSimple:number|null;engineSizeDesc:string|null};
@@ -76,12 +75,11 @@ function SearchableVehicleSelect({value,options,placeholder,disabled,onChange}:{
  </div>;
 }
 
-export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCatalogue,baseParams,compatibleOnly,freshSelection=false}:{vehicles:Vehicle[];catalogueModels:VehicleCatalogueModelOption[];selectedId?:string;selectedCatalogue:VehicleCatalogueSelection|null;baseParams:Record<string,string>;compatibleOnly:boolean;freshSelection?:boolean}){
+export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParams,compatibleOnly,freshSelection=false}:{vehicles:Vehicle[];selectedId?:string;selectedCatalogue:VehicleCatalogueSelection|null;baseParams:Record<string,string>;compatibleOnly:boolean;freshSelection?:boolean}){
  const activeCatalogue=freshSelection?null:selectedCatalogue;
  const selectedLegacy=freshSelection?undefined:vehicles.find(vehicle=>vehicle.id===selectedId);
  const router=useRouter();
  const [isApplying,startTransition]=useTransition();
- const makes=useMemo(()=>unique(catalogueModels.map(item=>item.make)).sort((a,b)=>a.localeCompare(b)),[catalogueModels]);
 
  const [registration,setRegistration]=useState("");
  const [fitOnly,setFitOnly]=useState(compatibleOnly);
@@ -89,8 +87,11 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
  const [registrationVehicle,setRegistrationVehicle]=useState<RegistrationSummary|null>(null);
  const [manualOpen,setManualOpen]=useState(Boolean(activeCatalogue||selectedLegacy));
 
+ const [makes,setMakes]=useState<string[]>(activeCatalogue?.make?[activeCatalogue.make]:[]);
+ const [models,setModels]=useState<string[]>(activeCatalogue?.modelFamily?[activeCatalogue.modelFamily]:[]);
+ const [loadingMakes,setLoadingMakes]=useState(false);
+ const [loadingModels,setLoadingModels]=useState(false);
  const [make,setMake]=useState(activeCatalogue?.make??"");
- const models=useMemo(()=>catalogueModels.filter(item=>item.make===make).map(item=>item.modelFamily),[catalogueModels,make]);
  const [model,setModel]=useState(activeCatalogue?.modelFamily??"");
  const [year,setYear]=useState(activeCatalogue?String(activeCatalogue.year):"");
  const [variantId,setVariantId]=useState(activeCatalogue?.variantId??"");
@@ -103,6 +104,26 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
  const [loadingEngines,setLoadingEngines]=useState(Boolean(activeCatalogue?.variantId));
  const [catalogueError,setCatalogueError]=useState("");
 
+
+ useEffect(()=>{
+  if(!manualOpen)return;
+  const controller=new AbortController();
+  setLoadingMakes(true);
+  void getItems<string>("/api/vehicle-catalogue?level=makes",controller.signal)
+   .then(items=>{setMakes(items);setLoadingMakes(false);})
+   .catch(error=>{if(error instanceof Error&&error.name!=="AbortError"){setCatalogueError(error.message);setLoadingMakes(false);}});
+  return()=>controller.abort();
+ },[manualOpen]);
+
+ useEffect(()=>{
+  if(!manualOpen||!make)return;
+  const controller=new AbortController();
+  setLoadingModels(true);
+  void getItems<string>(`/api/vehicle-catalogue?level=models&make=${encodeURIComponent(make)}`,controller.signal)
+   .then(items=>{setModels(items);setLoadingModels(false);})
+   .catch(error=>{if(error instanceof Error&&error.name!=="AbortError"){setCatalogueError(error.message);setLoadingModels(false);}});
+  return()=>controller.abort();
+ },[manualOpen,make]);
 
  useEffect(()=>{
   if(!make||!model)return;
@@ -218,7 +239,7 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
   }
  };
 
- const resetAfterMake=(value:string)=>{setMake(value);setModel("");setYear("");setVariantId("");setCatalogueEngine("");setYears([]);setVariants([]);setEngines([]);setLoadingYears(false);setLoadingVariants(false);setLoadingEngines(false);setCatalogueError("");};
+ const resetAfterMake=(value:string)=>{setMake(value);setModel("");setModels([]);setYear("");setVariantId("");setCatalogueEngine("");setYears([]);setVariants([]);setEngines([]);setLoadingModels(Boolean(value));setLoadingYears(false);setLoadingVariants(false);setLoadingEngines(false);setCatalogueError("");};
  const resetAfterModel=(value:string)=>{setModel(value);setYear("");setVariantId("");setCatalogueEngine("");setYears([]);setVariants([]);setEngines([]);setLoadingYears(Boolean(value));setLoadingVariants(false);setLoadingEngines(false);setCatalogueError("");};
  const resetAfterYear=(value:string)=>{setYear(value);setVariantId("");setCatalogueEngine("");setVariants([]);setEngines([]);setLoadingVariants(Boolean(value));setLoadingEngines(false);setCatalogueError("");};
  const resetAfterVariant=(value:string)=>{setVariantId(value);setCatalogueEngine("");setEngines([]);setLoadingEngines(Boolean(value));setCatalogueError("");};
@@ -248,8 +269,8 @@ export function VehicleSelector({vehicles,catalogueModels,selectedId,selectedCat
 
   {manualOpen&&<div className="mt-4 rounded-2xl border border-black/10 bg-white/60 p-4">
    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-    <SearchableVehicleSelect value={make} options={makes.map(value=>({value,label:nameLabel(value)}))} placeholder="Search make" onChange={resetAfterMake}/>
-    <SearchableVehicleSelect value={model} options={models.map(value=>({value,label:nameLabel(value)}))} placeholder="Search model" disabled={!make} onChange={resetAfterModel}/>
+    <SearchableVehicleSelect value={make} options={makes.map(value=>({value,label:nameLabel(value)}))} placeholder={loadingMakes?"Loading makes…":"Search make"} disabled={loadingMakes} onChange={resetAfterMake}/>
+    <SearchableVehicleSelect value={model} options={models.map(value=>({value,label:nameLabel(value)}))} placeholder={loadingModels?"Loading models…":"Search model"} disabled={!make||loadingModels} onChange={resetAfterModel}/>
     <select aria-label="Year" className={control} value={year} disabled={!model||loadingYears} onChange={event=>resetAfterYear(event.target.value)}><option value="">{loadingYears?"Loading years…":"Year"}</option>{years.map(value=><option key={value} value={value}>{value}</option>)}</select>
     <select aria-label="Version" className={control} value={variantId} disabled={!year||loadingVariants} onChange={event=>resetAfterVariant(event.target.value)}><option value="">{loadingVariants?"Loading versions…":"Version / derivative"}</option>{selectedVariant&&!variants.some(item=>item.id===selectedVariant.id)&&<option value={selectedVariant.id}>{selectedVariant.variant}</option>}{variants.map(item=><option key={item.id} value={item.id}>{item.variant}</option>)}</select>
     <select aria-label="Engine and fuel" className={`${control} col-span-2 sm:col-span-2`} value={catalogueEngine} disabled={!variantId||loadingEngines||engines.length===0} onChange={event=>setCatalogueEngine(event.target.value)}><option value="">{loadingEngines?"Loading engine…":engines.length?"Engine / fuel":"Engine data unavailable"}</option>{engines.map(item=><option key={engineKey(item)} value={engineKey(item)}>{item.engineSizeSimple?`${item.engineSizeSimple}cc · ${fuelLabel(item.fuelType)}`:fuelLabel(item.fuelType)}</option>)}</select>

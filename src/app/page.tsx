@@ -3,7 +3,7 @@ import { MarketplaceHome } from "@/components/marketplace-home";
 import { getCategories,getMarketplacePage,getSavedPartIdsForParts,getVehicleById } from "@/lib/data/marketplace";
 import { getGarageVehicleMatch,getGarageVehiclesPage } from "@/lib/data/garage";
 import { getRecentlyViewedListings } from "@/lib/data/buyer-account";
-import { getCatalogueModelMap,getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
+import { getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
 import { getCurrentUser } from "@/lib/auth";
 import { normalizeRegistration } from "@/lib/vehicle-registration";
 import { normalizePostcode } from "@/lib/postcode";
@@ -55,10 +55,9 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   catalogueEngineSize:selectedCatalogue?.engineSizeSimple??undefined,
   compatibleOnly:Boolean(selectedCatalogue||isUuid(first(params.vehicle)))&&first(params.fit)!=="0"
  };
- const [result,legacyVehicle,catalogueModels,garagePage,selectedGarageVehicle,recentlyViewed]=await Promise.all([
+ const [result,legacyVehicle,garagePage,selectedGarageVehicle,recentlyViewed]=await Promise.all([
   getMarketplacePage(filters,{offset:(requestedPage-1)*pageSize,limit:pageSize}),
   legacyVehicleId?getVehicleById(legacyVehicleId):Promise.resolve(null),
-  getCatalogueModelMap().catch(()=>[]),
   user?getGarageVehiclesPage(user.id,{limit:4}).catch(()=>({items:[],hasMore:false,offset:0,limit:4})):Promise.resolve({items:[],hasMore:false,offset:0,limit:4}),
   user&&selectedCatalogue?getGarageVehicleMatch(user.id,{catalogueVariantId:selectedCatalogue.variantId,year:selectedCatalogue.year,fuelType:selectedCatalogue.fuelType,engineSizeSimple:selectedCatalogue.engineSizeSimple,registration:vehicleRegistration??null}).catch(()=>null):Promise.resolve(null),
   user?getRecentlyViewedListings(user.id,3):Promise.resolve([])
@@ -67,5 +66,5 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
  const garageVehicles=selectedGarageVehicle&&!garagePage.items.some(vehicle=>vehicle.id===selectedGarageVehicle.id)?[selectedGarageVehicle,...garagePage.items]:garagePage.items;
  const visiblePartIds=[...result.data.map(item=>item.id),...recentlyViewed.map(item=>item.id)];
  const savedIds=user?await getSavedPartIdsForParts(user.id,visiblePartIds):[];
- return <><Header/><MarketplaceHome freshVehicleSelection={addVehicleMode} listings={result.data} categories={categories} vehicles={vehicles} catalogueModels={catalogueModels} garageVehicles={garageVehicles} recentlyViewed={recentlyViewed} signedIn={Boolean(user)} filters={filters} selectedCatalogue={selectedCatalogue} savedIds={savedIds} error={result.error} configured={result.configured} pagination={result.pagination} currentPage={requestedPage}/></>;
+ return <><Header/><MarketplaceHome freshVehicleSelection={addVehicleMode} listings={result.data} categories={categories} vehicles={vehicles} garageVehicles={garageVehicles} recentlyViewed={recentlyViewed} signedIn={Boolean(user)} filters={filters} selectedCatalogue={selectedCatalogue} savedIds={savedIds} error={result.error} configured={result.configured} pagination={result.pagination} currentPage={requestedPage}/></>;
 }
