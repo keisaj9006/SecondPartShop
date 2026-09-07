@@ -3,6 +3,8 @@ import { getAppUrl } from "@/lib/stripe-connect";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
+import { getPartCompatibility } from "@/lib/data/compatibility";
+import type { MarketplaceFilters } from "@/lib/types";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -43,6 +45,7 @@ export async function POST(request:Request){
  const vehicleEngineRaw=vehicle.engine??input.vehicleEngine;
  const vehicleEngine=vehicleEngineRaw===undefined||vehicleEngineRaw===null||vehicleEngineRaw===""?undefined:Number(vehicleEngineRaw);
  const vehicleRegistration=String(vehicle.registration??input.vehicleRegistration??"").trim();
+ const compatibilityAcknowledged=input.compatibilityAcknowledged===true||String(input.compatibilityAcknowledged??"")==="1";
 
  if(!isUuid(partId))return mobileJson(request,{ok:false,error:"invalid_part"},400);
  if(!Number.isInteger(quantity)||quantity<1||quantity>10)return mobileJson(request,{ok:false,error:"invalid_quantity"},400);
@@ -52,6 +55,19 @@ export async function POST(request:Request){
 
  const {data:part}=await supabase.from("parts").select("slug").eq("id",partId).maybeSingle();
  if(!part)return mobileJson(request,{ok:false,error:"listing_unavailable"},404);
+
+ if(vehicleVariantId&&vehicleYear!==undefined){
+  const filters:MarketplaceFilters={
+   catalogueVariant:vehicleVariantId,
+   catalogueYear:vehicleYear,
+   catalogueFuel:vehicleFuel||undefined,
+   catalogueEngineSize:vehicleEngine
+  };
+  const compatibility=await getPartCompatibility(partId,filters).catch(()=>null);
+  if(compatibility&&(compatibility.level==="family_match"||compatibility.level==="unverified")&&!compatibilityAcknowledged){
+   return mobileJson(request,{ok:false,error:"compatibility_acknowledgement_required",compatibility},409);
+  }
+ }
 
  const {data,error}=await supabase.rpc("prepare_checkout_order_v2",{
   p_part_id:partId,
