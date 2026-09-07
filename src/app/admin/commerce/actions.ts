@@ -20,7 +20,7 @@ export async function rejectTransactionCase(_previous:ActionState,formData:FormD
  const notes=String(formData.get("notes")??"").trim();
  const supabase=await createSupabaseServerClient();
  const {error}=await supabase.rpc("admin_reject_transaction_case",{p_case_id:caseId,p_notes:notes});
- if(error)return {status:"error",message:"We could not close this case right now."};
+ if(error){const lower=error.message.toLowerCase();if(lower.includes("payment-provider disputes"))return {status:"error",message:"This case is managed by Stripe and closes only when the provider sends its final outcome."};return {status:"error",message:"We could not close this case right now."};}
  revalidateCases();
  return {status:"success",message:"Case closed without a refund. Any eligible blocked payout can resume."};
 }
@@ -43,13 +43,13 @@ export async function approveFullRefund(_previous:ActionState,formData:FormData)
  const supabase=await createSupabaseServerClient();
 
  const {error:gateError}=await supabase.rpc("admin_prepare_transaction_case_refund",{p_case_id:caseId,p_notes:notes});
- if(gateError)return {status:"error",message:"This case is not available for refund review."};
+ if(gateError){const lower=gateError.message.toLowerCase();if(lower.includes("payment-provider disputes"))return {status:"error",message:"Do not issue a manual refund while the Stripe dispute is open. Wait for the provider outcome."};return {status:"error",message:"This case is not available for refund review."};}
 
  try{
   const result=await refundTransactionCase(caseId);
   if(!result.refunded){
    revalidateCases();
-   return {status:"error",message:result.reason==="stripe_not_configured"?"Stripe refund processing is not configured yet.":"The refund could not be completed."};
+   return {status:"error",message:result.reason==="stripe_not_configured"?"Stripe refund processing is not configured yet.":result.reason==="provider_dispute_managed"?"This payment-provider dispute must be resolved through Stripe, not a manual marketplace refund.":"The refund could not be completed."};
   }
   revalidateCases();
   return {status:"success",message:"Full refund completed and the transaction case is resolved."};

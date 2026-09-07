@@ -9,11 +9,12 @@ export async function refundTransactionCase(caseId:string){
  const admin=createSupabaseAdminClient();
  const {data:caseRow,error:caseError}=await admin
   .from("transaction_cases")
-  .select("id,order_item_id,status,provider_refund_id")
+  .select("id,order_item_id,status,provider_refund_id,provider_dispute_id")
   .eq("id",caseId)
   .maybeSingle();
  if(caseError||!caseRow)return {refunded:false,reason:"case_not_found"} as const;
  if(caseRow.provider_refund_id)return {refunded:true,reason:"already_refunded"} as const;
+ if(caseRow.provider_dispute_id)return {refunded:false,reason:"provider_dispute_managed"} as const;
  if(!["open","seller_response","under_review"].includes(caseRow.status))return {refunded:false,reason:"case_closed"} as const;
 
  const {data:item,error:itemError}=await admin
