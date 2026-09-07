@@ -12,7 +12,7 @@ import { RecentlyViewedTracker } from "@/components/recently-viewed-tracker";
 import { getCurrentUser } from "@/lib/auth";
 import { getPartCompatibility } from "@/lib/data/compatibility";
 import { isSellerCheckoutReady } from "@/lib/data/checkout";
-import { getListingBySlug,getSavedPartIds,getVehicles } from "@/lib/data/marketplace";
+import { getListingBySlug,getSavedPartIdsForParts,getVehicles } from "@/lib/data/marketplace";
 import { getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
 import { getPublicMemberProfileById } from "@/lib/data/reputation";
 import { getPartPassportEvidence } from "@/lib/data/part-passport";
@@ -72,7 +72,7 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
  if(filters.vehicleRegistration&&vehicleLabel)vehicleLabel=`${filters.vehicleRegistration} · ${vehicleLabel}`;
 
  const [savedIds,sellerTrust,sellerCheckoutReady,passportEvidence]=await Promise.all([
-  user?getSavedPartIds(user.id):Promise.resolve([]),
+  user?getSavedPartIdsForParts(user.id,[item.id]):Promise.resolve([]),
   getPublicMemberProfileById(item.seller.ownerId).catch(()=>null),
   isSellerCheckoutReady(item.sellerId).catch(()=>false),
   getPartPassportEvidence(item.id).catch(()=>null)
