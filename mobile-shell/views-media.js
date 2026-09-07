@@ -441,6 +441,7 @@ const listingEditor=async(payload={})=>{
    "<label class=\"label\" style=\"display:block;margin-top:10px\">Description<textarea id=\"le-description\" class=\"textarea\" maxlength=\"5000\" placeholder=\"Condition, what is included, important identifiers and anything the buyer should know.\">"+C.escapeHtml(item?.description||"")+"</textarea></label>"+
    "<div class=\"spec-grid\" style=\"margin-top:10px\"><label class=\"label\">Condition<select id=\"le-condition\" class=\"select\"><option value=\"used\">Used</option><option value=\"reconditioned\">Remanufactured / professionally refurbished</option><option value=\"new\">New</option></select></label><label class=\"label\">Testing<select id=\"le-testing\" class=\"select\"><option value=\"tested_working\">Tested working</option><option value=\"removed_from_running_vehicle\">Removed from running vehicle</option><option value=\"visually_inspected\">Visually inspected</option><option value=\"untested\">Untested</option><option value=\"not_specified\">Not specified</option></select></label></div>"+
   "</section>"+
+  "<section class=\"card\"><div class=\"row-between\"><div><p class=\"eyebrow\">AI Listing assistant</p><p class=\"subtle\">Draft title and description from the facts you entered"+(item?" and the first saved product photo when available":"")+". AI never confirms fitment or identifiers.</p></div><button id=\"le-ai-draft\" class=\"secondary small-button\" type=\"button\">Generate AI draft</button></div><div class=\"status warning\" style=\"margin-top:10px\">Verify any number read from a photo on the actual part, label, packaging or supplier record before using it.</div><div id=\"le-ai-status\" style=\"margin-top:8px\"></div></section>"+
   "<section class=\"card\"><p class=\"eyebrow\">1 · Donor vehicle</p><p class=\"subtle\">If this is a used part, linking the vehicle it came from gives buyers a useful family-level compatibility signal.</p><label class=\"label\">Vehicle<select id=\"le-donor\" class=\"select\">"+donorOptions(donors,item?.donorVehicleId||payload.donorId||"")+"</select></label><button id=\"le-add-donor\" class=\"link-button\" type=\"button\" style=\"margin-top:8px\">+ Add donor vehicle</button></section>"+
   "<section class=\"card\"><p class=\"eyebrow\">2 · Identify the part</p><p class=\"subtle\">Enter numbers you can actually read. Do not guess.</p><label class=\"label\">OE/OEM number<input id=\"le-oem\" class=\"input\" maxlength=\"160\" value=\""+C.escapeHtml(item?.oemNumber||"")+"\"></label><div class=\"spec-grid\" style=\"margin-top:10px\"><label class=\"label\">Manufacturer / brand<input id=\"le-manufacturer\" class=\"input\" maxlength=\"160\" value=\""+C.escapeHtml(item?.manufacturer||"")+"\"></label><label class=\"label\">Manufacturer part number<input id=\"le-part-number\" class=\"input\" maxlength=\"160\" value=\""+C.escapeHtml(item?.partNumber||"")+"\"></label></div><div id=\"le-transmission\" style=\"margin-top:10px\"><div class=\"spec-grid\"><label class=\"label\">Gearbox family<input id=\"le-gearbox-family\" class=\"input\" maxlength=\"80\" value=\""+C.escapeHtml(item?.gearboxFamily||"")+"\"></label><label class=\"label\">Gearbox code<input id=\"le-gearbox-code\" class=\"input\" maxlength=\"80\" value=\""+C.escapeHtml(item?.gearboxCode||"")+"\"></label></div></div></section>"+
   "<section class=\"card\"><p class=\"eyebrow\">3 · Other confirmed vehicles <span class=\"subtle\">(optional)</span></p><p class=\"subtle\">Only add exact vehicles when you can support the fitment.</p><div id=\"le-fitments\"></div><button id=\"le-add-fitment\" class=\"secondary small-button\" type=\"button\">+ Add confirmed vehicle</button></section>"+
@@ -498,6 +499,65 @@ const listingEditor=async(payload={})=>{
  });
  const status=document.getElementById("le-status");
  const showError=error=>{status.innerHTML="<div class=\"status error\">"+C.escapeHtml(errorText(error.code||error.message))+"</div>";};
+
+ const aiButton=document.getElementById("le-ai-draft");
+ if(aiButton)aiButton.addEventListener("click",async()=>{
+  const aiStatus=document.getElementById("le-ai-status");
+  aiButton.disabled=true;
+  aiButton.textContent="Preparing…";
+  if(aiStatus)aiStatus.innerHTML="<div class=\"status info\">Preparing a draft. Nothing will be published automatically.</div>";
+  try{
+   const base=formBody();
+   const category=selectedCategory();
+   const donorId=document.getElementById("le-donor").value;
+   const donor=donors.find(value=>value.id===donorId);
+   const donorSummary=donor?[donor.registration,donor.make&&donor.model?donor.make+" "+donor.model:null,donor.year,donor.variant,donor.engineSizeSimple?donor.engineSizeSimple+"cc":null,donor.fuelType].filter(Boolean).join(" · "):"";
+   const result=await C.api("/seller/listing-assistant",{method:"POST",auth:true,body:{
+    partId:item?.id||null,
+    title:base.title,
+    description:base.description,
+    categoryName:category?.name||"",
+    donorSummary,
+    condition:base.condition,
+    testingStatus:base.testingStatus,
+    warrantyDays:String(base.warrantyDays??""),
+    conditionNotes:base.conditionNotes,
+    damageNotes:base.damageNotes,
+    oemNumber:base.oemNumber,
+    manufacturer:base.manufacturer,
+    partNumber:base.partNumber,
+    gearboxFamily:base.gearboxFamily,
+    gearboxCode:base.gearboxCode
+   }});
+   const draft=result.draft||{};
+   const candidates=Array.isArray(draft.identifierCandidates)?draft.identifierCandidates:[];
+   const observations=Array.isArray(draft.visibleObservations)?draft.visibleObservations:[];
+   const warnings=Array.isArray(draft.warnings)?draft.warnings:[];
+   const candidateHtml=candidates.length?"<div class=\"status warning\" style=\"margin-top:10px\"><strong>Text / identifiers to verify</strong><br>"+candidates.map(value=>C.escapeHtml((value.kind||"text").replaceAll("_"," ")+" · "+value.value+" · "+(value.confidence||"")+" confidence")).join("<br>")+"</div>":"";
+   const observationHtml=observations.length?"<div class=\"status info\" style=\"margin-top:10px\"><strong>Visible observations</strong><br>"+observations.map(value=>C.escapeHtml(value)).join("<br>")+"</div>":"";
+   const warningHtml=warnings.length?"<div class=\"status warning\" style=\"margin-top:10px\"><strong>Check before saving</strong><br>"+warnings.map(value=>C.escapeHtml(value)).join("<br>")+"</div>":"";
+   UI.modal("AI listing draft",
+    "<p class=\"subtle\">"+(result.imageUsed?"The first saved product photo was included in this draft.":"This draft used the listing text only.")+"</p>"+
+    "<div class=\"card\" style=\"margin-top:10px\"><p class=\"eyebrow\">Suggested title</p><p style=\"font-weight:800\">"+C.escapeHtml(draft.suggestedTitle||"No title suggestion")+"</p></div>"+
+    "<div class=\"card\" style=\"margin-top:10px\"><p class=\"eyebrow\">Suggested description</p><p style=\"white-space:pre-wrap;font-size:12px;line-height:1.6\">"+C.escapeHtml(draft.suggestedDescription||"No description suggestion")+"</p></div>"+
+    candidateHtml+observationHtml+warningHtml+
+    "<div class=\"button-row\" style=\"margin-top:12px\">"+(draft.suggestedTitle?"<button id=\"ai-apply-title\" class=\"secondary small-button\" type=\"button\">Apply title</button>":"")+(draft.suggestedDescription?"<button id=\"ai-apply-description\" class=\"secondary small-button\" type=\"button\">Apply description</button>":"")+(draft.suggestedTitle&&draft.suggestedDescription?"<button id=\"ai-apply-both\" class=\"primary small-button\" type=\"button\">Apply both</button>":"")+"</div>"+
+    (result.quota?"<p class=\"subtle\" style=\"margin-top:10px\">"+C.escapeHtml(result.quota.remaining)+" AI draft(s) remaining in the current hourly quota.</p>":"")
+   );
+   const applyTitle=()=>{document.getElementById("le-title").value=draft.suggestedTitle||document.getElementById("le-title").value;};
+   const applyDescription=()=>{document.getElementById("le-description").value=draft.suggestedDescription||document.getElementById("le-description").value;};
+   const titleButton=document.getElementById("ai-apply-title");if(titleButton)titleButton.addEventListener("click",()=>{applyTitle();UI.closeModal();UI.toast("AI title applied. Review it before saving.");});
+   const descriptionButton=document.getElementById("ai-apply-description");if(descriptionButton)descriptionButton.addEventListener("click",()=>{applyDescription();UI.closeModal();UI.toast("AI description applied. Review it before saving.");});
+   const bothButton=document.getElementById("ai-apply-both");if(bothButton)bothButton.addEventListener("click",()=>{applyTitle();applyDescription();UI.closeModal();UI.toast("AI draft applied. Review everything before saving.");});
+   if(aiStatus)aiStatus.innerHTML="<div class=\"status success\">Draft prepared. Review suggestions before saving.</div>";
+  }catch(error){
+   const message=errorText(error.code||error.message);
+   if(aiStatus)aiStatus.innerHTML="<div class=\"status error\">"+C.escapeHtml(message)+"</div>";
+  }finally{
+   aiButton.disabled=false;
+   aiButton.textContent="Generate AI draft";
+  }
+ });
 
  const patch=async(nextStatus)=>{
   try{
