@@ -446,6 +446,19 @@ export async function getCategories():Promise<Category[]>{
 export async function getVehicles():Promise<Vehicle[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();const {data}=await supabase.from("vehicles").select("id,make,model,generation,year,engine,engine_code,fuel_type,gearbox_family,gearbox_code,data_status,source_reference").order("make").order("model").order("year");return (data??[]).map(v=>vehicleFrom(v as RawVehicle));}
 export async function getSavedPartIds(userId:string):Promise<string[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();const {data}=await supabase.from("saved_parts").select("part_id").eq("profile_id",userId);return (data??[]).map(item=>item.part_id);}
 
+export async function getSavedPartIdsForParts(userId:string,partIds:string[]):Promise<string[]>{
+ if(!isSupabaseConfigured()||!partIds.length)return [];
+ const ids=[...new Set(partIds)].slice(0,100);
+ const supabase=await createSupabaseServerClient();
+ const {data,error}=await supabase
+  .from("saved_parts")
+  .select("part_id")
+  .eq("profile_id",userId)
+  .in("part_id",ids);
+ if(error)return [];
+ return (data??[]).map(item=>item.part_id);
+}
+
 export async function getListingCardsByIds(ids:string[]):Promise<Listing[]>{
  if(!isSupabaseConfigured()||!ids.length)return [];
  const ordered=[...new Set(ids)].slice(0,100);
