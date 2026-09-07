@@ -6,7 +6,7 @@ import { BuyerReceiptControls } from "@/components/buyer-receipt-controls";
 import { Header } from "@/components/header";
 import { OrderTimeline } from "@/components/order-timeline";
 import { requireUser } from "@/lib/auth";
-import { getBuyerOrders,getOrderTimeline } from "@/lib/data/orders";
+import { getBuyerOrderById,getOrderTimeline } from "@/lib/data/orders";
 
 export const dynamic="force-dynamic";
 
@@ -18,8 +18,7 @@ const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:val
 export default async function BuyerOrderDetailPage({params,searchParams}:{params:Promise<{orderId:string}>;searchParams:Promise<Record<string,string|string[]|undefined>>}){
  const [{orderId},query]=await Promise.all([params,searchParams]);
  const user=await requireUser("/account/orders/"+orderId);
- const orders=await getBuyerOrders(user.id).catch(()=>[]);
- const order=orders.find(item=>item.id===orderId);
+ const order=await getBuyerOrderById(user.id,orderId).catch(()=>null);
  if(!order)notFound();
  const timeline=await getOrderTimeline(order.id).catch(()=>[]);
 

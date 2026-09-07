@@ -119,6 +119,50 @@ export async function getBuyerOrders(profileId:string):Promise<BuyerOrder[]>{
  return (await getBuyerOrdersPage(profileId,{limit:60})).items;
 }
 
+export async function getBuyerOrderById(profileId:string,orderId:string):Promise<BuyerOrder|null>{
+ const supabase=await createSupabaseServerClient();
+ const {data,error}=await supabase
+  .from("orders")
+  .select("id,status,payment_status,total_pence,currency,created_at,order_items(id,quantity,unit_price_pence,shipping_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,buyer_received_at,release_eligible_at,funds_released_at,parts(title,slug),sellers(business_name,slug))")
+  .eq("id",orderId)
+  .eq("buyer_id",profileId)
+  .maybeSingle();
+ if(error)throw new Error("Purchase details are temporarily unavailable.");
+ if(!data)return null;
+ const raw=data as unknown as BuyerOrderRow;
+ return {
+  id:raw.id,
+  status:raw.status,
+  paymentStatus:raw.payment_status,
+  totalPence:raw.total_pence,
+  currency:raw.currency,
+  createdAt:raw.created_at,
+  items:(raw.order_items??[]).flatMap(item=>{
+   const part=one(item.parts);
+   const seller=one(item.sellers);
+   if(!part||!seller)return [];
+   return [{
+    id:item.id,
+    partTitle:part.title,
+    partSlug:part.slug,
+    sellerName:seller.business_name,
+    sellerSlug:seller.slug,
+    quantity:item.quantity,
+    unitPricePence:item.unit_price_pence,
+    shippingPence:item.shipping_pence,
+    deliveryMethod:item.delivery_method,
+    fulfilmentStatus:item.fulfilment_status,
+    payoutStatus:item.payout_status,
+    trackingCarrier:item.tracking_carrier,
+    trackingNumber:item.tracking_number,
+    buyerReceivedAt:item.buyer_received_at,
+    releaseEligibleAt:item.release_eligible_at,
+    fundsReleasedAt:item.funds_released_at
+   }];
+  })
+ };
+}
+
 export async function getSellerSalesPage(sellerId:string,options:{offset?:number;limit?:number}={}):Promise<{items:SellerSale[];hasMore:boolean;offset:number;limit:number}>{
  const offset=Math.max(0,Math.floor(options.offset??0));
  const limit=Math.max(1,Math.min(Math.floor(options.limit??30),100));
@@ -166,6 +210,46 @@ export async function getSellerSalesPage(sellerId:string,options:{offset?:number
 
 export async function getSellerSales(sellerId:string):Promise<SellerSale[]>{
  return (await getSellerSalesPage(sellerId,{limit:100})).items;
+}
+
+
+export async function getSellerSaleById(sellerId:string,orderItemId:string):Promise<SellerSale|null>{
+ const supabase=await createSupabaseServerClient();
+ const {data,error}=await supabase
+  .from("order_items")
+  .select("id,order_id,quantity,unit_price_pence,shipping_pence,platform_fee_pence,seller_net_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,release_eligible_at,funds_released_at,parts(title,slug),orders(id,status,payment_status,created_at,shipping_name,shipping_address)")
+  .eq("id",orderItemId)
+  .eq("seller_id",sellerId)
+  .maybeSingle();
+ if(error)throw new Error("Sale details are temporarily unavailable.");
+ if(!data)return null;
+ const raw=data as unknown as SellerSaleRow;
+ const part=one(raw.parts);
+ const order=one(raw.orders);
+ if(!part||!order)return null;
+ return {
+  orderItemId:raw.id,
+  orderId:raw.order_id,
+  partTitle:part.title,
+  partSlug:part.slug,
+  quantity:raw.quantity,
+  unitPricePence:raw.unit_price_pence,
+  shippingPence:raw.shipping_pence,
+  platformFeePence:raw.platform_fee_pence,
+  sellerNetPence:raw.seller_net_pence,
+  deliveryMethod:raw.delivery_method,
+  fulfilmentStatus:raw.fulfilment_status,
+  payoutStatus:raw.payout_status,
+  trackingCarrier:raw.tracking_carrier,
+  trackingNumber:raw.tracking_number,
+  releaseEligibleAt:raw.release_eligible_at,
+  fundsReleasedAt:raw.funds_released_at,
+  orderStatus:order.status,
+  paymentStatus:order.payment_status,
+  orderCreatedAt:order.created_at,
+  shippingName:order.shipping_name,
+  shippingAddress:shippingAddress(order.shipping_address)
+ };
 }
 
 

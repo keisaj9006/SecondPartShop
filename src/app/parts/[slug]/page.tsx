@@ -12,7 +12,7 @@ import { RecentlyViewedTracker } from "@/components/recently-viewed-tracker";
 import { getCurrentUser } from "@/lib/auth";
 import { getPartCompatibility } from "@/lib/data/compatibility";
 import { isSellerCheckoutReady } from "@/lib/data/checkout";
-import { getListingBySlug,getSavedPartIdsForParts,getVehicles } from "@/lib/data/marketplace";
+import { getListingBySlug,getSavedPartIdsForParts,getVehicleById } from "@/lib/data/marketplace";
 import { getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
 import { getPublicMemberProfileById } from "@/lib/data/reputation";
 import { getPartPassportEvidence } from "@/lib/data/part-passport";
@@ -65,8 +65,7 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
    };
   }
  }else if(filters.vehicle){
-  const vehicles=await getVehicles();
-  const selected=vehicles.find(vehicle=>vehicle.id===filters.vehicle);
+  const selected=await getVehicleById(filters.vehicle).catch(()=>null);
   if(selected)vehicleLabel=`${selected.make} ${selected.model} ${selected.generation} · ${selected.year} · ${selected.engine}`;
  }
  if(filters.vehicleRegistration&&vehicleLabel)vehicleLabel=`${filters.vehicleRegistration} · ${vehicleLabel}`;

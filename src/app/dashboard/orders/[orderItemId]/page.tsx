@@ -6,7 +6,7 @@ import { OrderTimeline } from "@/components/order-timeline";
 import { SellerFulfilmentControls } from "@/components/seller-fulfilment-controls";
 import { requireSeller } from "@/lib/auth";
 import { getSellerForOwner } from "@/lib/data/marketplace";
-import { getOrderTimeline,getSellerSales } from "@/lib/data/orders";
+import { getOrderTimeline,getSellerSaleById } from "@/lib/data/orders";
 
 export const dynamic="force-dynamic";
 
@@ -18,8 +18,7 @@ export default async function SellerSaleDetailPage({params}:{params:Promise<{ord
  const {user}=await requireSeller("/dashboard/orders/"+orderItemId);
  const seller=await getSellerForOwner(user.id);
  if(!seller)notFound();
- const sales=await getSellerSales(seller.id).catch(()=>[]);
- const sale=sales.find(item=>item.orderItemId===orderItemId);
+ const sale=await getSellerSaleById(seller.id,orderItemId).catch(()=>null);
  if(!sale)notFound();
  const timeline=await getOrderTimeline(sale.orderId,sale.orderItemId).catch(()=>[]);
 
