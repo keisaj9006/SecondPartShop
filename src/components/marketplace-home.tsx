@@ -56,7 +56,9 @@ export function MarketplaceHome({listings,categories,vehicles,garageVehicles,rec
  const activeVehicleLabel=selectedCatalogue
   ?`${filters.vehicleRegistration?`${filters.vehicleRegistration} · `:""}${selectedCatalogue.make} ${selectedCatalogue.modelFamily} ${selectedCatalogue.year}${filters.vehicleColour?` · ${filters.vehicleColour}`:""}`
   :selectedLegacy?`${selectedLegacy.make} ${selectedLegacy.model} ${selectedLegacy.year}`:undefined;
- const contextQuery=vehicleParams(filters).toString();
+ const contextParams=vehicleParams(filters);
+ if(currentPage>1)contextParams.set("page",String(currentPage));
+ const contextQuery=contextParams.toString();
  const pageHref=(page:number)=>{
   const params=vehicleParams(filters);
   if(page>1)params.set("page",String(page));else params.delete("page");
