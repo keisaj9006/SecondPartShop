@@ -7,7 +7,7 @@ export type SellerReadinessStep={
  label:string;
  detail:string;
  done:boolean;
- action:"payments"|"inventory"|"verification"|"account"|null;
+ action:"payments"|"inventory"|"verification"|"account"|"profile"|null;
 };
 
 export type SellerReadiness={
@@ -31,6 +31,7 @@ export type SellerReadiness={
 export async function getSellerReadiness(input:{
  sellerId:string;
  sellerType:"business"|"private";
+ businessKind:string|null;
  verified:boolean;
  emailConfirmed:boolean;
 }):Promise<SellerReadiness>{
@@ -65,7 +66,8 @@ export async function getSellerReadiness(input:{
   payment?.transfers_enabled
  );
  const activeCount=activeListings??0;
- const marketReady=checkoutReady&&activeCount>0;
+ const profileReady=input.sellerType==="private"||Boolean(input.businessKind);
+ const marketReady=profileReady&&checkoutReady&&activeCount>0;
 
  return {
   marketReady,
@@ -75,9 +77,9 @@ export async function getSellerReadiness(input:{
    {
     id:"seller_profile",
     label:"Seller profile",
-    detail:"Your public seller identity is set up.",
-    done:true,
-    action:null
+    detail:profileReady?"Your public seller identity is set up.":"Choose what type of automotive business you operate.",
+    done:profileReady,
+    action:profileReady?null:"profile"
    },
    {
     id:"payout_account",

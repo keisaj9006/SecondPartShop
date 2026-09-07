@@ -1,6 +1,8 @@
 import "server-only";
 
 import { createSupabasePublicServerClient } from "@/lib/supabase/public-server";
+import type { SellerBusinessKind } from "@/lib/types";
+import { isSellerBusinessKind } from "@/lib/seller-business";
 
 export type SellerDirectoryItem={
  id:string;
@@ -10,6 +12,7 @@ export type SellerDirectoryItem={
  location:string;
  description:string;
  sellerType:"business"|"private";
+ businessKind:SellerBusinessKind|null;
  verified:boolean;
  handle:string|null;
  soldCount:number;
@@ -26,7 +29,17 @@ export async function getSellerDirectoryPage(offset=0,limit=24){
  if(error)throw new Error("Seller directory is temporarily unavailable.");
  const raw=data??[];
  const hasMore=raw.length>safeLimit;
- const items:SellerDirectoryItem[]=raw.slice(0,safeLimit).map(row=>({
+ const visible=raw.slice(0,safeLimit);
+ const ids=visible.map(row=>row.seller_id);
+ const {data:kindRows,error:kindError}=ids.length
+  ?await supabase.from("sellers").select("id,business_kind").in("id",ids)
+  :{data:[],error:null};
+ if(kindError)throw new Error("Seller directory is temporarily unavailable.");
+ const kindById=new Map((kindRows??[]).map(row=>[
+  row.id,
+  typeof row.business_kind==="string"&&isSellerBusinessKind(row.business_kind)?row.business_kind:null
+ ] as const));
+ const items:SellerDirectoryItem[]=visible.map(row=>({
   id:row.seller_id,
   ownerId:row.owner_id,
   businessName:row.business_name,
@@ -34,6 +47,7 @@ export async function getSellerDirectoryPage(offset=0,limit=24){
   location:row.location,
   description:row.description,
   sellerType:row.seller_type==="private"?"private":"business",
+  businessKind:kindById.get(row.seller_id)??null,
   verified:Boolean(row.seller_verified),
   handle:row.handle,
   soldCount:Number(row.sold_count??0),
