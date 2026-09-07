@@ -12,6 +12,7 @@ type Props={
 const MAX_SOURCE_BYTES=15*1024*1024;
 const MAX_EDGE=1800;
 const QUALITY=0.82;
+const MAX_UPLOAD_BYTES=4.5*1024*1024;
 
 const formatBytes=(bytes:number)=>{
  if(bytes<1024)return bytes+" B";
@@ -28,7 +29,10 @@ async function optimizeImage(file:File):Promise<File>{
  if(file.size>MAX_SOURCE_BYTES)throw new Error(file.name+" is larger than 15 MB.");
  if(!["image/jpeg","image/png","image/webp"].includes(file.type))throw new Error(file.name+" is not a supported JPG, PNG or WebP image.");
 
- if(typeof createImageBitmap!=="function")return file;
+ if(typeof createImageBitmap!=="function"){
+  if(file.size>5*1024*1024)throw new Error(file.name+" is too large and this browser cannot optimize it. Choose a file under 5 MB.");
+  return file;
+ }
  const bitmap=await createImageBitmap(file);
  try{
   const scale=Math.min(1,MAX_EDGE/Math.max(bitmap.width,bitmap.height));
@@ -40,8 +44,21 @@ async function optimizeImage(file:File):Promise<File>{
   const context=canvas.getContext("2d");
   if(!context)return file;
   context.drawImage(bitmap,0,0,width,height);
-  const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,"image/webp",QUALITY));
-  if(!blob||blob.size>=file.size)return file;
+
+  let blob:Blob|null=null;
+  for(const quality of [QUALITY,0.72,0.62]){
+   blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,"image/webp",quality));
+   if(blob&&blob.size<=MAX_UPLOAD_BYTES)break;
+  }
+  if(!blob){
+   if(file.size>5*1024*1024)throw new Error(file.name+" could not be compressed below the upload limit.");
+   return file;
+  }
+  if(blob.size>MAX_UPLOAD_BYTES){
+   if(file.size<=5*1024*1024)return file;
+   throw new Error(file.name+" is still too large after optimization. Try a lower-resolution photo.");
+  }
+  if(file.size<=5*1024*1024&&blob.size>=file.size)return file;
   return new File([blob],optimizedName(file.name),{type:"image/webp",lastModified:file.lastModified});
  }finally{
   bitmap.close();
