@@ -7,7 +7,7 @@ import { isUuid } from "@/lib/identifiers";
 import { sendFittingMessage } from "./actions";
 
 export const dynamic="force-dynamic";
-const one=<T>(value:T|T[]|null)=>Array.isArray(value)?value[0]??null:value;
+function one<T>(value:T|T[]|null){return Array.isArray(value)?value[0]??null:value;}
 const money=(pence:number)=>new Intl.NumberFormat("en-GB",{style:"currency",currency:"GBP"}).format(pence/100);
 
 export default async function FittingRequestDetailPage({params}:{params:Promise<{requestId:string}>}){
