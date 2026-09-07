@@ -311,6 +311,66 @@ export type Database = {
           },
         ]
       }
+      founding_seller_applications: {
+        Row: {
+          admin_note: string | null
+          business_kind: string
+          business_name: string
+          contact_name: string
+          created_at: string
+          email: string
+          estimated_active_parts: number | null
+          existing_channels: string[]
+          id: string
+          import_interest: string
+          notes: string | null
+          phone: string | null
+          postcode: string
+          source: string
+          status: string
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          admin_note?: string | null
+          business_kind: string
+          business_name: string
+          contact_name: string
+          created_at?: string
+          email: string
+          estimated_active_parts?: number | null
+          existing_channels?: string[]
+          id?: string
+          import_interest?: string
+          notes?: string | null
+          phone?: string | null
+          postcode: string
+          source?: string
+          status?: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          admin_note?: string | null
+          business_kind?: string
+          business_name?: string
+          contact_name?: string
+          created_at?: string
+          email?: string
+          estimated_active_parts?: number | null
+          existing_channels?: string[]
+          id?: string
+          import_interest?: string
+          notes?: string | null
+          phone?: string | null
+          postcode?: string
+          source?: string
+          status?: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       garage_partners: {
         Row: {
           business_name: string
