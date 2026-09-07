@@ -2455,6 +2455,16 @@ export type Database = {
           reviewer_sold_count: number
         }[]
       }
+      get_public_seller_inventory_summary: {
+        Args: { p_seller_id: string }
+        Returns: {
+          active_count: number
+          category_names: string[]
+          collection_count: number
+          tested_count: number
+          warranty_count: number
+        }[]
+      }
       get_review_opportunities: {
         Args: never
         Returns: {
