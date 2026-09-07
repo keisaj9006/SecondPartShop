@@ -10,9 +10,10 @@ const initial:ActionState={status:"idle"};
 export function SellerFulfilmentControls({sale}:{sale:SellerSale}){
  const [state,action,pending]=useActionState(updateSaleFulfilment,initial);
  if(sale.paymentStatus!=="paid"||["completed","cancelled","refunded","return_requested","return_approved","returned","dispute_open"].includes(sale.fulfilmentStatus))return null;
+ if(sale.fulfilmentStatus==="accepted")return <p className={"mt-2 text-xs font-bold "+(sale.payoutStatus==="released"?"text-emerald-700":"text-[#63706a]")}>{sale.payoutStatus==="released"?"Buyer accepted the item · seller transfer released.":"Buyer accepted the item · seller transfer is being finalized automatically."}</p>;
 
  if(sale.deliveryMethod==="collection"){
-  if(sale.fulfilmentStatus==="ready_for_collection"||sale.fulfilmentStatus==="accepted")return <p className="mt-2 text-xs font-bold text-[#63706a]">Waiting for buyer confirmation.</p>;
+  if(sale.fulfilmentStatus==="ready_for_collection")return <p className="mt-2 text-xs font-bold text-[#63706a]">Waiting for buyer receipt / acceptance.</p>;
   return <form action={action} className="mt-3">
    <input type="hidden" name="orderItemId" value={sale.orderItemId}/>
    <input type="hidden" name="fulfilmentAction" value="ready_for_collection"/>
@@ -21,7 +22,7 @@ export function SellerFulfilmentControls({sale}:{sale:SellerSale}){
   </form>;
  }
 
- if(sale.fulfilmentStatus==="dispatched"||sale.fulfilmentStatus==="delivered"||sale.fulfilmentStatus==="accepted")return <p className="mt-2 text-xs font-bold text-[#63706a]">Waiting for buyer receipt / acceptance.</p>;
+ if(sale.fulfilmentStatus==="dispatched"||sale.fulfilmentStatus==="delivered")return <p className="mt-2 text-xs font-bold text-[#63706a]">Waiting for buyer receipt / acceptance.</p>;
 
  return <form action={action} className="mt-3 grid gap-2">
   <input type="hidden" name="orderItemId" value={sale.orderItemId}/>
