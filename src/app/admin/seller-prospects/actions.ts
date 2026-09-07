@@ -159,9 +159,14 @@ export async function updateSellerProspect(formData:FormData){
  }
  if(["onboarded","not_interested","do_not_contact"].includes(status))nextActionAt=null;
  const supabase=await createSupabaseServerClient();
- const update:Record<string,unknown>={status,priority,notes:notes||null,next_action_at:nextActionAt};
- if(status==="contacted")update.last_contacted_at=new Date().toISOString();
- const {error}=await supabase.from("seller_prospects").update(update).eq("id",id);
+ const values={
+  status,
+  priority,
+  notes:notes||null,
+  next_action_at:nextActionAt,
+  ...(status==="contacted"?{last_contacted_at:new Date().toISOString()}:{})
+ };
+ const {error}=await supabase.from("seller_prospects").update(values).eq("id",id);
  if(error)throw error;
  revalidatePath("/admin/seller-prospects");
 }
