@@ -1,5 +1,7 @@
 import "server-only";
 
+import { getCachedRegistrationLookup,storeRegistrationLookup } from "@/lib/vehicle-lookup-operational";
+
 export type RegistrationVehicle={
  vehicleId?:string;
  make:string;
@@ -88,6 +90,14 @@ export async function lookupVehicleByRegistration(rawRegistration:string):Promis
  const registration=normalizeRegistration(rawRegistration);
  const provider=process.env.VEHICLE_LOOKUP_PROVIDER?.trim().toLowerCase();
  if(!provider)return {status:"unavailable",registration,message:"Registration lookup is ready in SecondPart, but the official DVSA credentials have not been connected yet. You can still choose the vehicle manually."};
- if(provider==="dvsa_mot_history"||provider==="dvsa")return lookupDvsaMot(registration);
- return {status:"unavailable",registration,message:"The configured vehicle lookup provider is not supported by this build."};
+
+ const cached=await getCachedRegistrationLookup(registration,provider);
+ if(cached)return cached;
+
+ let result:RegistrationLookupResult;
+ if(provider==="dvsa_mot_history"||provider==="dvsa")result=await lookupDvsaMot(registration);
+ else result={status:"unavailable",registration,message:"The configured vehicle lookup provider is not supported by this build."};
+
+ await storeRegistrationLookup(registration,provider,result);
+ return result;
 }
