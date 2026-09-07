@@ -170,6 +170,45 @@ export type Database = {
           },
         ]
       }
+      fitting_request_messages: {
+        Row: {
+          body: string
+          created_at: string
+          fitting_request_id: string
+          id: string
+          sender_profile_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          fitting_request_id: string
+          id?: string
+          sender_profile_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          fitting_request_id?: string
+          id?: string
+          sender_profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fitting_request_messages_fitting_request_id_fkey"
+            columns: ["fitting_request_id"]
+            isOneToOne: false
+            referencedRelation: "fitting_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fitting_request_messages_sender_profile_id_fkey"
+            columns: ["sender_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fitting_requests: {
         Row: {
           buyer_id: string
@@ -3088,6 +3127,10 @@ export type Database = {
           p_tracking_number?: string
         }
         Returns: boolean
+      }
+      send_fitting_request_message: {
+        Args: { p_body: string; p_request_id: string }
+        Returns: string
       }
       send_listing_conversation_message: {
         Args: { p_body: string; p_conversation_id: string }
