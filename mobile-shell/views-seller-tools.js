@@ -119,22 +119,51 @@ const sellerDonors=async()=>{
 const sellerRequests=async()=>{
  if(!await requireSeller("sellerRequests"))return;
  UI.loading("Loading matched buyer requests");
+ const pageSize=24;
  let items=[];
- try{items=(await C.api("/seller/requests?limit=24",{auth:true})).items||[];}
- catch(error){UI.empty("⌕","Buyer requests unavailable",error.message,"Try again",()=>UI.route("sellerRequests"));return;}
+ let hasMore=false;
+
+ const fetchPage=async(offset)=>{
+  const result=await C.api("/seller/requests?limit="+pageSize+"&offset="+offset,{auth:true});
+  return {items:result.items||[],hasMore:Boolean(result.pagination&&result.pagination.hasMore)};
+ };
  const vehicle=item=>[item.vehicleMake&&item.vehicleModel?item.vehicleMake+" "+item.vehicleModel:null,item.year,item.vehicleVariant,item.engineSizeSimple?item.engineSizeSimple+"cc":null,item.fuelType].filter(Boolean).join(" · ");
  const matchLabel=item=>Number(item.matchScore)>=100?"Strong match":Number(item.matchScore)>=60?"Good match":"Relevant match";
- UI.app.innerHTML="<button class=\"back\" id=\"seller-requests-back\" type=\"button\">‹ Back to seller account</button><div class=\"section-head\"><div><p class=\"eyebrow\">Buyer demand</p><h2>Matched part requests</h2><p>SecondPart routes only relevant demand based on inventory, donor vehicles and fitment evidence.</p></div></div>"+(items.length?"<section>"+items.map(item=>"<article class=\"order-card\" style=\"margin-top:10px\"><div><div class=\"chips\">"+(item.categoryName?"<span class=\"chip\">"+C.escapeHtml(item.categoryName)+"</span>":"")+"<span class=\"pill warning\">Open request</span><span class=\"chip green\">"+C.escapeHtml(matchLabel(item))+"</span></div><h3 style=\"margin:8px 0 0\">"+C.escapeHtml(item.queryText)+"</h3>"+(item.oemNumber?"<p class=\"subtle\">OE/OEM: <strong>"+C.escapeHtml(item.oemNumber)+"</strong></p>":"")+(vehicle(item)?"<p class=\"subtle\">"+C.escapeHtml(vehicle(item))+"</p>":"")+(item.notes?"<p class=\"subtle\" style=\"margin-top:8px\">"+C.escapeHtml(item.notes)+"</p>":"")+(Array.isArray(item.matchReasons)&&item.matchReasons.length?"<div class=\"status info\" style=\"margin-top:10px\"><strong>Why this matched</strong><br>"+C.escapeHtml(item.matchReasons.join(" · "))+"</div>":"")+"<p class=\"subtle\">Requested "+C.dateOnly(item.createdAt)+"</p><div class=\"button-row\" style=\"margin-top:10px\"><button class=\"primary small-button\" data-request-listing=\""+C.escapeHtml(item.id)+"\" type=\"button\">Create matching listing</button><button class=\"secondary small-button\" data-request-dismiss=\""+C.escapeHtml(item.id)+"\" type=\"button\">Not relevant · Dismiss</button></div></div></article>").join("")+"</section>":"<div class=\"empty\"><div class=\"empty-icon\">⌕</div><h3>No matched buyer requests</h3><p>New demand will appear here when SecondPart finds a relevant match for your inventory or donor vehicles.</p></div>");
- document.getElementById("seller-requests-back").addEventListener("click",()=>{C.state.accountMode="selling";UI.route("account",{view:"selling"});});
- UI.app.querySelectorAll("[data-request-listing]").forEach(button=>button.addEventListener("click",()=>{const item=items.find(value=>value.id===button.dataset.requestListing);if(item)UI.route("listingEditor",{requestLead:item});}));
- UI.app.querySelectorAll("[data-request-dismiss]").forEach(button=>button.addEventListener("click",async()=>{
-  button.disabled=true;
-  try{
-   await C.api("/seller/requests",{method:"PATCH",auth:true,body:{requestId:button.dataset.requestDismiss,action:"dismiss"}});
-   UI.toast("Request dismissed.");
-   UI.route("sellerRequests");
-  }catch(error){UI.toast(error.message,"error");button.disabled=false;}
- }));
+
+ const render=()=>{
+  UI.app.innerHTML="<button class=\"back\" id=\"seller-requests-back\" type=\"button\">‹ Back to seller account</button><div class=\"section-head\"><div><p class=\"eyebrow\">Buyer demand</p><h2>Matched part requests</h2><p>"+items.length+" request"+(items.length===1?"":"s")+" loaded. SecondPart routes only relevant demand based on inventory, donor vehicles and fitment evidence.</p></div></div>"+(items.length?"<section>"+items.map(item=>"<article class=\"order-card\" style=\"margin-top:10px\"><div><div class=\"chips\">"+(item.categoryName?"<span class=\"chip\">"+C.escapeHtml(item.categoryName)+"</span>":"")+"<span class=\"pill warning\">Open request</span><span class=\"chip green\">"+C.escapeHtml(matchLabel(item))+"</span></div><h3 style=\"margin:8px 0 0\">"+C.escapeHtml(item.queryText)+"</h3>"+(item.oemNumber?"<p class=\"subtle\">OE/OEM: <strong>"+C.escapeHtml(item.oemNumber)+"</strong></p>":"")+(vehicle(item)?"<p class=\"subtle\">"+C.escapeHtml(vehicle(item))+"</p>":"")+(item.notes?"<p class=\"subtle\" style=\"margin-top:8px\">"+C.escapeHtml(item.notes)+"</p>":"")+(Array.isArray(item.matchReasons)&&item.matchReasons.length?"<div class=\"status info\" style=\"margin-top:10px\"><strong>Why this matched</strong><br>"+C.escapeHtml(item.matchReasons.join(" · "))+"</div>":"")+"<p class=\"subtle\">Requested "+C.dateOnly(item.createdAt)+"</p><div class=\"button-row\" style=\"margin-top:10px\"><button class=\"primary small-button\" data-request-listing=\""+C.escapeHtml(item.id)+"\" type=\"button\">Create matching listing</button><button class=\"secondary small-button\" data-request-dismiss=\""+C.escapeHtml(item.id)+"\" type=\"button\">Not relevant · Dismiss</button></div></div></article>").join("")+"</section>"+(hasMore?"<button id=\"seller-requests-more\" class=\"secondary wide\" style=\"margin-top:14px\" type=\"button\">Load more buyer requests</button>":""):"<div class=\"empty\"><div class=\"empty-icon\">⌕</div><h3>No matched buyer requests</h3><p>New demand will appear here when SecondPart finds a relevant match for your inventory or donor vehicles.</p></div>");
+
+  document.getElementById("seller-requests-back").addEventListener("click",()=>{C.state.accountMode="selling";UI.route("account",{view:"selling"});});
+  UI.app.querySelectorAll("[data-request-listing]").forEach(button=>button.addEventListener("click",()=>{const item=items.find(value=>value.id===button.dataset.requestListing);if(item)UI.route("listingEditor",{requestLead:item});}));
+  UI.app.querySelectorAll("[data-request-dismiss]").forEach(button=>button.addEventListener("click",async()=>{
+   button.disabled=true;
+   try{
+    await C.api("/seller/requests",{method:"PATCH",auth:true,body:{requestId:button.dataset.requestDismiss,action:"dismiss"}});
+    items=items.filter(item=>item.id!==button.dataset.requestDismiss);
+    UI.toast("Request dismissed.");
+    render();
+   }catch(error){UI.toast(error.message,"error");button.disabled=false;}
+  }));
+
+  const more=document.getElementById("seller-requests-more");
+  if(more)more.addEventListener("click",async()=>{
+   more.disabled=true;more.textContent="Loading…";
+   try{
+    const page=await fetchPage(items.length);
+    const known=new Set(items.map(item=>item.id));
+    items.push(...page.items.filter(item=>!known.has(item.id)));
+    hasMore=page.hasMore;
+    render();
+   }catch(error){UI.toast(error.message,"error");more.disabled=false;more.textContent="Load more buyer requests";}
+  });
+ };
+
+ try{
+  const page=await fetchPage(0);
+  items=page.items;hasMore=page.hasMore;
+ }catch(error){UI.empty("⌕","Buyer requests unavailable",error.message,"Try again",()=>UI.route("sellerRequests"));return;}
+
+ render();
 };
 
 UI.register("sellerDonors",sellerDonors);
