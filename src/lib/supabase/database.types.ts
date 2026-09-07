@@ -528,9 +528,11 @@ export type Database = {
           id: string
           order_id: string
           part_id: string
+          payout_rollback_required: boolean
           payout_status: string
           platform_fee_pence: number
           provider_transfer_id: string | null
+          provider_transfer_reversal_id: string | null
           quantity: number
           refunded_at: string | null
           release_eligible_at: string | null
@@ -560,9 +562,11 @@ export type Database = {
           id?: string
           order_id: string
           part_id: string
+          payout_rollback_required?: boolean
           payout_status?: string
           platform_fee_pence?: number
           provider_transfer_id?: string | null
+          provider_transfer_reversal_id?: string | null
           quantity: number
           refunded_at?: string | null
           release_eligible_at?: string | null
@@ -592,9 +596,11 @@ export type Database = {
           id?: string
           order_id?: string
           part_id?: string
+          payout_rollback_required?: boolean
           payout_status?: string
           platform_fee_pence?: number
           provider_transfer_id?: string | null
+          provider_transfer_reversal_id?: string | null
           quantity?: number
           refunded_at?: string | null
           release_eligible_at?: string | null
@@ -2311,6 +2317,10 @@ export type Database = {
           id: string
         }[]
       }
+      claim_order_item_payout_release: {
+        Args: { p_order_item_id: string }
+        Returns: boolean
+      }
       close_listing_conversation: {
         Args: { p_conversation_id: string }
         Returns: boolean
@@ -2772,6 +2782,10 @@ export type Database = {
         Args: { p_fitments: Json; p_part_id: string }
         Returns: undefined
       }
+      reset_order_item_payout_release_claim: {
+        Args: { p_order_item_id: string }
+        Returns: boolean
+      }
       seller_checkout_ready: { Args: { p_seller_id: string }; Returns: boolean }
       seller_confirm_transaction_return_received: {
         Args: { p_case_id: string }
@@ -2787,8 +2801,8 @@ export type Database = {
           total_drafts: number
         }[]
       }
-      seller_ranked_part_request_leads: {
-        Args: { p_limit?: number; p_offset?: number }
+      seller_part_request_lead: {
+        Args: { p_request_id: string }
         Returns: {
           catalogue_variant_id: string
           category_id: string
@@ -2808,8 +2822,8 @@ export type Database = {
           year: number
         }[]
       }
-      seller_part_request_lead: {
-        Args: { p_request_id: string }
+      seller_ranked_part_request_leads: {
+        Args: { p_limit?: number; p_offset?: number }
         Returns: {
           catalogue_variant_id: string
           category_id: string
