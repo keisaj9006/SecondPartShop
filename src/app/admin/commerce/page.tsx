@@ -5,14 +5,20 @@ import { CaseEvidencePanel } from "@/components/case-evidence-panel";
 import { Header } from "@/components/header";
 import { requireAdmin } from "@/lib/auth";
 import { getTransactionCaseEvidence } from "@/lib/data/case-evidence";
-import { getTransactionCases } from "@/lib/data/transaction-cases";
+import { getTransactionCasesPage } from "@/lib/data/transaction-cases";
 
 export const dynamic="force-dynamic";
 const label=(value:string)=>value.replaceAll("_"," ").replace(/\b\w/g,letter=>letter.toUpperCase());
+const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
+const pageNumber=(value:string|undefined)=>{const parsed=Number(value);return Number.isInteger(parsed)&&parsed>0?parsed:1;};
 
-export default async function CommerceAdminPage(){
+export default async function CommerceAdminPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
+ const params=await searchParams;
  await requireAdmin("/admin/commerce");
- const cases=await getTransactionCases().catch(()=>[]);
+ const page=pageNumber(first(params.page));
+ const pageSize=30;
+ const result=await getTransactionCasesPage({offset:(page-1)*pageSize,limit:pageSize}).catch(()=>({items:[],hasMore:false,offset:(page-1)*pageSize,limit:pageSize}));
+ const cases=result.items;
  const evidenceByCase=await getTransactionCaseEvidence(cases.map(item=>item.id)).catch(()=>new Map());
 
  return <><Header/><main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
@@ -24,5 +30,6 @@ export default async function CommerceAdminPage(){
    {item.sellerResponse&&<div className="mt-3 rounded-2xl border border-black/10 p-4"><p className="text-xs font-black uppercase tracking-wide text-[#287154]">Seller response</p><p className="mt-2 text-sm leading-6">{item.sellerResponse}</p></div>}{item.providerDisputeId&&<div className="mt-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900"><p className="font-black">Stripe card dispute</p><p className="mt-1">ID: {item.providerDisputeId} · Status: {item.providerDisputeStatus??"unknown"}{item.providerDisputeReason?" · "+item.providerDisputeReason:""}</p></div>}{item.returnTrackingNumber&&<div className="mt-3 rounded-2xl bg-blue-50 p-4 text-sm text-blue-900"><p className="font-black">Return shipment</p><p className="mt-1">{item.returnTrackingCarrier?item.returnTrackingCarrier+" · ":""}{item.returnTrackingNumber}</p></div>}
    <CaseEvidencePanel caseId={item.id} evidence={evidenceByCase.get(item.id)??[]} canUpload={false}/>{["open","seller_response","under_review","return_authorized","return_shipped","returned"].includes(item.status)?<AdminCaseResolution item={item}/>:<div className="mt-4 rounded-xl bg-[#eef1eb] p-3 text-sm font-black">Resolved: {item.resolution?label(item.resolution):label(item.status)}{item.resolutionNotes?" · "+item.resolutionNotes:""}</div>}
   </article>)}</div>:<div className="mt-8 rounded-3xl border border-dashed border-black/15 bg-white p-12 text-center"><Scale className="mx-auto text-[#63706a]"/><h2 className="mt-4 text-xl font-black">No commerce cases</h2><p className="mt-2 text-sm text-[#63706a]">Open buyer cases will appear here for review.</p></div>}
+ {(page>1||result.hasMore)&&<nav aria-label="Admin commerce case pages" className="mt-8 flex items-center justify-center gap-3">{page>1&&<Link href={page===2?"/admin/commerce":"/admin/commerce?page="+(page-1)} className="rounded-full border border-black/15 bg-white px-5 py-3 text-sm font-black">Previous</Link>}<span className="text-sm font-bold text-[#63706a]">Page {page}</span>{result.hasMore&&<Link href={"/admin/commerce?page="+(page+1)} className="rounded-full bg-[#173c31] px-5 py-3 text-sm font-black text-white">Next</Link>}</nav>}
  </main></>;
 }

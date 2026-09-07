@@ -7,16 +7,20 @@ import { ReturnReceivedForm } from "@/components/return-received-form";
 import { requireSeller } from "@/lib/auth";
 import { getTransactionCaseEvidence } from "@/lib/data/case-evidence";
 import { getSellerForOwner } from "@/lib/data/marketplace";
-import { getTransactionCases } from "@/lib/data/transaction-cases";
+import { getSellerTransactionCasesPage } from "@/lib/data/transaction-cases";
 
 export const dynamic="force-dynamic";
 const label=(value:string)=>value.replaceAll("_"," ").replace(/\b\w/g,letter=>letter.toUpperCase());
+const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
+const pageNumber=(value:string|undefined)=>{const parsed=Number(value);return Number.isInteger(parsed)&&parsed>0?parsed:1;};
 
-export default async function SellerCasesPage(){
- const {user}=await requireSeller("/dashboard/cases");
+export default async function SellerCasesPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
+ const [{user},params]=await Promise.all([requireSeller("/dashboard/cases"),searchParams]);
+ const page=pageNumber(first(params.page));
+ const pageSize=20;
  const seller=await getSellerForOwner(user.id);
- const allCases=await getTransactionCases().catch(()=>[]);
- const cases=seller?allCases.filter(item=>item.sellerSlug===seller.slug):[];
+ const result=seller?await getSellerTransactionCasesPage(seller.id,{offset:(page-1)*pageSize,limit:pageSize}).catch(()=>({items:[],hasMore:false,offset:(page-1)*pageSize,limit:pageSize})):{items:[],hasMore:false,offset:0,limit:pageSize};
+ const cases=result.items;
  const evidenceByCase=await getTransactionCaseEvidence(cases.map(item=>item.id)).catch(()=>new Map());
 
  return <><Header/><main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
@@ -32,5 +36,6 @@ export default async function SellerCasesPage(){
    {item.providerDisputeId&&<div className="mt-4 rounded-2xl bg-red-50 p-4 text-sm text-red-900"><p className="font-black">Payment-provider dispute</p><p className="mt-1">Status: {item.providerDisputeStatus??"under review"}</p></div>}
    <CaseEvidencePanel caseId={item.id} evidence={evidenceByCase.get(item.id)??[]} canUpload={!["resolved","rejected","cancelled"].includes(item.status)}/>{item.resolution&&<p className="mt-4 text-sm font-black text-[#63706a]">Resolution: {item.resolution==="full_refund"?"Full refund":"No refund"}</p>}
   </article>)}</div>:<div className="mt-8 rounded-3xl border border-dashed border-black/15 bg-white p-10 text-center"><MessageSquareText className="mx-auto text-[#63706a]"/><h2 className="mt-4 text-xl font-black">No transaction cases</h2><p className="mt-2 text-sm text-[#63706a]">Buyer return requests and disputes will appear here.</p></div>}
+ {(page>1||result.hasMore)&&<nav aria-label="Seller case pages" className="mt-8 flex items-center justify-center gap-3">{page>1&&<Link href={page===2?"/dashboard/cases":"/dashboard/cases?page="+(page-1)} className="rounded-full border border-black/15 bg-white px-5 py-3 text-sm font-black">Previous</Link>}<span className="text-sm font-bold text-[#63706a]">Page {page}</span>{result.hasMore&&<Link href={"/dashboard/cases?page="+(page+1)} className="rounded-full bg-[#173c31] px-5 py-3 text-sm font-black text-white">Next</Link>}</nav>}
  </main></>;
 }

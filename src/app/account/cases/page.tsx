@@ -6,27 +6,34 @@ import { TransactionCaseForm } from "@/components/transaction-case-form";
 import { ReturnShipmentForm } from "@/components/return-shipment-form";
 import { requireUser } from "@/lib/auth";
 import { getTransactionCaseEvidence } from "@/lib/data/case-evidence";
-import { getBuyerOrders } from "@/lib/data/orders";
-import { getTransactionCases } from "@/lib/data/transaction-cases";
+import { getBuyerOrdersPage } from "@/lib/data/orders";
+import { getActiveCaseOrderItemIds,getBuyerCaseOrderItem,getBuyerTransactionCasesPage } from "@/lib/data/transaction-cases";
 
 export const dynamic="force-dynamic";
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
+const pageNumber=(value:string|undefined)=>{const parsed=Number(value);return Number.isInteger(parsed)&&parsed>0?parsed:1;};
 const label=(value:string)=>value.replaceAll("_"," ").replace(/\b\w/g,letter=>letter.toUpperCase());
 
 export default async function BuyerCasesPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
  const params=await searchParams;
  const user=await requireUser("/account/cases");
- const [cases,orders]=await Promise.all([getTransactionCases().catch(()=>[]),getBuyerOrders(user.id).catch(()=>[])]);
- const buyerCases=cases.filter(item=>item.buyerId===user.id);
- const evidenceByCase=await getTransactionCaseEvidence(buyerCases.map(item=>item.id)).catch(()=>new Map());
- const activeCaseStatuses=["open","seller_response","under_review","return_authorized","return_shipped","returned"];
- const existingItems=new Set(buyerCases.filter(item=>activeCaseStatuses.includes(item.status)).map(item=>item.orderItemId));
- const eligible=orders.flatMap(order=>order.items.filter(item=>
-  ["paid","disputed"].includes(order.paymentStatus)&&
-  !["cancelled","refunded","returned"].includes(item.fulfilmentStatus)&&
-  !existingItems.has(item.id)
- ));
+ const casePage=pageNumber(first(params.casePage));
+ const casePageSize=20;
  const selectedId=first(params.item);
+ const [caseResult,orderResult,selectedPurchase]=await Promise.all([
+  getBuyerTransactionCasesPage(user.id,{offset:(casePage-1)*casePageSize,limit:casePageSize}).catch(()=>({items:[],hasMore:false,offset:(casePage-1)*casePageSize,limit:casePageSize})),
+  getBuyerOrdersPage(user.id,{limit:30}).catch(()=>({items:[],hasMore:false,offset:0,limit:30})),
+  selectedId?getBuyerCaseOrderItem(user.id,selectedId).catch(()=>null):Promise.resolve(null)
+ ]);
+ const buyerCases=caseResult.items;
+ const evidenceByCase=await getTransactionCaseEvidence(buyerCases.map(item=>item.id)).catch(()=>new Map());
+ let eligible=orderResult.items.flatMap(order=>order.items.filter(item=>
+  ["paid","disputed"].includes(order.paymentStatus)&&
+  !["cancelled","refunded","returned"].includes(item.fulfilmentStatus)
+ ).map(item=>({id:item.id,partTitle:item.partTitle,sellerName:item.sellerName})));
+ if(selectedPurchase&&!eligible.some(item=>item.id===selectedPurchase.id))eligible=[selectedPurchase,...eligible];
+ const existingItems=await getActiveCaseOrderItemIds(eligible.map(item=>item.id)).catch(()=>new Set<string>());
+ eligible=eligible.filter(item=>!existingItems.has(item.id));
  const requestedType=first(params.type);
  const defaultCaseType=(["return","dispute","cancellation"] as string[]).includes(requestedType??"")?requestedType as "return"|"dispute"|"cancellation":"return";
  const selected=eligible.find(item=>item.id===selectedId)??null;
@@ -36,7 +43,7 @@ export default async function BuyerCasesPage({searchParams}:{searchParams:Promis
   <h1 className="mt-2 text-4xl font-black tracking-[-.045em]">Returns & transaction cases</h1>
   <p className="mt-2 max-w-2xl text-sm leading-6 text-[#63706a]">Use a case when a completed marketplace purchase has a return, condition, delivery or transaction problem. Opening a case blocks any seller transfer that has not already been released.</p>
 
-  {selected&&<TransactionCaseForm orderItemId={selected.id} partTitle={selected.partTitle} defaultCaseType={defaultCaseType}/>} 
+  {selected&&<TransactionCaseForm orderItemId={selected.id} partTitle={selected.partTitle} defaultCaseType={defaultCaseType}/>}
 
   {!selected&&eligible.length>0&&<section className="mt-8 rounded-3xl border border-black/10 bg-white p-5">
    <h2 className="text-xl font-black">Choose a purchase</h2>
@@ -52,5 +59,6 @@ export default async function BuyerCasesPage({searchParams}:{searchParams:Promis
     <CaseEvidencePanel caseId={item.id} evidence={evidenceByCase.get(item.id)??[]} canUpload={!["resolved","rejected","cancelled"].includes(item.status)}/>{item.resolution&&<div className="mt-4 flex items-center gap-2 text-sm font-black text-emerald-800"><CheckCircle2 size={17}/>{item.resolution==="full_refund"?"Full refund issued":"Case resolved without refund"}</div>}
    </article>)}</div>:<div className="mt-5 rounded-3xl border border-dashed border-black/15 bg-white p-8 text-sm text-[#63706a]"><AlertTriangle className="mb-3"/>You do not have any transaction cases.</div>}
   </section>
+  {(casePage>1||caseResult.hasMore)&&<nav aria-label="Transaction case pages" className="mt-8 flex items-center justify-center gap-3">{casePage>1&&<Link href={casePage===2?"/account/cases":"/account/cases?casePage="+(casePage-1)} className="rounded-full border border-black/15 bg-white px-5 py-3 text-sm font-black">Previous</Link>}<span className="text-sm font-bold text-[#63706a]">Page {casePage}</span>{caseResult.hasMore&&<Link href={"/account/cases?casePage="+(casePage+1)} className="rounded-full bg-[#173c31] px-5 py-3 text-sm font-black text-white">Next</Link>}</nav>}
  </main></>;
 }
