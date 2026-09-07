@@ -51,6 +51,8 @@ const account=async(payload)=>{
  const notifications=document.getElementById("account-notifications");if(notifications)notifications.addEventListener("click",()=>UI.route("notifications"));
  const garage=document.getElementById("account-garage");if(garage)garage.addEventListener("click",()=>UI.route("garage"));
  const orders=document.getElementById("account-orders");if(orders)orders.addEventListener("click",()=>UI.route("orders"));
+ const fitting=document.getElementById("account-fitting");if(fitting)fitting.addEventListener("click",()=>UI.route("fittingRequests"));
+ const garagePartner=document.getElementById("account-garage-partner");if(garagePartner)garagePartner.addEventListener("click",()=>UI.route("garagePartner"));
  const reviewsButton=document.getElementById("account-reviews");if(reviewsButton)reviewsButton.addEventListener("click",()=>UI.route("reviews"));
  const cases=document.getElementById("account-cases");if(cases)cases.addEventListener("click",()=>UI.route("cases"));
  const inbox=document.getElementById("account-inbox");if(inbox)inbox.addEventListener("click",()=>UI.route("inbox"));

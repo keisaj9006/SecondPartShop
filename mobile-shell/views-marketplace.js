@@ -385,6 +385,9 @@ const listing=async(payload)=>{
   }catch(error){UI.toast(error.message,"error");}
  });
 
+ const fit=document.getElementById("listing-fit");
+ if(fit)fit.addEventListener("click",()=>UI.route("fitPart",{item}));
+
  const report=document.getElementById("listing-report");
  if(report)report.addEventListener("click",async()=>{
   if(!await UI.requireAuth("listing"))return;
