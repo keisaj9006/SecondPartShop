@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MapPin,ShieldCheck,Star,Store } from "lucide-react";
 import { Header } from "@/components/header";
 import { getSellerDirectoryPage } from "@/lib/data/seller-directory";
+import { sellerBusinessKindLabel } from "@/lib/seller-business";
 
 export const dynamic="force-dynamic";
 
@@ -25,7 +26,7 @@ export default async function SellersPage({searchParams}:{searchParams:Promise<R
         <div className="flex items-center justify-between">
           <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#173c31] text-xl font-black text-[#d4f44d]">{s.businessName.charAt(0)}</span>
           <div className="flex flex-wrap justify-end gap-2">
-            <span className="rounded-full bg-[#eef1eb] px-3 py-1 text-xs font-bold capitalize">{s.sellerType}</span>
+            <span className="rounded-full bg-[#eef1eb] px-3 py-1 text-xs font-bold">{s.sellerType==="business"?sellerBusinessKindLabel(s.businessKind):"Private"}</span>
             {s.verified&&<span className="flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800"><ShieldCheck size={14}/>Verified</span>}
           </div>
         </div>

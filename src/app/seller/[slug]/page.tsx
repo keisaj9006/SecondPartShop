@@ -7,6 +7,7 @@ import { ReputationSummary } from "@/components/reputation-summary";
 import { ReviewList } from "@/components/review-list";
 import { getPublicSellerInventorySummary,getPublicSellerListingsPage,getSellerBySlug } from "@/lib/data/marketplace";
 import { getPublicMemberProfileById,getPublicMemberReviews } from "@/lib/data/reputation";
+import { sellerBusinessKindLabel } from "@/lib/seller-business";
 
 export const dynamic="force-dynamic";
 
@@ -36,7 +37,7 @@ export default async function SellerPage({params,searchParams}:{params:Promise<{
     <div className="flex flex-wrap items-center gap-3">
      <p className="text-xs font-black uppercase tracking-[.2em] text-[#d4f44d]">Seller profile</p>
      {seller.verified&&<span className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-xs font-bold"><ShieldCheck size={14}/>Verified business</span>}
-     <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold capitalize">{seller.sellerType} seller</span>
+     <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">{seller.sellerType==="business"?sellerBusinessKindLabel(seller.businessKind):"Private seller"}</span>
     </div>
 
     <div className="mt-5 grid gap-8 lg:grid-cols-[1fr_380px] lg:items-end">
@@ -59,7 +60,7 @@ export default async function SellerPage({params,searchParams}:{params:Promise<{
 
   <section className="border-b border-black/10 bg-[#f8f7f2]">
    <div className="mx-auto grid max-w-7xl gap-3 px-4 py-5 sm:grid-cols-3 sm:px-6">
-    <div className="flex items-center gap-3 rounded-2xl bg-white p-4"><ShieldCheck className="text-[#287154]" size={20}/><div><p className="text-sm font-black">{seller.verified?"Verified seller":"Seller profile"}</p><p className="text-xs text-[#63706a]">{seller.sellerType==="business"?"Business / trader account":"Private seller account"}</p></div></div>
+    <div className="flex items-center gap-3 rounded-2xl bg-white p-4"><ShieldCheck className="text-[#287154]" size={20}/><div><p className="text-sm font-black">{seller.verified?"Verified seller":"Seller profile"}</p><p className="text-xs text-[#63706a]">{seller.sellerType==="business"?sellerBusinessKindLabel(seller.businessKind):"Private seller account"}</p></div></div>
     <div className="flex items-center gap-3 rounded-2xl bg-white p-4"><PackageCheck className="text-[#287154]" size={20}/><div><p className="text-sm font-black">{summary.testedCount} tested listings</p><p className="text-xs text-[#63706a]">Testing varies by part</p></div></div>
     <div className="flex items-center gap-3 rounded-2xl bg-white p-4"><Truck className="text-[#287154]" size={20}/><div><p className="text-sm font-black">{summary.collectionCount} collection options</p><p className="text-xs text-[#63706a]">{summary.warrantyCount} listings with warranty</p></div></div>
    </div>

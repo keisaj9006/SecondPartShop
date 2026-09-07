@@ -1,23 +1,26 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState,useState } from "react";
 import { updateSellerProfile } from "@/app/dashboard/actions";
-import type { ActionState,Seller } from "@/lib/types";
+import type { ActionState,Seller,SellerType } from "@/lib/types";
+import { sellerBusinessKinds,sellerBusinessKindLabels } from "@/lib/seller-business";
 
 const initial:ActionState={status:"idle"};
 
 export function SellerProfileEditForm({seller}:{seller:Seller}){
  const [state,action,pending]=useActionState(updateSellerProfile,initial);
+ const [sellerType,setSellerType]=useState<SellerType>(seller.sellerType);
  const input="mt-2 w-full rounded-xl border border-black/15 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#173c31]";
  return <form action={action} className="mt-7 grid gap-5 rounded-3xl border border-black/10 bg-white p-6 sm:grid-cols-2">
-  {seller.verified&&<div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 sm:col-span-2"><p className="font-black">Verified business profile</p><p className="mt-1 leading-6 text-amber-900/75">Changing seller type, seller/business name, town/city or postcode automatically removes the verified badge until the updated identity is reviewed again.</p></div>}
+  {seller.verified&&<div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 sm:col-span-2"><p className="font-black">Verified business profile</p><p className="mt-1 leading-6 text-amber-900/75">Changing seller type, business category, seller/business name, town/city or postcode automatically removes the verified badge until the updated identity is reviewed again.</p></div>}
   <label className="text-sm font-bold">Seller type
-   <select name="sellerType" defaultValue={seller.sellerType} className={input}>
+   <select name="sellerType" value={sellerType} onChange={event=>setSellerType(event.target.value as SellerType)} className={input}>
     <option value="private">Private seller</option>
-    <option value="business">Business / garage / breaker</option>
+    <option value="business">Business seller</option>
    </select>
    <small className="mt-1 block font-normal text-[#63706a]">Shown publicly so buyers understand who they are buying from.</small>
   </label>
+  <label className="text-sm font-bold">Business category<select name="businessKind" disabled={sellerType!=="business"} required={sellerType==="business"} defaultValue={seller.businessKind??""} className={input}><option value="">Choose business type</option>{sellerBusinessKinds.map(kind=><option key={kind} value={kind}>{sellerBusinessKindLabels[kind]}</option>)}</select><small className="mt-1 block font-normal text-[#63706a]">Changing this category requires business verification to be reviewed again.</small></label>
   <label className="text-sm font-bold">Seller / business name<input required minLength={2} maxLength={140} name="businessName" defaultValue={seller.businessName} className={input}/></label>
   <label className="text-sm font-bold">Town or city<input required maxLength={120} name="location" defaultValue={seller.location} className={input}/></label>
   <label className="text-sm font-bold">Postcode<input maxLength={20} name="postcode" defaultValue={seller.postcode??""} className={input}/></label>
