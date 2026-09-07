@@ -3,10 +3,13 @@ import { CarFront,Trash2 } from "lucide-react";
 import { Header } from "@/components/header";
 import { VehicleVisual } from "@/components/vehicle-visual";
 import { requireUser } from "@/lib/auth";
-import { getGarageVehicles } from "@/lib/data/garage";
+import { getGarageVehiclesPage } from "@/lib/data/garage";
 import { removeGarageVehicle } from "./actions";
 
 export const dynamic="force-dynamic";
+
+const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
+const pageNumber=(value:string|undefined)=>{const parsed=Number(value);return Number.isInteger(parsed)&&parsed>0?parsed:1;};
 
 const vehicleHref=(vehicle:{catalogueVariantId:string;year:number;fuelType:string|null;engineSizeSimple:number|null;registration:string|null;colour:string|null})=>{
  const params=new URLSearchParams({cv:vehicle.catalogueVariantId,cy:String(vehicle.year)});
@@ -17,9 +20,12 @@ const vehicleHref=(vehicle:{catalogueVariantId:string;year:number;fuelType:strin
  return `/?${params.toString()}#marketplace`;
 };
 
-export default async function GaragePage(){
- const user=await requireUser("/garage");
- const vehicles=await getGarageVehicles(user.id);
+export default async function GaragePage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
+ const [user,params]=await Promise.all([requireUser("/garage"),searchParams]);
+ const page=pageNumber(first(params.page));
+ const pageSize=20;
+ const result=await getGarageVehiclesPage(user.id,{offset:(page-1)*pageSize,limit:pageSize});
+ const vehicles=result.items;
  return <><Header/><main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
   <p className="text-xs font-black uppercase tracking-[.2em] text-[#287154]">Your account</p>
   <div className="mt-3 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -34,5 +40,6 @@ export default async function GaragePage(){
    </div>
    <Link href={vehicleHref(vehicle)} className="mt-5 flex min-h-12 items-center justify-center rounded-xl bg-[#d4f44d] px-4 py-3 text-center text-sm font-black">Use this vehicle</Link>
   </article>)}</div>:<div className="mt-8 rounded-3xl border border-dashed border-black/20 bg-white px-6 py-16 text-center"><CarFront className="mx-auto text-[#63706a]"/><h2 className="mt-4 text-xl font-black">Your Garage is empty</h2><p className="mx-auto mt-2 max-w-lg text-[#63706a]">Select a vehicle on the marketplace and save it here for faster future searches.</p><Link href="/?addVehicle=1#vehicle-picker" className="mt-5 inline-block rounded-full bg-[#173c31] px-5 py-3 text-sm font-black text-white">Find my vehicle</Link></div>}
+ {(page>1||result.hasMore)&&<nav aria-label="Garage pages" className="mt-8 flex items-center justify-center gap-3">{page>1&&<Link href={page===2?"/garage":"/garage?page="+(page-1)} className="rounded-full border border-black/15 bg-white px-5 py-3 text-sm font-black">Previous</Link>}<span className="text-sm font-bold text-[#63706a]">Page {page}</span>{result.hasMore&&<Link href={"/garage?page="+(page+1)} className="rounded-full bg-[#173c31] px-5 py-3 text-sm font-black text-white">Next</Link>}</nav>}
  </main></>;
 }

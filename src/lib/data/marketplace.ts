@@ -443,7 +443,29 @@ export async function getCategories():Promise<Category[]>{
  if(!isSupabaseConfigured())return [];
  return loadCategories().catch(()=>[]);
 }
-export async function getVehicles():Promise<Vehicle[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();const {data}=await supabase.from("vehicles").select("id,make,model,generation,year,engine,engine_code,fuel_type,gearbox_family,gearbox_code,data_status,source_reference").order("make").order("model").order("year");return (data??[]).map(v=>vehicleFrom(v as RawVehicle));}
+export async function getVehicleById(id:string):Promise<Vehicle|null>{
+ if(!isSupabaseConfigured())return null;
+ const supabase=await createSupabaseServerClient();
+ const {data,error}=await supabase
+  .from("vehicles")
+  .select("id,make,model,generation,year,engine,engine_code,fuel_type,gearbox_family,gearbox_code,data_status,source_reference")
+  .eq("id",id)
+  .maybeSingle();
+ if(error)return null;
+ return data?vehicleFrom(data as RawVehicle):null;
+}
+export async function getVehicles():Promise<Vehicle[]>{
+ if(!isSupabaseConfigured())return [];
+ const supabase=await createSupabaseServerClient();
+ const {data}=await supabase
+  .from("vehicles")
+  .select("id,make,model,generation,year,engine,engine_code,fuel_type,gearbox_family,gearbox_code,data_status,source_reference")
+  .order("make")
+  .order("model")
+  .order("year")
+  .limit(100);
+ return (data??[]).map(v=>vehicleFrom(v as RawVehicle));
+}
 export async function getSavedPartIds(userId:string):Promise<string[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();const {data}=await supabase.from("saved_parts").select("part_id").eq("profile_id",userId);return (data??[]).map(item=>item.part_id);}
 
 export async function getSavedPartIdsForParts(userId:string,partIds:string[]):Promise<string[]>{

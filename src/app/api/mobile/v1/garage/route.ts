@@ -14,35 +14,43 @@ export async function GET(request:Request){
  const auth=await requireMobileUser(request);
  if(!auth.context)return auth.response;
  const {user,supabase}=auth.context;
+ const url=new URL(request.url);
+ const rawLimit=Number(url.searchParams.get("limit")??20);
+ const rawOffset=Number(url.searchParams.get("offset")??0);
+ const limit=Number.isInteger(rawLimit)?Math.max(1,Math.min(rawLimit,60)):20;
+ const offset=Number.isInteger(rawOffset)?Math.max(0,rawOffset):0;
 
  const {data,error}=await supabase
   .from("garage_vehicles")
   .select("id,catalogue_variant_id,registration,year,fuel_type,engine_size_simple,colour,nickname,created_at,vehicle_catalogue_variants!inner(make,model_family,variant)")
   .eq("profile_id",user.id)
-  .order("created_at",{ascending:false});
+  .order("created_at",{ascending:false})
+  .order("id",{ascending:false})
+  .range(offset,offset+limit);
  if(error)return mobileJson(request,{ok:false,error:"garage_unavailable"},503);
+ const raw=data??[];
+ const hasMore=raw.length>limit;
+ const page=raw.slice(0,limit);
 
- return mobileJson(request,{
-  ok:true,
-  items:(data??[]).flatMap(row=>{
-   const variant=one(row.vehicle_catalogue_variants);
-   if(!variant)return [];
-   return [{
-    id:row.id,
-    catalogueVariantId:row.catalogue_variant_id,
-    registration:row.registration,
-    year:row.year,
-    fuelType:row.fuel_type,
-    engineSizeSimple:row.engine_size_simple,
-    colour:row.colour,
-    nickname:row.nickname,
-    make:variant.make,
-    modelFamily:variant.model_family,
-    variant:variant.variant,
-    createdAt:row.created_at
-   }];
-  })
+ const items=page.flatMap(row=>{
+  const variant=one(row.vehicle_catalogue_variants);
+  if(!variant)return [];
+  return [{
+   id:row.id,
+   catalogueVariantId:row.catalogue_variant_id,
+   registration:row.registration,
+   year:row.year,
+   fuelType:row.fuel_type,
+   engineSizeSimple:row.engine_size_simple,
+   colour:row.colour,
+   nickname:row.nickname,
+   make:variant.make,
+   modelFamily:variant.model_family,
+   variant:variant.variant,
+   createdAt:row.created_at
+  }];
  });
+ return mobileJson(request,{ok:true,items,pagination:{offset,limit,returned:items.length,hasMore}});
 }
 
 export async function POST(request:Request){
