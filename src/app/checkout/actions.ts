@@ -6,7 +6,8 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createCheckoutSession,isStripeCheckoutConfigured } from "@/lib/stripe-payments";
 import { isUuid } from "@/lib/identifiers";
-import type { ActionState } from "@/lib/types";
+import type { ActionState,MarketplaceFilters } from "@/lib/types";
+import { getPartCompatibility } from "@/lib/data/compatibility";
 
 const knownMessage=(message:string)=>{
  const lower=message.toLowerCase();
@@ -30,6 +31,7 @@ export async function startCheckout(_previous:ActionState,formData:FormData):Pro
  const vehicleFuel=String(formData.get("vehicleFuel")??"").trim();
  const vehicleEngineText=String(formData.get("vehicleEngine")??"").trim();
  const vehicleRegistration=String(formData.get("vehicleRegistration")??"").trim();
+ const compatibilityAcknowledged=String(formData.get("compatibilityAcknowledged")??"")==="1";
  const vehicleYear=vehicleYearText?Number(vehicleYearText):undefined;
  const vehicleEngine=vehicleEngineText?Number(vehicleEngineText):undefined;
  if(!isUuid(partId))return {status:"error",message:"This listing could not be identified."};
@@ -44,6 +46,19 @@ export async function startCheckout(_previous:ActionState,formData:FormData):Pro
 
  const {data:part}=await supabase.from("parts").select("slug").eq("id",partId).maybeSingle();
  if(!part)return {status:"error",message:"This listing is no longer available."};
+
+ if(vehicleVariantId&&vehicleYear!==undefined){
+  const filters:MarketplaceFilters={
+   catalogueVariant:vehicleVariantId,
+   catalogueYear:vehicleYear,
+   catalogueFuel:vehicleFuel||undefined,
+   catalogueEngineSize:vehicleEngine
+  };
+  const compatibility=await getPartCompatibility(partId,filters).catch(()=>null);
+  if(compatibility&&(compatibility.level==="family_match"||compatibility.level==="unverified")&&!compatibilityAcknowledged){
+   return {status:"error",message:"Compatibility with your selected vehicle is not confirmed. Please acknowledge the compatibility warning before checkout."};
+  }
+ }
 
  const {data,error}=await supabase.rpc("prepare_checkout_order_v2",{
   p_part_id:partId,
