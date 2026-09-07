@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState,useMemo,useState } from "react";
+import { useActionState,useMemo,useRef,useState } from "react";
 import { createListing,updateListing } from "@/app/dashboard/actions";
 import { buildCategoryTree,getCategoryAncestors,type CategoryNode } from "@/lib/category-tree";
 import { SellerCompatibilityEditor } from "@/components/seller-compatibility-editor";
 import { OptimizedImageInput } from "@/components/optimized-image-input";
+import { ListingAiAssistant } from "@/components/listing-ai-assistant";
 import type { ActionState,CatalogueFitmentSelection,Category,DonorVehicle,Listing } from "@/lib/types";
 
 const initial:ActionState={status:"idle"};
@@ -20,6 +21,9 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
  const handler=listing?updateListing:createListing;
  const [state,action,pending]=useActionState(handler,initial);
  const [optimizingImages,setOptimizingImages]=useState(false);
+ const formRef=useRef<HTMLFormElement>(null);
+ const [title,setTitle]=useState(listing?.title??defaultTitle??"");
+ const [description,setDescription]=useState(listing?.description??"");
  const initialDonorId=listing?.donorVehicleId??defaultDonorId??"";
  const [donorId,setDonorId]=useState(initialDonorId);
  const [donorOptions,setDonorOptions]=useState(donors);
@@ -38,6 +42,8 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
  const partTypes=selectableDescendants(group);
  const selectedCategory=categories.find(category=>category.id===categoryId);
  const transmissionRelated=Boolean(selectedCategory?.isTransmissionRelated);
+ const selectedDonor=donorOptions.find(donor=>donor.id===donorId)??donors.find(donor=>donor.id===donorId);
+ const donorSummary=selectedDonor?[selectedDonor.registration,selectedDonor.make+" "+selectedDonor.model,selectedDonor.year,selectedDonor.variant,selectedDonor.engineSizeSimple?selectedDonor.engineSizeSimple+"cc":null,selectedDonor.fuelType].filter(Boolean).join(" · "):"";
  const input="mt-2 w-full rounded-xl border border-black/15 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#173c31]";
 
  const selectDepartment=(value:string)=>{setDepartmentId(value);setGroupId("");setCategoryId("");};
@@ -71,12 +77,13 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
   }
  };
 
- return <form action={action} className="mt-8 grid gap-5 rounded-3xl border border-black/10 bg-white p-5 sm:p-7 lg:grid-cols-2">
+ return <form ref={formRef} action={action} className="mt-8 grid gap-5 rounded-3xl border border-black/10 bg-white p-5 sm:p-7 lg:grid-cols-2">
   {listing&&<input type="hidden" name="partId" value={listing.id}/>} {!listing&&defaultRequestId&&<input type="hidden" name="sourceRequestId" value={defaultRequestId}/>}
   <input type="hidden" name="categoryId" value={categoryId}/>
 
-  <label className="text-sm font-bold lg:col-span-2">Listing title<input required minLength={5} name="title" defaultValue={listing?.title??defaultTitle} className={input} placeholder="e.g. Golf Mk7 LED headlight"/></label>
-  <label className="text-sm font-bold lg:col-span-2">Description<textarea required minLength={20} rows={5} name="description" defaultValue={listing?.description} className={input} placeholder="Describe condition, testing and what is included."/></label>
+  <label className="text-sm font-bold lg:col-span-2">Listing title<input required minLength={5} name="title" value={title} onChange={event=>setTitle(event.target.value)} className={input} placeholder="e.g. Golf Mk7 LED headlight"/></label>
+  <label className="text-sm font-bold lg:col-span-2">Description<textarea required minLength={20} rows={5} name="description" value={description} onChange={event=>setDescription(event.target.value)} className={input} placeholder="Describe condition, testing and what is included."/></label>
+  <ListingAiAssistant formRef={formRef} categoryName={selectedCategory?.name??""} donorSummary={donorSummary} onApplyTitle={setTitle} onApplyDescription={setDescription}/>
   <fieldset className="rounded-2xl border border-[#173c31]/15 bg-[#f4f7f2] p-4 lg:col-span-2">
    <legend className="px-1 text-sm font-black">1. Which vehicle did this part come from?</legend>
    <p className="mt-1 text-sm leading-6 text-[#63706a]">This is the easiest way to give buyers a useful compatibility signal. A donor vehicle creates a conservative <strong>vehicle-family match</strong>; it never becomes a guaranteed exact fit automatically.</p>
