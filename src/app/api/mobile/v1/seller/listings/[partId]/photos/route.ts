@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileSeller } from "@/lib/mobile-api";
+import { mobileThumbnailUrl } from "@/lib/mobile-image";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -42,7 +43,7 @@ export async function GET(request:Request,{params}:{params:Promise<{partId:strin
  return mobileJson(request,{
   ok:true,
   part:{id:part.id,title:part.title,status:part.status},
-  items:(data??[]).map(image=>({id:image.id,url:publicUrl(image.storage_path),alt:image.alt_text,position:image.position}))
+  items:(data??[]).map(image=>{const url=publicUrl(image.storage_path);return {id:image.id,url,thumbnailUrl:mobileThumbnailUrl(request,url),alt:image.alt_text,position:image.position};})
  });
 }
 
