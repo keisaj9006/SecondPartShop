@@ -445,7 +445,46 @@ export async function getCategories():Promise<Category[]>{
 }
 export async function getVehicles():Promise<Vehicle[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();const {data}=await supabase.from("vehicles").select("id,make,model,generation,year,engine,engine_code,fuel_type,gearbox_family,gearbox_code,data_status,source_reference").order("make").order("model").order("year");return (data??[]).map(v=>vehicleFrom(v as RawVehicle));}
 export async function getSavedPartIds(userId:string):Promise<string[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();const {data}=await supabase.from("saved_parts").select("part_id").eq("profile_id",userId);return (data??[]).map(item=>item.part_id);}
-export async function getSavedListings(userId:string):Promise<DataResult<Listing[]>>{const ids=await getSavedPartIds(userId);if(!ids.length)return {data:[],error:null,configured:isSupabaseConfigured()};return getListings({ids});}
+
+export async function getListingCardsByIds(ids:string[]):Promise<Listing[]>{
+ if(!isSupabaseConfigured()||!ids.length)return [];
+ const ordered=[...new Set(ids)].slice(0,100);
+ const supabase=await createSupabaseServerClient();
+ const {data,error}=await supabase
+  .from("parts")
+  .select(selectListingCard())
+  .eq("status","active")
+  .in("id",ordered);
+ if(error)throw new Error("Listing cards are temporarily unavailable.");
+ const listings=await cardListingsFromRows(supabase,data??[]);
+ const byId=new Map(listings.map(item=>[item.id,item]));
+ return ordered.map(id=>byId.get(id)).filter((item):item is Listing=>Boolean(item));
+}
+
+export async function getSavedListingsPage(userId:string,options:{offset?:number;limit?:number}={}){
+ const limit=Math.max(1,Math.min(Math.floor(options.limit??24),60));
+ const offset=Math.max(0,Math.floor(options.offset??0));
+ if(!isSupabaseConfigured())return {data:[] as Listing[],error:null,configured:false,pagination:{offset,limit,returned:0,hasMore:false}};
+ const supabase=await createSupabaseServerClient();
+ const {data,error}=await supabase
+  .from("saved_parts")
+  .select("part_id,created_at")
+  .eq("profile_id",userId)
+  .order("created_at",{ascending:false})
+  .order("part_id")
+  .range(offset,offset+limit);
+ if(error)return {data:[] as Listing[],error:"Saved parts are temporarily unavailable.",configured:true,pagination:{offset,limit,returned:0,hasMore:false}};
+ const raw=data??[];
+ const hasMore=raw.length>limit;
+ const ids=raw.slice(0,limit).map(row=>row.part_id);
+ const listings=await getListingCardsByIds(ids);
+ return {data:listings,error:null,configured:true,pagination:{offset,limit,returned:listings.length,hasMore}};
+}
+
+export async function getSavedListings(userId:string):Promise<DataResult<Listing[]>>{
+ const result=await getSavedListingsPage(userId,{limit:60});
+ return {data:result.data,error:result.error,configured:result.configured};
+}
 export async function getSellers():Promise<Seller[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();const {data}=await supabase.from("sellers").select("id,owner_id,business_name,slug,location,postcode,description,verified_at,seller_type").order("business_name");return (data??[]).map(s=>sellerFrom(s as RawSeller));}
 export async function getSellerBySlug(slug:string):Promise<Seller|null>{if(!isSupabaseConfigured())return null;const supabase=await createSupabaseServerClient();const {data}=await supabase.from("sellers").select("id,owner_id,business_name,slug,location,postcode,description,verified_at,seller_type").eq("slug",slug).maybeSingle();return data?sellerFrom(data as RawSeller):null;}
 export async function getSellerListings(sellerId:string,includeInactive=false):Promise<Listing[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();let query=supabase.from("parts").select(selectListing()).eq("seller_id",sellerId).order("updated_at",{ascending:false});if(!includeInactive)query=query.eq("status","active");const {data}=await query;return (data??[]).map(row=>listingFrom(row as unknown as RawListing));}
