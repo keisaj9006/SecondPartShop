@@ -286,9 +286,12 @@ const seller=async()=>{
  const html=[];
  html.push("<section class=\"account-hero\"><p class=\"eyebrow\" style=\"color:#d4f44d\">Seller dashboard</p><h1>"+C.escapeHtml(C.state.me.seller.businessName)+"</h1><p>"+sales.length+" sale"+(sales.length===1?"":"s")+" · "+cases.filter(item=>!["resolved","rejected","cancelled"].includes(item.status)).length+" active case(s)</p><div class=\"button-row\" style=\"margin-top:14px\"><button id=\"seller-inventory\" class=\"lime-button small-button\" type=\"button\">Inventory & photos</button></div></section>");
  if(readiness){
+  const launch=readiness.onboarding||{steps:[],nextAction:null,nextLabel:null,complete:false};
+  const launchDone=(launch.steps||[]).filter(item=>item.done).length;
+  html.push("<section class=\"card\" style=\"margin-top:12px;background:#173c31;color:white\"><div class=\"row-between\"><div><p class=\"eyebrow\" style=\"color:#d4f44d\">Founding Seller launch path</p><h3 style=\"margin:4px 0\">"+C.escapeHtml(launch.complete?"Seller launch setup complete":launch.nextLabel||"Continue seller setup")+"</h3></div><span class=\"pill\" style=\"background:rgba(255,255,255,.1);color:white\">"+launchDone+"/"+(launch.steps||[]).length+" steps</span></div><p style=\"font-size:11px;line-height:1.6;color:rgba(255,255,255,.68);margin-top:8px\">Business verification can stay under review while you continue with payouts, donor vehicles and inventory.</p><div style=\"margin-top:10px\">"+(launch.steps||[]).map((item,index)=>"<div style=\"display:flex;gap:10px;padding:10px;border:1px solid rgba(255,255,255,.1);border-radius:13px;margin-top:7px;background:"+(item.done?"rgba(255,255,255,.08)":"rgba(0,0,0,.08)")+"\"><span style=\"display:grid;place-items:center;flex:0 0 28px;height:28px;border-radius:999px;background:"+(item.done?"#d4f44d":"rgba(255,255,255,.1)")+";color:"+(item.done?"#173c31":"white")+";font-size:11px;font-weight:900\">"+(item.done?"✓":index+1)+"</span><div><strong style=\"font-size:12px\">"+C.escapeHtml(item.label)+"</strong><div style=\"font-size:10px;line-height:1.5;color:rgba(255,255,255,.65);margin-top:2px\">"+C.escapeHtml(item.detail)+"</div></div></div>").join("")+"</div>"+(!launch.complete?"<div class=\"button-row\" style=\"margin-top:12px\"><button id=\"seller-onboarding-next\" class=\"lime-button small-button\" type=\"button\">Continue: "+C.escapeHtml(launch.nextLabel||"next step")+"</button>"+(launch.nextAction==="inventory"?"<button id=\"seller-onboarding-import\" class=\"secondary small-button\" type=\"button\">Bulk CSV import</button>":"")+"</div>":"<div class=\"button-row\" style=\"margin-top:12px\"><button id=\"seller-onboarding-listing\" class=\"lime-button small-button\" type=\"button\">Add another part</button><button id=\"seller-onboarding-import\" class=\"secondary small-button\" type=\"button\">Bulk CSV import</button></div>")+"</section>");
   const required=readiness.required||[];
   const done=required.filter(item=>item.done).length;
-  html.push("<section class=\"card\" style=\"margin-top:12px\"><div class=\"row-between\"><div><p class=\"eyebrow\">Seller readiness</p><h3 style=\"margin:4px 0\">"+(readiness.marketReady?"Ready to sell":"Complete your seller setup")+"</h3></div><span class=\"pill "+(readiness.marketReady?"success":"warning")+"\">"+done+"/"+required.length+" required</span></div><div style=\"margin-top:10px\">"+required.map(item=>"<div class=\"status "+(item.done?"success":"info")+"\" style=\"margin-top:7px\"><strong>"+(item.done?"✓ ":"○ ")+C.escapeHtml(item.label)+"</strong><div style=\"margin-top:2px\">"+C.escapeHtml(item.detail)+"</div></div>").join("")+"</div>"+((readiness.recommended||[]).length?"<details style=\"margin-top:10px\"><summary class=\"link-button\">Recommended trust steps</summary><div>"+readiness.recommended.map(item=>"<div class=\"status "+(item.done?"success":"info")+"\" style=\"margin-top:7px\"><strong>"+(item.done?"✓ ":"○ ")+C.escapeHtml(item.label)+"</strong><div style=\"margin-top:2px\">"+C.escapeHtml(item.detail)+"</div></div>").join("")+"</div></details>":"")+"<div class=\"button-row\" style=\"margin-top:12px\">"+(!readiness.checkoutReady?"<button id=\"seller-payment-setup\" class=\"lime-button small-button\" type=\"button\">Set up payouts</button>":"<span class=\"pill success\">Payments ready</span>")+"<button id=\"seller-payment-refresh\" class=\"secondary small-button\" type=\"button\">Refresh payment status</button>"+(readiness.activeListingCount<1?"<button id=\"seller-readiness-listing\" class=\"secondary small-button\" type=\"button\">Create listing</button>":"")+"</div></section>");
+  html.push("<section class=\"card\" style=\"margin-top:12px\"><div class=\"row-between\"><div><p class=\"eyebrow\">Checkout readiness</p><h3 style=\"margin:4px 0\">"+(readiness.marketReady?"Checkout enabled":"Finish checkout requirements")+"</h3></div><span class=\"pill "+(readiness.marketReady?"success":"warning")+"\">"+done+"/"+required.length+" required</span></div><div style=\"margin-top:10px\">"+required.map(item=>"<div class=\"status "+(item.done?"success":"info")+"\" style=\"margin-top:7px\"><strong>"+(item.done?"✓ ":"○ ")+C.escapeHtml(item.label)+"</strong><div style=\"margin-top:2px\">"+C.escapeHtml(item.detail)+"</div></div>").join("")+"</div>"+((readiness.recommended||[]).length?"<details style=\"margin-top:10px\"><summary class=\"link-button\">Recommended trust steps</summary><div>"+readiness.recommended.map(item=>"<div class=\"status "+(item.done?"success":"info")+"\" style=\"margin-top:7px\"><strong>"+(item.done?"✓ ":"○ ")+C.escapeHtml(item.label)+"</strong><div style=\"margin-top:2px\">"+C.escapeHtml(item.detail)+"</div></div>").join("")+"</div></details>":"")+"<div class=\"button-row\" style=\"margin-top:12px\">"+(!readiness.checkoutReady?"<button id=\"seller-payment-setup\" class=\"lime-button small-button\" type=\"button\">Set up payouts</button>":"<span class=\"pill success\">Payments ready</span>")+"<button id=\"seller-payment-refresh\" class=\"secondary small-button\" type=\"button\">Refresh payment status</button>"+(readiness.activeListingCount<1?"<button id=\"seller-readiness-listing\" class=\"secondary small-button\" type=\"button\">Create listing</button>":"")+"</div></section>");
  }
  html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Commerce</p><h2>Sales & payouts</h2></div></div>");
  if(sales.length)html.push(sales.map(sale=>"<section class=\"order-card\"><div class=\"row-between\"><div><h3>"+C.escapeHtml(sale.partTitle)+"</h3><p class=\"subtle\">"+C.dateOnly(sale.orderCreatedAt)+" · "+C.escapeHtml(C.human(sale.fulfilmentStatus))+"</p></div><span class=\"money\">"+C.money(sale.sellerNetPence)+" net</span></div><div class=\"chips\"><span class=\"pill "+statusClass(sale.paymentStatus)+"\">"+C.escapeHtml(C.human(sale.paymentStatus))+"</span><span class=\"pill "+statusClass(sale.payoutStatus)+"\">"+C.escapeHtml(C.human(sale.payoutStatus))+"</span></div><p class=\"subtle\" style=\"margin-top:8px\">Item "+C.money(sale.unitPricePence*sale.quantity)+" · Delivery "+C.money(sale.shippingPence)+" · SecondPart fee −"+C.money(sale.platformFeePence)+"</p><div class=\"button-row\" style=\"margin-top:10px\">"+(sale.paymentStatus==="paid"?"<button class=\"secondary small-button\" data-sale-chat=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Buyer chat</button>":"")+(sale.fulfilmentStatus==="paid"?"<button class=\"secondary small-button\" data-fulfil=\"preparing\" data-sale-id=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Preparing</button>":"")+(sale.deliveryMethod==="collection"&&["paid","preparing"].includes(sale.fulfilmentStatus)?"<button class=\"lime-button small-button\" data-fulfil=\"ready_for_collection\" data-sale-id=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Ready for collection</button>":"")+(sale.deliveryMethod==="shipping"&&["paid","preparing"].includes(sale.fulfilmentStatus)?"<button class=\"primary small-button\" data-dispatch=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Dispatch</button>":"")+"</div></section>").join(""));
@@ -300,10 +303,10 @@ const seller=async()=>{
 
  UI.app.innerHTML=html.join("");
  const inventory=document.getElementById("seller-inventory");if(inventory)inventory.addEventListener("click",()=>UI.route("inventory"));
- const readinessListing=document.getElementById("seller-readiness-listing");if(readinessListing)readinessListing.addEventListener("click",()=>UI.route("listingEditor"));
- const paymentSetup=document.getElementById("seller-payment-setup");
- if(paymentSetup)paymentSetup.addEventListener("click",async()=>{
-  paymentSetup.disabled=true;paymentSetup.textContent="Opening Stripe…";
+ const openStripeOnboarding=async button=>{
+  button.disabled=true;
+  const previous=button.textContent;
+  button.textContent="Opening Stripe…";
   try{
    const result=await C.api("/seller/payments/onboarding",{method:"POST",auth:true});
    const url=C.safeHttpUrl(result.url);
@@ -311,9 +314,29 @@ const seller=async()=>{
    await C.Native.openBrowser(url);
   }catch(error){
    UI.toast(error.message.replaceAll("_"," "),"error");
-   paymentSetup.disabled=false;paymentSetup.textContent="Set up payouts";
+   button.disabled=false;button.textContent=previous;
   }
+ };
+ const onboardingNext=document.getElementById("seller-onboarding-next");
+ if(onboardingNext)onboardingNext.addEventListener("click",async()=>{
+  const action=readiness?.onboarding?.nextAction;
+  if(action==="profile"){UI.route("sellerProfile");return;}
+  if(action==="verification"){UI.route("sellerVerification");return;}
+  if(action==="payments"){await openStripeOnboarding(onboardingNext);return;}
+  if(action==="donors"){UI.route("sellerDonors");return;}
+  if(action==="inventory"){UI.route("listingEditor");return;}
+  UI.route("inventory");
  });
+ const onboardingListing=document.getElementById("seller-onboarding-listing");if(onboardingListing)onboardingListing.addEventListener("click",()=>UI.route("listingEditor"));
+ const onboardingImport=document.getElementById("seller-onboarding-import");
+ if(onboardingImport)onboardingImport.addEventListener("click",async()=>{
+  const url=C.safeHttpUrl(C.config.webBaseUrl.replace(/\/$/,"")+"/dashboard/import");
+  if(!url){UI.toast("Bulk import URL is unavailable.","error");return;}
+  await C.Native.openBrowser(url);
+ });
+ const readinessListing=document.getElementById("seller-readiness-listing");if(readinessListing)readinessListing.addEventListener("click",()=>UI.route("listingEditor"));
+ const paymentSetup=document.getElementById("seller-payment-setup");
+ if(paymentSetup)paymentSetup.addEventListener("click",()=>void openStripeOnboarding(paymentSetup));
  const paymentRefresh=document.getElementById("seller-payment-refresh");
  if(paymentRefresh)paymentRefresh.addEventListener("click",async()=>{
   paymentRefresh.disabled=true;paymentRefresh.textContent="Refreshing…";
