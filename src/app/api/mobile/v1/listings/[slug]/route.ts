@@ -4,6 +4,7 @@ import { getPartCompatibility } from "@/lib/data/compatibility";
 import { isUuid } from "@/lib/identifiers";
 import type { MarketplaceFilters } from "@/lib/types";
 import { mobileJson,mobileOptions } from "@/lib/mobile-api";
+import { mobileThumbnailUrl } from "@/lib/mobile-image";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -31,5 +32,6 @@ export async function GET(request:Request,{params}:{params:Promise<{slug:string}
   getPublicMemberProfileById(result.data.seller.ownerId).catch(()=>null),
   (filters.catalogueVariant&&filters.catalogueYear!==undefined)?getPartCompatibility(result.data.id,filters).catch(()=>null):Promise.resolve(null)
  ]);
- return mobileJson(request,{ok:true,item:result.data,sellerReputation:reputation,compatibility});
+ const item={...result.data,images:result.data.images.map(image=>({...image,thumbnailUrl:mobileThumbnailUrl(request,image.url)}))};
+ return mobileJson(request,{ok:true,item,sellerReputation:reputation,compatibility});
 }
