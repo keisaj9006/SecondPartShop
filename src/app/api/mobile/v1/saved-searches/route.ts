@@ -20,19 +20,29 @@ export async function GET(request:Request){
  const auth=await requireMobileUser(request);
  if(!auth.context)return auth.response;
  const {user,supabase}=auth.context;
+ const url=new URL(request.url);
+ const rawLimit=Number(url.searchParams.get("limit")??20);
+ const rawOffset=Number(url.searchParams.get("offset")??0);
+ const limit=Number.isInteger(rawLimit)?Math.max(1,Math.min(rawLimit,60)):20;
+ const offset=Number.isInteger(rawOffset)?Math.max(0,rawOffset):0;
  const {data,error}=await supabase
   .from("saved_searches")
   .select("id,name,search_params,created_at")
   .eq("profile_id",user.id)
-  .order("created_at",{ascending:false});
+  .order("created_at",{ascending:false})
+  .order("id")
+  .range(offset,offset+limit);
  if(error)return mobileJson(request,{ok:false,error:"saved_searches_unavailable"},503);
+ const raw=data??[];
+ const hasMore=raw.length>limit;
+ const page=raw.slice(0,limit);
 
- return mobileJson(request,{ok:true,items:(data??[]).map(row=>({
+ return mobileJson(request,{ok:true,items:page.map(row=>({
   id:row.id,
   name:row.name,
   params:safeParams(row.search_params)??{},
   createdAt:row.created_at
- }))});
+ })),pagination:{offset,limit,returned:page.length,hasMore}});
 }
 
 export async function POST(request:Request){
