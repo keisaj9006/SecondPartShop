@@ -2,17 +2,12 @@ import { randomUUID } from "node:crypto";
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileSeller } from "@/lib/mobile-api";
 import { mobileThumbnailUrl } from "@/lib/mobile-image";
+import { validateImageUpload } from "@/lib/image-upload";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
 
 export function OPTIONS(request:Request){return mobileOptions(request);}
-
-const allowed=new Map([
- ["image/jpeg","jpg"],
- ["image/png","png"],
- ["image/webp","webp"]
-]);
 
 export async function GET(request:Request,{params}:{params:Promise<{partId:string}>}){
  const {partId}=await params;
@@ -68,9 +63,8 @@ export async function POST(request:Request,{params}:{params:Promise<{partId:stri
  const file=form.get("file");
  if(!(file instanceof File)||file.size<=0)return mobileJson(request,{ok:false,error:"file_required"},400);
 
- const extension=allowed.get(file.type);
- if(!extension)return mobileJson(request,{ok:false,error:"unsupported_file_type"},400);
- if(file.size>5*1024*1024)return mobileJson(request,{ok:false,error:"file_too_large"},413);
+ let validated;
+ try{validated=await validateImageUpload(file);}catch(error){const message=error instanceof Error?error.message:"Invalid image.";return mobileJson(request,{ok:false,error:"invalid_image",message},400);}
 
  const {count,error:countError}=await supabase
   .from("part_images")
@@ -86,12 +80,12 @@ export async function POST(request:Request,{params}:{params:Promise<{partId:stri
   .order("position",{ascending:false})
   .limit(1);
  const position=(last?.[0]?.position??-1)+1;
- const storagePath=`${user.id}/${partId}/${randomUUID()}.${extension}`;
+ const storagePath=`${user.id}/${partId}/${randomUUID()}.${validated.extension}`;
  const bytes=new Uint8Array(await file.arrayBuffer());
 
  const {error:uploadError}=await supabase.storage.from("part-images").upload(storagePath,bytes,{
-  contentType:file.type,
-  cacheControl:"3600",
+  contentType:validated.mimeType,
+  cacheControl:"31536000",
   upsert:false
  });
  if(uploadError)return mobileJson(request,{ok:false,error:"photo_upload_failed"},503);
