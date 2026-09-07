@@ -8,16 +8,26 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic="force-dynamic";
 
-export default async function BulkImportPage(){
+const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
+const pageNumber=(value:string|undefined)=>{const parsed=Number(value);return Number.isInteger(parsed)&&parsed>0?parsed:1;};
+
+export default async function BulkImportPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
+ const params=await searchParams;
+ const page=pageNumber(first(params.page));
+ const pageSize=12;
  const {user}=await requireSeller("/dashboard/import");
  const seller=await getSellerForOwner(user.id);
  if(!seller)return null;
  const supabase=await createSupabaseServerClient();
- const {data:recent}=await supabase.from("seller_inventory_imports")
+ const {data:recentRows}=await supabase.from("seller_inventory_imports")
   .select("id,filename,status,rows_received,rows_created,rows_rejected,created_at")
   .eq("seller_id",seller.id)
   .order("created_at",{ascending:false})
-  .limit(8);
+  .order("id",{ascending:false})
+  .range((page-1)*pageSize,(page-1)*pageSize+pageSize);
+ const rawRecent=recentRows??[];
+ const hasMore=rawRecent.length>pageSize;
+ const recent=rawRecent.slice(0,pageSize);
 
  return <><Header/><main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
   <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm font-black text-[#173c31]"><ArrowLeft size={16}/>Seller Dashboard</Link>
@@ -66,13 +76,14 @@ export default async function BulkImportPage(){
 
   <section className="mt-8 rounded-3xl border border-black/10 bg-white p-5 sm:p-6">
    <h2 className="text-xl font-black">Recent imports</h2>
-   {recent?.length?<div className="mt-4 overflow-hidden rounded-2xl border border-black/10">
+   {recent.length?<div className="mt-4 overflow-hidden rounded-2xl border border-black/10">
     {recent.map(item=><div key={item.id} className="grid gap-2 border-b border-black/8 p-4 last:border-0 sm:grid-cols-[1fr_110px_190px] sm:items-center">
      <div><p className="font-black">{item.filename||"CSV import"}</p><p className="mt-1 text-xs text-[#63706a]">{new Date(item.created_at).toLocaleString("en-GB")}</p></div>
      <span className={"w-fit rounded-full px-2.5 py-1 text-xs font-black capitalize "+(item.status==="completed"?"bg-emerald-50 text-emerald-800":item.status==="partial"?"bg-amber-50 text-amber-900":"bg-red-50 text-red-800")}>{item.status}</span>
      <div className="flex items-center justify-between gap-3"><p className="text-sm"><strong>{item.rows_created}</strong> created · <strong>{item.rows_rejected}</strong> rejected · {item.rows_received} rows</p><div className="flex shrink-0 gap-3"><Link href={"/dashboard/import/"+item.id} className="text-xs font-black underline">Report</Link>{item.rows_created>0&&<Link href={"/dashboard?inventoryStatus=draft&importBatch="+item.id} className="text-xs font-black underline">Drafts</Link>}</div></div>
     </div>)}
-   </div>:<p className="mt-3 text-sm text-[#63706a]">No CSV imports yet.</p>}
+   </div>:<p className="mt-3 text-sm text-[#63706a]">No CSV imports on this page.</p>}
+   {(page>1||hasMore)&&<nav aria-label="Import history pages" className="mt-5 flex items-center justify-center gap-3">{page>1&&<Link href={page===2?"/dashboard/import":"/dashboard/import?page="+(page-1)} className="rounded-full border border-black/15 bg-white px-4 py-2 text-xs font-black">Previous imports</Link>}<span className="text-xs font-bold text-[#63706a]">Import page {page}</span>{hasMore&&<Link href={"/dashboard/import?page="+(page+1)} className="rounded-full bg-[#173c31] px-4 py-2 text-xs font-black text-white">Next imports</Link>}</nav>}
   </section>
  </main></>;
 }
