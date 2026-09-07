@@ -170,6 +170,173 @@ export type Database = {
           },
         ]
       }
+      fitting_requests: {
+        Row: {
+          buyer_id: string
+          buyer_notes: string | null
+          buyer_responded_at: string | null
+          completed_at: string | null
+          created_at: string
+          garage_partner_id: string
+          id: string
+          order_item_id: string | null
+          part_id: string
+          quote_note: string | null
+          quote_pence: number | null
+          quoted_at: string | null
+          status: string
+          updated_at: string
+          vehicle_engine_size: number | null
+          vehicle_fuel: string | null
+          vehicle_registration: string | null
+          vehicle_variant_id: string
+          vehicle_year: number
+        }
+        Insert: {
+          buyer_id: string
+          buyer_notes?: string | null
+          buyer_responded_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          garage_partner_id: string
+          id?: string
+          order_item_id?: string | null
+          part_id: string
+          quote_note?: string | null
+          quote_pence?: number | null
+          quoted_at?: string | null
+          status?: string
+          updated_at?: string
+          vehicle_engine_size?: number | null
+          vehicle_fuel?: string | null
+          vehicle_registration?: string | null
+          vehicle_variant_id: string
+          vehicle_year: number
+        }
+        Update: {
+          buyer_id?: string
+          buyer_notes?: string | null
+          buyer_responded_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          garage_partner_id?: string
+          id?: string
+          order_item_id?: string | null
+          part_id?: string
+          quote_note?: string | null
+          quote_pence?: number | null
+          quoted_at?: string | null
+          status?: string
+          updated_at?: string
+          vehicle_engine_size?: number | null
+          vehicle_fuel?: string | null
+          vehicle_registration?: string | null
+          vehicle_variant_id?: string
+          vehicle_year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fitting_requests_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fitting_requests_garage_partner_id_fkey"
+            columns: ["garage_partner_id"]
+            isOneToOne: false
+            referencedRelation: "garage_partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fitting_requests_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fitting_requests_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fitting_requests_vehicle_variant_id_fkey"
+            columns: ["vehicle_variant_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_catalogue_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      garage_partners: {
+        Row: {
+          business_name: string
+          created_at: string
+          customer_supplied_parts: boolean
+          description: string
+          id: string
+          latitude: number | null
+          location: string
+          longitude: number | null
+          mobile_fitting: boolean
+          owner_id: string
+          postcode: string
+          recycled_parts: boolean
+          slug: string
+          status: string
+          updated_at: string
+          verified_at: string | null
+        }
+        Insert: {
+          business_name: string
+          created_at?: string
+          customer_supplied_parts?: boolean
+          description: string
+          id?: string
+          latitude?: number | null
+          location: string
+          longitude?: number | null
+          mobile_fitting?: boolean
+          owner_id: string
+          postcode: string
+          recycled_parts?: boolean
+          slug: string
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Update: {
+          business_name?: string
+          created_at?: string
+          customer_supplied_parts?: boolean
+          description?: string
+          id?: string
+          latitude?: number | null
+          location?: string
+          longitude?: number | null
+          mobile_fitting?: boolean
+          owner_id?: string
+          postcode?: string
+          recycled_parts?: boolean
+          slug?: string
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "garage_partners_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       garage_vehicles: {
         Row: {
           catalogue_variant_id: string
@@ -2334,6 +2501,10 @@ export type Database = {
           verified_seller_count: number
         }[]
       }
+      buyer_respond_fitting_quote: {
+        Args: { p_action: string; p_request_id: string }
+        Returns: boolean
+      }
       cancel_checkout_order: {
         Args: { p_event_id?: string; p_event_type?: string; p_order_id: string }
         Returns: boolean
@@ -2403,6 +2574,15 @@ export type Database = {
           p_refund_id: string
           p_refund_pence: number
           p_transfer_reversal_id?: string
+        }
+        Returns: boolean
+      }
+      garage_respond_fitting_request: {
+        Args: {
+          p_action: string
+          p_note?: string
+          p_quote_pence?: number
+          p_request_id: string
         }
         Returns: boolean
       }
@@ -2821,6 +3001,19 @@ export type Database = {
       replace_part_catalogue_fitments: {
         Args: { p_fitments: Json; p_part_id: string }
         Returns: undefined
+      }
+      request_part_fitting_quote: {
+        Args: {
+          p_garage_partner_id: string
+          p_notes?: string
+          p_part_id: string
+          p_vehicle_engine?: number
+          p_vehicle_fuel?: string
+          p_vehicle_registration?: string
+          p_vehicle_variant_id: string
+          p_vehicle_year: number
+        }
+        Returns: string
       }
       reset_order_item_payout_release_claim: {
         Args: { p_order_item_id: string }
