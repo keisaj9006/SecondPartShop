@@ -111,6 +111,28 @@ STRIPE_CONNECT_API_VERSION=2026-08-26.preview
 
 Never commit `.env.local`, service-role keys or provider credentials.
 
+## AI Listing assistant
+
+Seller listing forms include an optional AI draft assistant. It is deliberately evidence-first:
+
+- seller authentication and an existing seller profile are required
+- the first selected photo plus entered listing fields may be sent only when the seller presses **Generate AI draft**
+- AI can suggest title and description copy
+- text or identifier candidates read from a photo remain unverified until the seller checks the actual part, label, packaging or supplier record
+- AI never publishes a listing and does not create confirmed fitments
+- listing publication remains protected by the normal application and database readiness rules
+- usage is rate-limited per seller in PostgreSQL
+
+Configure server-only credentials:
+
+```bash
+OPENAI_API_KEY=
+# Optional; defaults to the cost-sensitive vision-capable model pinned in code.
+OPENAI_LISTING_MODEL=gpt-5.6-luna
+```
+
+If the API key is not configured, the route returns a controlled unavailable state and manual listing creation continues to work normally.
+
 ## Product images
 
 Seller listings support:
