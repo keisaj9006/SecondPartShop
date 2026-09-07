@@ -23,6 +23,9 @@ export async function updateSaleFulfilment(_previous:ActionState,formData:FormDa
   const lower=error.message.toLowerCase();
   if(lower.includes("tracking"))return {status:"error",message:"Add a tracking or shipment reference."};
   if(lower.includes("not been paid"))return {status:"error",message:"This order is not ready for fulfilment."};
+  if(lower.includes("moved back to preparing"))return {status:"error",message:"This sale has already moved beyond preparation and cannot be moved backwards."};
+  if(lower.includes("not ready to be dispatched"))return {status:"error",message:"This sale cannot be dispatched from its current status."};
+  if(lower.includes("not ready for collection handoff"))return {status:"error",message:"This collection order cannot be moved backwards from its current status."};
   return {status:"error",message:"We could not update this sale right now."};
  }
  revalidatePath("/dashboard/orders");
