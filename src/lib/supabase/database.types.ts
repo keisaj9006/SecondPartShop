@@ -2326,7 +2326,12 @@ export type Database = {
         Returns: boolean
       }
       close_provider_payment_dispute: {
-        Args: { p_dispute_id: string; p_event_id: string; p_status: string }
+        Args: {
+          p_dispute_id: string
+          p_event_id: string
+          p_status: string
+          p_transfer_reversal_id?: string
+        }
         Returns: boolean
       }
       confirm_checkout_paid: {

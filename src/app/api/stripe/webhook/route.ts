@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getPaymentIntent,verifyStripeWebhookSignature } from "@/lib/stripe-payments";
+import { closeProviderPaymentDispute } from "@/lib/commerce-provider-disputes";
 import { isUuid } from "@/lib/identifiers";
 
 export const dynamic="force-dynamic";
@@ -146,12 +147,11 @@ export async function POST(request:Request){
    const disputeId=typeof object.id==="string"?object.id:"";
    const status=typeof object.status==="string"?object.status:"unknown";
    if(disputeId){
-    const {error}=await admin.rpc("close_provider_payment_dispute",{
-     p_event_id:event.id,
-     p_dispute_id:disputeId,
-     p_status:status
+    await closeProviderPaymentDispute({
+     eventId:event.id,
+     disputeId,
+     status
     });
-    if(error)throw error;
    }
   }
 
