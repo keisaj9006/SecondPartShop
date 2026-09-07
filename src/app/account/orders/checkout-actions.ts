@@ -25,6 +25,7 @@ export async function resumeCheckout(formData:FormData){
  if(order.payment_status==="paid"||order.payment_status==="partially_refunded"||order.payment_status==="refunded"){
   redirect("/account/orders/"+orderId);
  }
+ if(order.payment_status==="processing")redirect("/account/orders/"+orderId+"?checkout=pending");
 
  const sessionId=order.provider_checkout_session_id;
  if(!sessionId)redirect("/account/orders/"+orderId+"?checkout=unavailable");

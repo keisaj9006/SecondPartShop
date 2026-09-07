@@ -80,7 +80,7 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
  const currentHref=context.toString()?`/parts/${slug}?${context.toString()}`:`/parts/${slug}`;
  const reportHref=`/report?part=${encodeURIComponent(item.id)}&returnTo=${encodeURIComponent(currentHref)}`;
 
- return <><Header/>{user&&<RecentlyViewedTracker partId={item.id}/>}<main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">{first(rawSearch.reported)==="1"&&<div className="mb-5 rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-900">Thanks. Your report was submitted for review.</div>}
+ return <><Header/>{user&&<RecentlyViewedTracker partId={item.id}/>}<main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">{first(rawSearch.reported)==="1"&&<div className="mb-5 rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-900">Thanks. Your report was submitted for review.</div>}{first(rawSearch.checkout)==="cancelled"&&<div className="mb-5 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-900">Checkout cancelled. The temporary stock reservation was released unless Stripe had already started processing the payment.</div>}
   <Link href={backHref} className="mb-6 inline-flex items-center gap-2 text-sm font-bold"><ArrowLeft size={16}/>Back to results</Link>
   <div className="grid gap-8 lg:grid-cols-[1.05fr_.95fr]">
    <ProductGallery images={item.images} alt={item.title}/>

@@ -45,7 +45,7 @@ export async function GET(request:Request){
   .maybeSingle();
  const slug=listingSlug(item?.parts);
 
- if(["unpaid","requires_action","processing"].includes(order.payment_status)){
+ if(["unpaid","requires_action"].includes(order.payment_status)){
   const admin=createSupabaseAdminClient();
   await admin.rpc("cancel_checkout_order",{
    p_order_id:orderId,

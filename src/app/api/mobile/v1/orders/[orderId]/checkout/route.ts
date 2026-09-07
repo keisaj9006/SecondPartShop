@@ -23,7 +23,7 @@ export async function DELETE(request:Request,{params}:{params:Promise<{orderId:s
   .maybeSingle();
  if(error)return mobileJson(request,{ok:false,error:"order_unavailable"},503);
  if(!order)return mobileJson(request,{ok:false,error:"not_found"},404);
- if(!["unpaid","requires_action","processing"].includes(order.payment_status)){
+ if(!["unpaid","requires_action"].includes(order.payment_status)){
   return mobileJson(request,{ok:false,error:"checkout_not_cancellable"},409);
  }
 
