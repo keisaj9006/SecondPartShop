@@ -6,13 +6,14 @@ export type PartTestingStatus="tested_working"|"removed_from_running_vehicle"|"v
 export type CompatibilityLevel="confirmed"|"buyer_verified"|"family_match"|"unverified";
 export type MarketplaceSort="best"|"price_asc"|"price_desc"|"distance"|"delivery"|"warranty";
 export type SellerType="business"|"private";
+export type SellerBusinessKind="breaker"|"garage"|"atf"|"parts_business"|"other";
 export type ReviewDirection="buyer_to_seller"|"seller_to_buyer";
 export type FitFeedbackResult="exact_fit"|"fit_with_modification"|"did_not_fit"|"not_installed";
 
 export type VerifiedFitSummary={exactFitCount:number;modifiedFitCount:number;didNotFitCount:number};
 export type CompatibilityInfo={level:CompatibilityLevel;label:string;detail:string;verifiedFit?:VerifiedFitSummary};
 export type Profile={id:string;role:UserRole;displayName:string;handle:string;bio:string|null;phone:string|null};
-export type Seller={id:string;ownerId:string|null;businessName:string;slug:string;location:string;postcode:string|null;description:string;verified:boolean;sellerType:SellerType};
+export type Seller={id:string;ownerId:string|null;businessName:string;slug:string;location:string;postcode:string|null;description:string;verified:boolean;sellerType:SellerType;businessKind:SellerBusinessKind|null};
 export type Category={id:string;parentId:string|null;name:string;slug:string;isTransmissionRelated:boolean;isSelectable:boolean;sortOrder:number;searchTerms:string[]};
 export type Vehicle={id:string;make:string;model:string;generation:string;year:number;engine:string;engineCode:string|null;fuelType:string|null;gearboxFamily:string|null;gearboxCode:string|null;dataStatus:VehicleDataStatus;sourceReference:string|null};
 export type VehicleCatalogueSelection={variantId:string;make:string;modelFamily:string;variant:string;year:number;fuelType:string|null;engineSizeSimple:number|null};

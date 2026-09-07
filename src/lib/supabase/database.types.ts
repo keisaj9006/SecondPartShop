@@ -1508,6 +1508,7 @@ export type Database = {
       }
       sellers: {
         Row: {
+          business_kind: string | null
           business_name: string
           created_at: string
           description: string
@@ -1525,6 +1526,7 @@ export type Database = {
           verified_at: string | null
         }
         Insert: {
+          business_kind?: string | null
           business_name: string
           created_at?: string
           description?: string
@@ -1542,6 +1544,7 @@ export type Database = {
           verified_at?: string | null
         }
         Update: {
+          business_kind?: string | null
           business_name?: string
           created_at?: string
           description?: string
