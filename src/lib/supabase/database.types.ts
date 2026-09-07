@@ -2029,6 +2029,54 @@ export type Database = {
           },
         ]
       }
+      vehicle_lookup_cache: {
+        Row: {
+          expires_at: string
+          fetched_at: string
+          lookup_hash: string
+          provider: string
+          result_status: string
+          vehicle: Json | null
+        }
+        Insert: {
+          expires_at: string
+          fetched_at?: string
+          lookup_hash: string
+          provider: string
+          result_status: string
+          vehicle?: Json | null
+        }
+        Update: {
+          expires_at?: string
+          fetched_at?: string
+          lookup_hash?: string
+          provider?: string
+          result_status?: string
+          vehicle?: Json | null
+        }
+        Relationships: []
+      }
+      vehicle_lookup_rate_limits: {
+        Row: {
+          key_hash: string
+          request_count: number
+          updated_at: string
+          window_started_at: string
+        }
+        Insert: {
+          key_hash: string
+          request_count?: number
+          updated_at?: string
+          window_started_at?: string
+        }
+        Update: {
+          key_hash?: string
+          request_count?: number
+          updated_at?: string
+          window_started_at?: string
+        }
+        Relationships: []
+      }
       vehicle_transmissions: {
         Row: {
           code: string
@@ -2271,6 +2319,18 @@ export type Database = {
           p_shipping_name?: string
         }
         Returns: boolean
+      }
+      consume_vehicle_lookup_rate_limit: {
+        Args: {
+          p_key_hash: string
+          p_limit?: number
+          p_window_seconds?: number
+        }
+        Returns: {
+          allowed: boolean
+          remaining: number
+          retry_after_seconds: number
+        }[]
       }
       dismiss_seller_part_request_match: {
         Args: { p_request_id: string }
