@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getListings } from "@/lib/data/marketplace";
+import { getListingCardsByIds } from "@/lib/data/marketplace";
 import type { Listing,SavedSearch } from "@/lib/types";
 
 const safeParams=(value:unknown):Record<string,string>=>{
@@ -47,8 +47,8 @@ export async function getRecentlyViewedListings(profileId:string,limit=12):Promi
  if(error)throw error;
  const ids=(data??[]).map(row=>row.part_id);
  if(!ids.length)return [];
- const listings=await getListings({ids});
- const byId=new Map(listings.data.map(item=>[item.id,item]));
+ const listings=await getListingCardsByIds(ids);
+ const byId=new Map(listings.map(item=>[item.id,item]));
  return ids.map(id=>byId.get(id)).filter((item):item is Listing=>Boolean(item));
 }
 
