@@ -9,6 +9,7 @@ import { isUuid } from "@/lib/identifiers";
 import type { ActionState,MarketplaceFilters } from "@/lib/types";
 import { getPartCompatibility } from "@/lib/data/compatibility";
 import { syncSellerPaymentAccount } from "@/lib/seller-payment-sync";
+import { getAppUrl } from "@/lib/stripe-connect";
 
 const knownMessage=(message:string)=>{
  const lower=message.toLowerCase();
@@ -25,6 +26,7 @@ const knownMessage=(message:string)=>{
 
 export async function startCheckout(_previous:ActionState,formData:FormData):Promise<ActionState>{
  const partId=String(formData.get("partId")??"");
+ const requestedReturnTo=String(formData.get("returnTo")??"").trim().slice(0,2000);
  const quantity=Math.floor(Number(formData.get("quantity")??1));
  const deliveryMethod=String(formData.get("deliveryMethod")??"shipping");
  const vehicleVariantId=String(formData.get("vehicleVariantId")??"").trim();
@@ -47,6 +49,8 @@ export async function startCheckout(_previous:ActionState,formData:FormData):Pro
 
  const {data:part}=await supabase.from("parts").select("slug,seller_id").eq("id",partId).maybeSingle();
  if(!part)return {status:"error",message:"This listing is no longer available."};
+ const fallbackReturnTo="/parts/"+encodeURIComponent(part.slug);
+ const returnTo=(()=>{try{const app=new URL(getAppUrl());const target=new URL(requestedReturnTo||fallbackReturnTo,app);return target.origin===app.origin&&target.pathname===fallbackReturnTo?target.pathname+target.search:fallbackReturnTo;}catch{return fallbackReturnTo;}})();
 
  try{
   const paymentStatus=await syncSellerPaymentAccount(part.seller_id);
@@ -92,7 +96,8 @@ export async function startCheckout(_previous:ActionState,formData:FormData):Pro
    shippingPence:reservation.shipping_pence,
    deliveryMethod:deliveryMethod as "shipping"|"collection",
    customerEmail:user.email,
-   expiresAt:reservation.checkout_expires_at
+   expiresAt:reservation.checkout_expires_at,
+   cancelUrl:getAppUrl()+"/checkout/cancel?order="+encodeURIComponent(reservation.order_id)+"&returnTo="+encodeURIComponent(returnTo)
   });
 
   const admin=createSupabaseAdminClient();

@@ -43,6 +43,7 @@ export function BuyNowForm({
 
  return <form action={action} className="mt-5 rounded-2xl border border-black/10 bg-white p-4">
   <input type="hidden" name="partId" value={partId}/>
+  <input type="hidden" name="returnTo" value={returnTo}/>
   {vehicleContext&&<><input type="hidden" name="vehicleVariantId" value={vehicleContext.variantId}/><input type="hidden" name="vehicleYear" value={vehicleContext.year}/>{vehicleContext.fuel&&<input type="hidden" name="vehicleFuel" value={vehicleContext.fuel}/>} {vehicleContext.engine!==undefined&&<input type="hidden" name="vehicleEngine" value={vehicleContext.engine}/>} {vehicleContext.registration&&<input type="hidden" name="vehicleRegistration" value={vehicleContext.registration}/>}</>}
   <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
    <label className="text-sm font-bold">Quantity

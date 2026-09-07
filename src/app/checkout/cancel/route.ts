@@ -19,6 +19,7 @@ export async function GET(request:Request){
  const url=new URL(request.url);
  const orderId=url.searchParams.get("order")??"";
  const appUrl=getAppUrl();
+ const requestedReturnTo=url.searchParams.get("returnTo")??"";
  if(!isUuid(orderId))return NextResponse.redirect(new URL("/account/orders?checkout=invalid",appUrl));
 
  const user=await getCurrentUser();
@@ -52,6 +53,19 @@ export async function GET(request:Request){
   });
  }
 
- const target=slug?"/parts/"+encodeURIComponent(slug)+"?checkout=cancelled":"/account/orders?checkout=cancelled";
- return NextResponse.redirect(new URL(target,appUrl));
+ let targetUrl:URL;
+ if(slug){
+  const fallback="/parts/"+encodeURIComponent(slug);
+  try{
+   const app=new URL(appUrl);
+   const requested=new URL(requestedReturnTo||fallback,app);
+   targetUrl=requested.origin===app.origin&&requested.pathname===fallback?requested:new URL(fallback,app);
+  }catch{
+   targetUrl=new URL(fallback,appUrl);
+  }
+  targetUrl.searchParams.set("checkout","cancelled");
+ }else{
+  targetUrl=new URL("/account/orders?checkout=cancelled",appUrl);
+ }
+ return NextResponse.redirect(targetUrl);
 }
