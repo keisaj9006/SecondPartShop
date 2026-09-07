@@ -73,3 +73,59 @@ export async function getInventoryImportReadiness(batchId:string):Promise<Invent
   needsStock:needsStock??0
  };
 }
+
+
+export type InventoryImportNeed="all"|"ready"|"photos"|"compatibility"|"technical"|"stock";
+export type InventoryImportWorkItem={
+ partId:string;
+ title:string;
+ sellerReference:string|null;
+ categoryName:string;
+ hasStock:boolean;
+ hasPhoto:boolean;
+ hasCompatibility:boolean;
+ hasTechnical:boolean;
+};
+export type InventoryImportWorkQueue={
+ items:InventoryImportWorkItem[];
+ total:number;
+ offset:number;
+ limit:number;
+ hasMore:boolean;
+};
+
+export async function getInventoryImportWorkQueue(
+ batchId:string,
+ need:InventoryImportNeed,
+ offset=0,
+ limit=25
+):Promise<InventoryImportWorkQueue>{
+ const safeOffset=Math.max(0,Math.floor(offset));
+ const safeLimit=Math.max(1,Math.min(Math.floor(limit),100));
+ const supabase=await createSupabaseServerClient();
+ const {data,error}=await supabase.rpc("seller_import_batch_work_queue",{
+  p_batch_id:batchId,
+  p_need:need,
+  p_limit:safeLimit,
+  p_offset:safeOffset
+ });
+ if(error)throw new Error("Import work queue is temporarily unavailable.");
+ const rows=data??[];
+ const total=Number(rows[0]?.total_count??0);
+ return {
+  items:rows.map(row=>({
+   partId:row.part_id,
+   title:row.title,
+   sellerReference:row.source_external_id,
+   categoryName:row.category_name,
+   hasStock:Boolean(row.has_stock),
+   hasPhoto:Boolean(row.has_photo),
+   hasCompatibility:Boolean(row.has_compatibility),
+   hasTechnical:Boolean(row.has_technical)
+  })),
+  total,
+  offset:safeOffset,
+  limit:safeLimit,
+  hasMore:safeOffset+rows.length<total
+ };
+}

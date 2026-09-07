@@ -3073,6 +3073,25 @@ export type Database = {
           total_drafts: number
         }[]
       }
+      seller_import_batch_work_queue: {
+        Args: {
+          p_batch_id: string
+          p_limit?: number
+          p_need?: string
+          p_offset?: number
+        }
+        Returns: {
+          category_name: string
+          has_compatibility: boolean
+          has_photo: boolean
+          has_stock: boolean
+          has_technical: boolean
+          part_id: string
+          source_external_id: string
+          title: string
+          total_count: number
+        }[]
+      }
       seller_part_request_lead: {
         Args: { p_request_id: string }
         Returns: {
