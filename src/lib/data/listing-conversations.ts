@@ -58,6 +58,15 @@ export async function getListingConversations():Promise<ListingConversationSumma
  return (await getListingConversationsPage({limit:60})).items;
 }
 
+export async function getListingConversationCount():Promise<number>{
+ const supabase=await createSupabaseServerClient();
+ const {count,error}=await supabase
+  .from("listing_conversations")
+  .select("id",{count:"exact",head:true});
+ if(error)throw new Error("Conversation count is temporarily unavailable.");
+ return count??0;
+}
+
 export async function getListingConversation(conversationId:string,options:{offset?:number;limit?:number}={}):Promise<ListingConversationThread|null>{
  const supabase=await createSupabaseServerClient();
  const {data,error}=await supabase

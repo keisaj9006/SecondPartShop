@@ -8,7 +8,7 @@ import { getCurrentProfile,getCurrentUser } from "@/lib/auth";
 import { getBuyerAccountCounts,getRecentlyViewedListings } from "@/lib/data/buyer-account";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { getPublicMemberProfileById } from "@/lib/data/reputation";
-import { getListingConversations } from "@/lib/data/listing-conversations";
+import { getListingConversationCount } from "@/lib/data/listing-conversations";
 import { getSellerForOwner } from "@/lib/data/marketplace";
 
 export const dynamic="force-dynamic";
@@ -24,17 +24,17 @@ export default async function AccountPage({searchParams}:{searchParams:Promise<R
  const sellingEnabled=(["seller","admin"] as string[]).includes(profile.role);
  const requestedView=first(params.view)==="selling"?"selling":"buying";
  const view=sellingEnabled?requestedView:"buying";
- const [counts,recent,trust,conversations,seller]=await Promise.all([
+ const [counts,recent,trust,conversationCount,seller]=await Promise.all([
   getBuyerAccountCounts(user.id),
   getRecentlyViewedListings(user.id,3),
   getPublicMemberProfileById(user.id).catch(()=>null),
-  getListingConversations().catch(()=>[]),
+  getListingConversationCount().catch(()=>0),
   getSellerForOwner(user.id).catch(()=>null)
  ]);
  const buyingItems=[
   card("/account/profile","Profile & username",0,"Edit your public name, username, bio and private phone number.",<UserRound size={22}/>),
   card("/account/orders","Purchases",counts.orders,"Payment, delivery and buyer-protection status for your orders.",<PackageCheck size={22}/>),
-  card("/inbox","Part questions",conversations.length,"Private pre-purchase questions with buyers and sellers.",<MessageSquareText size={22}/>),
+  card("/inbox","Part questions",conversationCount,"Private pre-purchase questions with buyers and sellers.",<MessageSquareText size={22}/>),
   card("/account/cases","Returns & cases",0,"Return requests, transaction problems and case resolutions.",<RotateCcw size={22}/>),
   card("/account/reviews","Reviews",(trust?.sellerReviewCount??0)+(trust?.buyerReviewCount??0),"Verified transaction reviews and reviews waiting for you.",<Star size={22}/>),
   card("/garage","SecondPart Garage",counts.garage,"Saved vehicles and one-click compatibility searches.",<CarFront size={22}/>),
@@ -49,7 +49,7 @@ export default async function AccountPage({searchParams}:{searchParams:Promise<R
   card("/dashboard","Seller dashboard",0,"Overview of your inventory, sales and seller activity.",<Wrench size={22}/>),
   card("/dashboard/listings/new","Create listing",0,"Add a part, donor vehicle, fitment evidence and real photos.",<PackageCheck size={22}/>),
   card("/dashboard/orders","Sales & payouts",0,"Fulfilment, buyer receipt and payout status.",<PackageCheck size={22}/>),
-  card("/inbox","Buyer questions",conversations.length,"Pre-purchase conversations about your listings.",<MessageSquareText size={22}/>),
+  card("/inbox","Buyer questions",conversationCount,"Pre-purchase conversations about your listings.",<MessageSquareText size={22}/>),
   card("/dashboard/cases","Seller cases",0,"Returns, cancellations, disputes and private evidence.",<RotateCcw size={22}/>),
   card("/dashboard/donors","Donor vehicles",0,"Reuse source-vehicle details across many listings.",<CarFront size={22}/>),
   card("/dashboard/verification","Seller verification",0,"Business verification and marketplace trust status.",<ShieldCheck size={22}/>)
