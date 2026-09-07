@@ -2373,6 +2373,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      consume_ai_listing_quota: {
+        Args: never
+        Returns: {
+          allowed: boolean
+          remaining: number
+          reset_at: string
+        }[]
+      }
       consume_vehicle_lookup_rate_limit: {
         Args: {
           p_key_hash: string
