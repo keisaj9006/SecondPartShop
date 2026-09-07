@@ -476,5 +476,48 @@ export async function getSellerListingsPage(sellerId:string,options:{includeInac
   limit
  };
 }
+export type PublicSellerInventorySummary={
+ activeCount:number;
+ testedCount:number;
+ collectionCount:number;
+ warrantyCount:number;
+ categoryNames:string[];
+};
+
+export async function getPublicSellerInventorySummary(sellerId:string):Promise<PublicSellerInventorySummary>{
+ if(!isSupabaseConfigured())return {activeCount:0,testedCount:0,collectionCount:0,warrantyCount:0,categoryNames:[]};
+ const supabase=createSupabasePublicServerClient();
+ const {data,error}=await supabase.rpc("get_public_seller_inventory_summary",{p_seller_id:sellerId});
+ if(error)throw new Error("Seller inventory summary is temporarily unavailable.");
+ const row=data?.[0];
+ return {
+  activeCount:Number(row?.active_count??0),
+  testedCount:Number(row?.tested_count??0),
+  collectionCount:Number(row?.collection_count??0),
+  warrantyCount:Number(row?.warranty_count??0),
+  categoryNames:row?.category_names??[]
+ };
+}
+
+export async function getPublicSellerListingsPage(sellerId:string,options:{offset?:number;limit?:number}={}){
+ const limit=Math.max(1,Math.min(Math.floor(options.limit??24),60));
+ const offset=Math.max(0,Math.floor(options.offset??0));
+ if(!isSupabaseConfigured())return {data:[] as Listing[],hasMore:false,offset,limit};
+ const supabase=await createSupabaseServerClient();
+ const {data,error}=await supabase
+  .from("parts")
+  .select(selectListingCard())
+  .eq("seller_id",sellerId)
+  .eq("status","active")
+  .order("created_at",{ascending:false})
+  .order("id")
+  .range(offset,offset+limit);
+ if(error)throw new Error("Seller inventory is temporarily unavailable.");
+ const raw=data??[];
+ const hasMore=raw.length>limit;
+ const listings=await cardListingsFromRows(supabase,raw.slice(0,limit));
+ return {data:listings,hasMore,offset,limit};
+}
+
 export async function getSellerForOwner(ownerId:string):Promise<Seller|null>{if(!isSupabaseConfigured())return null;const supabase=await createSupabaseServerClient();const {data}=await supabase.from("sellers").select("id,owner_id,business_name,slug,location,postcode,description,verified_at,seller_type").eq("owner_id",ownerId).maybeSingle();return data?sellerFrom(data as RawSeller):null;}
 export async function getSellerListingById(id:string,sellerId:string):Promise<Listing|null>{if(!isSupabaseConfigured())return null;const supabase=await createSupabaseServerClient();const {data}=await supabase.from("parts").select(selectListing()).eq("id",id).eq("seller_id",sellerId).maybeSingle();return data?listingFrom(data as unknown as RawListing):null;}
