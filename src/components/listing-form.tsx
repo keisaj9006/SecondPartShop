@@ -4,6 +4,7 @@ import { useActionState,useMemo,useState } from "react";
 import { createListing,updateListing } from "@/app/dashboard/actions";
 import { buildCategoryTree,getCategoryAncestors,type CategoryNode } from "@/lib/category-tree";
 import { SellerCompatibilityEditor } from "@/components/seller-compatibility-editor";
+import { OptimizedImageInput } from "@/components/optimized-image-input";
 import type { ActionState,CatalogueFitmentSelection,Category,DonorVehicle,Listing } from "@/lib/types";
 
 const initial:ActionState={status:"idle"};
@@ -18,6 +19,7 @@ const selectableDescendants=(node:CategoryNode|null)=>{
 export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defaultCategoryId,defaultRequestId,initialCatalogueFitments=[],listing}:{categories:Category[];donors:DonorVehicle[];defaultDonorId?:string;defaultTitle?:string;defaultCategoryId?:string;defaultRequestId?:string;initialCatalogueFitments?:CatalogueFitmentSelection[];listing?:Listing}){
  const handler=listing?updateListing:createListing;
  const [state,action,pending]=useActionState(handler,initial);
+ const [optimizingImages,setOptimizingImages]=useState(false);
  const tree=useMemo(()=>buildCategoryTree(categories),[categories]);
  const initialCategoryId=listing?.categoryId??defaultCategoryId??"";
  const initialPath=useMemo(()=>initialCategoryId?getCategoryAncestors(categories,initialCategoryId):[],[categories,initialCategoryId]);
@@ -96,11 +98,11 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
    <label className="text-sm font-bold">Delivery max days<input type="number" min="0" max="30" name="deliveryDaysMax" defaultValue={listing?.deliveryDaysMax??""} className={input} placeholder="3"/></label>
   </fieldset>
   <label className="text-sm font-bold">Listing status<select name="status" defaultValue={listing?.status==="active"?"active":"draft"} className={input}><option value="draft">Draft</option><option value="active">Active</option></select></label>
-  <label className="text-sm font-bold lg:col-span-2">Real product photos<input name="images" multiple type="file" accept="image/jpeg,image/png,image/webp" className={`${input} file:mr-3 file:rounded-lg file:border-0 file:bg-[#eef1eb] file:px-3 file:py-2 file:font-bold`}/><small className="mt-2 block font-normal leading-5 text-[#63706a]">Real photos of the actual part only. Up to 6 JPG, PNG or WebP files, maximum 5 MB each. At least one photo is required to publish an active listing; we recommend a whole-part photo, the label/OE number and connectors or any visible damage. Existing images remain when editing.</small></label>
+  <label className="text-sm font-bold lg:col-span-2">Real product photos<OptimizedImageInput name="images" existingCount={listing?.images.length??0} onProcessingChange={setOptimizingImages} className={`${input} file:mr-3 file:rounded-lg file:border-0 file:bg-[#eef1eb] file:px-3 file:py-2 file:font-bold`}/><small className="mt-2 block font-normal leading-5 text-[#63706a]">Real photos of the actual part only. Up to 6 JPG, PNG or WebP files. SecondPart optimizes new photos on this device before upload (max edge about 1800 px, WebP where smaller). At least one photo is required to publish an active listing; we recommend a whole-part photo, the label/OE number and connectors or any visible damage. Existing images remain when editing.</small></label>
 
   <SellerCompatibilityEditor initialFitments={initialCatalogueFitments}/>
 
   {state.message&&<p role="status" className={`rounded-xl p-3 text-sm lg:col-span-2 ${state.status==="error"?"bg-red-50 text-red-800":"bg-emerald-50 text-emerald-800"}`}>{state.message}</p>}
-  <button disabled={pending||!categoryId} className="rounded-xl bg-[#173c31] px-5 py-3.5 font-black text-white disabled:cursor-not-allowed disabled:opacity-50 lg:col-span-2">{pending?"Saving…":listing?"Save listing":"Create listing"}</button>
+  <button disabled={pending||optimizingImages||!categoryId} className="rounded-xl bg-[#173c31] px-5 py-3.5 font-black text-white disabled:cursor-not-allowed disabled:opacity-50 lg:col-span-2">{optimizingImages?"Optimizing photos…":pending?"Saving…":listing?"Save listing":"Create listing"}</button>
  </form>;
 }
