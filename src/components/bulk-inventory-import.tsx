@@ -14,13 +14,13 @@ export function BulkInventoryImport(){
   <form action={action} className="rounded-3xl border border-black/10 bg-white p-5 sm:p-6">
    <div className="flex items-start gap-3">
     <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#173c31] text-[#d4f44d]"><Upload size={20}/></span>
-    <div><h2 className="text-xl font-black">Upload inventory CSV</h2><p className="mt-1 text-sm leading-6 text-[#63706a]">Up to 500 rows. Every imported part is created as a draft — CSV can never publish directly to the marketplace.</p></div>
+    <div><h2 className="text-xl font-black">Upload inventory CSV</h2><p className="mt-1 text-sm leading-6 text-[#63706a]">Up to 2,000 rows per file. Every imported part is created as a draft — CSV can never publish directly to the marketplace.</p></div>
    </div>
 
    <label className="mt-5 block text-sm font-black">CSV file
     <input required type="file" name="file" accept=".csv,text/csv" className="mt-2 block w-full rounded-xl border border-black/15 bg-[#f8f7f2] p-3 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[#173c31] file:px-4 file:py-2 file:font-black file:text-white"/>
    </label>
-   <p className="mt-2 text-xs leading-5 text-[#63706a]">Maximum 2 MB. Preview is recommended before importing. If the browser clears the selected file after preview, choose the same file again before importing.</p>
+   <p className="mt-2 text-xs leading-5 text-[#63706a]">Maximum 8 MB. Preview is recommended before importing. If the browser clears the selected file after preview, choose the same file again before importing.</p>
 
    <div className="mt-5 grid gap-2 sm:grid-cols-2">
     <button name="mode" value="preview" disabled={pending} className="min-h-12 rounded-xl border border-[#173c31] bg-white px-5 py-3 text-sm font-black text-[#173c31] disabled:opacity-50">{pending?"Checking…":"Preview CSV"}</button>

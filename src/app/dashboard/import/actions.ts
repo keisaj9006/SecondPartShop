@@ -29,8 +29,10 @@ export type BulkImportState={
  batchId?:string;
 };
 
-const MAX_FILE_BYTES=2*1024*1024;
-const MAX_ROWS=500;
+const MAX_FILE_BYTES=8*1024*1024;
+const MAX_ROWS=2000;
+const LOOKUP_CHUNK_SIZE=250;
+const INSERT_CHUNK_SIZE=100;
 const REQUIRED_HEADERS=["title","description","category","price_gbp"] as const;
 const CONDITIONS=new Set(["used","new","reconditioned"]);
 const TESTING=new Set(["tested_working","removed_from_running_vehicle","visually_inspected","untested","not_specified"]);
@@ -40,6 +42,7 @@ const nullable=(value:string|undefined,max=500)=>{const result=text(value,max);r
 const moneyPence=(value:string|undefined)=>{if(value===undefined||value.trim()==="")return null;const parsed=Number(value);return Number.isFinite(parsed)&&parsed>=0?Math.round(parsed*100):null;};
 const integer=(value:string|undefined,defaultValue:number)=>{if(value===undefined||value.trim()==="")return defaultValue;const parsed=Number(value);return Number.isInteger(parsed)?parsed:null;};
 const slugify=(value:string)=>value.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,80);
+const chunks=<T,>(items:T[],size:number)=>{const result:T[][]=[];for(let start=0;start<items.length;start+=size)result.push(items.slice(start,start+size));return result;};
 
 type ValidatedRow={
  row:number;
@@ -69,7 +72,7 @@ type ValidatedRow={
 
 async function validateCsv(file:File,sellerId:string){
  if(!file.size)return {fatal:"Choose a CSV file.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:0};
- if(file.size>MAX_FILE_BYTES)return {fatal:"CSV files can be up to 2 MB in this first bulk-import version.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:0};
+ if(file.size>MAX_FILE_BYTES)return {fatal:"CSV files can be up to 8 MB.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:0};
  if(!file.name.toLowerCase().endsWith(".csv"))return {fatal:"Choose a .csv file.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:0};
 
  const parsed=parseCsv(await file.text());
@@ -94,18 +97,18 @@ async function validateCsv(file:File,sellerId:string){
  }
 
  const donorRegs=[...new Set(parsed.rows.map(row=>text(row.donor_registration,16)).filter(Boolean).map(normalizeRegistration))];
- let donors:Array<{id:string;registration:string|null}>=[];
- if(donorRegs.length){
-  const {data,error}=await supabase.from("donor_vehicles").select("id,registration").eq("seller_id",sellerId).in("registration",donorRegs);
+ const donors:Array<{id:string;registration:string|null}>=[];
+ for(const donorChunk of chunks(donorRegs,LOOKUP_CHUNK_SIZE)){
+  const {data,error}=await supabase.from("donor_vehicles").select("id,registration").eq("seller_id",sellerId).in("registration",donorChunk);
   if(error)return {fatal:"Donor vehicles could not be checked.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:parsed.rows.length};
-  donors=data??[];
+  donors.push(...(data??[]));
  }
  const donorByReg=new Map(donors.filter(d=>d.registration).map(d=>[normalizeRegistration(d.registration!),d.id] as const));
 
  const references=[...new Set(parsed.rows.map(row=>text(row.seller_reference,120)).filter(Boolean))];
  const existingReferences=new Set<string>();
- if(references.length){
-  const {data,error}=await supabase.rpc("get_existing_csv_inventory_references",{p_references:references});
+ for(const referenceChunk of chunks(references,LOOKUP_CHUNK_SIZE)){
+  const {data,error}=await supabase.rpc("get_existing_csv_inventory_references",{p_references:referenceChunk});
   if(error)return {fatal:"Existing seller references could not be checked.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:parsed.rows.length};
   for(const item of data??[])if(item.source_external_id)existingReferences.add(item.source_external_id.toLowerCase());
  }
@@ -283,18 +286,22 @@ export async function bulkImportCsv(_previous:BulkImportState,formData:FormData)
   import_batch_id:batch.id
  }));
 
- for(let start=0;start<payload.length;start+=50){
-  const chunk=payload.slice(start,start+50);
-  const {error}=await supabase.from("parts").insert(chunk);
-  if(!error){created+=chunk.length;continue;}
-  for(let index=0;index<chunk.length;index+=1){
-   const item=chunk[index];
-   const {error:itemError}=await supabase.from("parts").insert(item);
-   if(itemError){
-    const sourceRow=validation.rows[start+index]?.row??0;
-    runtimeIssues.push({row:sourceRow,message:itemError.code==="23505"?"Duplicate seller_reference was rejected.":"Database rejected this row during import."});
-   }else created+=1;
+ const insertRows=async(items:typeof payload,startIndex:number):Promise<void>=>{
+  if(!items.length)return;
+  const {error}=await supabase.from("parts").insert(items);
+  if(!error){created+=items.length;return;}
+  if(items.length===1){
+   const sourceRow=validation.rows[startIndex]?.row??0;
+   runtimeIssues.push({row:sourceRow,message:error.code==="23505"?"Duplicate seller_reference was rejected.":"Database rejected this row during import."});
+   return;
   }
+  const middle=Math.floor(items.length/2);
+  await insertRows(items.slice(0,middle),startIndex);
+  await insertRows(items.slice(middle),startIndex+middle);
+ };
+
+ for(let start=0;start<payload.length;start+=INSERT_CHUNK_SIZE){
+  await insertRows(payload.slice(start,start+INSERT_CHUNK_SIZE),start);
  }
 
  const finalRejected=validation.received-created;
