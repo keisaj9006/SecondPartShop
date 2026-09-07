@@ -1,5 +1,8 @@
 import { getListingBySlug } from "@/lib/data/marketplace";
 import { getPublicMemberProfileById } from "@/lib/data/reputation";
+import { getPartCompatibility } from "@/lib/data/compatibility";
+import { isUuid } from "@/lib/identifiers";
+import type { MarketplaceFilters } from "@/lib/types";
 import { mobileJson,mobileOptions } from "@/lib/mobile-api";
 
 export const dynamic="force-dynamic";
@@ -12,9 +15,20 @@ export async function GET(request:Request,{params}:{params:Promise<{slug:string}
  const safeSlug=slug.trim().slice(0,180);
  if(!safeSlug)return mobileJson(request,{ok:false,error:"invalid_listing"},400);
 
+ const url=new URL(request.url);
+ const yearRaw=Number(url.searchParams.get("cy"));
+ const filters:MarketplaceFilters={
+  catalogueVariant:isUuid(url.searchParams.get("cv"))?url.searchParams.get("cv")??undefined:undefined,
+  catalogueYear:Number.isInteger(yearRaw)?yearRaw:undefined,
+  catalogueFuel:url.searchParams.get("cf")?.trim()||undefined,
+  catalogueEngineSize:Number.isInteger(Number(url.searchParams.get("ce")))?Number(url.searchParams.get("ce")):undefined
+ };
  const result=await getListingBySlug(safeSlug);
  if(result.error)return mobileJson(request,{ok:false,error:"listing_unavailable"},503);
  if(!result.data)return mobileJson(request,{ok:false,error:"not_found"},404);
- const reputation=await getPublicMemberProfileById(result.data.seller.ownerId).catch(()=>null);
- return mobileJson(request,{ok:true,item:result.data,sellerReputation:reputation});
+ const [reputation,compatibility]=await Promise.all([
+  getPublicMemberProfileById(result.data.seller.ownerId).catch(()=>null),
+  (filters.catalogueVariant&&filters.catalogueYear!==undefined)?getPartCompatibility(result.data.id,filters).catch(()=>null):Promise.resolve(null)
+ ]);
+ return mobileJson(request,{ok:true,item:result.data,sellerReputation:reputation,compatibility});
 }
