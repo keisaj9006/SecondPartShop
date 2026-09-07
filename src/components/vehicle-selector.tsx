@@ -89,8 +89,8 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
 
  const [makes,setMakes]=useState<string[]>(activeCatalogue?.make?[activeCatalogue.make]:[]);
  const [models,setModels]=useState<string[]>(activeCatalogue?.modelFamily?[activeCatalogue.modelFamily]:[]);
- const [loadingMakes,setLoadingMakes]=useState(false);
- const [loadingModels,setLoadingModels]=useState(false);
+ const [loadingMakes,setLoadingMakes]=useState(Boolean(activeCatalogue||selectedLegacy));
+ const [loadingModels,setLoadingModels]=useState(Boolean(activeCatalogue?.make));
  const [make,setMake]=useState(activeCatalogue?.make??"");
  const [model,setModel]=useState(activeCatalogue?.modelFamily??"");
  const [year,setYear]=useState(activeCatalogue?String(activeCatalogue.year):"");
@@ -108,7 +108,6 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
  useEffect(()=>{
   if(!manualOpen)return;
   const controller=new AbortController();
-  setLoadingMakes(true);
   void getItems<string>("/api/vehicle-catalogue?level=makes",controller.signal)
    .then(items=>{setMakes(items);setLoadingMakes(false);})
    .catch(error=>{if(error instanceof Error&&error.name!=="AbortError"){setCatalogueError(error.message);setLoadingMakes(false);}});
@@ -118,7 +117,6 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
  useEffect(()=>{
   if(!manualOpen||!make)return;
   const controller=new AbortController();
-  setLoadingModels(true);
   void getItems<string>(`/api/vehicle-catalogue?level=models&make=${encodeURIComponent(make)}`,controller.signal)
    .then(items=>{setModels(items);setLoadingModels(false);})
    .catch(error=>{if(error instanceof Error&&error.name!=="AbortError"){setCatalogueError(error.message);setLoadingModels(false);}});
@@ -265,7 +263,7 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
    {registrationVehicle&&variantId&&year&&<div className="mt-3 rounded-2xl border border-[#173c31]/15 bg-white p-4"><button type="button" disabled={!canApply} onClick={applyCatalogue} className="w-full rounded-xl bg-[#d4f44d] px-5 py-3 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50">{isApplying?"Applying vehicle…":"Use this vehicle"}</button></div>}
   </div>
 
-  <button type="button" onClick={()=>setManualOpen(value=>!value)} className="mt-4 inline-flex items-center gap-2 text-sm font-black underline">{manualOpen?"Hide manual selection":"I don't know my registration / Select vehicle manually"}<ChevronDown size={15} className={manualOpen?"rotate-180 transition":"transition"}/></button>
+  <button type="button" onClick={()=>{const next=!manualOpen;if(next){setLoadingMakes(true);if(make)setLoadingModels(true);}setManualOpen(next);}} className="mt-4 inline-flex items-center gap-2 text-sm font-black underline">{manualOpen?"Hide manual selection":"I don't know my registration / Select vehicle manually"}<ChevronDown size={15} className={manualOpen?"rotate-180 transition":"transition"}/></button>
 
   {manualOpen&&<div className="mt-4 rounded-2xl border border-black/10 bg-white/60 p-4">
    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
