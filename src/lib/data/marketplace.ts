@@ -78,7 +78,7 @@ export async function getListings(filters:MarketplaceFilters={}):Promise<DataRes
   if(!rankedIds.length){
    const {data:synonym}=await supabase.from("marketplace_search_synonyms").select("canonical_query").eq("alias",searchText.toLowerCase()).maybeSingle();
    if(synonym?.canonical_query){
-    const {data:fallback,error:fallbackError}=await supabase.rpc("marketplace_search_part_ids",{p_query:synonym.canonical_query});
+    const {data:fallback,error:fallbackError}=await supabase.rpc("marketplace_search_part_ids_limited",{p_query:synonym.canonical_query,p_limit:8});
     if(fallbackError)return failure([],"Marketplace search is temporarily unavailable.");
     rankedIds=(fallback??[]).map(row=>row.part_id);
    }
@@ -411,7 +411,7 @@ export async function getSearchSuggestions(queryText:string):Promise<SearchSugge
   const be=b.name.toLowerCase()===lower?0:b.name.toLowerCase().startsWith(lower)?1:2;
   return ae-be||a.sortOrder-b.sortOrder||a.name.localeCompare(b.name);
  }).slice(0,5).map(category=>({kind:"category" as const,label:category.name,query:category.name,categoryId:category.id,meta:getCategoryPath(categories,category.id)}));
- const {data:ranked,error:rankedError}=await supabase.rpc("marketplace_search_part_ids",{p_query:q});
+ const {data:ranked,error:rankedError}=await supabase.rpc("marketplace_search_part_ids_limited",{p_query:q,p_limit:8});
  if(rankedError)throw rankedError;
  let ids=(ranked??[]).slice(0,8).map(row=>row.part_id);
  if(!ids.length&&synonym?.canonical_query){
