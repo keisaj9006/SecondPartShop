@@ -83,8 +83,8 @@ export function OptimizedImageInput({name,existingCount=0,className,onProcessing
    const saving=Math.max(0,originalBytes-optimizedBytes);
    setMessage(
     saving>0
-     ?\`\${optimized.length} photo\${optimized.length===1?"":"s"} optimized: \${formatBytes(originalBytes)} → \${formatBytes(optimizedBytes)} (\${formatBytes(saving)} saved before upload).\`
-     :\`\${optimized.length} photo\${optimized.length===1?"":"s"} ready to upload.\`
+     ?optimized.length+" photo"+(optimized.length===1?"":"s")+" optimized: "+formatBytes(originalBytes)+" → "+formatBytes(optimizedBytes)+" ("+formatBytes(saving)+" saved before upload)."
+     :optimized.length+" photo"+(optimized.length===1?"":"s")+" ready to upload."
    );
   }catch(caught){
    input.value="";
