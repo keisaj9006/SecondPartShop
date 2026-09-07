@@ -232,7 +232,7 @@ export async function getMarketplacePage(
 
  // Catalogue compatibility is ranked and paged inside PostgreSQL. Only the IDs for
  // this page are hydrated with card images/details.
- if(filters.catalogueVariant&&filters.catalogueYear!==undefined&&sort==="best"){
+ if(filters.catalogueVariant&&filters.catalogueYear!==undefined&&sort!=="distance"){
   let rankedIds:string[]|undefined;
   if(filters.query?.trim()){
    const searchText=filters.query.trim();
@@ -250,7 +250,7 @@ export async function getMarketplacePage(
    if(!rankedIds.length)return {data:[],error:null,configured:true,pagination:emptyPagination};
   }
 
-  const {data:pageRows,error:pageError}=await supabase.rpc("marketplace_catalogue_page",{
+  const {data:pageRows,error:pageError}=await supabase.rpc("marketplace_catalogue_sorted_page",{
    p_variant_id:filters.catalogueVariant,
    p_year:filters.catalogueYear,
    p_fuel:filters.catalogueFuel,
@@ -262,6 +262,7 @@ export async function getMarketplacePage(
    p_max_price_pence:Number.isFinite(filters.maxPrice)?Math.round((filters.maxPrice??0)*100):undefined,
    p_collection_only:Boolean(filters.collectionOnly),
    p_compatible_only:filters.compatibleOnly!==false,
+   p_sort:sort,
    p_limit:limit,
    p_offset:offset
   });
@@ -293,9 +294,9 @@ export async function getMarketplacePage(
   };
  }
 
- // Legacy vehicle IDs and alternative vehicle sorts keep the existing path until
- // their dedicated SQL ordering is introduced.
- if(filters.vehicle||filters.catalogueVariant){
+ // Legacy QA vehicle IDs keep the older compatibility path. Catalogue vehicles,
+ // including alternative sorts, are fully paged in PostgreSQL above.
+ if(filters.vehicle){
   const result=await getListings(filters);
   const page=result.data.slice(offset,offset+limit);
   return {
