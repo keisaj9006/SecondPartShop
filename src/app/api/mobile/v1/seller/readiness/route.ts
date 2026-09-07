@@ -17,7 +17,7 @@ export async function GET(request:Request){
   {count:activeListings,error:listingError},
   {data:verification,error:verificationError}
  ]=await Promise.all([
-  supabase.from("sellers").select("id,business_name,seller_type,verified_at").eq("id",seller.id).maybeSingle(),
+  supabase.from("sellers").select("id,business_name,seller_type,business_kind,verified_at").eq("id",seller.id).maybeSingle(),
   supabase.from("seller_payment_accounts").select("onboarding_status,transfers_enabled,payouts_enabled,details_submitted").eq("seller_id",seller.id).maybeSingle(),
   supabase.from("parts").select("id",{count:"exact",head:true}).eq("seller_id",seller.id).eq("status","active"),
   supabase.from("seller_verification_requests").select("status,requested_at,reviewed_at").eq("seller_id",seller.id).order("requested_at",{ascending:false}).limit(1).maybeSingle()
@@ -33,8 +33,9 @@ export async function GET(request:Request){
   payment?.transfers_enabled
  );
  const activeCount=activeListings??0;
- const marketReady=checkoutReady&&activeCount>0;
  const businessSeller=fullSeller.seller_type==="business";
+ const profileReady=!businessSeller||Boolean(fullSeller.business_kind);
+ const marketReady=profileReady&&checkoutReady&&activeCount>0;
  const verificationDone=Boolean(fullSeller.verified_at);
 
  return mobileJson(request,{
@@ -44,13 +45,14 @@ export async function GET(request:Request){
    checkoutReady,
    activeListingCount:activeCount,
    sellerType:fullSeller.seller_type,
+   businessKind:fullSeller.business_kind,
    required:[
     {
      id:"seller_profile",
      label:"Seller profile",
-     detail:"Your public seller identity is set up.",
-     done:true,
-     action:null
+     detail:profileReady?"Your public seller identity is set up.":"Choose what type of automotive business you operate.",
+     done:profileReady,
+     action:profileReady?null:"profile"
     },
     {
      id:"payout_account",

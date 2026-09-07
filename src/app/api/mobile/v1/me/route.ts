@@ -12,7 +12,7 @@ export async function GET(request:Request){
 
  const [{data:profile,error:profileError},{data:seller,error:sellerError}]=await Promise.all([
   supabase.from("profiles").select("id,role,display_name,handle,bio,phone,created_at").eq("id",user.id).maybeSingle(),
-  supabase.from("sellers").select("id,business_name,slug,location,postcode,description,verified_at,seller_type").eq("owner_id",user.id).maybeSingle()
+  supabase.from("sellers").select("id,business_name,slug,location,postcode,description,verified_at,seller_type,business_kind").eq("owner_id",user.id).maybeSingle()
  ]);
 
  if(profileError)return mobileJson(request,{ok:false,error:"profile_unavailable"},503);
@@ -41,7 +41,8 @@ export async function GET(request:Request){
    postcode:seller.postcode,
    description:seller.description,
    verified:Boolean(seller.verified_at),
-   sellerType:seller.seller_type
+   sellerType:seller.seller_type,
+   businessKind:seller.business_kind
   }
  });
 }

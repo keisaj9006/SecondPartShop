@@ -13,7 +13,7 @@ export async function GET(request:Request){
 
  const [{data:fullSeller,error:sellerError},{data:verification,error:verificationError}]=await Promise.all([
   supabase.from("sellers")
-   .select("seller_type,verified_at")
+   .select("seller_type,business_kind,verified_at")
    .eq("id",seller.id)
    .maybeSingle(),
   supabase.from("seller_verification_requests")
@@ -30,6 +30,7 @@ export async function GET(request:Request){
  return mobileJson(request,{
   ok:true,
   sellerType:fullSeller.seller_type,
+  businessKind:fullSeller.business_kind,
   verified:Boolean(fullSeller.verified_at),
   request:verification?{
    id:verification.id,
@@ -55,7 +56,7 @@ export async function POST(request:Request){
 
  const {data:fullSeller,error:sellerError}=await supabase
   .from("sellers")
-  .select("seller_type,verified_at")
+  .select("seller_type,business_kind,verified_at")
   .eq("id",seller.id)
   .maybeSingle();
 

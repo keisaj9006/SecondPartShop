@@ -1,4 +1,5 @@
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
+import { isSellerBusinessKind } from "@/lib/seller-business";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -19,7 +20,7 @@ export async function GET(request:Request){
  const {user,supabase}=auth.context;
  const {data,error}=await supabase
   .from("sellers")
-  .select("id,business_name,slug,location,postcode,description,verified_at,seller_type")
+  .select("id,business_name,slug,location,postcode,description,verified_at,seller_type,business_kind")
   .eq("owner_id",user.id)
   .maybeSingle();
  if(error)return mobileJson(request,{ok:false,error:"seller_profile_unavailable"},503);
@@ -31,7 +32,8 @@ export async function GET(request:Request){
   postcode:data.postcode,
   description:data.description,
   verified:Boolean(data.verified_at),
-  sellerType:data.seller_type
+  sellerType:data.seller_type,
+  businessKind:data.business_kind
  }:null});
 }
 
@@ -44,12 +46,15 @@ export async function POST(request:Request){
  try{body=await request.json();}catch{return mobileJson(request,{ok:false,error:"invalid_json"},400);}
  const input=body&&typeof body==="object"?body as Record<string,unknown>:{};
  const sellerType=String(input.sellerType??"private");
+ const businessKindRaw=String(input.businessKind??"").trim();
  const businessName=String(input.businessName??"").trim().slice(0,140);
  const location=String(input.location??"").trim().slice(0,140);
  const postcode=String(input.postcode??"").trim().slice(0,20)||null;
  const description=String(input.description??"").trim().slice(0,2000);
 
  if(!["private","business"].includes(sellerType))return mobileJson(request,{ok:false,error:"invalid_seller_type"},400);
+ const businessKind=sellerType==="business"&&isSellerBusinessKind(businessKindRaw)?businessKindRaw:null;
+ if(sellerType==="business"&&!businessKind)return mobileJson(request,{ok:false,error:"invalid_business_kind"},400);
  if(businessName.length<2)return mobileJson(request,{ok:false,error:"seller_name_required"},400);
  if(!location)return mobileJson(request,{ok:false,error:"seller_location_required"},400);
  if(description.length<20)return mobileJson(request,{ok:false,error:"seller_description_too_short"},400);
@@ -84,7 +89,8 @@ export async function POST(request:Request){
    location,
    postcode,
    description,
-   seller_type:sellerType
+   seller_type:sellerType,
+   business_kind:businessKind
   })
   .select("id")
   .single();
@@ -103,12 +109,15 @@ export async function PATCH(request:Request){
  try{body=await request.json();}catch{return mobileJson(request,{ok:false,error:"invalid_json"},400);}
  const input=body&&typeof body==="object"?body as Record<string,unknown>:{};
  const sellerType=String(input.sellerType??"private");
+ const businessKindRaw=String(input.businessKind??"").trim();
  const businessName=String(input.businessName??"").trim().slice(0,140);
  const location=String(input.location??"").trim().slice(0,140);
  const postcode=String(input.postcode??"").trim().slice(0,20)||null;
  const description=String(input.description??"").trim().slice(0,2000);
 
  if(!["private","business"].includes(sellerType))return mobileJson(request,{ok:false,error:"invalid_seller_type"},400);
+ const businessKind=sellerType==="business"&&isSellerBusinessKind(businessKindRaw)?businessKindRaw:null;
+ if(sellerType==="business"&&!businessKind)return mobileJson(request,{ok:false,error:"invalid_business_kind"},400);
  if(businessName.length<2)return mobileJson(request,{ok:false,error:"seller_name_required"},400);
  if(!location)return mobileJson(request,{ok:false,error:"seller_location_required"},400);
  if(description.length<20)return mobileJson(request,{ok:false,error:"seller_description_too_short"},400);
@@ -129,11 +138,12 @@ export async function PATCH(request:Request){
    location,
    postcode,
    description,
-   seller_type:sellerType
+   seller_type:sellerType,
+   business_kind:businessKind
   })
   .eq("id",existing.id)
   .eq("owner_id",user.id)
-  .select("id,verified_at,seller_type,business_name,location,postcode,description")
+  .select("id,verified_at,seller_type,business_kind,business_name,location,postcode,description")
   .single();
 
  if(error||!updated)return mobileJson(request,{ok:false,error:"seller_profile_update_failed"},503);
@@ -143,6 +153,7 @@ export async function PATCH(request:Request){
    id:updated.id,
    verified:Boolean(updated.verified_at),
    sellerType:updated.seller_type,
+   businessKind:updated.business_kind,
    businessName:updated.business_name,
    location:updated.location,
    postcode:updated.postcode,
