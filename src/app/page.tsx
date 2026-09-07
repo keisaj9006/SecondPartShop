@@ -1,6 +1,6 @@
 import { Header } from "@/components/header";
 import { MarketplaceHome } from "@/components/marketplace-home";
-import { getCategories,getMarketplacePage,getSavedPartIds,getVehicles } from "@/lib/data/marketplace";
+import { getCategories,getMarketplacePage,getSavedPartIdsForParts,getVehicles } from "@/lib/data/marketplace";
 import { getGarageVehicles } from "@/lib/data/garage";
 import { getRecentlyViewedListings } from "@/lib/data/buyer-account";
 import { getCatalogueModelMap,getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
@@ -55,13 +55,14 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   catalogueEngineSize:selectedCatalogue?.engineSizeSimple??undefined,
   compatibleOnly:Boolean(selectedCatalogue||isUuid(first(params.vehicle)))&&first(params.fit)!=="0"
  };
- const [result,vehicles,savedIds,catalogueModels,garageVehicles,recentlyViewed]=await Promise.all([
+ const [result,vehicles,catalogueModels,garageVehicles,recentlyViewed]=await Promise.all([
   getMarketplacePage(filters,{offset:(requestedPage-1)*pageSize,limit:pageSize}),
   legacyVehicleId?getVehicles():Promise.resolve([]),
-  user?getSavedPartIds(user.id):Promise.resolve([]),
   getCatalogueModelMap().catch(()=>[]),
   user?getGarageVehicles(user.id):Promise.resolve([]),
   user?getRecentlyViewedListings(user.id,3):Promise.resolve([])
  ]);
+ const visiblePartIds=[...result.data.map(item=>item.id),...recentlyViewed.map(item=>item.id)];
+ const savedIds=user?await getSavedPartIdsForParts(user.id,visiblePartIds):[];
  return <><Header/><MarketplaceHome freshVehicleSelection={addVehicleMode} listings={result.data} categories={categories} vehicles={vehicles} catalogueModels={catalogueModels} garageVehicles={garageVehicles} recentlyViewed={recentlyViewed} signedIn={Boolean(user)} filters={filters} selectedCatalogue={selectedCatalogue} savedIds={savedIds} error={result.error} configured={result.configured} pagination={result.pagination} currentPage={requestedPage}/></>;
 }
