@@ -1,6 +1,7 @@
 import { matchRegistrationToCatalogue } from "@/lib/data/vehicle-catalogue";
 import { mobileJson,mobileOptions } from "@/lib/mobile-api";
 import { isPlausibleUkRegistration,lookupVehicleByRegistration,normalizeRegistration } from "@/lib/vehicle-registration";
+import { consumeVehicleLookupRateLimit } from "@/lib/vehicle-lookup-operational";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -18,6 +19,11 @@ export async function POST(request:Request){
  );
  if(!isPlausibleUkRegistration(registration)){
   return mobileJson(request,{ok:false,error:"invalid_registration"},400);
+ }
+
+ const rate=await consumeVehicleLookupRateLimit(request);
+ if(!rate.allowed){
+  return mobileJson(request,{ok:false,error:"rate_limited",retryAfterSeconds:Math.max(1,rate.retryAfterSeconds)},429);
  }
 
  try{
