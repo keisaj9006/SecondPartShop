@@ -2608,6 +2608,29 @@ export type Database = {
           total_count: number
         }[]
       }
+      marketplace_catalogue_sorted_page: {
+        Args: {
+          p_category_ids?: string[]
+          p_collection_only?: boolean
+          p_compatible_only?: boolean
+          p_condition?: string
+          p_engine?: number
+          p_fuel?: string
+          p_limit?: number
+          p_max_price_pence?: number
+          p_min_price_pence?: number
+          p_offset?: number
+          p_part_ids?: string[]
+          p_sort?: string
+          p_variant_id: string
+          p_year: number
+        }
+        Returns: {
+          confidence: string
+          part_id: string
+          total_count: number
+        }[]
+      }
       marketplace_distance_page: {
         Args: {
           p_buyer_lat: number
