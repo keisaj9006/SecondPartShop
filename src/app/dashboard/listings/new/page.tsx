@@ -17,7 +17,7 @@ export default async function NewListingPage({searchParams}:{searchParams:Promis
  if(!seller)redirect("/dashboard");
  const requestedDonor=first(params.donor);
  const requestedRequest=first(params.request);
- const [categories,donorPage,requestedLead]=await Promise.all([getCategories(),getDonorVehiclesPage(seller.id,{limit:50}),requestedRequest&&isUuid(requestedRequest)?getSellerPartRequestLead(requestedRequest).catch(()=>null):Promise.resolve(null)]);
+ const [categories,donorPage,requestedLead]=await Promise.all([getCategories(),getDonorVehiclesPage(seller.id,{limit:20}),requestedRequest&&isUuid(requestedRequest)?getSellerPartRequestLead(requestedRequest).catch(()=>null):Promise.resolve(null)]);
  let donors=donorPage.items;
  if(requestedDonor&&isUuid(requestedDonor)&&!donors.some(donor=>donor.id===requestedDonor)){
   const selected=await getDonorVehicle(requestedDonor,seller.id).catch(()=>null);

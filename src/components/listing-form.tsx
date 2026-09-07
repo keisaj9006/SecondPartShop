@@ -20,6 +20,12 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
  const handler=listing?updateListing:createListing;
  const [state,action,pending]=useActionState(handler,initial);
  const [optimizingImages,setOptimizingImages]=useState(false);
+ const initialDonorId=listing?.donorVehicleId??defaultDonorId??"";
+ const [donorId,setDonorId]=useState(initialDonorId);
+ const [donorOptions,setDonorOptions]=useState(donors);
+ const [donorSearch,setDonorSearch]=useState("");
+ const [donorLoading,setDonorLoading]=useState(false);
+ const [donorError,setDonorError]=useState("");
  const tree=useMemo(()=>buildCategoryTree(categories),[categories]);
  const initialCategoryId=listing?.categoryId??defaultCategoryId??"";
  const initialPath=useMemo(()=>initialCategoryId?getCategoryAncestors(categories,initialCategoryId):[],[categories,initialCategoryId]);
@@ -42,8 +48,31 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
   setCategoryId(options.length===1&&options[0].id===value?value:"");
  };
 
+ const searchDonors=async()=>{
+  const query=donorSearch.trim();
+  if(query.length<2){
+   setDonorOptions(donors);
+   setDonorError(query?"Enter at least 2 characters to search donor vehicles.":"");
+   return;
+  }
+  setDonorLoading(true);
+  setDonorError("");
+  try{
+   const response=await fetch("/api/seller/donors?q="+encodeURIComponent(query)+"&limit=30",{cache:"no-store"});
+   const payload=await response.json() as {items?:DonorVehicle[];message?:string};
+   if(!response.ok)throw new Error(payload.message??"Donor vehicles are temporarily unavailable.");
+   const selected=donors.find(donor=>donor.id===donorId);
+   const next=payload.items??[];
+   setDonorOptions(selected&&!next.some(donor=>donor.id===selected.id)?[selected,...next]:next);
+  }catch(error){
+   setDonorError(error instanceof Error?error.message:"Donor vehicles are temporarily unavailable.");
+  }finally{
+   setDonorLoading(false);
+  }
+ };
+
  return <form action={action} className="mt-8 grid gap-5 rounded-3xl border border-black/10 bg-white p-5 sm:p-7 lg:grid-cols-2">
-  {listing&&<input type="hidden" name="partId" value={listing.id}/>} {!listing&&defaultRequestId&&<input type="hidden" name="sourceRequestId" value={defaultRequestId}/>} 
+  {listing&&<input type="hidden" name="partId" value={listing.id}/>} {!listing&&defaultRequestId&&<input type="hidden" name="sourceRequestId" value={defaultRequestId}/>}
   <input type="hidden" name="categoryId" value={categoryId}/>
 
   <label className="text-sm font-bold lg:col-span-2">Listing title<input required minLength={5} name="title" defaultValue={listing?.title??defaultTitle} className={input} placeholder="e.g. Golf Mk7 LED headlight"/></label>
@@ -51,8 +80,13 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
   <fieldset className="rounded-2xl border border-[#173c31]/15 bg-[#f4f7f2] p-4 lg:col-span-2">
    <legend className="px-1 text-sm font-black">1. Which vehicle did this part come from?</legend>
    <p className="mt-1 text-sm leading-6 text-[#63706a]">This is the easiest way to give buyers a useful compatibility signal. A donor vehicle creates a conservative <strong>vehicle-family match</strong>; it never becomes a guaranteed exact fit automatically.</p>
-   <label className="mt-3 block text-sm font-bold">Donor vehicle<select name="donorVehicleId" defaultValue={listing?.donorVehicleId??defaultDonorId??""} className={input}><option value="">No donor / new stock / unknown</option>{donors.map(donor=><option key={donor.id} value={donor.id}>{donor.registration?donor.registration+" · ":""}{donor.make} {donor.model} · {donor.year}{donor.engineSizeSimple?" · "+donor.engineSizeSimple+"cc":""}{donor.fuelType?" · "+donor.fuelType:""}</option>)}</select></label>
-   <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#63706a]"><span>Use one donor across many listings.</span><a href="/dashboard/donors" className="font-black text-[#173c31] underline">{donors.length?"Manage donor vehicles":"+ Add donor vehicle"}</a></div>
+   <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+    <label className="text-sm font-bold">Search donor vehicles<input value={donorSearch} onChange={event=>setDonorSearch(event.target.value)} onKeyDown={event=>{if(event.key==="Enter"){event.preventDefault();void searchDonors();}}} className={input} placeholder="Registration, make, model or version"/></label>
+    <button type="button" onClick={()=>void searchDonors()} disabled={donorLoading} className="min-h-12 rounded-xl border border-[#173c31]/20 bg-white px-4 py-3 text-sm font-black disabled:opacity-50">{donorLoading?"Searching…":donorSearch.trim()?"Search donors":"Show recent"}</button>
+   </div>
+   {donorError&&<p role="status" className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-800">{donorError}</p>}
+   <label className="mt-3 block text-sm font-bold">Donor vehicle<select name="donorVehicleId" value={donorId} onChange={event=>setDonorId(event.target.value)} className={input}><option value="">No donor / new stock / unknown</option>{donorOptions.map(donor=><option key={donor.id} value={donor.id}>{donor.registration?donor.registration+" · ":""}{donor.make} {donor.model} · {donor.year}{donor.engineSizeSimple?" · "+donor.engineSizeSimple+"cc":""}{donor.fuelType?" · "+donor.fuelType:""}</option>)}</select></label>
+   <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#63706a]"><span>{donorSearch.trim()?"Search results shown above.":"Showing your most recent donor vehicles."} Use one donor across many listings.</span><a href="/dashboard/donors" className="font-black text-[#173c31] underline">{donors.length?"Manage donor vehicles":"+ Add donor vehicle"}</a></div>
   </fieldset>
 
   <fieldset className="rounded-2xl border border-black/10 bg-[#f8f7f2] p-4 lg:col-span-2">

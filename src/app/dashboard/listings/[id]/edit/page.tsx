@@ -16,7 +16,7 @@ export default async function EditListingPage({params}:{params:Promise<{id:strin
  const {user}=await requireSeller("/dashboard/listings/"+id+"/edit");
  const seller=await getSellerForOwner(user.id);
  if(!seller)redirect("/dashboard");
- const [listing,categories,donorPage,catalogueFitments]=await Promise.all([getSellerListingById(id,seller.id),getCategories(),getDonorVehiclesPage(seller.id,{limit:50}),getCatalogueFitmentsForPart(id)]);
+ const [listing,categories,donorPage,catalogueFitments]=await Promise.all([getSellerListingById(id,seller.id),getCategories(),getDonorVehiclesPage(seller.id,{limit:20}),getCatalogueFitmentsForPart(id)]);
  if(!listing)notFound();
  let donors=donorPage.items;
  if(listing.donorVehicleId&&!donors.some(donor=>donor.id===listing.donorVehicleId)){
