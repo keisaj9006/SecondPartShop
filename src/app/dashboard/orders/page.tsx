@@ -4,17 +4,23 @@ import { Header } from "@/components/header";
 import { SellerFulfilmentControls } from "@/components/seller-fulfilment-controls";
 import { requireSeller } from "@/lib/auth";
 import { getSellerForOwner } from "@/lib/data/marketplace";
-import { getSellerSales } from "@/lib/data/orders";
+import { getSellerSalesPage } from "@/lib/data/orders";
 
 export const dynamic="force-dynamic";
 
 const label=(value:string)=>value.replaceAll("_"," ").replace(/\\b\\w/g,letter=>letter.toUpperCase());
 const money=(pence:number)=>new Intl.NumberFormat("en-GB",{style:"currency",currency:"GBP"}).format(pence/100);
 
-export default async function SellerOrdersPage(){
- const {user}=await requireSeller("/dashboard/orders");
+const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
+const pageNumber=(value:string|undefined)=>{const parsed=Number(value);return Number.isInteger(parsed)&&parsed>0?parsed:1;};
+
+export default async function SellerOrdersPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
+ const [{user},params]=await Promise.all([requireSeller("/dashboard/orders"),searchParams]);
+ const page=pageNumber(first(params.page));
+ const pageSize=30;
  const seller=await getSellerForOwner(user.id);
- const sales=seller?await getSellerSales(seller.id).catch(()=>[]):[];
+ const result=seller?await getSellerSalesPage(seller.id,{offset:(page-1)*pageSize,limit:pageSize}).catch(()=>({items:[],hasMore:false,offset:(page-1)*pageSize,limit:pageSize})):{items:[],hasMore:false,offset:0,limit:pageSize};
+ const sales=result.items;
 
  return <><Header/><main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
   <p className="text-xs font-black uppercase tracking-[.2em] text-[#287154]">Seller dashboard</p>
@@ -30,5 +36,6 @@ export default async function SellerOrdersPage(){
     <span className={`w-fit rounded-full px-3 py-1 text-xs font-black ${sale.payoutStatus==="released"?"bg-emerald-50 text-emerald-800":"bg-amber-50 text-amber-900"}`}>{label(sale.payoutStatus)}</span>
    </div>)}
   </div>:<div className="mt-8 rounded-3xl border border-dashed border-black/20 bg-white px-6 py-16 text-center"><PackageCheck className="mx-auto text-[#63706a]"/><h2 className="mt-4 text-xl font-black">No sales yet</h2><p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#63706a]">Paid orders will appear here once checkout is connected.</p><Link href="/dashboard/listings/new" className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#173c31] px-5 py-3 text-sm font-black text-white"><Banknote size={16}/>Create a listing</Link></div>}
+ {(page>1||result.hasMore)&&<nav aria-label="Sales pages" className="mt-8 flex items-center justify-center gap-3">{page>1&&<Link href={page===2?"/dashboard/orders":"/dashboard/orders?page="+(page-1)} className="rounded-full border border-black/15 bg-white px-5 py-3 text-sm font-black">Previous</Link>}<span className="text-sm font-bold text-[#63706a]">Page {page}</span>{result.hasMore&&<Link href={"/dashboard/orders?page="+(page+1)} className="rounded-full bg-[#173c31] px-5 py-3 text-sm font-black text-white">Next</Link>}</nav>}
  </main></>;
 }

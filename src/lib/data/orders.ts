@@ -64,15 +64,21 @@ const shippingAddress=(value:unknown)=>{
 };
 
 
-export async function getBuyerOrders(profileId:string):Promise<BuyerOrder[]>{
+export async function getBuyerOrdersPage(profileId:string,options:{offset?:number;limit?:number}={}):Promise<{items:BuyerOrder[];hasMore:boolean;offset:number;limit:number}>{
+ const offset=Math.max(0,Math.floor(options.offset??0));
+ const limit=Math.max(1,Math.min(Math.floor(options.limit??20),60));
  const supabase=await createSupabaseServerClient();
  const {data,error}=await supabase
   .from("orders")
   .select("id,status,payment_status,total_pence,currency,created_at,order_items(id,quantity,unit_price_pence,shipping_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,buyer_received_at,release_eligible_at,funds_released_at,parts(title,slug),sellers(business_name,slug))")
   .eq("buyer_id",profileId)
-  .order("created_at",{ascending:false});
+  .order("created_at",{ascending:false})
+  .order("id",{ascending:false})
+  .range(offset,offset+limit);
  if(error)throw new Error("Purchases are temporarily unavailable.");
- return (data??[]).map(row=>{
+ const rawRows=data??[];
+ const hasMore=rawRows.length>limit;
+ const items=rawRows.slice(0,limit).map(row=>{
   const raw=row as unknown as BuyerOrderRow;
   return {
    id:raw.id,
@@ -106,17 +112,27 @@ export async function getBuyerOrders(profileId:string):Promise<BuyerOrder[]>{
    })
   };
  });
+ return {items,hasMore,offset,limit};
 }
 
-export async function getSellerSales(sellerId:string):Promise<SellerSale[]>{
+export async function getBuyerOrders(profileId:string):Promise<BuyerOrder[]>{
+ return (await getBuyerOrdersPage(profileId,{limit:60})).items;
+}
+
+export async function getSellerSalesPage(sellerId:string,options:{offset?:number;limit?:number}={}):Promise<{items:SellerSale[];hasMore:boolean;offset:number;limit:number}>{
+ const offset=Math.max(0,Math.floor(options.offset??0));
+ const limit=Math.max(1,Math.min(Math.floor(options.limit??30),100));
  const supabase=await createSupabaseServerClient();
  const {data,error}=await supabase
   .from("order_items")
   .select("id,order_id,quantity,unit_price_pence,shipping_pence,platform_fee_pence,seller_net_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,release_eligible_at,funds_released_at,parts(title,slug),orders(id,status,payment_status,created_at,shipping_name,shipping_address)")
   .eq("seller_id",sellerId)
-  .order("id",{ascending:false});
+  .order("id",{ascending:false})
+  .range(offset,offset+limit);
  if(error)throw new Error("Seller orders are temporarily unavailable.");
- return (data??[]).flatMap(row=>{
+ const rawRows=data??[];
+ const hasMore=rawRows.length>limit;
+ const items=rawRows.slice(0,limit).flatMap(row=>{
   const raw=row as unknown as SellerSaleRow;
   const part=one(raw.parts);
   const order=one(raw.orders);
@@ -145,6 +161,11 @@ export async function getSellerSales(sellerId:string):Promise<SellerSale[]>{
    shippingAddress:shippingAddress(order.shipping_address)
   }];
  });
+ return {items,hasMore,offset,limit};
+}
+
+export async function getSellerSales(sellerId:string):Promise<SellerSale[]>{
+ return (await getSellerSalesPage(sellerId,{limit:100})).items;
 }
 
 

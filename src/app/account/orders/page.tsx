@@ -4,16 +4,22 @@ import { Header } from "@/components/header";
 import { BuyerReceiptControls } from "@/components/buyer-receipt-controls";
 import { resumeCheckout } from "@/app/account/orders/checkout-actions";
 import { requireUser } from "@/lib/auth";
-import { getBuyerOrders } from "@/lib/data/orders";
+import { getBuyerOrdersPage } from "@/lib/data/orders";
 
 export const dynamic="force-dynamic";
 
 const money=(pence:number,currency:string)=>new Intl.NumberFormat("en-GB",{style:"currency",currency}).format(pence/100);
 const label=(value:string)=>value.replaceAll("_"," ").replace(/\b\w/g,letter=>letter.toUpperCase());
 
-export default async function PurchasesPage(){
- const user=await requireUser("/account/orders");
- const orders=await getBuyerOrders(user.id).catch(()=>[]);
+const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
+const pageNumber=(value:string|undefined)=>{const parsed=Number(value);return Number.isInteger(parsed)&&parsed>0?parsed:1;};
+
+export default async function PurchasesPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
+ const [user,params]=await Promise.all([requireUser("/account/orders"),searchParams]);
+ const page=pageNumber(first(params.page));
+ const pageSize=20;
+ const result=await getBuyerOrdersPage(user.id,{offset:(page-1)*pageSize,limit:pageSize}).catch(()=>({items:[],hasMore:false,offset:(page-1)*pageSize,limit:pageSize}));
+ const orders=result.items;
 
  return <><Header/><main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
   <p className="text-xs font-black uppercase tracking-[.2em] text-[#287154]">Your account</p>
@@ -34,5 +40,6 @@ export default async function PurchasesPage(){
    <BuyerReceiptControls item={item}/></div>)}</div>
    <div className="mt-4 flex flex-wrap items-center justify-between gap-3">{["unpaid","requires_action","processing"].includes(order.paymentStatus)&&<form action={resumeCheckout}><input type="hidden" name="orderId" value={order.id}/><button className="rounded-xl bg-[#173c31] px-4 py-2.5 text-sm font-black text-white">Resume secure checkout</button></form>}<p className="ml-auto text-lg font-black">Total {money(order.totalPence,order.currency)}</p></div>
   </article>)}</div>:<div className="mt-8 rounded-3xl border border-dashed border-black/20 bg-white px-6 py-16 text-center"><PackageCheck className="mx-auto text-[#63706a]"/><h2 className="mt-4 text-xl font-black">No purchases yet</h2><p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#63706a]">Completed marketplace orders will appear here with payment and delivery status.</p><Link href="/#marketplace" className="mt-5 inline-block rounded-full bg-[#173c31] px-5 py-3 text-sm font-black text-white">Browse parts</Link></div>}
+ {(page>1||result.hasMore)&&<nav aria-label="Purchase pages" className="mt-8 flex items-center justify-center gap-3">{page>1&&<Link href={page===2?"/account/orders":"/account/orders?page="+(page-1)} className="rounded-full border border-black/15 bg-white px-5 py-3 text-sm font-black">Previous</Link>}<span className="text-sm font-bold text-[#63706a]">Page {page}</span>{result.hasMore&&<Link href={"/account/orders?page="+(page+1)} className="rounded-full bg-[#173c31] px-5 py-3 text-sm font-black text-white">Next</Link>}</nav>}
  </main></>;
 }

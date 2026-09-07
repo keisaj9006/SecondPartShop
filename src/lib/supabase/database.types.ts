@@ -2293,6 +2293,14 @@ export type Database = {
           verified_seller_count: number
         }[]
       }
+      buyer_part_request_match_counts_for_ids: {
+        Args: { request_ids: string[] }
+        Returns: {
+          matching_seller_count: number
+          request_id: string
+          verified_seller_count: number
+        }[]
+      }
       cancel_checkout_order: {
         Args: { p_event_id?: string; p_event_type?: string; p_order_id: string }
         Returns: boolean

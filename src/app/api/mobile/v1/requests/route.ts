@@ -13,21 +13,38 @@ export async function GET(request:Request){
  const auth=await requireMobileUser(request);
  if(!auth.context)return auth.response;
  const {user,supabase}=auth.context;
- const [{data,error},{data:matchRows,error:matchError}]=await Promise.all([
-  supabase
-   .from("part_requests")
-   .select("id,query_text,oem_number,notes,status,registration,year,fuel_type,engine_size_simple,created_at,categories(name),vehicle_catalogue_variants(make,model_family,variant)")
-   .eq("profile_id",user.id)
-   .order("created_at",{ascending:false}),
-  supabase.rpc("buyer_part_request_match_counts")
- ]);
- if(error||matchError)return mobileJson(request,{ok:false,error:"part_requests_unavailable"},503);
+ const url=new URL(request.url);
+ const rawLimit=Number(url.searchParams.get("limit")??20);
+ const rawOffset=Number(url.searchParams.get("offset")??0);
+ const limit=Number.isInteger(rawLimit)?Math.max(1,Math.min(rawLimit,60)):20;
+ const offset=Number.isInteger(rawOffset)?Math.max(0,rawOffset):0;
+ const status=url.searchParams.get("status")?.trim()??"";
+
+ let query=supabase
+  .from("part_requests")
+  .select("id,query_text,oem_number,notes,status,registration,year,fuel_type,engine_size_simple,created_at,categories(name),vehicle_catalogue_variants(make,model_family,variant)")
+  .eq("profile_id",user.id)
+  .order("created_at",{ascending:false})
+  .order("id",{ascending:false});
+ if(status==="open"||status==="closed")query=query.eq("status",status);
+ const {data,error}=await query.range(offset,offset+limit);
+ if(error)return mobileJson(request,{ok:false,error:"part_requests_unavailable"},503);
+
+ const rawRows=data??[];
+ const hasMore=rawRows.length>limit;
+ const pageRows=rawRows.slice(0,limit);
+ const openIds=pageRows.filter(row=>row.status==="open").map(row=>row.id);
+ const {data:matchRows,error:matchError}=openIds.length
+  ?await supabase.rpc("buyer_part_request_match_counts_for_ids",{request_ids:openIds})
+  :{data:[],error:null};
+ if(matchError)return mobileJson(request,{ok:false,error:"part_requests_unavailable"},503);
+
  const matchMap=new Map((matchRows??[]).map(row=>[row.request_id,{
   matching:Number(row.matching_seller_count??0),
   verified:Number(row.verified_seller_count??0)
  }] as const));
 
- return mobileJson(request,{ok:true,items:(data??[]).map(row=>{
+ const items=pageRows.map(row=>{
   const category=one(row.categories);
   const vehicle=one(row.vehicle_catalogue_variants);
   return {
@@ -48,7 +65,8 @@ export async function GET(request:Request){
    matchingSellerCount:matchMap.get(row.id)?.matching??0,
    verifiedSellerCount:matchMap.get(row.id)?.verified??0
   };
- })});
+ });
+ return mobileJson(request,{ok:true,items,pagination:{offset,limit,returned:items.length,hasMore}});
 }
 
 export async function POST(request:Request){
