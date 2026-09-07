@@ -15,23 +15,62 @@ const statusClass=(value)=>{
 const orders=async()=>{
  if(!await UI.requireAuth("orders"))return;
  UI.loading("Loading purchases");
- let items;
- try{items=(await C.api("/orders",{auth:true})).items||[];}
- catch(error){UI.empty("▣","Purchases unavailable",error.message,"Try again",()=>UI.route("orders"));return;}
 
- const html=[];
- html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Your account</p><h2>Purchases</h2><p>Payment, delivery and buyer-protection status.</p></div></div>");
- if(!items.length){
-  html.push("<div class=\"empty\"><div class=\"empty-icon\">▣</div><h3>No purchases yet</h3><p>Your marketplace orders will appear here.</p><button id=\"orders-shop\" class=\"primary small-button\" style=\"margin-top:14px\" type=\"button\">Browse parts</button></div>");
- }else{
-  html.push(items.map(order=>{
-   const parts=(order.items||[]).map(item=>C.escapeHtml(item.partTitle)).join(", ");
-   return "<button type=\"button\" class=\"order-card wide\" data-open-order=\""+C.escapeHtml(order.id)+"\" style=\"text-align:left\"><div class=\"row-between\"><div><p class=\"eyebrow\" style=\"margin-bottom:5px\">Order "+C.escapeHtml(order.id.slice(0,8).toUpperCase())+"</p><h3>"+parts+"</h3><p class=\"subtle\">"+C.dateOnly(order.createdAt)+"</p></div><span class=\"money\">"+C.money(order.totalPence,order.currency)+"</span></div><div class=\"chips\"><span class=\"pill "+statusClass(order.paymentStatus)+"\">"+C.escapeHtml(C.human(order.paymentStatus))+"</span><span class=\"pill "+statusClass(order.status)+"\">"+C.escapeHtml(C.human(order.status))+"</span></div></button>";
-  }).join(""));
+ const pageSize=20;
+ let items=[];
+ let hasMore=false;
+
+ const fetchPage=async(offset)=>{
+  const result=await C.api("/orders?limit="+pageSize+"&offset="+offset,{auth:true});
+  return {items:result.items||[],hasMore:Boolean(result.pagination&&result.pagination.hasMore)};
+ };
+
+ const render=()=>{
+  const html=[];
+  html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Your account</p><h2>Purchases</h2><p>Payment, delivery and buyer-protection status.</p></div></div>");
+  if(!items.length){
+   html.push("<div class=\"empty\"><div class=\"empty-icon\">▣</div><h3>No purchases yet</h3><p>Your marketplace orders will appear here.</p><button id=\"orders-shop\" class=\"primary small-button\" style=\"margin-top:14px\" type=\"button\">Browse parts</button></div>");
+  }else{
+   html.push(items.map(order=>{
+    const parts=(order.items||[]).map(item=>C.escapeHtml(item.partTitle)).join(", ");
+    return "<button type=\"button\" class=\"order-card wide\" data-open-order=\""+C.escapeHtml(order.id)+"\" style=\"text-align:left\"><div class=\"row-between\"><div><p class=\"eyebrow\" style=\"margin-bottom:5px\">Order "+C.escapeHtml(order.id.slice(0,8).toUpperCase())+"</p><h3>"+parts+"</h3><p class=\"subtle\">"+C.dateOnly(order.createdAt)+"</p></div><span class=\"money\">"+C.money(order.totalPence,order.currency)+"</span></div><div class=\"chips\"><span class=\"pill "+statusClass(order.paymentStatus)+"\">"+C.escapeHtml(C.human(order.paymentStatus))+"</span><span class=\"pill "+statusClass(order.status)+"\">"+C.escapeHtml(C.human(order.status))+"</span></div></button>";
+   }).join(""));
+   if(hasMore)html.push("<button id=\"orders-more\" class=\"secondary wide\" style=\"margin-top:14px\" type=\"button\">Load more purchases</button>");
+  }
+
+  UI.app.innerHTML=html.join("");
+  const shop=document.getElementById("orders-shop");
+  if(shop)shop.addEventListener("click",()=>UI.route("home"));
+  UI.app.querySelectorAll("[data-open-order]").forEach(button=>button.addEventListener("click",()=>UI.route("order",{id:button.dataset.openOrder})));
+
+  const more=document.getElementById("orders-more");
+  if(more)more.addEventListener("click",async()=>{
+   more.disabled=true;
+   more.textContent="Loading…";
+   try{
+    const next=await fetchPage(items.length);
+    const known=new Set(items.map(item=>item.id));
+    items.push(...next.items.filter(item=>!known.has(item.id)));
+    hasMore=next.hasMore;
+    render();
+   }catch(error){
+    UI.toast(error.message,"error");
+    more.disabled=false;
+    more.textContent="Load more purchases";
+   }
+  });
+ };
+
+ try{
+  const firstPage=await fetchPage(0);
+  items=firstPage.items;
+  hasMore=firstPage.hasMore;
+ }catch(error){
+  UI.empty("▣","Purchases unavailable",error.message,"Try again",()=>UI.route("orders"));
+  return;
  }
- UI.app.innerHTML=html.join("");
- const shop=document.getElementById("orders-shop");if(shop)shop.addEventListener("click",()=>UI.route("home"));
- UI.app.querySelectorAll("[data-open-order]").forEach(button=>button.addEventListener("click",()=>UI.route("order",{id:button.dataset.openOrder})));
+
+ render();
 };
 
 const timelineLabel=(event)=>{
@@ -173,21 +212,59 @@ const sellerSales=async()=>{
  if(!await UI.requireAuth("sellerSales"))return;
  if(!C.state.me||!C.state.me.seller){UI.empty("□","Seller profile required","Enable selling before opening sales.","Account",()=>UI.route("account",{view:"selling"}));return;}
  UI.loading("Loading sales");
- let sales=[];
- try{sales=(await C.api("/seller/sales",{auth:true})).items||[];}
- catch(error){UI.empty("□","Sales unavailable",error.message,"Try again",()=>UI.route("sellerSales"));return;}
 
- const html=[];
- html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Selling</p><h2>Sales & payouts</h2><p>"+sales.length+" sale"+(sales.length===1?"":"s")+" in your transaction history.</p></div></div>");
- if(sales.length){
-  html.push(sales.map(sale=>"<section class=\"order-card\"><div class=\"row-between\"><div><h3>"+C.escapeHtml(sale.partTitle)+"</h3><p class=\"subtle\">"+C.dateOnly(sale.orderCreatedAt)+" · "+C.escapeHtml(C.human(sale.fulfilmentStatus))+"</p></div><span class=\"money\">"+C.money(sale.sellerNetPence)+" net</span></div><div class=\"chips\"><span class=\"pill "+statusClass(sale.paymentStatus)+"\">"+C.escapeHtml(C.human(sale.paymentStatus))+"</span><span class=\"pill "+statusClass(sale.payoutStatus)+"\">"+C.escapeHtml(C.human(sale.payoutStatus))+"</span></div><p class=\"subtle\" style=\"margin-top:8px\">Item "+C.money(sale.unitPricePence*sale.quantity)+" · Delivery "+C.money(sale.shippingPence)+" · SecondPart fee −"+C.money(sale.platformFeePence)+"</p><div class=\"button-row\" style=\"margin-top:10px\">"+(sale.paymentStatus==="paid"?"<button class=\"secondary small-button\" data-sale-chat=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Buyer chat</button>":"")+(sale.fulfilmentStatus==="paid"?"<button class=\"secondary small-button\" data-sales-fulfil=\"preparing\" data-sale-id=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Preparing</button>":"")+(sale.deliveryMethod==="collection"&&["paid","preparing"].includes(sale.fulfilmentStatus)?"<button class=\"lime-button small-button\" data-sales-fulfil=\"ready_for_collection\" data-sale-id=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Ready for collection</button>":"")+(sale.deliveryMethod==="shipping"&&["paid","preparing"].includes(sale.fulfilmentStatus)?"<button class=\"primary small-button\" data-sales-dispatch=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Dispatch</button>":"")+"</div></section>").join(""));
- }else{
-  html.push("<div class=\"empty\"><div class=\"empty-icon\">▣</div><h3>No paid sales yet</h3><p>Your paid transactions will appear here.</p></div>");
+ const pageSize=30;
+ let sales=[];
+ let hasMore=false;
+
+ const fetchPage=async(offset)=>{
+  const result=await C.api("/seller/sales?limit="+pageSize+"&offset="+offset,{auth:true});
+  return {items:result.items||[],hasMore:Boolean(result.pagination&&result.pagination.hasMore)};
+ };
+
+ const render=()=>{
+  const html=[];
+  html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Selling</p><h2>Sales & payouts</h2><p>"+sales.length+" sale"+(sales.length===1?"":"s")+" loaded.</p></div></div>");
+  if(sales.length){
+   html.push(sales.map(sale=>"<section class=\"order-card\"><div class=\"row-between\"><div><h3>"+C.escapeHtml(sale.partTitle)+"</h3><p class=\"subtle\">"+C.dateOnly(sale.orderCreatedAt)+" · "+C.escapeHtml(C.human(sale.fulfilmentStatus))+"</p></div><span class=\"money\">"+C.money(sale.sellerNetPence)+" net</span></div><div class=\"chips\"><span class=\"pill "+statusClass(sale.paymentStatus)+"\">"+C.escapeHtml(C.human(sale.paymentStatus))+"</span><span class=\"pill "+statusClass(sale.payoutStatus)+"\">"+C.escapeHtml(C.human(sale.payoutStatus))+"</span></div><p class=\"subtle\" style=\"margin-top:8px\">Item "+C.money(sale.unitPricePence*sale.quantity)+" · Delivery "+C.money(sale.shippingPence)+" · SecondPart fee −"+C.money(sale.platformFeePence)+"</p><div class=\"button-row\" style=\"margin-top:10px\">"+(sale.paymentStatus==="paid"?"<button class=\"secondary small-button\" data-sale-chat=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Buyer chat</button>":"")+(sale.fulfilmentStatus==="paid"?"<button class=\"secondary small-button\" data-sales-fulfil=\"preparing\" data-sale-id=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Preparing</button>":"")+(sale.deliveryMethod==="collection"&&["paid","preparing"].includes(sale.fulfilmentStatus)?"<button class=\"lime-button small-button\" data-sales-fulfil=\"ready_for_collection\" data-sale-id=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Ready for collection</button>":"")+(sale.deliveryMethod==="shipping"&&["paid","preparing"].includes(sale.fulfilmentStatus)?"<button class=\"primary small-button\" data-sales-dispatch=\""+C.escapeHtml(sale.orderItemId)+"\" type=\"button\">Dispatch</button>":"")+"</div></section>").join(""));
+   if(hasMore)html.push("<button id=\"sales-more\" class=\"secondary wide\" style=\"margin-top:14px\" type=\"button\">Load more sales</button>");
+  }else{
+   html.push("<div class=\"empty\"><div class=\"empty-icon\">▣</div><h3>No paid sales yet</h3><p>Your paid transactions will appear here.</p></div>");
+  }
+
+  UI.app.innerHTML=html.join("");
+  UI.app.querySelectorAll("[data-sale-chat]").forEach(button=>button.addEventListener("click",()=>UI.route("transactionChat",{id:button.dataset.saleChat})));
+  UI.app.querySelectorAll("[data-sales-fulfil]").forEach(button=>button.addEventListener("click",()=>updateFulfilment(button.dataset.saleId,button.dataset.salesFulfil,null,null,"sellerSales")));
+  UI.app.querySelectorAll("[data-sales-dispatch]").forEach(button=>button.addEventListener("click",()=>dispatchModal(button.dataset.salesDispatch,"sellerSales")));
+
+  const more=document.getElementById("sales-more");
+  if(more)more.addEventListener("click",async()=>{
+   more.disabled=true;
+   more.textContent="Loading…";
+   try{
+    const next=await fetchPage(sales.length);
+    const known=new Set(sales.map(item=>item.orderItemId));
+    sales.push(...next.items.filter(item=>!known.has(item.orderItemId)));
+    hasMore=next.hasMore;
+    render();
+   }catch(error){
+    UI.toast(error.message,"error");
+    more.disabled=false;
+    more.textContent="Load more sales";
+   }
+  });
+ };
+
+ try{
+  const firstPage=await fetchPage(0);
+  sales=firstPage.items;
+  hasMore=firstPage.hasMore;
+ }catch(error){
+  UI.empty("□","Sales unavailable",error.message,"Try again",()=>UI.route("sellerSales"));
+  return;
  }
- UI.app.innerHTML=html.join("");
- UI.app.querySelectorAll("[data-sale-chat]").forEach(button=>button.addEventListener("click",()=>UI.route("transactionChat",{id:button.dataset.saleChat})));
- UI.app.querySelectorAll("[data-sales-fulfil]").forEach(button=>button.addEventListener("click",()=>updateFulfilment(button.dataset.saleId,button.dataset.salesFulfil,null,null,"sellerSales")));
- UI.app.querySelectorAll("[data-sales-dispatch]").forEach(button=>button.addEventListener("click",()=>dispatchModal(button.dataset.salesDispatch,"sellerSales")));
+
+ render();
 };
 
 const seller=async()=>{

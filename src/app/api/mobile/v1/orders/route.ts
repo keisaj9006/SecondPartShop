@@ -23,7 +23,7 @@ export async function GET(request:Request){
   .select("id,status,payment_status,total_pence,currency,created_at,order_items(id,quantity,unit_price_pence,shipping_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,buyer_received_at,release_eligible_at,funds_released_at,parts(title,slug),sellers(business_name,slug))")
   .eq("buyer_id",user.id)
   .order("created_at",{ascending:false})
-  .order("id");
+  .order("id",{ascending:false});
  if(status)query=query.eq("status",status.slice(0,60));
  const {data,error}=await query.range(offset,offset+limit);
  if(error)return mobileJson(request,{ok:false,error:"orders_unavailable"},503);
