@@ -8,6 +8,7 @@ import { createCheckoutSession,isStripeCheckoutConfigured } from "@/lib/stripe-p
 import { isUuid } from "@/lib/identifiers";
 import type { ActionState,MarketplaceFilters } from "@/lib/types";
 import { getPartCompatibility } from "@/lib/data/compatibility";
+import { syncSellerPaymentAccount } from "@/lib/seller-payment-sync";
 
 const knownMessage=(message:string)=>{
  const lower=message.toLowerCase();
@@ -44,8 +45,15 @@ export async function startCheckout(_previous:ActionState,formData:FormData):Pro
  const user=await requireUser("/account");
  const supabase=await createSupabaseServerClient();
 
- const {data:part}=await supabase.from("parts").select("slug").eq("id",partId).maybeSingle();
+ const {data:part}=await supabase.from("parts").select("slug,seller_id").eq("id",partId).maybeSingle();
  if(!part)return {status:"error",message:"This listing is no longer available."};
+
+ try{
+  const paymentStatus=await syncSellerPaymentAccount(part.seller_id);
+  if(!paymentStatus.active)return {status:"error",message:"This seller is still completing marketplace payout setup."};
+ }catch{
+  return {status:"error",message:"We could not verify the seller payout account right now. Please try again."};
+ }
 
  if(vehicleVariantId&&vehicleYear!==undefined){
   const filters:MarketplaceFilters={

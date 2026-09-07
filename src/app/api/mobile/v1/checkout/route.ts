@@ -5,6 +5,7 @@ import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
 import { getPartCompatibility } from "@/lib/data/compatibility";
 import type { MarketplaceFilters } from "@/lib/types";
+import { syncSellerPaymentAccount } from "@/lib/seller-payment-sync";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -53,8 +54,15 @@ export async function POST(request:Request){
  if(vehicleVariantId&&(!isUuid(vehicleVariantId)||!Number.isInteger(vehicleYear)))return mobileJson(request,{ok:false,error:"invalid_vehicle_context"},400);
  if(vehicleEngine!==undefined&&!Number.isInteger(vehicleEngine))return mobileJson(request,{ok:false,error:"invalid_vehicle_context"},400);
 
- const {data:part}=await supabase.from("parts").select("slug").eq("id",partId).maybeSingle();
+ const {data:part}=await supabase.from("parts").select("slug,seller_id").eq("id",partId).maybeSingle();
  if(!part)return mobileJson(request,{ok:false,error:"listing_unavailable"},404);
+
+ try{
+  const paymentStatus=await syncSellerPaymentAccount(part.seller_id);
+  if(!paymentStatus.active)return mobileJson(request,{ok:false,error:"seller_payout_setup_required"},409);
+ }catch{
+  return mobileJson(request,{ok:false,error:"seller_payment_status_unavailable"},503);
+ }
 
  if(vehicleVariantId&&vehicleYear!==undefined){
   const filters:MarketplaceFilters={
