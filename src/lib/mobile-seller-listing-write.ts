@@ -180,6 +180,7 @@ export async function replaceMobileListingFitments(supabase:Db,partId:string,fit
 }
 
 export async function canPublishMobileListing(supabase:Db,partId:string,value:MobileListingWriteInput){
+ if(value.stock<1)throw new Error("stock_required");
  const [{count:imageCount,error:imageError},{count:fitmentCount,error:fitmentError}]=await Promise.all([
   supabase.from("part_images").select("id",{count:"exact",head:true}).eq("part_id",partId),
   supabase.from("part_catalogue_fitments").select("id",{count:"exact",head:true}).eq("part_id",partId)

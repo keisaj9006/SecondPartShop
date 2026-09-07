@@ -31,6 +31,7 @@ export async function GET(request:Request,{params}:{params:Promise<{partId:strin
  const exactFitmentCount=(data.part_catalogue_fitments??[]).length;
  const compatibilityEvidence=Boolean(data.donor_vehicle_id||exactFitmentCount||data.oem_number||(data.manufacturer&&data.part_number));
  const missing=[
+  ...(data.stock<1?["stock_available"]:[]),
   ...(imageCount<1?["real_product_photo"]:[]),
   ...(!compatibilityEvidence?["compatibility_or_part_identity_evidence"]:[])
  ];
@@ -105,6 +106,8 @@ export async function PATCH(request:Request,{params}:{params:Promise<{partId:str
    .maybeSingle();
   if(existingError)return mobileJson(request,{ok:false,error:"listing_unavailable"},503);
   if(!existing)return mobileJson(request,{ok:false,error:"not_found"},404);
+  if(existing.status==="reserved")return mobileJson(request,{ok:false,error:"listing_reserved"},409);
+  if(requestedStatus==="active"&&value.stock<1)throw new Error("stock_required");
 
   const holdDraft=requestedStatus==="active";
   const {error:updateError}=await supabase
@@ -129,12 +132,12 @@ export async function PATCH(request:Request,{params}:{params:Promise<{partId:str
   return mobileJson(request,{ok:true,id:partId,status:requestedStatus});
  }catch(error){
   const code=error instanceof Error?error.message:"listing_update_failed";
-  const status=code==="photo_required"||code==="compatibility_evidence_required"?409:400;
+  const status=["photo_required","compatibility_evidence_required","stock_required","listing_reserved"].includes(code)?409:400;
   const known=[
    "title_too_short","description_too_short","invalid_category","invalid_condition","invalid_testing",
    "invalid_price","invalid_shipping","invalid_stock","invalid_dispatch","invalid_warranty",
    "invalid_delivery_range","invalid_donor","transmission_codes_required","invalid_fitments",
-   "duplicate_fitment","fitment_save_failed","photo_required","compatibility_evidence_required",
+   "duplicate_fitment","fitment_save_failed","photo_required","compatibility_evidence_required","stock_required","listing_reserved",
    "publish_check_failed","publish_failed"
   ];
   return mobileJson(request,{ok:false,error:known.includes(code)?code:"listing_update_failed"},status);

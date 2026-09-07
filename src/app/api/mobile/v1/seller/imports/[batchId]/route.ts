@@ -23,15 +23,16 @@ export async function GET(request:Request,{params}:{params:Promise<{batchId:stri
  const {batchId}=await params;
  if(!isUuid(batchId))return mobileJson(request,{ok:false,error:"invalid_import_batch"},400);
 
- const [{data:batch,error:batchError},{data:readiness,error:readinessError}]=await Promise.all([
+ const [{data:batch,error:batchError},{data:readiness,error:readinessError},{count:needsStock,error:stockError}]=await Promise.all([
   supabase.from("seller_inventory_imports")
    .select("id,source_channel,filename,status,rows_received,rows_created,rows_rejected,error_summary,created_at")
    .eq("id",batchId)
    .eq("seller_id",auth.seller.id)
    .maybeSingle(),
-  supabase.rpc("seller_import_batch_readiness",{p_batch_id:batchId})
+  supabase.rpc("seller_import_batch_readiness",{p_batch_id:batchId}),
+  supabase.from("parts").select("id",{count:"exact",head:true}).eq("seller_id",auth.seller.id).eq("import_batch_id",batchId).eq("status","draft").lte("stock",0)
  ]);
- if(batchError||readinessError)return mobileJson(request,{ok:false,error:"inventory_import_unavailable"},503);
+ if(batchError||readinessError||stockError)return mobileJson(request,{ok:false,error:"inventory_import_unavailable"},503);
  if(!batch)return mobileJson(request,{ok:false,error:"inventory_import_not_found"},404);
  const ready=readiness?.[0];
  return mobileJson(request,{ok:true,import:{
@@ -49,7 +50,8 @@ export async function GET(request:Request,{params}:{params:Promise<{batchId:stri
    readyDrafts:Number(ready?.ready_drafts??0),
    needsPhotos:Number(ready?.needs_photos??0),
    needsCompatibility:Number(ready?.needs_compatibility??0),
-   needsTechnical:Number(ready?.needs_technical??0)
+   needsTechnical:Number(ready?.needs_technical??0),
+   needsStock:needsStock??0
   }
  }});
 }

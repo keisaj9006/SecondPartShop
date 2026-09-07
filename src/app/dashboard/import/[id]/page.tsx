@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft,CheckCircle2,FileWarning,ImageIcon,Layers3,ShieldCheck,Wrench } from "lucide-react";
+import { ArrowLeft,Boxes,CheckCircle2,FileWarning,ImageIcon,Layers3,ShieldCheck,Wrench } from "lucide-react";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/header";
 import { requireSeller } from "@/lib/auth";
@@ -44,11 +44,12 @@ export default async function InventoryImportReportPage({params,searchParams}:{p
 
   <section className="mt-6 rounded-3xl border border-black/10 bg-white p-5 sm:p-6">
    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-    <div><div className="flex items-center gap-2"><ShieldCheck size={20} className="text-[#287154]"/><h2 className="text-xl font-black">Publication readiness</h2></div><p className="mt-2 max-w-2xl text-sm leading-6 text-[#63706a]">SecondPart checks every remaining draft in this import. Bulk publishing can only activate listings with a real product photo and enough compatibility evidence.</p></div>
+    <div><div className="flex items-center gap-2"><ShieldCheck size={20} className="text-[#287154]"/><h2 className="text-xl font-black">Publication readiness</h2></div><p className="mt-2 max-w-2xl text-sm leading-6 text-[#63706a]">SecondPart checks every remaining draft in this import. Bulk publishing can only activate listings with stock available, a real product photo and enough compatibility evidence.</p></div>
     {readiness.readyDrafts>0&&<form action={publishReadyImportDrafts}><input type="hidden" name="batchId" value={report.id}/><button className="rounded-full bg-[#173c31] px-5 py-3 text-sm font-black text-white">Publish {readiness.readyDrafts} ready draft{readiness.readyDrafts===1?"":"s"}</button></form>}
    </div>
-   <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+   <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
     <div className="rounded-2xl bg-emerald-50 p-4"><p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-emerald-800"><CheckCircle2 size={15}/>Ready now</p><p className="mt-2 text-3xl font-black text-emerald-950">{readiness.readyDrafts}</p></div>
+    <div className="rounded-2xl bg-[#f8f7f2] p-4"><p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-[#63706a]"><Boxes size={15}/>Need stock</p><p className="mt-2 text-3xl font-black">{readiness.needsStock}</p></div>
     <div className="rounded-2xl bg-[#f8f7f2] p-4"><p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-[#63706a]"><ImageIcon size={15}/>Need photos</p><p className="mt-2 text-3xl font-black">{readiness.needsPhotos}</p></div>
     <div className="rounded-2xl bg-[#f8f7f2] p-4"><p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-[#63706a]"><ShieldCheck size={15}/>Need fit evidence</p><p className="mt-2 text-3xl font-black">{readiness.needsCompatibility}</p></div>
     <div className="rounded-2xl bg-[#f8f7f2] p-4"><p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-[#63706a]"><Wrench size={15}/>Need technical data</p><p className="mt-2 text-3xl font-black">{readiness.needsTechnical}</p></div>
