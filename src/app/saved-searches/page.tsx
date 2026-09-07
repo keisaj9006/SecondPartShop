@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Bookmark,Search,Trash2 } from "lucide-react";
 import { Header } from "@/components/header";
 import { requireUser } from "@/lib/auth";
-import { getSavedSearches } from "@/lib/data/buyer-account";
+import { getSavedSearchesPage } from "@/lib/data/buyer-account";
 import { deleteSavedSearch } from "./actions";
 
 export const dynamic="force-dynamic";
@@ -15,9 +15,15 @@ const summary=(params:Record<string,string>)=>[
  params.max?"Max £"+params.max:null
 ].filter(Boolean) as string[];
 
-export default async function SavedSearchesPage(){
- const user=await requireUser("/saved-searches");
- const searches=await getSavedSearches(user.id);
+const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
+const pageNumber=(value:string|undefined)=>{const parsed=Number(value);return Number.isInteger(parsed)&&parsed>0?parsed:1;};
+
+export default async function SavedSearchesPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
+ const [user,params]=await Promise.all([requireUser("/saved-searches"),searchParams]);
+ const page=pageNumber(first(params.page));
+ const pageSize=20;
+ const result=await getSavedSearchesPage(user.id,{offset:(page-1)*pageSize,limit:pageSize});
+ const searches=result.items;
  return <><Header/><main className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
   <p className="text-xs font-black uppercase tracking-[.2em] text-[#287154]">Your account</p>
   <div className="mt-3 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><h1 className="text-4xl font-black tracking-[-.045em]">Saved searches</h1><p className="mt-2 max-w-2xl text-[#63706a]">Jump back into the same vehicle, part and filter combination without rebuilding your search.</p></div><Link href="/#marketplace" className="w-fit rounded-full bg-[#173c31] px-5 py-3 text-sm font-black text-white">New search</Link></div>
@@ -31,6 +37,6 @@ export default async function SavedSearchesPage(){
      <div className="flex gap-2"><Link href={href} className="inline-flex items-center gap-2 rounded-xl bg-[#173c31] px-4 py-2.5 text-sm font-black text-white"><Search size={15}/>Run search</Link><form action={deleteSavedSearch}><input type="hidden" name="id" value={item.id}/><button aria-label="Delete saved search" className="rounded-xl border border-red-200 p-2.5 text-red-700"><Trash2 size={16}/></button></form></div>
     </div>
    </article>;
-  })}</div>:<div className="mt-8 rounded-3xl border border-dashed border-black/20 bg-white px-6 py-16 text-center"><Bookmark className="mx-auto text-[#63706a]"/><h2 className="mt-4 text-xl font-black">No saved searches yet</h2><p className="mx-auto mt-2 max-w-lg text-[#63706a]">Apply a vehicle, part, category or filter on the marketplace, then save that search.</p></div>}
+  })}</div>{(page>1||result.hasMore)&&<nav aria-label="Saved search pages" className="mt-8 flex items-center justify-center gap-3">{page>1&&<Link href={page===2?"/saved-searches":"/saved-searches?page="+(page-1)} className="rounded-full border border-black/15 bg-white px-5 py-3 text-sm font-black">Previous</Link>}<span className="text-sm font-bold text-[#63706a]">Page {page}</span>{result.hasMore&&<Link href={"/saved-searches?page="+(page+1)} className="rounded-full bg-[#173c31] px-5 py-3 text-sm font-black text-white">Next</Link>}</nav>}:<div className="mt-8 rounded-3xl border border-dashed border-black/20 bg-white px-6 py-16 text-center"><Bookmark className="mx-auto text-[#63706a]"/><h2 className="mt-4 text-xl font-black">{page>1?"No saved searches on this page":"No saved searches yet"}</h2><p className="mx-auto mt-2 max-w-lg text-[#63706a]">{page>1?"Go back to an earlier page.":"Apply a vehicle, part, category or filter on the marketplace, then save that search."}</p>{page>1&&<Link href="/saved-searches" className="mt-5 inline-block rounded-full bg-[#173c31] px-5 py-3 text-sm font-black text-white">Back to first page</Link>}</div>}
  </main></>;
 }
