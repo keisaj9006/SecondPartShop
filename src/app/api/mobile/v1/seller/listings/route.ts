@@ -1,5 +1,6 @@
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileSeller } from "@/lib/mobile-api";
+import { mobileThumbnailUrl } from "@/lib/mobile-image";
 import { listingRow,parseMobileListingInput,replaceMobileListingFitments,slugifyMobileListing,validateMobileListingInput } from "@/lib/mobile-seller-listing-write";
 
 export const dynamic="force-dynamic";
@@ -77,6 +78,7 @@ export async function GET(request:Request){
     images:image?[{
      id:image.id,
      url:publicUrl(image.storage_path),
+     thumbnailUrl:mobileThumbnailUrl(request,publicUrl(image.storage_path)),
      alt:image.alt_text,
      position:image.position
     }]:[]
