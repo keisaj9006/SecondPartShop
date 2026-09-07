@@ -18,8 +18,8 @@ as $$
     count(*)::bigint as active_count,
     count(*) filter(
       where p.testing_status in (
-        'tested_working'::public.part_testing_status,
-        'removed_from_running_vehicle'::public.part_testing_status
+        'tested_working',
+        'removed_from_running_vehicle'
       )
     )::bigint as tested_count,
     count(*) filter(where p.collection_available)::bigint as collection_count,
