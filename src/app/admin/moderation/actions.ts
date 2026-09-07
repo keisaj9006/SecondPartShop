@@ -40,3 +40,23 @@ export async function updateSupportRequest(formData:FormData){
  if(error)throw error;
  revalidatePath("/admin/moderation");
 }
+
+
+export async function reviewGaragePartner(formData:FormData){
+ await requireAdmin("/admin/moderation");
+ const garageId=String(formData.get("garageId")??"");
+ const decision=String(formData.get("decision")??"");
+ if(!garageId||!["approve","reject"].includes(decision))return;
+ const supabase=await createSupabaseServerClient();
+ const {error}=await supabase
+  .from("garage_partners")
+  .update({
+   status:decision==="approve"?"active":"rejected",
+   verified_at:decision==="approve"?new Date().toISOString():null
+  })
+  .eq("id",garageId);
+ if(error)throw error;
+ revalidatePath("/admin/moderation");
+ revalidatePath("/garages");
+ revalidatePath("/garage-partner");
+}
