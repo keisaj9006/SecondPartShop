@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { matchRegistrationToCatalogue } from "@/lib/data/vehicle-catalogue";
 import { isPlausibleUkRegistration,lookupVehicleByRegistration,normalizeRegistration } from "@/lib/vehicle-registration";
+import { consumeVehicleLookupRateLimit } from "@/lib/vehicle-lookup-operational";
 
 export const dynamic="force-dynamic";
 const noStore={"cache-control":"no-store"};
@@ -10,6 +11,12 @@ export async function POST(request:Request){
  try{body=await request.json();}catch{return NextResponse.json({message:"Send a registration in JSON."},{status:400,headers:noStore});}
  const registration=normalizeRegistration(typeof body==="object"&&body!==null&&"registration" in body?String((body as {registration?:unknown}).registration??""):"");
  if(!isPlausibleUkRegistration(registration))return NextResponse.json({message:"Enter a valid-looking UK registration."},{status:400,headers:noStore});
+
+ const rate=await consumeVehicleLookupRateLimit(request);
+ if(!rate.allowed)return NextResponse.json(
+  {message:"Too many registration lookups. Please wait a few minutes and try again.",registration},
+  {status:429,headers:{...noStore,"retry-after":String(Math.max(1,rate.retryAfterSeconds))}}
+ );
 
  try{
   const result=await lookupVehicleByRegistration(registration);
