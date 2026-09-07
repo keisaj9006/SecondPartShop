@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSellerForOwner } from "@/lib/data/marketplace";
 import { lookupPostcodeLocation,normalizePostcode } from "@/lib/postcode";
 import type { ActionState,ListingStatus,PartCondition,PartTestingStatus } from "@/lib/types";
+import { validateImageUpload } from "@/lib/image-upload";
 
 const slugify=(value:string)=>value.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,80);
 async function sellerGeoFromPostcode(value:string){const normalized=value?normalizePostcode(value):"";if(!normalized)return {postcode:null,latitude:null,longitude:null,postcode_geocode_approximate:false,postcode_geocoded_at:null};const geo=await lookupPostcodeLocation(normalized,true);return {postcode:normalized,latitude:geo?.latitude??null,longitude:geo?.longitude??null,postcode_geocode_approximate:geo?.approximate??false,postcode_geocoded_at:geo?new Date().toISOString():null};}
@@ -54,7 +55,7 @@ async function replaceCatalogueFitments(partId:string,rows:CatalogueFitmentRow[]
  const {error}=await supabase.rpc("replace_part_catalogue_fitments",{p_part_id:partId,p_fitments:rows});
  if(error)throw error;
 }
-async function uploadImage(partId:string,userId:string,title:string,file:File,position:number){if(!file.size)return null;if(file.size>5*1024*1024)throw new Error("Each image must be 5 MB or smaller.");if(!["image/jpeg","image/png","image/webp"].includes(file.type))throw new Error("Use JPG, PNG or WebP images.");const extension=file.name.split(".").pop()?.toLowerCase()||"jpg";const path=`${userId}/${partId}/${crypto.randomUUID()}.${extension}`;const supabase=await createSupabaseServerClient();const {error:uploadError}=await supabase.storage.from("part-images").upload(path,file,{contentType:file.type,cacheControl:"31536000",upsert:false});if(uploadError)throw uploadError;const {error:recordError}=await supabase.from("part_images").insert({part_id:partId,storage_path:path,alt_text:title,position});if(recordError){await supabase.storage.from("part-images").remove([path]);throw recordError;}return path;}
+async function uploadImage(partId:string,userId:string,title:string,file:File,position:number){if(!file.size)return null;const validated=await validateImageUpload(file);const path=`${userId}/${partId}/${crypto.randomUUID()}.${validated.extension}`;const supabase=await createSupabaseServerClient();const {error:uploadError}=await supabase.storage.from("part-images").upload(path,file,{contentType:validated.mimeType,cacheControl:"31536000",upsert:false});if(uploadError)throw uploadError;const {error:recordError}=await supabase.from("part_images").insert({part_id:partId,storage_path:path,alt_text:title,position});if(recordError){await supabase.storage.from("part-images").remove([path]);throw recordError;}return path;}
 const imageFiles=(formData:FormData)=>formData.getAll("images").filter((value):value is File=>value instanceof File&&value.size>0);
 const imageLimitError=(files:File[],existingCount=0)=>files.length+existingCount>6?"A listing can have at most 6 product photos.":null;
 async function uploadImages(partId:string,userId:string,title:string,files:File[],startPosition=0){for(let index=0;index<files.length;index+=1)await uploadImage(partId,userId,title,files[index],startPosition+index);}
