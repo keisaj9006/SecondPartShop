@@ -2808,6 +2808,27 @@ export type Database = {
           year: number
         }[]
       }
+      seller_part_request_lead: {
+        Args: { p_request_id: string }
+        Returns: {
+          catalogue_variant_id: string
+          category_id: string
+          category_name: string
+          created_at: string
+          engine_size_simple: number
+          fuel_type: string
+          match_reasons: string[]
+          match_score: number
+          notes: string
+          oem_number: string
+          query_text: string
+          request_id: string
+          vehicle_make: string
+          vehicle_model: string
+          vehicle_variant: string
+          year: number
+        }[]
+      }
       seller_respond_transaction_case: {
         Args: { p_case_id: string; p_response: string }
         Returns: boolean
