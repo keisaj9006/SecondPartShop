@@ -4,22 +4,49 @@ import { notFound } from "next/navigation";
 import { Header } from "@/components/header";
 import { requireSeller } from "@/lib/auth";
 import { getSellerForOwner } from "@/lib/data/marketplace";
-import { getInventoryImportReadiness,getInventoryImportReport } from "@/lib/data/inventory-imports";
+import { getInventoryImportReadiness,getInventoryImportReport,getInventoryImportWorkQueue,type InventoryImportNeed } from "@/lib/data/inventory-imports";
 import { publishReadyImportDrafts } from "../actions";
 import { isUuid } from "@/lib/identifiers";
 
 export const dynamic="force-dynamic";
 
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
+const pageNumber=(value:string|undefined)=>{const parsed=Number(value);return Number.isInteger(parsed)&&parsed>0?parsed:1;};
+const needs:InventoryImportNeed[]=["all","ready","photos","compatibility","technical","stock"];
+const needLabel:Record<InventoryImportNeed,string>={
+ all:"All drafts",
+ ready:"Ready",
+ photos:"Needs photos",
+ compatibility:"Needs fit evidence",
+ technical:"Needs technical",
+ stock:"Needs stock"
+};
 
 export default async function InventoryImportReportPage({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<Record<string,string|string[]|undefined>>}){
  const [{user},{id},query]=await Promise.all([requireSeller("/dashboard/import"),params,searchParams]);
  if(!isUuid(id))notFound();
  const seller=await getSellerForOwner(user.id);
  if(!seller)notFound();
- const [report,readiness]=await Promise.all([getInventoryImportReport(seller.id,id),getInventoryImportReadiness(id)]);
+ const requestedNeed=first(query.need)??"all";
+ const need=(needs.includes(requestedNeed as InventoryImportNeed)?requestedNeed:"all") as InventoryImportNeed;
+ const queuePage=pageNumber(first(query.queuePage));
+ const queuePageSize=25;
+ const queueOffset=(queuePage-1)*queuePageSize;
+ const [report,readiness,queue]=await Promise.all([
+  getInventoryImportReport(seller.id,id),
+  getInventoryImportReadiness(id),
+  getInventoryImportWorkQueue(id,need,queueOffset,queuePageSize)
+ ]);
  if(!report)notFound();
  const published=Number(first(query.published)??0);
+ const queueHref=(targetNeed:InventoryImportNeed,targetPage=1)=>{
+  const params=new URLSearchParams();
+  if(targetNeed!=="all")params.set("need",targetNeed);
+  if(targetPage>1)params.set("queuePage",String(targetPage));
+  const qs=params.toString();
+  return "/dashboard/import/"+id+(qs?"?"+qs:"");
+ };
+ const needCount=(value:InventoryImportNeed)=>value==="all"?readiness.totalDrafts:value==="ready"?readiness.readyDrafts:value==="photos"?readiness.needsPhotos:value==="compatibility"?readiness.needsCompatibility:value==="technical"?readiness.needsTechnical:readiness.needsStock;
 
  const tone=report.status==="completed"
   ?"bg-emerald-50 text-emerald-900 border-emerald-200"
@@ -55,6 +82,26 @@ export default async function InventoryImportReportPage({params,searchParams}:{p
     <div className="rounded-2xl bg-[#f8f7f2] p-4"><p className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-[#63706a]"><Wrench size={15}/>Need technical data</p><p className="mt-2 text-3xl font-black">{readiness.needsTechnical}</p></div>
    </div>
    <p className="mt-4 text-xs leading-5 text-[#63706a]">{readiness.totalDrafts} draft{readiness.totalDrafts===1?" remains":"s remain"} in this batch. Missing requirements can overlap, so one listing may appear in more than one “needs” count.</p>
+  </section>
+
+  <section className="mt-6 rounded-3xl border border-black/10 bg-white p-5 sm:p-6">
+   <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-xs font-black uppercase tracking-[.16em] text-[#287154]">Import work queue</p><h2 className="mt-1 text-2xl font-black">Fix drafts by task</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-[#63706a]">Work through one requirement at a time. A draft can appear in more than one queue until every publication requirement is satisfied.</p></div><span className="rounded-full bg-[#eef1eb] px-3 py-1.5 text-xs font-black">{queue.total} in this queue</span></div>
+   <nav className="mt-5 flex flex-wrap gap-2" aria-label="Import work queue filters">{needs.map(value=><Link key={value} href={queueHref(value)} className={`rounded-full px-3 py-2 text-xs font-black ${need===value?"bg-[#173c31] text-white":"border border-black/15 bg-white text-[#173c31]"}`}>{needLabel[value]} · {needCount(value)}</Link>)}</nav>
+   {queue.items.length?<div className="mt-5 overflow-hidden rounded-2xl border border-black/10">
+    <div className="hidden grid-cols-[minmax(0,1fr)_120px_210px_90px] gap-3 border-b border-black/10 bg-[#f8f7f2] px-4 py-3 text-xs font-black uppercase text-[#63706a] md:grid"><span>Listing</span><span>Reference</span><span>Requirements</span><span>Action</span></div>
+    {queue.items.map(item=><div key={item.partId} className="grid gap-3 border-b border-black/8 p-4 last:border-0 md:grid-cols-[minmax(0,1fr)_120px_210px_90px] md:items-center">
+     <div><p className="font-black">{item.title}</p><p className="mt-1 text-xs text-[#63706a]">{item.categoryName}</p></div>
+     <p className="break-all text-xs font-bold text-[#63706a]">{item.sellerReference??"—"}</p>
+     <div className="flex flex-wrap gap-1.5 text-[11px] font-black">
+      <span className={`rounded-full px-2 py-1 ${item.hasStock?"bg-emerald-50 text-emerald-800":"bg-red-50 text-red-800"}`}>{item.hasStock?"Stock ✓":"Stock"}</span>
+      <span className={`rounded-full px-2 py-1 ${item.hasPhoto?"bg-emerald-50 text-emerald-800":"bg-red-50 text-red-800"}`}>{item.hasPhoto?"Photo ✓":"Photo"}</span>
+      <span className={`rounded-full px-2 py-1 ${item.hasCompatibility?"bg-emerald-50 text-emerald-800":"bg-red-50 text-red-800"}`}>{item.hasCompatibility?"Fit evidence ✓":"Fit evidence"}</span>
+      <span className={`rounded-full px-2 py-1 ${item.hasTechnical?"bg-emerald-50 text-emerald-800":"bg-red-50 text-red-800"}`}>{item.hasTechnical?"Technical ✓":"Technical"}</span>
+     </div>
+     <Link href={"/dashboard/listings/"+item.partId+"/edit"} className="w-fit rounded-lg bg-[#173c31] px-3 py-2 text-xs font-black text-white">Fix listing</Link>
+    </div>)}
+   </div>:<div className="mt-5 rounded-2xl border border-dashed border-black/20 p-6 text-center"><p className="font-black">No drafts in this queue</p><p className="mt-1 text-sm text-[#63706a]">{need==="ready"?"No remaining draft is fully ready yet, or ready drafts have already been published.":"This requirement is clear for every remaining draft in the batch."}</p></div>}
+   {(queuePage>1||queue.hasMore)&&<nav aria-label="Import work queue pages" className="mt-5 flex items-center justify-center gap-3">{queuePage>1&&<Link href={queueHref(need,queuePage-1)} className="rounded-full border border-black/15 px-4 py-2 text-xs font-black">Previous</Link>}<span className="text-xs font-bold text-[#63706a]">Queue page {queuePage}</span>{queue.hasMore&&<Link href={queueHref(need,queuePage+1)} className="rounded-full bg-[#173c31] px-4 py-2 text-xs font-black text-white">Next</Link>}</nav>}
   </section>
 
   <section className="mt-6 rounded-3xl border border-black/10 bg-white p-5 sm:p-6">
