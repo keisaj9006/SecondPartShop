@@ -10,18 +10,19 @@ export const runtime="nodejs";
 
 export function OPTIONS(request:Request){return mobileOptions(request);}
 
+const integer=(value:string|null)=>{if(!value)return undefined;const parsed=Number(value);return Number.isInteger(parsed)?parsed:undefined;};
+
 export async function GET(request:Request,{params}:{params:Promise<{slug:string}>}){
  const {slug}=await params;
  const safeSlug=slug.trim().slice(0,180);
  if(!safeSlug)return mobileJson(request,{ok:false,error:"invalid_listing"},400);
 
  const url=new URL(request.url);
- const yearRaw=Number(url.searchParams.get("cy"));
  const filters:MarketplaceFilters={
   catalogueVariant:isUuid(url.searchParams.get("cv"))?url.searchParams.get("cv")??undefined:undefined,
-  catalogueYear:Number.isInteger(yearRaw)?yearRaw:undefined,
+  catalogueYear:integer(url.searchParams.get("cy")),
   catalogueFuel:url.searchParams.get("cf")?.trim()||undefined,
-  catalogueEngineSize:Number.isInteger(Number(url.searchParams.get("ce")))?Number(url.searchParams.get("ce")):undefined
+  catalogueEngineSize:integer(url.searchParams.get("ce"))
  };
  const result=await getListingBySlug(safeSlug);
  if(result.error)return mobileJson(request,{ok:false,error:"listing_unavailable"},503);
