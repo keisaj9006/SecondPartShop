@@ -178,87 +178,87 @@ const inventory=async()=>{
  if(!C.state.me||!C.state.me.seller){UI.empty("□","Seller profile required","Create or enable a seller profile before managing inventory.","Account",()=>UI.route("account"));return;}
 
  UI.loading("Loading inventory");
- let items;
- try{items=(await C.api("/seller/listings",{auth:true})).items||[];}
- catch(error){UI.empty("□","Inventory unavailable",error.message,"Try again",()=>UI.route("inventory"));return;}
+ const pageSize=40;
+ let items=[];
+ let hasMore=false;
+ let searchText="";
 
- const html=[];
- html.push("<button class=\"back\" id=\"inventory-back\" type=\"button\">‹ Back to seller dashboard</button>");
- html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Seller inventory</p><h2>Your listings</h2><p>Manage real product photos directly from the phone.</p></div><button id=\"inventory-new\" class=\"primary small-button\" type=\"button\">New listing</button></div>");
- if(items.length){
-  html.push(items.map(item=>{
-   const cover=item.images&&item.images.length?C.safeHttpUrl(item.images[0].url):"";
-   return "<section class=\"order-card\"><div style=\"display:grid;grid-template-columns:82px 1fr;gap:12px;align-items:start\">"+
-    "<div style=\"width:82px;height:82px;border-radius:13px;overflow:hidden;background:#eef1eb;display:grid;place-items:center\">"+(cover?"<img src=\""+C.escapeHtml(cover)+"\" alt=\""+C.escapeHtml(item.title)+"\" style=\"width:100%;height:100%;object-fit:cover\"/>":"PART")+"</div>"+
-    "<div><div class=\"row-between\"><h3 style=\"margin:0\">"+C.escapeHtml(item.title)+"</h3><span class=\"pill\">"+C.escapeHtml(C.human(item.status))+"</span></div><p class=\"subtle\">"+C.money(item.pricePence)+" · Stock "+C.escapeHtml(item.stock)+" · "+C.escapeHtml((item.images||[]).length)+" photo(s)</p><div class=\"button-row\" style=\"margin-top:9px\"><button type=\"button\" class=\"primary small-button\" data-listing-photos=\""+C.escapeHtml(item.id)+"\">Photos</button><button type=\"button\" class=\"secondary small-button\" data-listing-edit=\""+C.escapeHtml(item.id)+"\">Edit details</button></div></div>"+
-   "</div></section>";
-  }).join(""));
- }else{
-  html.push("<div class=\"empty\"><div class=\"empty-icon\">□</div><h3>No listings yet</h3><p>Create your first listing, then use the camera to add real product photos.</p></div>");
- }
- UI.app.innerHTML=html.join("");
- document.getElementById("inventory-back").addEventListener("click",()=>UI.route("seller"));
- document.getElementById("inventory-new").addEventListener("click",()=>UI.route("listingEditor"));
- UI.app.querySelectorAll("[data-listing-photos]").forEach(button=>button.addEventListener("click",()=>{
-  const item=items.find(value=>value.id===button.dataset.listingPhotos);
-  if(item)void openListingPhotos(item);
- }));
- UI.app.querySelectorAll("[data-listing-edit]").forEach(button=>button.addEventListener("click",()=>UI.route("listingEditor",{id:button.dataset.listingEdit})));
-};
-
-
-const errorText=(code)=>{
- const map={
-  title_too_short:"Use a title of at least 5 characters.",
-  description_too_short:"Add a description of at least 20 characters.",
-  invalid_category:"Choose a specific part category.",
-  invalid_condition:"Choose a valid condition.",
-  invalid_testing:"Choose a valid testing status.",
-  invalid_price:"Enter a valid price.",
-  invalid_shipping:"Enter a valid delivery price.",
-  invalid_stock:"Enter a valid stock quantity.",
-  invalid_dispatch:"Choose a valid dispatch time.",
-  invalid_warranty:"Choose a valid warranty period.",
-  invalid_delivery_range:"Enter a valid delivery-time range.",
-  invalid_donor:"Choose a donor vehicle from your seller account.",
-  transmission_codes_required:"This transmission part needs gearbox family and code.",
-  invalid_fitments:"One of the confirmed vehicle fitments is invalid.",
-  duplicate_fitment:"The same exact vehicle was added twice.",
-  photo_required:"Add at least one real product photo before publishing.",
-  compatibility_evidence_required:"Before publishing, add a donor vehicle, an exact fitment, an OE/OEM number, or a manufacturer plus part number.",
-  listing_create_failed:"The listing could not be created.",
-  listing_update_failed:"The listing could not be updated."
+ const fetchPage=async(offset,query=searchText)=>{
+  const params=new URLSearchParams({limit:String(pageSize),offset:String(offset)});
+  if(query.trim())params.set("q",query.trim());
+  const result=await C.api("/seller/listings?"+params.toString(),{auth:true});
+  return {items:result.items||[],hasMore:Boolean(result.pagination&&result.pagination.hasMore)};
  };
- return map[code]||String(code||"Something went wrong.").replaceAll("_"," ");
-};
 
-const categoryOptions=(categories,selected)=>{
- const byId=new Map(categories.map(item=>[item.id,item]));
- const path=(item)=>{
-  const names=[item.name];
-  let parent=item.parentId?byId.get(item.parentId):null;
-  let guard=0;
-  while(parent&&guard<5){names.unshift(parent.name);parent=parent.parentId?byId.get(parent.parentId):null;guard+=1;}
-  return names.join(" › ");
+ const render=()=>{
+  const html=[];
+  html.push("<button class=\"back\" id=\"inventory-back\" type=\"button\">‹ Back to seller dashboard</button>");
+  html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Seller inventory</p><h2>Your listings</h2><p>"+items.length+" listing"+(items.length===1?"":"s")+" loaded. Search by title, OE/OEM, part number, manufacturer or seller reference.</p></div><button id=\"inventory-new\" class=\"primary small-button\" type=\"button\">New listing</button></div>");
+  html.push("<form id=\"inventory-search-form\" class=\"search-row\" style=\"margin:12px 0 14px\"><input id=\"inventory-search\" class=\"input\" maxlength=\"120\" value=\""+C.escapeHtml(searchText)+"\" placeholder=\"Search inventory…\"><button class=\"secondary\" type=\"submit\">Search</button></form>");
+  if(searchText)html.push("<button id=\"inventory-clear-search\" class=\"link-button\" type=\"button\">Clear inventory search</button>");
+
+  if(items.length){
+   html.push(items.map(item=>{
+    const cover=item.images&&item.images.length?C.safeHttpUrl(item.images[0].url):"";
+    return "<section class=\"order-card\"><div style=\"display:grid;grid-template-columns:82px 1fr;gap:12px;align-items:start\">"+
+     "<div style=\"width:82px;height:82px;border-radius:13px;overflow:hidden;background:#eef1eb;display:grid;place-items:center\">"+(cover?"<img src=\""+C.escapeHtml(cover)+"\" alt=\""+C.escapeHtml(item.title)+"\" style=\"width:100%;height:100%;object-fit:cover\"/>":"PART")+"</div>"+
+     "<div><div class=\"row-between\"><h3 style=\"margin:0\">"+C.escapeHtml(item.title)+"</h3><span class=\"pill\">"+C.escapeHtml(C.human(item.status))+"</span></div><p class=\"subtle\">"+C.money(item.pricePence)+" · Stock "+C.escapeHtml(item.stock)+" · "+C.escapeHtml((item.images||[]).length)+" photo(s)</p>"+(item.sellerReference?"<p class=\"subtle\">Ref: "+C.escapeHtml(item.sellerReference)+"</p>":"")+"<div class=\"button-row\" style=\"margin-top:9px\"><button type=\"button\" class=\"primary small-button\" data-listing-photos=\""+C.escapeHtml(item.id)+"\">Photos</button><button type=\"button\" class=\"secondary small-button\" data-listing-edit=\""+C.escapeHtml(item.id)+"\">Edit details</button></div></div>"+
+    "</div></section>";
+   }).join(""));
+   if(hasMore)html.push("<button id=\"inventory-more\" class=\"secondary wide\" style=\"margin-top:14px\" type=\"button\">Load more inventory</button>");
+  }else{
+   html.push("<div class=\"empty\"><div class=\"empty-icon\">□</div><h3>"+(searchText?"No matching listings":"No listings yet")+"</h3><p>"+(searchText?"Try a different inventory search.":"Create your first listing, then use the camera to add real product photos.")+"</p></div>");
+  }
+
+  UI.app.innerHTML=html.join("");
+  document.getElementById("inventory-back").addEventListener("click",()=>UI.route("seller"));
+  document.getElementById("inventory-new").addEventListener("click",()=>UI.route("listingEditor"));
+
+  document.getElementById("inventory-search-form").addEventListener("submit",async event=>{
+   event.preventDefault();
+   searchText=String(document.getElementById("inventory-search").value||"").trim();
+   UI.loading("Searching inventory");
+   try{
+    const page=await fetchPage(0,searchText);
+    items=page.items;hasMore=page.hasMore;render();
+   }catch(error){UI.empty("□","Inventory unavailable",error.message,"Try again",()=>UI.route("inventory"));}
+  });
+
+  const clear=document.getElementById("inventory-clear-search");
+  if(clear)clear.addEventListener("click",async()=>{
+   searchText="";
+   UI.loading("Loading inventory");
+   try{
+    const page=await fetchPage(0,"");
+    items=page.items;hasMore=page.hasMore;render();
+   }catch(error){UI.empty("□","Inventory unavailable",error.message,"Try again",()=>UI.route("inventory"));}
+  });
+
+  const more=document.getElementById("inventory-more");
+  if(more)more.addEventListener("click",async()=>{
+   more.disabled=true;more.textContent="Loading…";
+   try{
+    const page=await fetchPage(items.length);
+    const known=new Set(items.map(item=>item.id));
+    items.push(...page.items.filter(item=>!known.has(item.id)));
+    hasMore=page.hasMore;render();
+   }catch(error){UI.toast(error.message,"error");more.disabled=false;more.textContent="Load more inventory";}
+  });
+
+  UI.app.querySelectorAll("[data-listing-photos]").forEach(button=>button.addEventListener("click",()=>{
+   const item=items.find(value=>value.id===button.dataset.listingPhotos);
+   if(item)void openListingPhotos(item);
+  }));
+  UI.app.querySelectorAll("[data-listing-edit]").forEach(button=>button.addEventListener("click",()=>UI.route("listingEditor",{id:button.dataset.listingEdit})));
  };
- return categories.filter(item=>item.isSelectable).sort((a,b)=>path(a).localeCompare(path(b))).map(item=>
-  "<option value=\""+C.escapeHtml(item.id)+"\" "+(item.id===selected?"selected":"")+">"+C.escapeHtml(path(item))+"</option>"
- ).join("");
+
+ try{
+  const page=await fetchPage(0);
+  items=page.items;hasMore=page.hasMore;
+ }catch(error){UI.empty("□","Inventory unavailable",error.message,"Try again",()=>UI.route("inventory"));return;}
+
+ render();
 };
-
-const donorOptions=(donors,selected)=>"<option value=\"\">No donor / new stock / unknown</option>"+donors.map(item=>
- "<option value=\""+C.escapeHtml(item.id)+"\" "+(item.id===selected?"selected":"")+">"+
- C.escapeHtml((item.registration?item.registration+" · ":"")+item.make+" "+item.model+" · "+item.year+(item.engineSizeSimple?" · "+item.engineSizeSimple+"cc":"")+(item.fuelType?" · "+item.fuelType:""))+
- "</option>"
-).join("");
-
-const fitmentLabel=(item)=>[
- item.make&&item.modelFamily?(item.make+" "+item.modelFamily):"Confirmed vehicle",
- item.variant,
- item.year,
- item.engineSizeSimple?item.engineSizeSimple+"cc":null,
- item.fuelType
-].filter(Boolean).join(" · ");
 
 const addExactFitment=async(fitments,onChange)=>{
  UI.modal("Add confirmed vehicle",
