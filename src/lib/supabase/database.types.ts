@@ -1714,6 +1714,72 @@ export type Database = {
           },
         ]
       }
+      seller_prospects: {
+        Row: {
+          business_kind: string
+          business_name: string
+          created_at: string
+          dedupe_key: string
+          estimated_inventory: number | null
+          id: string
+          last_contacted_at: string | null
+          location: string | null
+          next_action_at: string | null
+          notes: string | null
+          postcode: string | null
+          priority: string
+          public_email: string | null
+          public_phone: string | null
+          source_type: string
+          source_url: string | null
+          status: string
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          business_kind: string
+          business_name: string
+          created_at?: string
+          dedupe_key: string
+          estimated_inventory?: number | null
+          id?: string
+          last_contacted_at?: string | null
+          location?: string | null
+          next_action_at?: string | null
+          notes?: string | null
+          postcode?: string | null
+          priority?: string
+          public_email?: string | null
+          public_phone?: string | null
+          source_type?: string
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          business_kind?: string
+          business_name?: string
+          created_at?: string
+          dedupe_key?: string
+          estimated_inventory?: number | null
+          id?: string
+          last_contacted_at?: string | null
+          location?: string | null
+          next_action_at?: string | null
+          notes?: string | null
+          postcode?: string | null
+          priority?: string
+          public_email?: string | null
+          public_phone?: string | null
+          source_type?: string
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       seller_verification_requests: {
         Row: {
           business_kind_snapshot: string | null
