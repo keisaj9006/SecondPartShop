@@ -288,7 +288,7 @@ const listingCard=(item)=>{
   "<button class=\"listing-image\" type=\"button\" data-open-listing=\""+C.escapeHtml(item.slug)+"\">"+(image?"<img src=\""+C.escapeHtml(image)+"\" alt=\""+C.escapeHtml(item.title)+"\" loading=\"lazy\"/>":"PART")+"</button>"+
   "<div class=\"listing-body\"><span class=\"listing-kicker\">"+C.escapeHtml(conditionLabel(item.condition))+"</span>"+
   "<button type=\"button\" data-open-listing=\""+C.escapeHtml(item.slug)+"\" style=\"border:0;background:transparent;padding:0;text-align:left\"><h3 class=\"listing-title\">"+C.escapeHtml(item.title)+"</h3></button>"+
-  "<p class=\"listing-meta\">"+C.escapeHtml(item.seller&&item.seller.businessName?item.seller.businessName:"SecondPart seller")+(compatibility?" · "+C.escapeHtml(compatibility):"")+"</p>"+
+  "<p class=\"listing-meta\">"+C.escapeHtml(item.seller&&item.seller.businessName?item.seller.businessName:"SecondPart seller")+(compatibility?" · "+C.escapeHtml(compatibility):"")+(typeof item.distanceMiles==="number"?" · "+(item.distanceApproximate?"~":"")+C.escapeHtml(Number(item.distanceMiles).toFixed(1))+" mi away":"")+"</p>"+
   "<div class=\"listing-bottom\"><span class=\"price\">"+C.money(item.pricePence)+"</span><button type=\"button\" class=\"heart"+(saved?" saved":"")+"\" data-save-part=\""+C.escapeHtml(item.id)+"\" aria-label=\"Save part\">"+(saved?"♥":"♡")+"</button></div></div></article>";
 };
 
