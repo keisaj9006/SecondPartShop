@@ -442,31 +442,7 @@ const notifications=async()=>{
 };
 
 const openNotification=(item)=>{
- const href=String(item.href||"");
- if(href.startsWith("/parts/")){const slug=href.split("/").filter(Boolean)[1];if(slug){UI.route("listing",{slug});return;}}
- if(href.startsWith("/inbox/")){UI.route("conversation",{id:href.split("/").pop()});return;}
- if(href.startsWith("/account/reviews")){UI.route("reviews");return;}
- if(href.startsWith("/account/orders")){UI.route("orders");return;}
- if(href.startsWith("/account/cases")){UI.route("cases");return;}
- if(href.startsWith("/account/fitting")){UI.route("fittingRequests");return;}
- if(href.startsWith("/account/saved")){UI.route("saved");return;}
- if(href.startsWith("/garage-partner/requests")){UI.route("garagePartnerRequests");return;}
- if(href.startsWith("/garages")){UI.route("garages");return;}
- if(href.startsWith("/requests")){UI.route("requests");return;}
- if(href.startsWith("/dashboard/requests")){C.state.accountMode="selling";UI.route("sellerRequests");return;}
- if(href.startsWith("/dashboard/orders")){C.state.accountMode="selling";UI.route("sellerSales");return;}
- if(href.startsWith("/dashboard/cases")){C.state.accountMode="selling";UI.route("seller");return;}
- if(href.startsWith("/dashboard/verification")){C.state.accountMode="selling";UI.route("sellerVerification");return;}
- if(href.startsWith("/dashboard/payments")){C.state.accountMode="selling";UI.route("seller");return;}
- if(href.startsWith("/dashboard/listings/")){
-  const id=href.split("/").filter(Boolean)[2];
-  C.state.accountMode="selling";
-  if(id&&id!=="new"){UI.route("listingEditor",{id});return;}
-  UI.route("listingEditor");return;
- }
- if(href==="/dashboard"||href.startsWith("/dashboard?")){C.state.accountMode="selling";UI.route("seller");return;}
- if(href.startsWith("/garage")){UI.route("garage");return;}
- void C.Native.openBrowser(C.config.webBaseUrl.replace(/\/$/,"")+href);
+ UI.openHref(item?.href);
 };
 
 
