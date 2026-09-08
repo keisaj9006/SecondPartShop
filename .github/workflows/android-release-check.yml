@@ -1,0 +1,107 @@
+name: Android Release Pipeline Check
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [rebuild-nextjs]
+    paths:
+      - "mobile-shell/**"
+      - "mobile-native-src/**"
+      - "capacitor.config.json"
+      - "scripts/patch-android-mobile.mjs"
+      - "scripts/patch-android-app-links.mjs"
+      - "scripts/prepare-android-release.mjs"
+      - "scripts/patch-android-release-signing.mjs"
+      - ".github/workflows/android-release-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-release-bundle:
+    name: Validate production-style AAB build
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      SECOND_PART_PRODUCTION_URL: https://release-check.secondpart.invalid
+      SECOND_PART_KEYSTORE_PATH: /tmp/secondpart-ci-release.jks
+      ANDROID_KEYSTORE_PASSWORD: changeit
+      ANDROID_KEY_ALIAS: secondpart-ci
+      ANDROID_KEY_PASSWORD: changeit
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install web dependencies
+        run: npm ci
+
+      - name: Install Capacitor 8 toolchain and native plugins
+        run: |
+          npm install --no-save --package-lock=false \
+            @capacitor/core@8.5.1 \
+            @capacitor/cli@8.5.1 \
+            @capacitor/android@8.5.1 \
+            @capacitor/app@8.1.1 \
+            @capacitor/browser@8.0.4 \
+            @capacitor/camera@8.2.4 \
+            @aparajita/capacitor-secure-storage@8.0.0 \
+            esbuild@0.25.9
+          npm pkg set "dependencies.@capacitor/app=8.1.1"
+          npm pkg set "dependencies.@capacitor/browser=8.0.4"
+          npm pkg set "dependencies.@capacitor/camera=8.2.4"
+          npm pkg set "dependencies.@aparajita/capacitor-secure-storage=8.0.0"
+
+      - name: Prepare production-style config
+        run: node scripts/prepare-android-release.mjs
+
+      - name: Build native JavaScript bridge
+        run: npx esbuild mobile-native-src/native.ts --bundle --platform=browser --format=iife --target=es2020 --outfile=mobile-shell/native.js
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Generate Android project
+        run: npx cap add android
+
+      - name: Patch Android deep links
+        run: |
+          node scripts/patch-android-mobile.mjs
+          node scripts/patch-android-app-links.mjs
+
+      - name: Sync Capacitor project
+        run: npx cap sync android
+
+      - name: Create ephemeral CI signing key
+        run: |
+          keytool -genkeypair -noprompt \
+            -keystore "$SECOND_PART_KEYSTORE_PATH" \
+            -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -keypass "$ANDROID_KEY_PASSWORD" \
+            -alias "$ANDROID_KEY_ALIAS" \
+            -keyalg RSA -keysize 2048 -validity 2 \
+            -dname "CN=SecondPart CI,O=SecondPart,C=GB"
+
+      - name: Configure release signing
+        run: node scripts/patch-android-release-signing.mjs
+
+      - name: Build production-style Android App Bundle
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew bundleRelease --no-daemon
+
+      - name: Confirm AAB exists
+        run: test -s android/app/build/outputs/bundle/release/app-release.aab
