@@ -1,5 +1,6 @@
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileSeller } from "@/lib/mobile-api";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -88,12 +89,14 @@ export async function POST(request:Request){
   if(response.length>2000)return mobileJson(request,{ok:false,error:"response_too_long"},400);
   const {error}=await supabase.rpc("seller_respond_transaction_case",{p_case_id:caseId,p_response:response});
   if(error)return mobileJson(request,{ok:false,error:"case_response_failed"},409);
+  schedulePushDispatch(50);
   return mobileJson(request,{ok:true,state:"seller_response"});
  }
 
  if(action==="confirm_return_received"){
   const {error}=await supabase.rpc("seller_confirm_transaction_return_received",{p_case_id:caseId});
   if(error)return mobileJson(request,{ok:false,error:"return_confirmation_failed"},409);
+  schedulePushDispatch(50);
   return mobileJson(request,{ok:true,state:"returned"});
  }
 

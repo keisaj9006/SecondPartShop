@@ -1,5 +1,6 @@
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -104,5 +105,6 @@ export async function POST(request:Request){
   return mobileJson(request,{ok:false,error:"case_open_failed"},409);
  }
 
+ schedulePushDispatch(50);
  return mobileJson(request,{ok:true,caseId:data},201);
 }
