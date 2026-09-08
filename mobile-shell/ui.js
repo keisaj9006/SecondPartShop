@@ -13,6 +13,44 @@ const routeStack=[];
 let routePending=false;
 let loadingTimer=null;
 let routeLoader=null;
+let routeSequence=0;
+let silentRouteRefresh=false;
+const screenCache=new Map();
+const CACHED_ROOTS=new Set(["home","garage","orders","inbox","account","seller","inventory","sellerSales"]);
+const cacheContext=()=>String(C.state.me?.profile?.id||"guest");
+const isRootCacheable=(route)=>Boolean(route&&CACHED_ROOTS.has(route.name)&&Object.keys(route.payload||{}).length===0);
+const cacheKeyForRoute=(route)=>cacheContext()+"::"+routeKey(route);
+
+const stashCurrentScreen=()=>{
+ if(!isRootCacheable(currentRoute)||!app.childNodes.length)return;
+ const holder=document.createElement("div");
+ holder.append(...Array.from(app.childNodes));
+ screenCache.set(cacheKeyForRoute(currentRoute),{
+  holder,
+  scrollY:Math.max(0,window.scrollY||0),
+  at:Date.now()
+ });
+};
+
+const restoreScreen=(route)=>{
+ if(!isRootCacheable(route))return false;
+ const entry=screenCache.get(cacheKeyForRoute(route));
+ if(!entry?.holder?.childNodes.length)return false;
+ app.replaceChildren(...Array.from(entry.holder.childNodes));
+ requestAnimationFrame(()=>window.scrollTo({top:entry.scrollY||0,behavior:"instant"}));
+ return true;
+};
+
+const clearScreenCache=(names)=>{
+ if(!names){screenCache.clear();return;}
+ const allowed=new Set(Array.isArray(names)?names:[names]);
+ for(const [key,entry] of screenCache){
+  const routeName=key.split("::").slice(1).join("::").split("|")[0];
+  if(allowed.has(routeName))screenCache.delete(key);
+ }
+};
+
+const isCurrent=(name)=>Boolean(currentRoute&&currentRoute.name===name&&C.state.currentView===name);
 
 const ensureRouteLoader=()=>{
  if(routeLoader&&document.body.contains(routeLoader))return routeLoader;
@@ -73,8 +111,12 @@ const syncNavigationMode=()=>{
 
 const route=async(name,payload,options={})=>{
  const next={name,payload:payload||{}};
- if(currentRoute&&!options.fromBack&&routeKey(currentRoute)!==routeKey(next))routeStack.push(currentRoute);
+ const previous=currentRoute;
+ const sameRoute=Boolean(previous&&routeKey(previous)===routeKey(next));
+ if(previous&&!options.fromBack&&!sameRoute)routeStack.push(previous);
+ if(previous&&!sameRoute)stashCurrentScreen();
  currentRoute=next;
+ const mySequence=++routeSequence;
  C.state.currentView=name;
  syncNavigationMode();
  document.querySelectorAll("[data-nav]").forEach(button=>{
@@ -91,19 +133,29 @@ const route=async(name,payload,options={})=>{
   app.innerHTML="<div class=\"empty\"><div class=\"empty-icon\">!</div><h3>Screen unavailable</h3><p>This mobile screen has not been registered.</p></div>";
   return;
  }
- window.scrollTo({top:0,behavior:"instant"});
+ const restored=sameRoute?Boolean(app.childNodes.length):restoreScreen(next);
+ if(!restored){
+  app.replaceChildren();
+  window.scrollTo({top:0,behavior:"instant"});
+ }
  routePending=true;
- showRouteLoading("Loading "+String(name||"screen").replaceAll("_"," ")+"…");
- try{await registry.get(name)(payload||{});}
- catch(error){
+ silentRouteRefresh=restored;
+ if(!restored)showRouteLoading("Loading "+String(name||"screen").replaceAll("_"," ")+"…");
+ try{
+  await registry.get(name)(payload||{});
+ }catch(error){
+  if(mySequence!==routeSequence)return;
   console.error(error);
   const message=C.escapeHtml(error&&error.message?error.message:"Something went wrong.");
   app.innerHTML="<div class=\"empty\"><div class=\"empty-icon\">!</div><h3>Could not load this screen</h3><p>"+message+"</p><button id=\"retry-screen\" class=\"primary small-button\" type=\"button\">Try again</button></div>";
   const retry=document.getElementById("retry-screen");
   if(retry)retry.addEventListener("click",()=>route(name,payload));
  }finally{
-  routePending=false;
-  hideRouteLoading();
+  if(mySequence===routeSequence){
+   routePending=false;
+   silentRouteRefresh=false;
+   hideRouteLoading();
+  }
  }
 };
 
@@ -124,7 +176,7 @@ const refreshCurrent=async()=>{
 
 const loading=(label)=>{
  if(routePending&&app.childElementCount){
-  showRouteLoading(label||"Loading…");
+  if(!silentRouteRefresh)showRouteLoading(label||"Loading…");
   return;
  }
  app.innerHTML="<section class=\"boot-screen\"><span class=\"spinner\"></span><h1>"+C.escapeHtml(label||"Loading")+"</h1><p>Please wait a moment…</p></section>";
@@ -268,6 +320,6 @@ const bindListingActions=(container)=>{
 
 window.SecondPartUI=Object.freeze({
  C,app,register,route,back,refreshCurrent,loading,toast,modal,closeModal,empty,requireAuth,updateBadge,refreshUserChrome,
- listingCard,vehicleVisual,bindListingActions,firstImage
+ clearScreenCache,isCurrent,listingCard,vehicleVisual,bindListingActions,firstImage
 });
 })();
