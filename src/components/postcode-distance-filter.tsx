@@ -24,6 +24,7 @@ export function PostcodeDistanceFilter({initialPostcode}:{initialPostcode?:strin
    setPostcode(confirmed);
    const params=new URLSearchParams(window.location.search);
    params.set("pc",confirmed);
+   params.set("sort","distance");
    router.push(`/?${params.toString()}#marketplace`);
   }catch{
    setMessage("Postcode lookup is temporarily unavailable.");
@@ -35,6 +36,7 @@ export function PostcodeDistanceFilter({initialPostcode}:{initialPostcode?:strin
   setPostcode("");setMessage("");
   const params=new URLSearchParams(window.location.search);
   params.delete("pc");
+  if(params.get("sort")==="distance")params.delete("sort");
   router.push(`/?${params.toString()}#marketplace`);
  };
  return <div className="mt-4 flex flex-col gap-2 rounded-2xl border border-black/10 bg-white p-4 sm:flex-row sm:items-center">
