@@ -67,9 +67,11 @@ const orders=async()=>{
   items=firstPage.items;
   hasMore=firstPage.hasMore;
  }catch(error){
+  if(!UI.isCurrent("orders"))return;
   UI.empty("▣","Purchases unavailable",error.message,"Try again",()=>UI.route("orders"));
   return;
  }
+ if(!UI.isCurrent("orders"))return;
 
  render();
 };
@@ -181,7 +183,8 @@ const inbox=async()=>{
  UI.loading("Loading Inbox");
  let items;
  try{items=(await C.apiCached("/inbox",{auth:true,maxAge:15000})).items||[];}
- catch(error){UI.empty("◫","Inbox unavailable",error.message,"Try again",()=>UI.route("inbox"));return;}
+ catch(error){if(!UI.isCurrent("inbox"))return;UI.empty("◫","Inbox unavailable",error.message,"Try again",()=>UI.route("inbox"));return;}
+ if(!UI.isCurrent("inbox"))return;
 
  UI.app.innerHTML="<div class=\"section-head\"><div><p class=\"eyebrow\">Messages</p><h2>Part questions</h2><p>Private pre-purchase conversations.</p></div></div>"+(items.length?items.map(item=>"<button type=\"button\" class=\"conversation-card wide\" data-conversation=\""+C.escapeHtml(item.id)+"\" style=\"text-align:left\"><div class=\"row-between\"><div><h3>"+C.escapeHtml(item.partTitle)+"</h3><p class=\"subtle\">"+C.escapeHtml(item.sellerOwnerId===C.state.me.profile.id?"Buyer question":"Seller: "+item.sellerName)+" · "+C.dateTime(item.lastMessageAt)+"</p></div><span class=\"pill\">"+C.escapeHtml(item.status)+"</span></div></button>").join(""):"<div class=\"empty\"><div class=\"empty-icon\">◫</div><h3>No part questions yet</h3><p>Questions you send to sellers, or buyers send about your listings, will appear here.</p></div>");
  UI.app.querySelectorAll("[data-conversation]").forEach(button=>button.addEventListener("click",()=>UI.route("conversation",{id:button.dataset.conversation})));
