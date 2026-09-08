@@ -6,24 +6,34 @@ const C=UI.C;
 
 const garageCard=garage=>"<article class=\"order-card\"><div class=\"row-between\"><div><p class=\"eyebrow\">Buy + Fit garage</p><h3>"+C.escapeHtml(garage.businessName)+"</h3><p class=\"subtle\">"+C.escapeHtml(garage.location)+" · "+C.escapeHtml(garage.postcode)+"</p></div>"+(garage.verified?"<span class=\"pill\">Verified</span>":"")+"</div><p style=\"font-size:11px;line-height:1.6\">"+C.escapeHtml(garage.description)+"</p><div class=\"chips\"><span class=\"chip green\">Customer-supplied parts</span><span class=\"chip green\">Recycled parts</span>"+(garage.mobileFitting?"<span class=\"chip\">Mobile fitting</span>":"")+"</div></article>";
 
-const garages=async()=>{
+const garages=async(payload={})=>{
  UI.loading("Loading Buy + Fit garages");
+ const query=String(payload.query||"").trim();
+ const path="/garages?limit=60"+(query?"&q="+encodeURIComponent(query):"");
  let result;
- try{result=await C.apiCached("/garages?limit=60",{auth:false,maxAge:60000});}
- catch(error){UI.empty("⌁","Garages unavailable",error.message,"Try again",()=>UI.route("garages"));return;}
+ try{result=await C.apiCached(path,{auth:false,maxAge:60000});}
+ catch(error){UI.empty("⌁","Garages unavailable",error.message,"Try again",()=>UI.route("garages",payload));return;}
  const items=result.items||[];
  const html=[];
  html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Buy + Fit network</p><h2>Garages</h2><p>Approved workshops that accept customer-supplied recycled parts.</p></div></div>");
+ html.push("<form id=\"garage-search-form\" class=\"search-row\" style=\"margin-bottom:12px\"><input id=\"garage-search\" class=\"input\" value=\""+C.escapeHtml(query)+"\" placeholder=\"Town, postcode or garage name\"/><button class=\"primary\" type=\"submit\">Search</button></form>");
  html.push("<div class=\"status info\"><strong>Important:</strong> A labour quote does not confirm that a part fits your vehicle. Part purchase and fitting remain separate.</div>");
  if(items.length)html.push(items.map(garageCard).join(""));
  else html.push("<div class=\"empty\"><div class=\"empty-icon\">⌁</div><h3>Garage recruitment is open</h3><p>Approved Buy + Fit partners will appear here.</p></div>");
  html.push("<section class=\"card\" style=\"margin-top:14px\"><p class=\"eyebrow\">Run a workshop?</p><h3 style=\"margin:5px 0\">Join Buy + Fit</h3><p class=\"subtle\">You do not need to become a parts seller.</p><button id=\"garages-join\" class=\"lime-button wide\" type=\"button\">Garage partner profile</button></section>");
  UI.app.innerHTML=html.join("");
+ const searchForm=document.getElementById("garage-search-form");
+ if(searchForm)searchForm.addEventListener("submit",event=>{
+  event.preventDefault();
+  const next=String(document.getElementById("garage-search")?.value||"").trim();
+  UI.route("garages",next?{query:next}:{});
+ });
  document.getElementById("garages-join").addEventListener("click",async()=>{if(!await UI.requireAuth("garagePartner"))return;UI.route("garagePartner");});
 };
 
 const fitPart=async(payload={})=>{
  const item=payload.item;
+ const query=String(payload.query||"").trim();
  if(!item?.id){UI.route("home");return;}
  const vehicle=C.state.activeVehicle;
  if(!vehicle?.variantId||!vehicle?.year){
@@ -32,7 +42,7 @@ const fitPart=async(payload={})=>{
  }
  UI.loading("Loading fitting partners");
  let garagesResult;
- try{garagesResult=await C.api("/garages?limit=60");}
+ try{garagesResult=await C.apiCached("/garages?limit=60"+(query?"&q="+encodeURIComponent(query):""),{auth:false,maxAge:60000});}
  catch(error){UI.empty("⌁","Garages unavailable",error.message,"Back",()=>UI.back());return;}
  const items=garagesResult.items||[];
  const vehicleLabel=(vehicle.registration?vehicle.registration+" · ":"")+(vehicle.make||"")+" "+(vehicle.modelFamily||"")+" · "+vehicle.year+(vehicle.engineSizeSimple?" · "+vehicle.engineSizeSimple+"cc":"")+(vehicle.fuelType?" · "+vehicle.fuelType:"");
@@ -40,12 +50,19 @@ const fitPart=async(payload={})=>{
  html.push("<button class=\"back\" id=\"fit-back\" type=\"button\">‹ Back to part</button>");
  html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Buy + Fit</p><h2>Request fitting quote</h2><p>"+C.escapeHtml(item.title)+"</p></div></div>");
  html.push("<div class=\"status info\"><strong>"+C.escapeHtml(vehicleLabel)+"</strong><div style=\"margin-top:4px\">Labour quote only. The workshop quote is not a compatibility guarantee and does not buy the part.</div></div>");
+ html.push("<form id=\"fit-garage-search-form\" class=\"search-row\" style=\"margin:12px 0\"><input id=\"fit-garage-search\" class=\"input\" value=\""+C.escapeHtml(query)+"\" placeholder=\"Town, postcode or garage name\"/><button class=\"primary\" type=\"submit\">Search</button></form>");
  if(items.length)html.push(items.map(garage=>
   "<article class=\"order-card\"><div class=\"row-between\"><div><h3>"+C.escapeHtml(garage.businessName)+"</h3><p class=\"subtle\">"+C.escapeHtml(garage.location)+" · "+C.escapeHtml(garage.postcode)+"</p></div>"+(garage.verified?"<span class=\"pill\">Verified</span>":"")+"</div><p style=\"font-size:11px;line-height:1.6\">"+C.escapeHtml(garage.description)+"</p><button class=\"primary wide\" style=\"margin-top:10px\" data-fit-garage=\""+C.escapeHtml(garage.id)+"\" type=\"button\">Request labour quote</button></article>"
  ).join(""));
  else html.push("<div class=\"empty\"><div class=\"empty-icon\">⌁</div><h3>No fitting partners yet</h3><p>You can still buy the part without fitting.</p></div>");
  UI.app.innerHTML=html.join("");
  document.getElementById("fit-back").addEventListener("click",()=>UI.back());
+ const fitSearch=document.getElementById("fit-garage-search-form");
+ if(fitSearch)fitSearch.addEventListener("submit",event=>{
+  event.preventDefault();
+  const next=String(document.getElementById("fit-garage-search")?.value||"").trim();
+  UI.route("fitPart",{item,query:next});
+ });
  UI.app.querySelectorAll("[data-fit-garage]").forEach(button=>button.addEventListener("click",async()=>{
   if(!await UI.requireAuth("fitPart"))return;
   const garage=items.find(value=>value.id===button.dataset.fitGarage);
