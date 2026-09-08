@@ -93,7 +93,7 @@ const openMarketplaceFilters=async()=>{
  });
 };
 
-const marketplacePath=(query)=>{
+const marketplacePath=(query,{limit=24,offset=0}={})=>{
  const params=new URLSearchParams();
  const remembered=rememberedMarketplaceParams();
  Object.entries(remembered).forEach(([key,value])=>params.set(key,value));
@@ -104,7 +104,8 @@ const marketplacePath=(query)=>{
   extra.forEach((value,key)=>params.set(key,value));
   params.set("fit",C.state.vehicleCompatibleOnly?"1":"0");
  }
- params.set("limit","60");
+ params.set("limit",String(limit));
+ if(offset>0)params.set("offset",String(offset));
  return "/marketplace?"+params.toString();
 };
 
@@ -121,7 +122,7 @@ const home=async(payload={})=>{
  UI.loading("Loading marketplace");
  let result;
  try{
-  result=await C.apiCached(marketplacePath(C.state.currentSearch),{auth:false,maxAge:20000,staleWhileRevalidate:true});
+  result=await C.apiCached(marketplacePath(C.state.currentSearch,{limit:24,offset:0}),{auth:false,maxAge:20000,staleWhileRevalidate:true});
  }catch(error){
   if(!UI.isCurrent("home"))return;
   if(UI.isSilentRefresh()){UI.toast("Could not refresh marketplace. Showing the last loaded view.","warning");return;}
@@ -146,12 +147,43 @@ const home=async(payload={})=>{
  html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Marketplace</p><h2>"+(C.state.currentSearch?"Search results":"Available parts")+"</h2><p>"+result.pagination.total+" matching listing"+(result.pagination.total===1?"":"s")+"</p></div>"+(marketplaceActions.length?"<div class=\"button-row\">"+marketplaceActions.join("")+"</div>":"")+"</div>");
  if(result.items&&result.items.length){
   html.push("<section id=\"listing-grid\" class=\"list-grid\">"+result.items.map(UI.listingCard).join("")+"</section>");
+  if(result.pagination?.hasMore)html.push("<button id=\"marketplace-more\" class=\"secondary wide\" style=\"margin-top:14px\" type=\"button\">Load more parts</button>");
  }else{
   html.push("<div class=\"empty\"><div class=\"empty-icon\">⌕</div><h3>No matching parts yet</h3><p>Try another part name, OE/OEM number or remove the vehicle filter.</p>"+(C.state.currentSearch?"<button id=\"request-missing-part\" class=\"primary small-button\" style=\"margin-top:14px\" type=\"button\">Request this part</button>":"")+"</div>");
  }
 
  UI.app.innerHTML=html.join("");
  UI.bindListingActions(UI.app);
+
+ const moreParts=document.getElementById("marketplace-more");
+ if(moreParts)moreParts.addEventListener("click",async()=>{
+  const grid=document.getElementById("listing-grid");
+  if(!grid)return;
+  moreParts.disabled=true;
+  moreParts.textContent="Loading more…";
+  try{
+   const offset=grid.querySelectorAll(".listing-card").length;
+   const next=await C.apiCached(marketplacePath(C.state.currentSearch,{limit:24,offset}),{auth:false,maxAge:10000});
+   const items=next.items||[];
+   if(items.length){
+    const holder=document.createElement("div");
+    holder.innerHTML=items.map(UI.listingCard).join("");
+    const added=[...holder.children];
+    grid.append(...added);
+    added.forEach(node=>UI.bindListingActions(node));
+   }
+   if(next.pagination?.hasMore){
+    moreParts.disabled=false;
+    moreParts.textContent="Load more parts";
+   }else{
+    moreParts.remove();
+   }
+  }catch(error){
+   UI.toast(error.message,"error");
+   moreParts.disabled=false;
+   moreParts.textContent="Load more parts";
+  }
+ });
 
  const buyFit=document.getElementById("home-buy-fit");if(buyFit)buyFit.addEventListener("click",()=>UI.route("garages"));
  const fittingRequests=document.getElementById("home-fitting-requests");if(fittingRequests)fittingRequests.addEventListener("click",()=>UI.route("fittingRequests"));
