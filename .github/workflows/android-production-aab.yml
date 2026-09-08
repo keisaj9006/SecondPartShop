@@ -55,11 +55,13 @@ jobs:
             @capacitor/app@8.1.1 \
             @capacitor/browser@8.0.4 \
             @capacitor/camera@8.2.4 \
+            @capacitor/push-notifications@8.0.4 \
             @aparajita/capacitor-secure-storage@8.0.0 \
             esbuild@0.25.9
           npm pkg set "dependencies.@capacitor/app=8.1.1"
           npm pkg set "dependencies.@capacitor/browser=8.0.4"
           npm pkg set "dependencies.@capacitor/camera=8.2.4"
+          npm pkg set "dependencies.@capacitor/push-notifications=8.0.4"
           npm pkg set "dependencies.@aparajita/capacitor-secure-storage=8.0.0"
 
       - name: Prepare isolated production config
