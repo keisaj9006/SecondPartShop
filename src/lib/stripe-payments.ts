@@ -15,6 +15,8 @@ export type StripeCheckoutSession={
  payment_status:string;
  payment_intent:string|{id:string}|null;
  client_reference_id:string|null;
+ amount_total:number|null;
+ currency:string|null;
  metadata?:Record<string,string>;
  collected_information?:Record<string,unknown>|null;
  shipping_details?:Record<string,unknown>|null;
@@ -24,6 +26,9 @@ export type StripePaymentIntent={
  id:string;
  status:string;
  latest_charge:string|{id:string}|null;
+ amount_received:number;
+ currency:string;
+ metadata?:Record<string,string>;
 };
 
 export type StripeTransfer={id:string;amount:number;currency:string;destination:string|{id:string}};
