@@ -21,24 +21,24 @@ const cacheContext=()=>String(C.state.me?.profile?.id||"guest");
 const isRootCacheable=(route)=>Boolean(route&&CACHED_ROOTS.has(route.name)&&Object.keys(route.payload||{}).length===0);
 const cacheKeyForRoute=(route)=>cacheContext()+"::"+routeKey(route);
 
+// Root-tab navigation must never synchronously detach a large rendered tree.
+// Home can contain dozens of listing cards and images; moving that DOM into a
+// detached holder on every tap caused multi-second main-thread stalls on real
+// Android devices. API responses are already cached in core.js, so for root
+// tabs we only retain lightweight UI state and re-render from cached data.
 const stashCurrentScreen=()=>{
- if(!isRootCacheable(currentRoute)||!app.childNodes.length)return;
- const holder=document.createElement("div");
- holder.append(...Array.from(app.childNodes));
+ if(!isRootCacheable(currentRoute))return;
  screenCache.set(cacheKeyForRoute(currentRoute),{
-  holder,
   scrollY:Math.max(0,window.scrollY||0),
   at:Date.now()
  });
 };
 
-const restoreScreen=(route)=>{
- if(!isRootCacheable(route))return false;
- const entry=screenCache.get(cacheKeyForRoute(route));
- if(!entry?.holder?.childNodes.length)return false;
- app.replaceChildren(...Array.from(entry.holder.childNodes));
- requestAnimationFrame(()=>window.scrollTo({top:entry.scrollY||0,behavior:"instant"}));
- return true;
+const restoreScreen=()=>false;
+
+const cachedScrollForRoute=(route)=>{
+ if(!isRootCacheable(route))return 0;
+ return Math.max(0,Number(screenCache.get(cacheKeyForRoute(route))?.scrollY||0));
 };
 
 const clearScreenCache=(names)=>{
@@ -134,6 +134,7 @@ const route=async(name,payload,options={})=>{
   app.innerHTML="<div class=\"empty\"><div class=\"empty-icon\">!</div><h3>Screen unavailable</h3><p>This mobile screen has not been registered.</p></div>";
   return;
  }
+ const targetScroll=sameRoute?Math.max(0,window.scrollY||0):cachedScrollForRoute(next);
  const restored=sameRoute?Boolean(app.childNodes.length):restoreScreen(next);
  if(!restored){
   app.replaceChildren();
@@ -156,6 +157,9 @@ const route=async(name,payload,options={})=>{
    routePending=false;
    silentRouteRefresh=false;
    hideRouteLoading();
+   if(isRootCacheable(next)){
+    requestAnimationFrame(()=>window.scrollTo({top:targetScroll,behavior:"instant"}));
+   }
   }
  }
 };
