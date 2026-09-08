@@ -4,19 +4,40 @@ import { Header } from "@/components/header";
 import { requireAdmin } from "@/lib/auth";
 import { getPlatformReadiness } from "@/lib/platform-readiness";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { refreshMissingSellerGeo } from "./actions";
 
 export const dynamic="force-dynamic";
 
-export default async function SystemReadinessPage(){
+const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
+
+export default async function SystemReadinessPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
  await requireAdmin("/admin/system");
+ const params=await searchParams;
  const readiness=getPlatformReadiness();
  const admin=createSupabaseAdminClient();
- const {data:listingReadiness}=await admin.rpc("admin_active_listing_checkout_readiness");
+ const [listingResult,sellerPostcodeResult,sellerGeoResult,garageActiveResult,garageGeoResult]=await Promise.all([
+  admin.rpc("admin_active_listing_checkout_readiness"),
+  admin.from("sellers").select("id",{count:"exact",head:true}).not("postcode","is",null),
+  admin.from("sellers").select("id",{count:"exact",head:true}).not("postcode","is",null).not("latitude","is",null).not("longitude","is",null),
+  admin.from("garage_partners").select("id",{count:"exact",head:true}).eq("status","active"),
+  admin.from("garage_partners").select("id",{count:"exact",head:true}).eq("status","active").not("latitude","is",null).not("longitude","is",null)
+ ]);
+ const listingReadiness=listingResult.data;
  const listingRow=listingReadiness?.[0];
  const activeListings=Number(listingRow?.active_listings??0);
  const checkoutReadyListings=Number(listingRow?.checkout_ready_listings??0);
  const checkoutBlockedListings=Number(listingRow?.checkout_blocked_listings??0);
  const marketplaceInventoryReady=checkoutBlockedListings===0;
+ const sellersWithPostcode=sellerPostcodeResult.count??0;
+ const geocodedSellers=sellerGeoResult.count??0;
+ const missingSellerGeo=Math.max(0,sellersWithPostcode-geocodedSellers);
+ const activeGarages=garageActiveResult.count??0;
+ const geocodedActiveGarages=garageGeoResult.count??0;
+ const missingGarageGeo=Math.max(0,activeGarages-geocodedActiveGarages);
+ const locationReady=missingSellerGeo===0&&missingGarageGeo===0;
+ const geoUpdated=Number(first(params["geo-updated"])??0);
+ const geoUnresolved=Number(first(params["geo-unresolved"])??0);
+ const geoError=first(params["geo-error"]);
 
  return <><Header/><main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
   <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -46,6 +67,21 @@ export default async function SystemReadinessPage(){
 
   <section className={"mt-8 rounded-[30px] border p-6 sm:p-8 "+(marketplaceInventoryReady?"border-emerald-200 bg-emerald-50":"border-amber-200 bg-amber-50")}>
    <div className="flex items-start gap-3">{marketplaceInventoryReady?<CheckCircle2 size={26} className="text-emerald-800"/>:<CircleAlert size={26} className="text-amber-900"/>}<div><p className="text-xs font-black uppercase tracking-[.14em] text-[#63706a]">Marketplace inventory launch gate</p><h2 className="mt-1 text-2xl font-black">{marketplaceInventoryReady?"All active listings are checkout-ready":"Some active listings are not currently sellable"}</h2><p className="mt-2 text-sm leading-6 text-[#56625d]">{checkoutReadyListings} of {activeListings} active listings belong to sellers with completed payout setup. {checkoutBlockedListings>0?checkoutBlockedListings+" active listing(s) are preview/legacy inventory and must be resolved before public launch.":"No active listing is blocked by seller payout readiness."}</p></div></div>
+  </section>
+
+  <section className={"mt-8 rounded-[30px] border p-6 sm:p-8 "+(locationReady?"border-emerald-200 bg-emerald-50":"border-amber-200 bg-amber-50")}>
+   <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
+    <div>
+     <div className="flex items-center gap-3">{locationReady?<CheckCircle2 size={26} className="text-emerald-800"/>:<CircleAlert size={26} className="text-amber-900"/>}<div><p className="text-xs font-black uppercase tracking-[.14em] text-[#63706a]">Location & distance readiness</p><h2 className="mt-1 text-2xl font-black">{locationReady?"Marketplace distance data is ready":"Some marketplace location data needs geocoding"}</h2></div></div>
+     <p className="mt-3 text-sm leading-6 text-[#56625d]">{geocodedSellers} of {sellersWithPostcode} seller profile(s) with a postcode have trusted coordinates. {geocodedActiveGarages} of {activeGarages} active Buy + Fit garage(s) have trusted coordinates.</p>
+     {missingSellerGeo>0&&<p className="mt-2 text-sm font-bold text-amber-950">{missingSellerGeo} seller profile(s) can be safely re-geocoded from their stored postcode/outcode.</p>}
+     {missingGarageGeo>0&&<p className="mt-2 text-sm font-bold text-amber-950">{missingGarageGeo} active garage profile(s) are missing geo and should be reviewed before Buy + Fit location launch.</p>}
+     {geoUpdated>0&&<p className="mt-3 rounded-xl bg-emerald-100 px-3 py-2 text-sm font-bold text-emerald-900">Updated trusted geo for {geoUpdated} seller profile(s).</p>}
+     {geoUnresolved>0&&<p className="mt-3 rounded-xl bg-amber-100 px-3 py-2 text-sm font-bold text-amber-950">{geoUnresolved} seller postcode/outcode value(s) could not be resolved and were left unchanged.</p>}
+     {geoError&&<p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm font-bold text-red-900">Seller geo refresh could not be completed. No guessed coordinates were written.</p>}
+    </div>
+    {missingSellerGeo>0&&<form action={refreshMissingSellerGeo}><button className="shrink-0 rounded-xl bg-[#173c31] px-5 py-3 text-sm font-black text-white">Re-geocode seller locations</button></form>}
+   </div>
   </section>
 
   <section className={"mt-8 rounded-[30px] p-6 sm:p-8 "+(readiness.mobileReleaseReady?"bg-[#173c31] text-white":"bg-[#f8f7f2] text-[#173c31]")}>
