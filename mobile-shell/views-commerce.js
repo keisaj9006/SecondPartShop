@@ -290,7 +290,7 @@ const seller=async()=>{
  }catch(error){UI.empty("□","Seller dashboard unavailable",error.message,"Try again",()=>UI.route("seller"));return;}
 
  const html=[];
- html.push("<section class=\"account-hero\"><p class=\"eyebrow\" style=\"color:#d4f44d\">Seller dashboard</p><h1>"+C.escapeHtml(C.state.me.seller.businessName)+"</h1><p>"+sales.length+" sale"+(sales.length===1?"":"s")+" · "+cases.filter(item=>!["resolved","rejected","cancelled"].includes(item.status)).length+" active case(s)</p><div class=\"button-row\" style=\"margin-top:14px\"><button id=\"seller-inventory\" class=\"lime-button small-button\" type=\"button\">Inventory & photos</button></div></section>");
+ html.push("<section class=\"account-hero\"><p class=\"eyebrow\" style=\"color:#d4f44d\">Seller dashboard</p><h1>"+C.escapeHtml(C.state.me.seller.businessName)+"</h1><p>"+sales.length+" sale"+(sales.length===1?"":"s")+" · "+cases.filter(item=>!["resolved","rejected","cancelled"].includes(item.status)).length+" active case(s)</p><div class=\"button-row\" style=\"margin-top:14px\"><button id=\"seller-inventory\" class=\"lime-button small-button\" type=\"button\">Inventory & photos</button><button id=\"seller-imports\" class=\"secondary small-button\" type=\"button\">Bulk CSV import</button></div></section>");
  if(readiness){
   const launch=readiness.onboarding||{steps:[],nextAction:null,nextLabel:null,complete:false};
   const launchDone=(launch.steps||[]).filter(item=>item.done).length;
@@ -309,6 +309,7 @@ const seller=async()=>{
 
  UI.app.innerHTML=html.join("");
  const inventory=document.getElementById("seller-inventory");if(inventory)inventory.addEventListener("click",()=>UI.route("inventory"));
+ const imports=document.getElementById("seller-imports");if(imports)imports.addEventListener("click",()=>UI.route("sellerImports"));
  const openStripeOnboarding=async button=>{
   button.disabled=true;
   const previous=button.textContent;
@@ -335,11 +336,7 @@ const seller=async()=>{
  });
  const onboardingListing=document.getElementById("seller-onboarding-listing");if(onboardingListing)onboardingListing.addEventListener("click",()=>UI.route("listingEditor"));
  const onboardingImport=document.getElementById("seller-onboarding-import");
- if(onboardingImport)onboardingImport.addEventListener("click",async()=>{
-  const url=C.safeHttpUrl(C.config.webBaseUrl.replace(/\/$/,"")+"/dashboard/import");
-  if(!url){UI.toast("Bulk import URL is unavailable.","error");return;}
-  await C.Native.openBrowser(url);
- });
+ if(onboardingImport)onboardingImport.addEventListener("click",()=>UI.route("sellerImports"));
  const readinessListing=document.getElementById("seller-readiness-listing");if(readinessListing)readinessListing.addEventListener("click",()=>UI.route("listingEditor"));
  const paymentSetup=document.getElementById("seller-payment-setup");
  if(paymentSetup)paymentSetup.addEventListener("click",()=>void openStripeOnboarding(paymentSetup));
