@@ -30,12 +30,14 @@ jobs:
       - name: Validate release inputs and secrets
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
         run: |
           node -e 'const u=new URL(process.env.SECOND_PART_PRODUCTION_URL); if(u.protocol!=="https:") process.exit(1)'
           test -n "$ANDROID_KEYSTORE_BASE64"
           test -n "$ANDROID_KEYSTORE_PASSWORD"
           test -n "$ANDROID_KEY_ALIAS"
           test -n "$ANDROID_KEY_PASSWORD"
+          test -n "$GOOGLE_SERVICES_JSON_BASE64"
 
       - name: Set up Node 22
         uses: actions/setup-node@v4
@@ -89,6 +91,11 @@ jobs:
 
       - name: Sync Capacitor project
         run: npx cap sync android
+
+      - name: Configure production Firebase services
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > android/app/google-services.json
 
       - name: Restore release keystore
         env:
