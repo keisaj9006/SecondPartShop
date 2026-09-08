@@ -176,6 +176,7 @@ const renderAuth=(mode)=>{
 const afterLogin=async(intent=null)=>{
  await C.loadMe();
  await UI.refreshUserChrome();
+ void C.syncPushDevice().catch(error=>console.warn("Could not refresh push registration",error));
  UI.toast("Signed in.");
  if(intent==="seller"&&C.state.me&&!C.state.me.seller){
   C.state.afterAuth=null;

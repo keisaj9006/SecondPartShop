@@ -38,7 +38,7 @@ const push={
  async register(){
   if(!pushSupported)return {supported:false,granted:false,token:null};
   let permission=await PushNotifications.checkPermissions();
-  if(permission.receive==="prompt")permission=await PushNotifications.requestPermissions();
+  if(["prompt","prompt-with-rationale"].includes(permission.receive))permission=await PushNotifications.requestPermissions();
   if(permission.receive!=="granted")return {supported:true,granted:false,token:null};
   return new Promise<{supported:boolean;granted:boolean;token:string|null}>((resolve,reject)=>{
    let settled=false;

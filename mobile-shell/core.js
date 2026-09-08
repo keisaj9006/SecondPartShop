@@ -9,6 +9,7 @@ if(!Native)throw new Error("SecondPart native bridge is missing.");
 const SESSION_KEY="mobile_session_v1";
 const LEGACY_SESSION_KEY="secondpart.mobile.session.v1";
 const VEHICLE_CONTEXT_KEY="secondpart.mobile.vehicle-context.v1";
+const PUSH_ENABLED_KEY="pushEnabled";
 
 const readVehicleContext=()=>{
  try{
@@ -414,20 +415,47 @@ const registerPushDevice=async()=>{
   buildChannel:config.buildChannel==="release"?"release":"preview"
  }});
  await Native.storage.set("pushToken",token);
+ await Native.storage.set(PUSH_ENABLED_KEY,"1");
  return {supported:true,granted:true,registered:true};
 };
 
-const unregisterPushDevice=async()=>{
+const unregisterPushDevice=async({preservePreference=false}={})=>{
  const token=await Native.storage.get("pushToken").catch(()=>null);
  if(token&&state.session){
   try{await api("/push-devices",{method:"DELETE",auth:true,body:{token}});}catch{}
  }
  try{await Native.storage.remove("pushToken");}catch{}
+ if(!preservePreference){
+  try{await Native.storage.set(PUSH_ENABLED_KEY,"0");}catch{}
+ }
  try{await Native.push?.unregister();}catch{}
 };
 
+const syncPushDevice=async()=>{
+ if(!Native.push?.supported)return {supported:false,granted:false,registered:false};
+ if(!state.sessionReady)await initializeSession();
+ if(!state.session)return {supported:true,granted:false,registered:false};
+
+ let enabled=await Native.storage.get(PUSH_ENABLED_KEY).catch(()=>null);
+ const existingToken=await Native.storage.get("pushToken").catch(()=>null);
+ if(enabled===null&&existingToken){
+  enabled="1";
+  try{await Native.storage.set(PUSH_ENABLED_KEY,"1");}catch{}
+ }
+ if(enabled!=="1")return {supported:true,granted:false,registered:false};
+
+ const permission=await Native.push.permission();
+ if(permission!=="granted"){
+  if(permission==="denied"&&existingToken){
+   try{await unregisterPushDevice({preservePreference:true});}catch{}
+  }
+  return {supported:true,granted:false,registered:false};
+ }
+ return registerPushDevice();
+};
+
 const signOut=async()=>{
- try{await unregisterPushDevice();}catch{}
+ try{await unregisterPushDevice({preservePreference:true});}catch{}
  const current=await accessToken();
  if(current){
   try{await authFetch("/logout",{method:"POST",accessToken:current});}catch{}
@@ -488,6 +516,7 @@ window.SecondPartCore=Object.freeze({
  resendEmailConfirmation,
  registerPushDevice,
  unregisterPushDevice,
+ syncPushDevice,
  signOut,
  refreshSession,
  accessToken,

@@ -261,6 +261,7 @@ const boot=async()=>{
 
   prefetchPrimaryNavigation();
   await bindNativeListeners();
+  if(C.state.session)void C.syncPushDevice().catch(error=>console.warn("Could not refresh push registration",error));
 
   const launchUrl=await C.Native.getLaunchUrl();
   if(launchUrl&&await handleDeepLink(launchUrl))return;
