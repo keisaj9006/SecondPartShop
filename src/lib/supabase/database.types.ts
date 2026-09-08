@@ -3055,6 +3055,26 @@ export type Database = {
         }
         Returns: boolean
       }
+      find_garage_partners_nearby: {
+        Args: {
+          p_lat: number
+          p_limit?: number
+          p_lon: number
+          p_offset?: number
+          p_query?: string
+        }
+        Returns: {
+          business_name: string
+          description: string
+          distance_miles: number
+          id: string
+          location: string
+          mobile_fitting: boolean
+          postcode: string
+          slug: string
+          verified_at: string
+        }[]
+      }
       garage_respond_fitting_request: {
         Args: {
           p_action: string
