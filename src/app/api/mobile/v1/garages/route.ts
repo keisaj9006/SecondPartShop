@@ -12,13 +12,19 @@ export async function GET(request:Request){
  const rawOffset=Number(url.searchParams.get("offset")??0);
  const limit=Number.isInteger(rawLimit)?Math.max(1,Math.min(rawLimit,60)):40;
  const offset=Number.isInteger(rawOffset)?Math.max(0,rawOffset):0;
+ const query=String(url.searchParams.get("q")??"").replace(/[^a-zA-Z0-9 -]/g," ").replace(/\s+/g," ").trim().slice(0,80);
  const supabase=createSupabasePublicServerClient();
- const {data,error}=await supabase
+ let builder=supabase
   .from("garage_partners")
   .select("id,business_name,slug,location,postcode,description,mobile_fitting,verified_at")
   .eq("status","active")
   .eq("customer_supplied_parts",true)
-  .eq("recycled_parts",true)
+  .eq("recycled_parts",true);
+ if(query){
+  const pattern="%"+query+"%";
+  builder=builder.or("business_name.ilike."+pattern+",location.ilike."+pattern+",postcode.ilike."+pattern);
+ }
+ const {data,error}=await builder
   .order("verified_at",{ascending:false,nullsFirst:false})
   .order("business_name")
   .order("id")
@@ -31,6 +37,7 @@ export async function GET(request:Request){
    id:row.id,businessName:row.business_name,slug:row.slug,location:row.location,postcode:row.postcode,
    description:row.description,mobileFitting:row.mobile_fitting,verified:Boolean(row.verified_at)
   })),
+  query:query||null,
   pagination:{offset,limit,hasMore:rows.length>limit}
  });
 }
