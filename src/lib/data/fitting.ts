@@ -2,6 +2,7 @@ import "server-only";
 
 import { createSupabasePublicServerClient } from "@/lib/supabase/public-server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isPlausibleUkPostcode,lookupPostcodeLocation,normalizePostcode } from "@/lib/postcode";
 
 export type GaragePartner={
  id:string;
@@ -17,6 +18,7 @@ export type GaragePartner={
  status:"pending"|"active"|"suspended"|"rejected";
  verifiedAt:string|null;
  createdAt:string;
+ distanceMiles:number|null;
 };
 
 export type FittingRequestView={
@@ -63,7 +65,8 @@ const garage=(row:GarageRow):GaragePartner=>({
  mobileFitting:row.mobile_fitting,
  status:row.status as GaragePartner["status"],
  verifiedAt:row.verified_at,
- createdAt:row.created_at
+ createdAt:row.created_at,
+ distanceMiles:null
 });
 
 export async function getGaragePartnerForOwner(ownerId:string):Promise<GaragePartner|null>{
@@ -77,23 +80,73 @@ export async function getGaragePartnerForOwner(ownerId:string):Promise<GaragePar
  return data?garage(data as GarageRow):null;
 }
 
-export async function getGaragePartnersPage(offset=0,limit=24){
+export async function getGaragePartnersPage(offset=0,limit=24,query=""){
  const pageSize=Math.max(1,Math.min(limit,60));
  const safeOffset=Math.max(0,offset);
+ const cleanedQuery=query.replace(/[^a-zA-Z0-9 -]/g," ").replace(/\s+/g," ").trim().slice(0,80);
  const supabase=createSupabasePublicServerClient();
- const {data,error}=await supabase
+
+ if(cleanedQuery&&isPlausibleUkPostcode(cleanedQuery)){
+  const geo=await lookupPostcodeLocation(cleanedQuery);
+  if(geo){
+   const {data,error}=await supabase.rpc("find_garage_partners_nearby",{
+    p_lat:geo.latitude,
+    p_lon:geo.longitude,
+    p_query:null,
+    p_limit:pageSize,
+    p_offset:safeOffset
+   });
+   if(error)throw new Error("Nearby garage search is temporarily unavailable.");
+   const rows=data??[];
+   return {
+    items:rows.slice(0,pageSize).map(row=>({
+     id:row.id,
+     ownerId:"",
+     businessName:row.business_name,
+     slug:row.slug,
+     location:row.location,
+     postcode:row.postcode,
+     description:row.description,
+     customerSuppliedParts:true,
+     recycledParts:true,
+     mobileFitting:row.mobile_fitting,
+     status:"active" as const,
+     verifiedAt:row.verified_at,
+     createdAt:"",
+     distanceMiles:row.distance_miles===null?null:Number(row.distance_miles)
+    })),
+    hasMore:rows.length>pageSize,
+    offset:safeOffset,
+    limit:pageSize,
+    nearbyPostcode:normalizePostcode(cleanedQuery)
+   };
+  }
+ }
+
+ let builder=supabase
   .from("garage_partners")
   .select("id,owner_id,business_name,slug,location,postcode,description,customer_supplied_parts,recycled_parts,mobile_fitting,status,verified_at,created_at")
   .eq("status","active")
   .eq("customer_supplied_parts",true)
-  .eq("recycled_parts",true)
+  .eq("recycled_parts",true);
+ if(cleanedQuery){
+  const pattern="%"+cleanedQuery+"%";
+  builder=builder.or("business_name.ilike."+pattern+",location.ilike."+pattern+",postcode.ilike."+pattern);
+ }
+ const {data,error}=await builder
   .order("verified_at",{ascending:false,nullsFirst:false})
   .order("business_name")
   .order("id")
   .range(safeOffset,safeOffset+pageSize);
  if(error)throw new Error("Garage directory is temporarily unavailable.");
  const rows=(data??[]) as GarageRow[];
- return {items:rows.slice(0,pageSize).map(garage),hasMore:rows.length>pageSize,offset:safeOffset,limit:pageSize};
+ return {
+  items:rows.slice(0,pageSize).map(garage),
+  hasMore:rows.length>pageSize,
+  offset:safeOffset,
+  limit:pageSize,
+  nearbyPostcode:null
+ };
 }
 
 export async function getGaragePartnerBySlug(slug:string):Promise<GaragePartner|null>{
