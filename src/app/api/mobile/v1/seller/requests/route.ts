@@ -20,6 +20,22 @@ export async function GET(request:Request){
  const raw=data??[];
  const hasMore=raw.length>limit;
  const page=raw.slice(0,limit);
+ const requestIds=page.map(row=>row.request_id);
+ const {data:drafts,error:draftError}=requestIds.length
+  ?await supabase.from("parts")
+    .select("id,source_request_id,title,updated_at")
+    .eq("seller_id",auth.seller.id)
+    .eq("status","draft")
+    .in("source_request_id",requestIds)
+    .order("updated_at",{ascending:false})
+  :{data:[],error:null};
+ if(draftError)return mobileJson(request,{ok:false,error:"seller_requests_unavailable"},503);
+ const draftByRequest=new Map<string,{id:string;title:string}>();
+ for(const draft of drafts??[]){
+  if(draft.source_request_id&&!draftByRequest.has(draft.source_request_id)){
+   draftByRequest.set(draft.source_request_id,{id:draft.id,title:draft.title});
+  }
+ }
 
  return mobileJson(request,{ok:true,items:page.map(row=>({
   id:row.request_id,
@@ -37,7 +53,9 @@ export async function GET(request:Request){
   fuelType:row.fuel_type,
   engineSizeSimple:row.engine_size_simple,
   matchScore:Number(row.match_score??0),
-  matchReasons:row.match_reasons??[]
+  matchReasons:row.match_reasons??[],
+  draftPartId:draftByRequest.get(row.request_id)?.id??null,
+  draftPartTitle:draftByRequest.get(row.request_id)?.title??null
  })),pagination:{offset,limit,returned:page.length,hasMore}});
 }
 
