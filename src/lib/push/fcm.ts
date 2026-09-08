@@ -10,6 +10,8 @@ type FirebaseServiceAccount={
 
 let cachedAccess:{token:string;expiresAt:number}|null=null;
 
+export const isFcmPushConfigured=()=>Boolean(String(process.env.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64??"").trim());
+
 const serviceAccount=():FirebaseServiceAccount=>{
  const encoded=String(process.env.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64??"").trim();
  if(!encoded)throw new Error("firebase_push_not_configured");
