@@ -170,3 +170,61 @@ export async function updateSellerProspect(formData:FormData){
  if(error)throw error;
  revalidatePath("/admin/seller-prospects");
 }
+
+
+const activityTypes=new Set(["research","email","call","reply","meeting","invite","note"]);
+
+export async function addSellerProspectActivity(formData:FormData){
+ const {profile}=await requireAdmin("/admin/seller-prospects");
+ const prospectId=String(formData.get("prospectId")??"");
+ const activityType=String(formData.get("activityType")??"");
+ const outcome=String(formData.get("outcome")??"").trim().slice(0,500);
+ const note=String(formData.get("activityNote")??"").trim().slice(0,2000);
+ const nextRaw=String(formData.get("activityNextActionAt")??"").trim();
+ if(!isUuid(prospectId)||!activityTypes.has(activityType))return;
+
+ let nextActionAt:string|null=null;
+ if(nextRaw){
+  const parsed=new Date(nextRaw);
+  if(Number.isNaN(parsed.getTime()))return;
+  nextActionAt=parsed.toISOString();
+ }
+
+ const supabase=await createSupabaseServerClient();
+ const {data:prospect,error:prospectError}=await supabase
+  .from("seller_prospects")
+  .select("id,status")
+  .eq("id",prospectId)
+  .maybeSingle();
+ if(prospectError||!prospect)return;
+
+ const {error:activityError}=await supabase.from("seller_prospect_activities").insert({
+  prospect_id:prospectId,
+  actor_profile_id:profile.id,
+  activity_type:activityType,
+  outcome:outcome||null,
+  note:note||null,
+  next_action_at:nextActionAt
+ });
+ if(activityError)throw activityError;
+
+ const currentStatus=prospect.status;
+ let nextStatus=currentStatus;
+ if(["email","call"].includes(activityType)&&["research","ready"].includes(currentStatus))nextStatus="contacted";
+ if(activityType==="reply"&&["research","ready","contacted"].includes(currentStatus))nextStatus="replied";
+ if(activityType==="invite"&&!["onboarded","not_interested","do_not_contact"].includes(currentStatus))nextStatus="invited";
+
+ const values:{
+  status:string;
+  next_action_at:string|null;
+  last_contacted_at?:string;
+ }={
+  status:nextStatus,
+  next_action_at:nextActionAt
+ };
+ if(["email","call","meeting","invite"].includes(activityType))values.last_contacted_at=new Date().toISOString();
+
+ const {error:updateError}=await supabase.from("seller_prospects").update(values).eq("id",prospectId);
+ if(updateError)throw updateError;
+ revalidatePath("/admin/seller-prospects");
+}
