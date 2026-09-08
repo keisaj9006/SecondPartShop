@@ -8,6 +8,7 @@ import { lookupPostcodeLocation,normalizePostcode } from "@/lib/postcode";
 import type { ActionState,ListingStatus,PartCondition,PartTestingStatus } from "@/lib/types";
 import { validateImageUpload } from "@/lib/image-upload";
 import { isSellerBusinessKind } from "@/lib/seller-business";
+import { isUuid } from "@/lib/identifiers";
 
 const slugify=(value:string)=>value.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,80);
 async function sellerGeoFromPostcode(value:string){const normalized=value?normalizePostcode(value):"";if(!normalized)return {postcode:null,latitude:null,longitude:null,postcode_geocode_approximate:false,postcode_geocoded_at:null};const geo=await lookupPostcodeLocation(normalized,true);return {postcode:normalized,latitude:geo?.latitude??null,longitude:geo?.longitude??null,postcode_geocode_approximate:geo?.approximate??false,postcode_geocoded_at:geo?new Date().toISOString():null};}
