@@ -169,6 +169,7 @@ const openHref=(rawHref)=>{
  if(href.startsWith("/account/reviews")){void route("reviews");return true;}
  if(href.startsWith("/account/orders")){void route("orders");return true;}
  if(href.startsWith("/account/cases")){void route("cases");return true;}
+ if(href.startsWith("/fitting/")){const id=href.split("/").filter(Boolean)[1];if(id){void route("fittingChat",{id});return true;}}
  if(href.startsWith("/account/fitting")){void route("fittingRequests");return true;}
  if(href.startsWith("/account/saved")){void route("saved");return true;}
  if(href.startsWith("/garage-partner/requests")){void route("garagePartnerRequests");return true;}

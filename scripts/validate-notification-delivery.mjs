@@ -50,6 +50,11 @@ if(!schedule.includes('after('))failures.push("push schedule must use Next after
 const fcm=read("src/lib/push/fcm.ts");
 if(!fcm.includes('priority:"HIGH"'))failures.push("Android transactional pushes must use HIGH priority");
 
+const mobileUi=read("mobile-shell/ui.js");
+if(!mobileUi.includes('href.startsWith("/fitting/")')||!mobileUi.includes('route("fittingChat",{id})')){
+ failures.push("Buy + Fit push href must open the native fitting chat");
+}
+
 const hardening=read("supabase/migrations/20260908200000_mobile_push_delivery_hardening.sql");
 if(!hardening.includes("processing_lease_expired")||!hardening.includes("interval '5 minutes'")){
  failures.push("push outbox processing lease recovery invariant missing");
