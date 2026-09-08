@@ -20,15 +20,25 @@ export default async function AnalyticsPage({searchParams}:{searchParams:Promise
  sinceDate.setDate(sinceDate.getDate()-days);
  const since=sinceDate.toISOString();
  const supabase=createSupabaseAdminClient();
- const {data,error}=await supabase
-  .from("marketplace_search_events")
-  .select("source,query_text,result_count,has_results,vehicle_context,compatible_only,created_at")
-  .gte("created_at",since)
-  .order("created_at",{ascending:false})
-  .limit(5000);
- if(error)throw new Error("Search analytics are temporarily unavailable.");
+ const [searchResult,findMyPartResult,requestResult]=await Promise.all([
+  supabase
+   .from("marketplace_search_events")
+   .select("source,query_text,result_count,has_results,vehicle_context,compatible_only,created_at")
+   .gte("created_at",since)
+   .order("created_at",{ascending:false})
+   .limit(5000),
+  supabase.rpc("admin_find_my_part_metrics",{p_since:since}),
+  supabase
+   .from("part_requests")
+   .select("query_text,status,created_at")
+   .gte("created_at",since)
+   .order("created_at",{ascending:false})
+   .limit(5000)
+ ]);
+ if(searchResult.error)throw new Error("Search analytics are temporarily unavailable.");
+ if(findMyPartResult.error||requestResult.error)throw new Error("Find My Part analytics are temporarily unavailable.");
 
- const events=data??[];
+ const events=searchResult.data??[];
  const filled=events.filter(item=>item.has_results).length;
  const zero=events.length-filled;
  const mobile=events.filter(item=>item.source==="mobile");
@@ -50,6 +60,25 @@ export default async function AnalyticsPage({searchParams}:{searchParams:Promise
  const demand=aggregate(events).sort((a,b)=>b.searches-a.searches||b.last.localeCompare(a.last)).slice(0,15);
  const missing=aggregate(events.filter(item=>!item.has_results)).sort((a,b)=>b.searches-a.searches||b.last.localeCompare(a.last)).slice(0,20);
 
+ const findRow=findMyPartResult.data?.[0];
+ const findMetrics={
+  requests:Number(findRow?.requests??0),
+  matched:Number(findRow?.matched_requests??0),
+  responded:Number(findRow?.responded_requests??0),
+  paid:Number(findRow?.paid_requests??0),
+  completed:Number(findRow?.completed_requests??0)
+ };
+ const requestDemandMap=new Map<string,{query:string;requests:number;open:number;last:string}>();
+ for(const item of requestResult.data??[]){
+  const key=normalized(item.query_text);
+  const current=requestDemandMap.get(key)??{query:item.query_text,requests:0,open:0,last:item.created_at};
+  current.requests+=1;
+  if(item.status==="open")current.open+=1;
+  if(item.created_at>current.last)current.last=item.created_at;
+  requestDemandMap.set(key,current);
+ }
+ const requestDemand=[...requestDemandMap.values()].sort((a,b)=>b.requests-a.requests||b.last.localeCompare(a.last)).slice(0,15);
+
  const card=(label:string,value:string,detail:string)=><div className="rounded-2xl border border-black/10 bg-white p-5"><p className="text-xs font-black uppercase tracking-[.14em] text-[#63706a]">{label}</p><p className="mt-2 text-3xl font-black tracking-[-.04em]">{value}</p><p className="mt-1 text-xs leading-5 text-[#63706a]">{detail}</p></div>;
 
  return <><Header/><main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
@@ -68,6 +97,21 @@ export default async function AnalyticsPage({searchParams}:{searchParams:Promise
   <section className="mt-5 grid gap-3 sm:grid-cols-2">
    {card("Mobile fill rate",percent(mobile.filter(item=>item.has_results).length,mobile.length)+"%",mobile.length.toLocaleString("en-GB")+" mobile searches.")}
    {card("Web fill rate",percent(web.filter(item=>item.has_results).length,web.length)+"%",web.length.toLocaleString("en-GB")+" web searches.")}
+  </section>
+
+  <section className="mt-10">
+   <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-xs font-black uppercase tracking-[.16em] text-[#287154]">Can’t find it? We’ll find it.</p><h2 className="mt-1 text-2xl font-black">Find My Part funnel</h2><p className="mt-1 max-w-3xl text-sm leading-6 text-[#63706a]">Transaction-backed performance for requests created in the selected window. A completed success requires seller funds to have been released and the order item not to have been refunded.</p></div><div className="rounded-2xl bg-[#173c31] px-5 py-4 text-white"><p className="text-xs font-black uppercase tracking-wide text-[#d4f44d]">Find My Part Success Rate</p><p className="mt-1 text-3xl font-black">${percent(findMetrics.completed,findMetrics.requests)}%</p></div></div>
+   <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+    ${card("Requests",findMetrics.requests.toLocaleString("en-GB"),"Buyer part requests created.")}
+    ${card("Seller matched",percent(findMetrics.matched,findMetrics.requests)+"%",findMetrics.matched.toLocaleString("en-GB")+" request(s) reached at least one non-dismissed seller match.")}
+    ${card("Response listing",percent(findMetrics.responded,findMetrics.requests)+"%",findMetrics.responded.toLocaleString("en-GB")+" request(s) produced a seller listing linked to the request.")}
+    ${card("Paid",percent(findMetrics.paid,findMetrics.requests)+"%",findMetrics.paid.toLocaleString("en-GB")+" request(s) reached a paid/disputed marketplace order.")}
+    ${card("Completed",percent(findMetrics.completed,findMetrics.requests)+"%",findMetrics.completed.toLocaleString("en-GB")+" request(s) completed with released funds and no refund.")}
+   </div>
+   <div className="mt-5 rounded-3xl border border-black/10 bg-white p-5 sm:p-6">
+    <h3 className="text-xl font-black">Most requested missing parts</h3><p className="mt-1 text-sm leading-6 text-[#63706a]">Use repeated buyer requests to prioritize seller outreach and inventory imports.</p>
+    {requestDemand.length?<div className="mt-4 divide-y divide-black/8">{requestDemand.map(item=><div key={normalized(item.query)} className="flex items-center justify-between gap-4 py-3"><div className="min-w-0"><p className="truncate font-black">{item.query}</p><p className="text-xs text-[#63706a]">{item.open} still open · last requested {new Date(item.last).toLocaleString("en-GB")}</p></div><span className="shrink-0 rounded-full bg-[#eef1eb] px-3 py-1 text-xs font-black">{item.requests} request{item.requests===1?"":"s"}</span></div>)}</div>:<div className="mt-5 rounded-2xl bg-[#f8f7f2] p-4 text-sm text-[#63706a]">Find My Part demand will populate as buyers submit part requests.</div>}
+   </div>
   </section>
 
   <div className="mt-8 grid gap-6 lg:grid-cols-2">
