@@ -20,6 +20,7 @@ const currentSearchParams=()=>{
   if(vehicle.year)params.cy=String(vehicle.year);
   if(vehicle.fuelType)params.cf=String(vehicle.fuelType);
   if(vehicle.engineSizeSimple!==undefined&&vehicle.engineSizeSimple!==null)params.ce=String(vehicle.engineSizeSimple);
+  params.fit=C.state.vehicleCompatibleOnly?"1":"0";
  }
  return params;
 };
@@ -33,7 +34,7 @@ const paramsSummary=(params)=>{
  if(params.collection==="1")parts.push("Collection only");
  if(params.min)parts.push("Min £"+params.min);
  if(params.max)parts.push("Max £"+params.max);
- if(params.cv&&params.cy)parts.push("Vehicle saved");
+ if(params.cv&&params.cy)parts.push(params.fit==="0"?"Vehicle saved · all parts + fit labels":"Vehicle saved · fit-only");
  return parts.length?parts.join(" · "):"Marketplace filters saved";
 };
 
@@ -45,7 +46,7 @@ const restoreVehicle=async(params)=>{
  if(params.ce)query.set("engine",String(params.ce));
  try{
   const result=await C.api("/vehicle-catalogue?"+query.toString(),{auth:false});
-  C.setActiveVehicle(result.item||null,{compatibleOnly:true});
+  C.setActiveVehicle(result.item||null,{compatibleOnly:params.fit!=="0"});
  }catch{
   UI.toast("The saved vehicle could not be restored. Running the remaining search filters.","warning");
  }
