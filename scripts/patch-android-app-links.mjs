@@ -13,7 +13,8 @@ if(!manifest.includes(marker))throw new Error("Could not locate MainActivity in 
 
 const filters=[
  "/checkout/mobile-complete",
- "/seller/payments/mobile-complete"
+ "/seller/payments/mobile-complete",
+ "/auth/mobile-complete"
 ].map(path=>[
  '            <intent-filter android:autoVerify="true">',
  '                <action android:name="android.intent.action.VIEW" />',
