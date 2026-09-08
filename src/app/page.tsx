@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { Header } from "@/components/header";
 import { MarketplaceHome } from "@/components/marketplace-home";
 import { getCategories,getMarketplacePage,getSavedPartIdsForParts,getVehicleById } from "@/lib/data/marketplace";
@@ -9,6 +10,7 @@ import { normalizeRegistration } from "@/lib/vehicle-registration";
 import { normalizePostcode } from "@/lib/postcode";
 import type { MarketplaceFilters,MarketplaceSort,PartCondition } from "@/lib/types";
 import { isUuid } from "@/lib/identifiers";
+import { recordMarketplaceSearch } from "@/lib/analytics/search";
 
 export const dynamic="force-dynamic";
 
@@ -62,6 +64,17 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   user&&selectedCatalogue?getGarageVehicleMatch(user.id,{catalogueVariantId:selectedCatalogue.variantId,year:selectedCatalogue.year,fuelType:selectedCatalogue.fuelType,engineSizeSimple:selectedCatalogue.engineSizeSimple,registration:vehicleRegistration??null}).catch(()=>null):Promise.resolve(null),
   user?getRecentlyViewedListings(user.id,3):Promise.resolve([])
  ]);
+ if(requestedPage===1&&filters.query?.trim()){
+  const count=result.pagination.total??(result.pagination.returned+(result.pagination.hasMore?1:0));
+  after(()=>recordMarketplaceSearch({
+   source:"web",
+   query:filters.query,
+   resultCount:count,
+   vehicleContext:Boolean(filters.vehicle||filters.catalogueVariant),
+   compatibleOnly:filters.compatibleOnly!==false,
+   categoryId:filters.category
+  }));
+ }
  const vehicles=legacyVehicle?[legacyVehicle]:[];
  const garageVehicles=selectedGarageVehicle&&!garagePage.items.some(vehicle=>vehicle.id===selectedGarageVehicle.id)?[selectedGarageVehicle,...garagePage.items]:garagePage.items;
  const visiblePartIds=[...result.data.map(item=>item.id),...recentlyViewed.map(item=>item.id)];
