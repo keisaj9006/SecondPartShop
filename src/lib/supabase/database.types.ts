@@ -666,6 +666,50 @@ export type Database = {
           },
         ]
       }
+      marketplace_search_events: {
+        Row: {
+          category_id: string | null
+          compatible_only: boolean
+          created_at: string
+          has_results: boolean
+          id: number
+          query_text: string
+          result_count: number
+          source: string
+          vehicle_context: boolean
+        }
+        Insert: {
+          category_id?: string | null
+          compatible_only?: boolean
+          created_at?: string
+          has_results: boolean
+          id?: never
+          query_text: string
+          result_count: number
+          source: string
+          vehicle_context?: boolean
+        }
+        Update: {
+          category_id?: string | null
+          compatible_only?: boolean
+          created_at?: string
+          has_results?: boolean
+          id?: never
+          query_text?: string
+          result_count?: number
+          source?: string
+          vehicle_context?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_search_events_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_search_synonyms: {
         Row: {
           alias: string
