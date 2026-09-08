@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/identifiers";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 export async function respondToFittingQuote(formData:FormData){
  await requireUser("/account/fitting");
@@ -13,6 +14,7 @@ export async function respondToFittingQuote(formData:FormData){
  const supabase=await createSupabaseServerClient();
  const {error}=await supabase.rpc("buyer_respond_fitting_quote",{p_request_id:requestId,p_action:action});
  if(error)throw error;
+ schedulePushDispatch(50);
  revalidatePath("/account/fitting");
  revalidatePath("/garage-partner/requests");
 }

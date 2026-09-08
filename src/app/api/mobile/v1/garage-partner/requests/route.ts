@@ -1,5 +1,6 @@
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -58,5 +59,6 @@ export async function PATCH(request:Request){
  }
  const {error}=await supabase.rpc("garage_respond_fitting_request",{p_request_id:requestId,p_action:action,p_quote_pence:quotePence,p_note:note||undefined});
  if(error)return mobileJson(request,{ok:false,error:"garage_fitting_update_failed"},409);
+ schedulePushDispatch(50);
  return mobileJson(request,{ok:true});
 }

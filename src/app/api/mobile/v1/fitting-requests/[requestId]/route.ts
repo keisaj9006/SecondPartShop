@@ -1,5 +1,6 @@
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -18,5 +19,6 @@ export async function PATCH(request:Request,{params}:{params:Promise<{requestId:
  if(!["accept","cancel"].includes(action))return mobileJson(request,{ok:false,error:"invalid_fitting_action"},400);
  const {error}=await auth.context.supabase.rpc("buyer_respond_fitting_quote",{p_request_id:requestId,p_action:action});
  if(error)return mobileJson(request,{ok:false,error:"fitting_update_failed"},409);
+ schedulePushDispatch(50);
  return mobileJson(request,{ok:true,status:action==="accept"?"accepted":"cancelled"});
 }

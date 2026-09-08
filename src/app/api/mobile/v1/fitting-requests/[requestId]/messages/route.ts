@@ -1,5 +1,6 @@
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -69,5 +70,6 @@ export async function POST(request:Request,{params}:{params:Promise<{requestId:s
   if(message.includes("after the fitting quote is accepted"))return mobileJson(request,{ok:false,error:"fitting_chat_not_open"},409);
   return mobileJson(request,{ok:false,error:"fitting_message_failed"},409);
  }
+ schedulePushDispatch(50);
  return mobileJson(request,{ok:true,id:data},201);
 }

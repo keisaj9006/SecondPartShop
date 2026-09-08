@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getGaragePartnerForOwner } from "@/lib/data/fitting";
 import { isUuid } from "@/lib/identifiers";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 export async function respondToFittingRequest(formData:FormData){
  const user=await requireUser("/garage-partner/requests");
@@ -25,6 +26,7 @@ export async function respondToFittingRequest(formData:FormData){
   p_request_id:requestId,p_action:action,p_quote_pence:quotePence,p_note:note||undefined
  });
  if(error)throw error;
+ schedulePushDispatch(50);
  revalidatePath("/garage-partner/requests");
  revalidatePath("/account/fitting");
 }
