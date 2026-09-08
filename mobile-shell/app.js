@@ -249,8 +249,9 @@ const boot=async()=>{
   // Do not block first paint on account chrome, Garage or profile requests.
   // Launch the work immediately so later screens can share the in-flight
   // cache, then render Home while those requests finish in the background.
+  const mePromise=C.state.session?C.loadMe():Promise.resolve(null);
   const bootstrapPromise=C.state.session
-   ?Promise.all([C.loadMe(),UI.refreshUserChrome(),restoreGarage()])
+   ?Promise.all([mePromise,UI.refreshUserChrome(),restoreGarage()])
    :Promise.resolve(UI.refreshUserChrome());
 
   prefetchPrimaryNavigation();
@@ -259,7 +260,7 @@ const boot=async()=>{
 
   const launchUrl=await C.Native.getLaunchUrl();
   if(launchUrl){
-   if(C.state.session&&!C.state.me)await C.loadMe();
+   if(C.state.session&&!C.state.me)await mePromise;
    if(await handleDeepLink(launchUrl))return;
   }
 
