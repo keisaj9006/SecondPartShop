@@ -1,4 +1,5 @@
 import { mobileJson,mobileOptions,requireMobileSeller } from "@/lib/mobile-api";
+import { processSellerInventoryCsv } from "@/lib/inventory-csv-import";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -43,4 +44,22 @@ export async function GET(request:Request){
   })),
   pagination:{offset,limit,returned:page.length,hasMore}
  });
+}
+
+
+export async function POST(request:Request){
+ const auth=await requireMobileSeller(request);
+ if(!auth.context||!auth.seller)return auth.response;
+ let formData:FormData;
+ try{formData=await request.formData();}catch{return mobileJson(request,{ok:false,error:"invalid_form_data"},400);}
+ const file=formData.get("file");
+ if(!(file instanceof File))return mobileJson(request,{ok:false,error:"csv_file_required"},400);
+ const mode=String(formData.get("mode")??"preview");
+ const result=await processSellerInventoryCsv({
+  file,
+  sellerId:auth.seller.id,
+  supabase:auth.context.supabase,
+  mode
+ });
+ return mobileJson(request,{ok:true,result});
 }
