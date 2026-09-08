@@ -174,6 +174,20 @@ const bindNativeListeners=async()=>{
  await C.Native.onAppState(active=>{
   if(active)void refreshActiveScreen();
  });
+ if(C.Native.push?.supported){
+  await C.Native.push.onReceived(notification=>{
+   void C.refreshNotifications().then(()=>UI.updateBadge());
+   if(notification.title||notification.body)UI.toast(notification.title||notification.body);
+  });
+  await C.Native.push.onAction(notification=>{
+   void (async()=>{
+    await C.initializeSession();
+    await UI.refreshUserChrome();
+    const href=String(notification?.data?.href||"");
+    if(!href||!UI.openHref(href))await UI.route("notifications");
+   })();
+  });
+ }
 };
 
 document.addEventListener("visibilitychange",()=>{
