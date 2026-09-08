@@ -85,7 +85,31 @@ export async function POST(request:Request){
    const sessionId=typeof object.id==="string"?object.id:"";
    const paymentIntentId=idValue(object.payment_intent);
    if(orderId&&sessionId&&paymentIntentId&&paymentStatus==="paid"){
+    const {data:order,error:orderError}=await admin
+     .from("orders")
+     .select("id,total_pence,currency,provider_checkout_session_id,payment_status")
+     .eq("id",orderId)
+     .maybeSingle();
+    if(orderError||!order)throw new Error("Checkout order could not be verified.");
+    if(!order.provider_checkout_session_id||order.provider_checkout_session_id!==sessionId){
+     throw new Error("Stripe Checkout Session does not match the reserved order.");
+    }
+
+    const sessionAmount=typeof object.amount_total==="number"?object.amount_total:null;
+    const sessionCurrency=typeof object.currency==="string"?object.currency.toUpperCase():"";
+    if(sessionAmount!==order.total_pence||sessionCurrency!==String(order.currency).toUpperCase()){
+     throw new Error("Stripe Checkout amount or currency does not match the reserved order.");
+    }
+
     const paymentIntent=await getPaymentIntent(paymentIntentId);
+    const intentOrderId=paymentIntent.metadata?.order_id??null;
+    if(paymentIntent.status!=="succeeded"||intentOrderId!==orderId){
+     throw new Error("Stripe PaymentIntent is not a successful payment for this order.");
+    }
+    if(paymentIntent.amount_received!==order.total_pence||paymentIntent.currency.toUpperCase()!==String(order.currency).toUpperCase()){
+     throw new Error("Stripe PaymentIntent amount or currency does not match the reserved order.");
+    }
+
     const chargeId=idValue(paymentIntent.latest_charge);
     if(!chargeId)throw new Error("Paid PaymentIntent did not contain a charge.");
     const shipping=shippingSnapshot(object);
