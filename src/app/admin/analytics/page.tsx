@@ -16,7 +16,9 @@ export default async function AnalyticsPage({searchParams}:{searchParams:Promise
  const params=await searchParams;
  const rawDays=Number(first(params.days)??30);
  const days=allowedDays.has(rawDays)?rawDays:30;
- const since=new Date(Date.now()-days*24*60*60*1000).toISOString();
+ const sinceDate=new Date();
+ sinceDate.setDate(sinceDate.getDate()-days);
+ const since=sinceDate.toISOString();
  const supabase=createSupabaseAdminClient();
  const {data,error}=await supabase
   .from("marketplace_search_events")
