@@ -20,6 +20,7 @@ const account=async(payload)=>{
  if(payload&&payload.view==="buying")C.state.accountMode="buying";
  if(!sellingEnabled)C.state.accountMode="buying";
  const mode=C.state.accountMode;
+ const pushToken=C.Native.push?.supported?await C.Native.storage.get("pushToken").catch(()=>null):null;
 
  const html=[];
  html.push("<section class=\"account-hero\"><p class=\"eyebrow\" style=\"color:#d4f44d\">Your SecondPart account</p><h1>"+C.escapeHtml(profile?profile.displayName:"SecondPart member")+"</h1><p>"+C.escapeHtml(profile?"@"+profile.handle:"")+" · "+C.escapeHtml(me.user&&me.user.email?me.user.email:"")+"</p><p style=\"margin-top:10px;font-size:12px;color:rgba(255,255,255,.7)\">One login for buying and selling. Selling never removes your buyer features.</p>"+(!me.user.emailConfirmed?"<div class=\"status warning\" style=\"margin-top:12px\">Email confirmation is still pending.</div>":"")+"</section>");
@@ -40,7 +41,7 @@ const account=async(payload)=>{
  if(profile)html.push("<section class=\"card\" style=\"margin-top:12px\"><p class=\"eyebrow\">Account capabilities</p><div class=\"spec-grid\"><div class=\"spec\"><small>Buyer</small><strong>Enabled</strong></div><div class=\"spec\"><small>Seller</small><strong>"+(sellingEnabled?"Enabled":"Not enabled")+"</strong></div></div>"+(seller?"<div class=\"status "+(seller.verified?"success":"info")+"\" style=\"margin-top:10px\">"+C.escapeHtml(seller.businessName)+" · "+(seller.verified?"Verified business":seller.sellerType==="business"?"Business verification not complete":"Private seller profile")+"</div>":"")+"</section>");
 
  html.push("<section class=\"card\" style=\"margin-top:12px\"><p class=\"eyebrow\">Workshop access</p><h3 style=\"margin:5px 0\">Run a garage?</h3><p class=\"subtle\">Create or manage a Buy + Fit garage profile. You can offer fitting without becoming a parts seller.</p><button id=\"account-garage-partner\" class=\"secondary wide\" style=\"margin-top:10px\" type=\"button\">Manage garage partner profile</button></section>");
- html.push("<section class=\"account-grid\" style=\"margin-top:12px\"><button class=\"account-tile\" id=\"account-member-profile\" type=\"button\"><strong>Profile & username</strong><small>Public name, @username, bio and private phone.</small></button><button class=\"account-tile\" id=\"account-security\" type=\"button\"><strong>Security & account</strong><small>Email, password recovery and account controls.</small></button></section>");
+ html.push("<section class=\"account-grid\" style=\"margin-top:12px\"><button class=\"account-tile\" id=\"account-member-profile\" type=\"button\"><strong>Profile & username</strong><small>Public name, @username, bio and private phone.</small></button><button class=\"account-tile\" id=\"account-security\" type=\"button\"><strong>Security & account</strong><small>Email, password recovery and account controls.</small></button>"+(C.Native.push?.supported?"<button class=\"account-tile"+(pushToken?" selected":"")+"\" id=\"account-push\" type=\"button\"><strong>"+(pushToken?"Push notifications on":"Enable push notifications")+"</strong><small>"+(pushToken?"Tap to turn off alerts on this device.":"Get order, message, Buy + Fit and marketplace alerts on this device.")+"</small></button>":"")+"</section>");
  html.push("<div class=\"button-row\" style=\"margin-top:14px\"><button id=\"account-signout\" class=\"danger-button small-button\" type=\"button\">Sign out</button></div>");
  UI.app.innerHTML=html.join("");
 
@@ -71,6 +72,25 @@ const account=async(payload)=>{
  const finishSelling=document.getElementById("account-finish-selling");if(finishSelling)finishSelling.addEventListener("click",()=>UI.route("sellerSetup"));
  const memberProfileButton=document.getElementById("account-member-profile");if(memberProfileButton)memberProfileButton.addEventListener("click",()=>UI.route("profile"));
  const securityButton=document.getElementById("account-security");if(securityButton)securityButton.addEventListener("click",()=>UI.route("security"));
+ const pushButton=document.getElementById("account-push");
+ if(pushButton)pushButton.addEventListener("click",async()=>{
+  pushButton.disabled=true;
+  try{
+   if(pushToken){
+    await C.unregisterPushDevice();
+    UI.toast("Push notifications turned off on this device.");
+   }else{
+    const result=await C.registerPushDevice();
+    if(result.registered)UI.toast("Push notifications enabled.");
+    else if(!result.granted)UI.toast("Notification permission was not granted.","warning");
+    else UI.toast("Push registration is not available yet.","warning");
+   }
+   UI.route("account",{view:mode});
+  }catch(error){
+   UI.toast(error.message||"Push notification setup failed.","error");
+   pushButton.disabled=false;
+  }
+ });
  document.getElementById("account-signout").addEventListener("click",async()=>{
   await C.signOut();
   UI.clearScreenCache();
