@@ -33,7 +33,7 @@ export function VehicleCompatibilityToggle({vehicleLabel,checked}:{vehicleLabel:
   </span>
   <span className="min-w-0 flex-1">
    <span className="flex items-center gap-2 text-sm font-black text-[#173c31]">
-    {checked?<CheckCircle2 size={17}/>:<Layers3 size={17}/>}
+    {optimisticChecked?<CheckCircle2 size={17}/>:<Layers3 size={17}/>}
     Show only parts that fit this vehicle
    </span>
    <span className="mt-1 block text-xs leading-5 text-[#63706a]">
