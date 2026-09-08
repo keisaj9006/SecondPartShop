@@ -86,6 +86,9 @@ jobs:
       - name: Sync Capacitor project
         run: npx cap sync android
 
+      - name: Configure CI Firebase placeholder
+        run: node scripts/write-ci-google-services.mjs
+
       - name: Create ephemeral CI signing key
         run: |
           keytool -genkeypair -noprompt \
