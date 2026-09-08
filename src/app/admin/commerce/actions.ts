@@ -49,7 +49,13 @@ export async function approveFullRefund(_previous:ActionState,formData:FormData)
   const result=await refundTransactionCase(caseId);
   if(!result.refunded){
    revalidateCases();
-   return {status:"error",message:result.reason==="stripe_not_configured"?"Stripe refund processing is not configured yet.":result.reason==="provider_dispute_managed"?"This payment-provider dispute must be resolved through Stripe, not a manual marketplace refund.":"The refund could not be completed."};
+   return {status:"error",message:result.reason==="stripe_not_configured"
+    ?"Stripe refund processing is not configured yet."
+    :result.reason==="provider_dispute_managed"
+     ?"This payment-provider dispute must be resolved through Stripe, not a manual marketplace refund."
+     :result.reason==="payout_reconciliation_required"
+      ?"Refund stopped safely: seller funds were already released, but the payout transfer reference is incomplete. Reconcile the Stripe transfer before retrying this refund."
+      :"The refund could not be completed."};
   }
   revalidateCases();
   return {status:"success",message:"Full refund completed and the transaction case is resolved."};
@@ -74,7 +80,11 @@ export async function approveReturnlessRefund(_previous:ActionState,formData:For
   const result=await refundTransactionCase(caseId);
   if(!result.refunded){
    revalidateCases();
-   return {status:"error",message:result.reason==="stripe_not_configured"?"Stripe refund processing is not configured yet.":"The refund could not be completed."};
+   return {status:"error",message:result.reason==="stripe_not_configured"
+    ?"Stripe refund processing is not configured yet."
+    :result.reason==="payout_reconciliation_required"
+     ?"Refund stopped safely: seller funds were already released, but the payout transfer reference is incomplete. Reconcile the Stripe transfer before retrying this refund."
+     :"The refund could not be completed."};
   }
   revalidateCases();
   return {status:"success",message:"Refund completed without requiring the item to be returned."};
