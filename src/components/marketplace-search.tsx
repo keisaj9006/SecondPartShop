@@ -114,7 +114,7 @@ export function MarketplaceSearch({categories,filters,activeVehicleLabel}:{categ
    <PartCodeScanner/>
 
    <div className="mt-3 flex flex-wrap items-center gap-2">
-    <button type="button" onClick={()=>{setCategoryOpen(value=>!value);setOpen(false);}} className="inline-flex items-center gap-2 rounded-full border border-black/12 px-4 py-2 text-sm font-bold">Browse categories<ChevronDown size={15}/></button>
+    <button type="button" aria-expanded={categoryOpen} aria-pressed={Boolean(categoryOpen||selectedCategory)} onClick={()=>{setCategoryOpen(value=>!value);setOpen(false);}} className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold transition ${categoryOpen||selectedCategory?"border-[#173c31] bg-[#f7faef] text-[#173c31] ring-2 ring-[#d4f44d]/40":"border-black/12 bg-white"}`}>Browse categories<ChevronDown size={15} className={categoryOpen?"rotate-180 transition":"transition"}/></button>
     {selectedCategory&&<span title={getCategoryPath(categories,selectedCategory.id)} className="inline-flex max-w-full items-center gap-2 rounded-full bg-[#e8eee9] px-3 py-2 text-sm font-bold"><span className="truncate">{selectedCategory.name}</span><button type="button" aria-label="Remove category" onClick={clearCategory}><X size={14}/></button></span>}
     {activeVehicleLabel&&<span className="inline-flex items-center gap-2 rounded-full bg-[#173c31] px-3 py-2 text-sm font-bold text-white">Vehicle: {activeVehicleLabel}<button type="button" aria-label="Remove vehicle" onClick={clearVehicle}><X size={14}/></button></span>}{(filters.query||selectedCategory)&&<button type="button" onClick={clearSearchAndCategory} className="text-xs font-bold underline">Clear search & category</button>}
    </div>
