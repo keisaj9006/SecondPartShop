@@ -10,5 +10,14 @@
   "server": {
     "url": "https://second-part-shop-preview.vercel.app",
     "cleartext": false
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    }
   }
 }
