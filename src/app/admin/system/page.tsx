@@ -18,6 +18,7 @@ export default async function SystemReadinessPage(){
     <p className="mt-2 max-w-2xl text-sm leading-6 text-[#63706a]">This page only checks whether required deployment configuration exists. Secret values are never displayed.</p>
    </div>
    <div className="flex flex-wrap gap-2">
+    <Link href="/admin/analytics" className="rounded-full border border-black/15 px-4 py-2.5 text-sm font-black">Analytics</Link>
     <Link href="/admin/moderation" className="rounded-full border border-black/15 px-4 py-2.5 text-sm font-black">Moderation</Link>
     <Link href="/admin/commerce" className="rounded-full border border-black/15 px-4 py-2.5 text-sm font-black">Commerce</Link>
    </div>
