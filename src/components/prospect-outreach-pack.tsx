@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect,useState } from "react";
 import { Check,Copy,Mail,PhoneCall } from "lucide-react";
 
 const copyText=async(value:string)=>{
@@ -9,7 +9,8 @@ const copyText=async(value:string)=>{
 
 export function ProspectOutreachPack({businessName,invitePath,publicEmail}:{businessName:string;invitePath:string;publicEmail:string|null}){
  const [copied,setCopied]=useState("");
- const invite=typeof window==="undefined"?invitePath:window.location.origin+invitePath;
+ const [invite,setInvite]=useState(invitePath);
+ useEffect(()=>{setInvite(window.location.origin+invitePath);},[invitePath]);
  const subject="Founding Seller invitation — SecondPart";
  const firstEmail=`Hi ${businessName} team,
 
