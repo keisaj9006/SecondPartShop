@@ -21,7 +21,8 @@ const orders=async()=>{
  let hasMore=false;
 
  const fetchPage=async(offset)=>{
-  const path="/orders?limit="+pageSize+"&offset="+offset;\n  const result=await C.apiCached(path,{auth:true,maxAge:offset===0?20000:10000});
+  const path="/orders?limit="+pageSize+"&offset="+offset;
+  const result=await C.apiCached(path,{auth:true,maxAge:offset===0?20000:10000});
   return {items:result.items||[],hasMore:Boolean(result.pagination&&result.pagination.hasMore)};
  };
 
@@ -218,7 +219,8 @@ const sellerSales=async()=>{
  let hasMore=false;
 
  const fetchPage=async(offset)=>{
-  const path="/seller/sales?limit="+pageSize+"&offset="+offset;\n  const result=await C.apiCached(path,{auth:true,maxAge:offset===0?15000:8000});
+  const path="/seller/sales?limit="+pageSize+"&offset="+offset;
+  const result=await C.apiCached(path,{auth:true,maxAge:offset===0?15000:8000});
   return {items:result.items||[],hasMore:Boolean(result.pagination&&result.pagination.hasMore)};
  };
 
