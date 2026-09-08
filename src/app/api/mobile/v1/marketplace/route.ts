@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
 import { getMarketplacePage } from "@/lib/data/marketplace";
 import { isUuid } from "@/lib/identifiers";
@@ -5,6 +6,7 @@ import { mobileJson,mobileOptions,mobilePublicJson } from "@/lib/mobile-api";
 import { mobileThumbnailUrl } from "@/lib/mobile-image";
 import { normalizePostcode } from "@/lib/postcode";
 import type { MarketplaceFilters,MarketplaceSort,PartCondition } from "@/lib/types";
+import { recordMarketplaceSearch } from "@/lib/analytics/search";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -60,6 +62,18 @@ export async function GET(request:Request){
 
  const result=await getMarketplacePage(filters,{offset,limit});
  if(result.error)return mobileJson(request,{ok:false,error:"marketplace_unavailable",message:result.error},503);
+
+ if(offset===0&&filters.query?.trim()){
+  const count=result.pagination.total??(result.pagination.returned+(result.pagination.hasMore?1:0));
+  after(()=>recordMarketplaceSearch({
+   source:"mobile",
+   query:filters.query,
+   resultCount:count,
+   vehicleContext:Boolean(filters.catalogueVariant),
+   compatibleOnly:filters.compatibleOnly!==false,
+   categoryId:filters.category
+  }));
+ }
 
  return mobilePublicJson(request,{
   ok:true,
