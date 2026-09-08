@@ -165,6 +165,7 @@ const openHref=(rawHref)=>{
  if(!href)return false;
  if(href.startsWith("/parts/")){const slug=href.split("/").filter(Boolean)[1];if(slug){void route("listing",{slug});return true;}}
  if(href.startsWith("/inbox/")){void route("conversation",{id:href.split("/").pop()});return true;}
+ if(href.startsWith("/messages/")){void route("transactionChat",{id:href.split("/").pop()});return true;}
  if(href.startsWith("/account/reviews")){void route("reviews");return true;}
  if(href.startsWith("/account/orders")){void route("orders");return true;}
  if(href.startsWith("/account/cases")){void route("cases");return true;}
