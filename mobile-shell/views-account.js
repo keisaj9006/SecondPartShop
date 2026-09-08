@@ -9,7 +9,8 @@ const account=async(payload)=>{
  if(!C.state.session){renderAuth(payload&&payload.mode?payload.mode:"signin");return;}
  UI.loading("Loading account");
  if(!C.state.me)await C.loadMe();
- if(!C.state.me){await C.clearSession();renderAuth("signin");return;}
+ if(!UI.isCurrent("account"))return;
+ if(!C.state.me){await C.clearSession();UI.clearScreenCache();renderAuth("signin");return;}
 
  const me=C.state.me;
  const profile=me.profile;
@@ -69,6 +70,7 @@ const account=async(payload)=>{
  const securityButton=document.getElementById("account-security");if(securityButton)securityButton.addEventListener("click",()=>UI.route("security"));
  document.getElementById("account-signout").addEventListener("click",async()=>{
   await C.signOut();
+  UI.clearScreenCache();
   C.state.accountMode="buying";
   await UI.refreshUserChrome();
   UI.toast("Signed out.");
