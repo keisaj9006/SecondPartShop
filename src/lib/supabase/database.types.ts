@@ -326,6 +326,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           postcode: string
+          prospect_id: string | null
           source: string
           status: string
           updated_at: string
@@ -345,6 +346,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           postcode: string
+          prospect_id?: string | null
           source?: string
           status?: string
           updated_at?: string
@@ -364,12 +366,21 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           postcode?: string
+          prospect_id?: string | null
           source?: string
           status?: string
           updated_at?: string
           website_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "founding_seller_applications_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "seller_prospects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       garage_partners: {
         Row: {
@@ -1757,6 +1768,54 @@ export type Database = {
             foreignKeyName: "seller_prospect_activities_prospect_id_fkey"
             columns: ["prospect_id"]
             isOneToOne: false
+            referencedRelation: "seller_prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_prospect_invites: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          prospect_id: string
+          token: string
+          updated_at: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expires_at: string
+          id?: string
+          prospect_id: string
+          token: string
+          updated_at?: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          prospect_id?: string
+          token?: string
+          updated_at?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_prospect_invites_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_prospect_invites_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: true
             referencedRelation: "seller_prospects"
             referencedColumns: ["id"]
           },
