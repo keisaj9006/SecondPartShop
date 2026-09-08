@@ -424,7 +424,7 @@ const refreshSaved=async()=>{
  if(!state.sessionReady)await initializeSession();
  if(!state.session){state.savedIds=new Set();return [];}
  try{
-  const payload=await api("/saved",{auth:true});
+  const payload=await apiCached("/saved",{auth:true,maxAge:15000});
   state.savedIds=new Set(payload.ids??[]);
   return payload.items??[];
  }catch{return [];}
@@ -434,7 +434,7 @@ const refreshNotifications=async()=>{
  if(!state.sessionReady)await initializeSession();
  if(!state.session){state.unreadNotifications=0;return [];}
  try{
-  const payload=await api("/notifications",{auth:true});
+  const payload=await apiCached("/notifications",{auth:true,maxAge:15000});
   state.unreadNotifications=Number(payload.unreadCount??0);
   return payload.items??[];
  }catch{
