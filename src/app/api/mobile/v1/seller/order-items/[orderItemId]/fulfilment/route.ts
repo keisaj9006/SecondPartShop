@@ -1,5 +1,6 @@
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileSeller } from "@/lib/mobile-api";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -39,5 +40,6 @@ export async function POST(request:Request,{params}:{params:Promise<{orderItemId
   return mobileJson(request,{ok:false,error:"fulfilment_update_failed"},409);
  }
 
+ schedulePushDispatch(50);
  return mobileJson(request,{ok:true,state:action==="dispatch"?"dispatched":action});
 }

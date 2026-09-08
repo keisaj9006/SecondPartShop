@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { releaseDuePayoutItem } from "@/lib/commerce-payouts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 export async function confirmBuyerReceipt(_previous:ActionState,formData:FormData):Promise<ActionState>{
  await requireUser("/account/orders");
@@ -28,6 +29,7 @@ export async function confirmBuyerReceipt(_previous:ActionState,formData:FormDat
   }
  }
 
+ schedulePushDispatch(50);
  revalidatePath("/account/orders");
  revalidatePath("/dashboard/orders");
  revalidatePath("/account/reviews");

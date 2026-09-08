@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireSeller } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 export async function updateSaleFulfilment(_previous:ActionState,formData:FormData):Promise<ActionState>{
  await requireSeller("/dashboard/orders");
@@ -28,6 +29,7 @@ export async function updateSaleFulfilment(_previous:ActionState,formData:FormDa
   if(lower.includes("not ready for collection handoff"))return {status:"error",message:"This collection order cannot be moved backwards from its current status."};
   return {status:"error",message:"We could not update this sale right now."};
  }
+ schedulePushDispatch(50);
  revalidatePath("/dashboard/orders");
  revalidatePath("/account/orders");
  return {status:"success",message:action==="dispatch"?"Dispatch recorded.":action==="ready_for_collection"?"Buyer notified that collection is ready.":"Order updated."};
