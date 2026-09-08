@@ -110,7 +110,7 @@ const renderVehicleContext=()=>{
  const vehicle=C.state.activeVehicle;
  if(!vehicle)return "<div class=\"status info\">No vehicle selected. Search all parts or identify your vehicle first.</div>";
  return UI.vehicleVisual(vehicle,true)+
-  "<label class=\"vehicle-fit-toggle\"><input id=\"vehicle-fit-only\" class=\"fit-checkbox\" type=\"checkbox\" "+(C.state.vehicleCompatibleOnly?"checked":"")+" aria-label=\"Show only parts that fit this vehicle\"/><span class=\"vehicle-fit-copy\"><strong>Show only parts that fit this vehicle</strong><small>"+(C.state.vehicleCompatibleOnly?"Only confirmed or same-family matches are shown.":"Showing all parts, including unverified parts that may not fit; compatibility labels stay visible.")+"</small></span></label>"+
+  "<label class=\"vehicle-fit-toggle"+(C.state.vehicleCompatibleOnly?" selected":"")+"\"><input id=\"vehicle-fit-only\" class=\"fit-checkbox\" type=\"checkbox\" "+(C.state.vehicleCompatibleOnly?"checked":"")+" aria-label=\"Show only parts that fit this vehicle\"/><span class=\"vehicle-fit-copy\"><strong>Show only parts that fit this vehicle</strong><small>"+(C.state.vehicleCompatibleOnly?"Only confirmed or same-family matches are shown.":"Showing all parts, including unverified parts that may not fit; compatibility labels stay visible.")+"</small></span></label>"+
   "<div class=\"button-row\"><button id=\"change-vehicle\" class=\"secondary small-button\" type=\"button\">Change vehicle</button><button id=\"clear-vehicle\" class=\"link-button\" type=\"button\">Remove vehicle</button></div>";
 };
 
@@ -132,7 +132,7 @@ const home=async(payload={})=>{
  html.push("<section class=\"hero\"><p class=\"eyebrow\">UK used parts marketplace</p><h1>The right part.<br><em>First time.</em></h1><p>Identify your vehicle, then search automotive parts from garages and sellers across the UK.</p><div class=\"hero-badges\"><span>Vehicle-first search</span><span>Verified fitment evidence</span><span>Buyer protection</span></div></section>");
  html.push("<section class=\"card\"><p class=\"eyebrow\">Your vehicle</p><div id=\"vehicle-context\">"+(addingVehicle?"<div class=\"status info\"><strong>Add another vehicle</strong><br>Start with a registration or choose make and model from scratch.</div>":renderVehicleContext())+"</div><form id=\"registration-form\" class=\"vehicle-search\" style=\"margin-top:12px\"><div class=\"search-row\"><input id=\"registration-input\" class=\"input registration\" maxlength=\"10\" autocomplete=\"off\" placeholder=\"AB12 CDE\"/><button class=\"primary\" type=\"submit\">Find</button></div><button id=\"manual-vehicle\" class=\"link-button\" type=\"button\">Select vehicle manually</button><div id=\"vehicle-result\"></div></form></section>");
  const activeFilterCount=marketplaceFilterCount();
- html.push("<section class=\"card\"><p class=\"eyebrow\">Find a part</p><form id=\"market-search\" class=\"search-row\"><input id=\"part-query\" class=\"input\" value=\""+C.escapeHtml(C.state.currentSearch)+"\" placeholder=\"Part name, OE/OEM number or brand\"/><button class=\"primary\" type=\"submit\">Search</button></form><div class=\"button-row\" style=\"margin-top:10px\"><button id=\"market-filters\" class=\"secondary small-button\" type=\"button\">Filters"+(activeFilterCount?" · "+activeFilterCount:"")+"</button>"+(activeFilterCount?"<button id=\"market-reset-filters\" class=\"link-button\" type=\"button\">Reset filters</button>":"")+"</div></section>");
+ html.push("<section class=\"card\"><p class=\"eyebrow\">Find a part</p><form id=\"market-search\" class=\"search-row\"><input id=\"part-query\" class=\"input\" value=\""+C.escapeHtml(C.state.currentSearch)+"\" placeholder=\"Part name, OE/OEM number or brand\"/><button class=\"primary\" type=\"submit\">Search</button></form><div class=\"button-row\" style=\"margin-top:10px\"><button id=\"market-filters\" class=\"secondary small-button"+(activeFilterCount?" selected":"")+"\" type=\"button\" aria-pressed=\""+(activeFilterCount?"true":"false")+"\">Filters"+(activeFilterCount?" · "+activeFilterCount:"")+"</button>"+(activeFilterCount?"<button id=\"market-reset-filters\" class=\"link-button\" type=\"button\">Reset filters</button>":"")+"</div></section>");
  if(hasExtraFilters)html.push("<section class=\"card flat\" style=\"margin-top:-2px\"><div class=\"row-between\"><div><p class=\"eyebrow\">Active marketplace filters</p><p class=\"subtle\">Category, condition, price, location, collection or sort filters are narrowing these results.</p></div><button id=\"clear-saved-filters\" class=\"link-button\" type=\"button\">Clear filters</button></div></section>");
  const marketplaceActions=[];
  if(C.state.currentSearch)marketplaceActions.push("<button id=\"clear-search\" class=\"link-button\" type=\"button\">Clear search</button>");
@@ -165,7 +165,13 @@ const home=async(payload={})=>{
  if(requestMissing)requestMissing.addEventListener("click",async()=>{if(!await UI.requireAuth("requests"))return;UI.route("requests",{prefill:C.state.currentSearch});});
 
  const fitOnly=document.getElementById("vehicle-fit-only");
- if(fitOnly)fitOnly.addEventListener("change",event=>{C.setVehicleCompatibleOnly(Boolean(event.target.checked));UI.route("home");});
+ if(fitOnly)fitOnly.addEventListener("change",event=>{
+  const checked=Boolean(event.target.checked);
+  C.setVehicleCompatibleOnly(checked);
+  const wrapper=event.target.closest(".vehicle-fit-toggle");
+  if(wrapper)wrapper.classList.toggle("selected",checked);
+  void UI.route("home");
+ });
 
  const registrationForm=document.getElementById("registration-form");
  if(registrationForm)registrationForm.addEventListener("submit",lookupRegistration);
@@ -295,7 +301,7 @@ const openManualVehicleSelector=async(catalogue,vehicle)=>{
   engine.disabled=true;apply.disabled=true;engines=[];
   engine.innerHTML="<option value=\"\">Loading engines…</option>";
   try{
-   const result=await C.api("/vehicle-catalogue?level=engines&variantId="+encodeURIComponent(variant.value));
+   const result=await C.apiCached("/vehicle-catalogue?level=engines&variantId="+encodeURIComponent(variant.value),{auth:false,maxAge:5*60*1000});
    engines=result.items||[];
    if(!engines.length){
     engine.innerHTML="<option value=\"\">Engine data unavailable</option>";
@@ -449,7 +455,10 @@ const garage=async()=>{
  const html=[];
  html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Your account</p><h2>SecondPart Garage</h2><p>Saved vehicles for one-tap compatibility searches.</p></div><button id=\"garage-add\" class=\"primary small-button\" type=\"button\">Add vehicle</button></div>");
  if(items.length){
-  html.push("<section>"+items.map(item=>"<article data-garage-id=\""+C.escapeHtml(item.id)+"\">"+UI.vehicleVisual(item,false)+"<div class=\"button-row\" style=\"margin:-2px 0 14px\"><button class=\"lime-button small-button\" data-use-garage=\""+C.escapeHtml(item.id)+"\" type=\"button\">Use this vehicle</button><button class=\"danger-button small-button\" data-remove-garage=\""+C.escapeHtml(item.id)+"\" type=\"button\">Remove</button></div></article>").join("")+"</section>");
+  html.push("<section>"+items.map(item=>{
+   const active=Boolean(C.state.activeVehicle&&C.state.activeVehicle.variantId===item.catalogueVariantId&&Number(C.state.activeVehicle.year)===Number(item.year)&&(C.state.activeVehicle.registration||null)===(item.registration||null));
+   return "<article data-garage-id=\""+C.escapeHtml(item.id)+"\" class=\""+(active?"selected-vehicle":"")+"\">"+UI.vehicleVisual(item,false)+"<div class=\"button-row\" style=\"margin:-2px 0 14px\"><button class=\"lime-button small-button\" data-use-garage=\""+C.escapeHtml(item.id)+"\" type=\"button\" "+(active?"aria-pressed=\"true\"":"")+">"+(active?"✓ Using this vehicle":"Use this vehicle")+"</button><button class=\"danger-button small-button\" data-remove-garage=\""+C.escapeHtml(item.id)+"\" type=\"button\">Remove</button></div></article>";
+  }).join("")+"</section>");
  }else{
   html.push("<div class=\"empty\"><div class=\"empty-icon\">▱</div><h3>Your Garage is empty</h3><p>Add a vehicle by registration or choose it manually from the marketplace.</p></div>");
  }
@@ -458,6 +467,8 @@ const garage=async()=>{
  UI.app.querySelectorAll("[data-use-garage]").forEach(button=>button.addEventListener("click",()=>{
   const item=items.find(vehicle=>vehicle.id===button.dataset.useGarage);
   if(!item)return;
+  button.disabled=true;
+  button.textContent="✓ Selected";
   C.setActiveVehicle({
    variantId:item.catalogueVariantId,year:item.year,fuelType:item.fuelType,engineSizeSimple:item.engineSizeSimple,
    make:item.make,modelFamily:item.modelFamily,variant:item.variant,registration:item.registration,colour:item.colour
