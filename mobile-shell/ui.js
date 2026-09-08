@@ -111,6 +111,7 @@ const syncNavigationMode=()=>{
 };
 
 const route=async(name,payload,options={})=>{
+ const navStarted=performance.now();
  const next={name,payload:payload||{}};
  const previous=currentRoute;
  const sameRoute=Boolean(previous&&routeKey(previous)===routeKey(next));
@@ -160,6 +161,10 @@ const route=async(name,payload,options={})=>{
    if(isRootCacheable(next)){
     requestAnimationFrame(()=>window.scrollTo({top:targetScroll,behavior:"instant"}));
    }
+   const navElapsed=Math.round(performance.now()-navStarted);
+   const fromName=previous?.name||"boot";
+   console.info("[SecondPart][nav]",fromName+" -> "+name,navElapsed+"ms");
+   if(navElapsed>750)console.warn("[SecondPart][nav] Slow route",fromName+" -> "+name,navElapsed+"ms");
   }
  }
 };
