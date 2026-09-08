@@ -160,6 +160,37 @@ const route=async(name,payload,options={})=>{
  }
 };
 
+const openHref=(rawHref)=>{
+ const href=String(rawHref||"").trim();
+ if(!href)return false;
+ if(href.startsWith("/parts/")){const slug=href.split("/").filter(Boolean)[1];if(slug){void route("listing",{slug});return true;}}
+ if(href.startsWith("/inbox/")){void route("conversation",{id:href.split("/").pop()});return true;}
+ if(href.startsWith("/account/reviews")){void route("reviews");return true;}
+ if(href.startsWith("/account/orders")){void route("orders");return true;}
+ if(href.startsWith("/account/cases")){void route("cases");return true;}
+ if(href.startsWith("/account/fitting")){void route("fittingRequests");return true;}
+ if(href.startsWith("/account/saved")){void route("saved");return true;}
+ if(href.startsWith("/garage-partner/requests")){void route("garagePartnerRequests");return true;}
+ if(href.startsWith("/garages")){void route("garages");return true;}
+ if(href.startsWith("/requests")){void route("requests");return true;}
+ if(href.startsWith("/dashboard/requests")){C.state.accountMode="selling";void route("sellerRequests");return true;}
+ if(href.startsWith("/dashboard/orders")){C.state.accountMode="selling";void route("sellerSales");return true;}
+ if(href.startsWith("/dashboard/cases")){C.state.accountMode="selling";void route("seller");return true;}
+ if(href.startsWith("/dashboard/verification")){C.state.accountMode="selling";void route("sellerVerification");return true;}
+ if(href.startsWith("/dashboard/payments")){C.state.accountMode="selling";void route("seller");return true;}
+ if(href.startsWith("/dashboard/listings/")){
+  const id=href.split("/").filter(Boolean)[2];
+  C.state.accountMode="selling";
+  void route("listingEditor",id&&id!=="new"?{id}:{});
+  return true;
+ }
+ if(href==="/dashboard"||href.startsWith("/dashboard?")){C.state.accountMode="selling";void route("seller");return true;}
+ if(href.startsWith("/garage")){void route("garage");return true;}
+ const url=C.safeHttpUrl(C.config.webBaseUrl.replace(/\/$/,"")+href);
+ if(url){void C.Native.openBrowser(url);return true;}
+ return false;
+};
+
 const register=(name,handler)=>registry.set(name,handler);
 
 const back=async()=>{
@@ -321,6 +352,6 @@ const bindListingActions=(container)=>{
 
 window.SecondPartUI=Object.freeze({
  C,app,register,route,back,refreshCurrent,loading,toast,modal,closeModal,empty,requireAuth,updateBadge,refreshUserChrome,
- clearScreenCache,isCurrent,isSilentRefresh,listingCard,vehicleVisual,bindListingActions,firstImage
+ clearScreenCache,isCurrent,isSilentRefresh,listingCard,vehicleVisual,bindListingActions,firstImage,openHref
 });
 })();
