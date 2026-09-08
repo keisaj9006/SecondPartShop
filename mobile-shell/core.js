@@ -400,7 +400,34 @@ const resendEmailConfirmation=async(email)=>{
  });
 };
 
+const registerPushDevice=async()=>{
+ if(!Native.push?.supported)return {supported:false,granted:false,registered:false};
+ if(!state.sessionReady)await initializeSession();
+ if(!state.session)throw new Error("Sign in required.");
+ const result=await Native.push.register();
+ if(!result?.granted||!result.token)return {supported:true,granted:Boolean(result?.granted),registered:false};
+ const token=String(result.token);
+ await api("/push-devices",{method:"POST",auth:true,body:{
+  token,
+  platform:Native.platform||"android",
+  appId:config.buildChannel==="release"?"com.secondpart.marketplace":"com.secondpart.marketplace.preview",
+  buildChannel:config.buildChannel==="release"?"release":"preview"
+ }});
+ await Native.storage.set("pushToken",token);
+ return {supported:true,granted:true,registered:true};
+};
+
+const unregisterPushDevice=async()=>{
+ const token=await Native.storage.get("pushToken").catch(()=>null);
+ if(token&&state.session){
+  try{await api("/push-devices",{method:"DELETE",auth:true,body:{token}});}catch{}
+ }
+ try{await Native.storage.remove("pushToken");}catch{}
+ try{await Native.push?.unregister();}catch{}
+};
+
 const signOut=async()=>{
+ try{await unregisterPushDevice();}catch{}
  const current=await accessToken();
  if(current){
   try{await authFetch("/logout",{method:"POST",accessToken:current});}catch{}
@@ -459,6 +486,8 @@ window.SecondPartCore=Object.freeze({
  signUp,
  requestPasswordReset,
  resendEmailConfirmation,
+ registerPushDevice,
+ unregisterPushDevice,
  signOut,
  refreshSession,
  accessToken,
