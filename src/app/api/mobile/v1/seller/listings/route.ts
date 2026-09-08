@@ -102,8 +102,9 @@ export async function POST(request:Request){
   const rawSourceRequestId=String(input.sourceRequestId??"").trim();
   let sourceRequestId:string|null=null;
   if(isUuid(rawSourceRequestId)){
-   const {data:lead}=await supabase.from("seller_part_request_leads").select("request_id").eq("request_id",rawSourceRequestId).eq("status","open").maybeSingle();
-   sourceRequestId=lead?.request_id??null;
+   const {data:lead,error:leadError}=await supabase.rpc("seller_part_request_lead",{p_request_id:rawSourceRequestId});
+   if(leadError)throw new Error("request_lead_validation_failed");
+   sourceRequestId=lead?.[0]?.request_id??null;
   }
   const parsed=parseMobileListingInput(body);
   const value=await validateMobileListingInput(supabase,auth.seller.id,parsed);
