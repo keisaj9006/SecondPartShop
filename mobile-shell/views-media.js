@@ -172,7 +172,7 @@ const openListingPhotos=async(part)=>{
  render();
 };
 
-const inventory=async()=>{
+const inventory=async(payload={})=>{
  if(!await UI.requireAuth("inventory"))return;
  if(!C.state.me)await C.loadMe();
  if(!C.state.me||!C.state.me.seller){UI.empty("□","Seller profile required","Create or enable a seller profile before managing inventory.","Account",()=>UI.route("account"));return;}
@@ -182,18 +182,21 @@ const inventory=async()=>{
  let items=[];
  let hasMore=false;
  let searchText="";
+ const importBatch=String(payload.importBatch||"").trim();
 
  const fetchPage=async(offset,query=searchText)=>{
   const params=new URLSearchParams({limit:String(pageSize),offset:String(offset)});
   if(query.trim())params.set("q",query.trim());
+  if(importBatch)params.set("importBatch",importBatch);
   const result=await C.api("/seller/listings?"+params.toString(),{auth:true});
   return {items:result.items||[],hasMore:Boolean(result.pagination&&result.pagination.hasMore)};
  };
 
  const render=()=>{
   const html=[];
-  html.push("<button class=\"back\" id=\"inventory-back\" type=\"button\">‹ Back to seller dashboard</button>");
-  html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Seller inventory</p><h2>Your listings</h2><p>"+items.length+" listing"+(items.length===1?"":"s")+" loaded. Search by title, OE/OEM, part number, manufacturer or seller reference.</p></div><button id=\"inventory-new\" class=\"primary small-button\" type=\"button\">New listing</button></div>");
+  html.push("<button class=\"back\" id=\"inventory-back\" type=\"button\">‹ "+(importBatch?"Back to import report":"Back to seller dashboard")+"</button>");
+  html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Seller inventory</p><h2>"+(importBatch?"Imported drafts":"Your listings")+"</h2><p>"+items.length+" listing"+(items.length===1?"":"s")+" loaded. Search by title, OE/OEM, part number, manufacturer or seller reference.</p></div><button id=\"inventory-new\" class=\"primary small-button\" type=\"button\">New listing</button></div>");
+  if(importBatch)html.push("<div class=\"status info\" style=\"margin-bottom:12px\">Showing listings from this import batch only. Complete photos, compatibility, stock and technical fields before publishing.</div>");
   html.push("<form id=\"inventory-search-form\" class=\"search-row\" style=\"margin:12px 0 14px\"><input id=\"inventory-search\" class=\"input\" maxlength=\"120\" value=\""+C.escapeHtml(searchText)+"\" placeholder=\"Search inventory…\"><button class=\"secondary\" type=\"submit\">Search</button></form>");
   if(searchText)html.push("<button id=\"inventory-clear-search\" class=\"link-button\" type=\"button\">Clear inventory search</button>");
 
@@ -211,7 +214,7 @@ const inventory=async()=>{
   }
 
   UI.app.innerHTML=html.join("");
-  document.getElementById("inventory-back").addEventListener("click",()=>UI.route("seller"));
+  document.getElementById("inventory-back").addEventListener("click",()=>importBatch?UI.route("sellerImport",{id:importBatch}):UI.route("seller"));
   document.getElementById("inventory-new").addEventListener("click",()=>UI.route("listingEditor"));
 
   document.getElementById("inventory-search-form").addEventListener("submit",async event=>{
