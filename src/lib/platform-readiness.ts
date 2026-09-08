@@ -66,12 +66,43 @@ export function getPlatformReadiness(){
   }
  ];
 
+ const mobileReleaseChecks:ReadinessCheck[]=[
+  {
+   key:"mobile-firebase",
+   label:"Firebase Cloud Messaging sender",
+   ready:present(process.env.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64),
+   detail:"Server-side FCM HTTP v1 credentials for Android push delivery."
+  },
+  {
+   key:"mobile-push-dispatch",
+   label:"Push dispatch authorization",
+   ready:present(process.env.PUSH_DISPATCH_SECRET)||present(process.env.CRON_SECRET),
+   detail:"Protects the server endpoint that drains the private push outbox."
+  },
+  {
+   key:"mobile-app-links",
+   label:"Verified Android App Links",
+   ready:present(process.env.ANDROID_APP_LINK_SHA256_FINGERPRINTS),
+   detail:"Publishes the production signing certificate fingerprint in /.well-known/assetlinks.json."
+  },
+  {
+   key:"mobile-production-url",
+   label:"Production mobile HTTPS origin",
+   ready:Boolean(siteUrl?.startsWith("https://")&&!siteUrl.includes("preview")),
+   detail:"Release AAB must point to the canonical production SecondPart domain, not a preview deployment."
+  }
+ ];
+
  return {
   checks,
   readyCount:checks.filter(check=>check.ready).length,
   totalCount:checks.length,
   launchCriticalReady:checks
    .filter(check=>check.key!=="dvsa-provider")
-   .every(check=>check.ready)
+   .every(check=>check.ready),
+  mobileReleaseChecks,
+  mobileReadyCount:mobileReleaseChecks.filter(check=>check.ready).length,
+  mobileTotalCount:mobileReleaseChecks.length,
+  mobileReleaseReady:mobileReleaseChecks.every(check=>check.ready)
  };
 }
