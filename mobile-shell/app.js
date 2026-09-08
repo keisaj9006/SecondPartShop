@@ -63,10 +63,17 @@ const refreshActiveScreen=async()=>{
  }
 };
 
+const trustedWebOrigin=()=>{
+ try{return new URL(C.config.webBaseUrl).origin;}catch{return "";}
+};
+const isTrustedHttpsReturn=(url,path)=>url.protocol==="https:"&&url.origin===trustedWebOrigin()&&url.pathname===path;
+
 const handleCheckoutDeepLink=async(rawUrl)=>{
  try{
   const url=new URL(rawUrl);
-  if(url.protocol!=="secondpart:"||url.hostname!=="checkout")return false;
+  const custom=url.protocol==="secondpart:"&&url.hostname==="checkout";
+  const verifiedHttps=isTrustedHttpsReturn(url,"/checkout/mobile-complete");
+  if(!custom&&!verifiedHttps)return false;
 
   const state=url.searchParams.get("state")==="cancelled"?"cancelled":"success";
   const orderId=url.searchParams.get("order");
@@ -113,7 +120,9 @@ const handleCheckoutDeepLink=async(rawUrl)=>{
 const handleSellerPaymentDeepLink=async(rawUrl)=>{
  try{
   const url=new URL(rawUrl);
-  if(url.protocol!=="secondpart:"||url.hostname!=="seller-payments")return false;
+  const custom=url.protocol==="secondpart:"&&url.hostname==="seller-payments";
+  const verifiedHttps=isTrustedHttpsReturn(url,"/seller/payments/mobile-complete");
+  if(!custom&&!verifiedHttps)return false;
 
   await C.Native.closeBrowser();
   await C.initializeSession();
