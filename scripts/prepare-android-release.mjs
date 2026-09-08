@@ -13,6 +13,7 @@ config.appName="SecondPart";
 config.webDir="mobile-shell";
 config.loggingBehavior="none";
 config.android={...(config.android||{}),backgroundColor:"#173c31",webContentsDebuggingEnabled:false};
+config.plugins={...(config.plugins||{}),PushNotifications:{presentationOptions:["badge","sound","alert"]}};
 config.server={...(config.server||{}),url:base,cleartext:false};
 await writeFile(capacitorPath,JSON.stringify(config,null,2)+"\n","utf8");
 
