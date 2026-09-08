@@ -22,7 +22,7 @@ const orders=async()=>{
 
  const fetchPage=async(offset)=>{
   const path="/orders?limit="+pageSize+"&offset="+offset;
-  const result=await C.apiCached(path,{auth:true,maxAge:offset===0?20000:10000});
+  const result=await C.apiCached(path,{auth:true,maxAge:offset===0?20000:10000,staleWhileRevalidate:offset===0});
   return {items:result.items||[],hasMore:Boolean(result.pagination&&result.pagination.hasMore)};
  };
 
@@ -191,7 +191,7 @@ const inbox=async()=>{
  if(!await UI.requireAuth("inbox"))return;
  UI.loading("Loading Inbox");
  let items;
- try{items=(await C.apiCached("/inbox",{auth:true,maxAge:15000})).items||[];}
+ try{items=(await C.apiCached("/inbox",{auth:true,maxAge:15000,staleWhileRevalidate:true})).items||[];}
  catch(error){if(!UI.isCurrent("inbox"))return;if(UI.isSilentRefresh()){UI.toast("Could not refresh Inbox. Showing the last loaded view.","warning");return;}UI.empty("◫","Inbox unavailable",error.message,"Try again",()=>UI.route("inbox"));return;}
  if(!UI.isCurrent("inbox"))return;
 
