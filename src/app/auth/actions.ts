@@ -76,6 +76,7 @@ export async function updatePassword(_previous:ActionState,formData:FormData):Pr
  const {error}=await supabase.auth.updateUser({password});
  if(error)return {status:"error",message:error.message};
  revalidatePath("/","layout");
+ if(String(formData.get("mobileReturn")??"")==="1")redirect("/auth/mobile-complete?state=password-updated");
  redirect("/account/security?password=updated");
 }
 
