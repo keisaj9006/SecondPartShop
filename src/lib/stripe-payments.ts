@@ -80,6 +80,7 @@ export async function createCheckoutSession(input:{
 }){
  const body=new URLSearchParams();
  append(body,"mode","payment");
+ append(body,"payment_method_types[0]","card");
  append(body,"success_url",input.successUrl??`${getAppUrl()}/checkout/success?order=${encodeURIComponent(input.orderId)}&session_id={CHECKOUT_SESSION_ID}`);
  append(body,"cancel_url",input.cancelUrl??`${getAppUrl()}/checkout/cancel?order=${encodeURIComponent(input.orderId)}`);
  append(body,"client_reference_id",input.orderId);
