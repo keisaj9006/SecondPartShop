@@ -1,5 +1,5 @@
 import { mobileJson,mobileOptions } from "@/lib/mobile-api";
-import { createSupabasePublicServerClient } from "@/lib/supabase/public-server";
+import { getGaragePartnersPage } from "@/lib/data/fitting";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -13,31 +13,18 @@ export async function GET(request:Request){
  const limit=Number.isInteger(rawLimit)?Math.max(1,Math.min(rawLimit,60)):40;
  const offset=Number.isInteger(rawOffset)?Math.max(0,rawOffset):0;
  const query=String(url.searchParams.get("q")??"").replace(/[^a-zA-Z0-9 -]/g," ").replace(/\s+/g," ").trim().slice(0,80);
- const supabase=createSupabasePublicServerClient();
- let builder=supabase
-  .from("garage_partners")
-  .select("id,business_name,slug,location,postcode,description,mobile_fitting,verified_at")
-  .eq("status","active")
-  .eq("customer_supplied_parts",true)
-  .eq("recycled_parts",true);
- if(query){
-  const pattern="%"+query+"%";
-  builder=builder.or("business_name.ilike."+pattern+",location.ilike."+pattern+",postcode.ilike."+pattern);
- }
- const {data,error}=await builder
-  .order("verified_at",{ascending:false,nullsFirst:false})
-  .order("business_name")
-  .order("id")
-  .range(offset,offset+limit);
- if(error)return mobileJson(request,{ok:false,error:"garages_unavailable"},503);
- const rows=data??[];
+ let result;
+ try{result=await getGaragePartnersPage(offset,limit,query);}
+ catch{return mobileJson(request,{ok:false,error:"garages_unavailable"},503);}
  return mobileJson(request,{
   ok:true,
-  items:rows.slice(0,limit).map(row=>({
-   id:row.id,businessName:row.business_name,slug:row.slug,location:row.location,postcode:row.postcode,
-   description:row.description,mobileFitting:row.mobile_fitting,verified:Boolean(row.verified_at)
+  items:result.items.map(row=>({
+   id:row.id,businessName:row.businessName,slug:row.slug,location:row.location,postcode:row.postcode,
+   description:row.description,mobileFitting:row.mobileFitting,verified:Boolean(row.verifiedAt),
+   distanceMiles:row.distanceMiles
   })),
   query:query||null,
-  pagination:{offset,limit,hasMore:rows.length>limit}
+  nearbyPostcode:result.nearbyPostcode,
+  pagination:{offset,limit,hasMore:result.hasMore}
  });
 }
