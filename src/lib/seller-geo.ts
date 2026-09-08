@@ -62,3 +62,34 @@ export async function persistSellerGeoAdmin(sellerId:string,geo:SellerGeo){
   .eq("id",sellerId);
  if(error)throw new Error("Seller location could not be prepared for distance search.");
 }
+
+
+const milesBetween=(a:{latitude:number;longitude:number},b:{latitude:number;longitude:number})=>{
+ const toRad=(value:number)=>value*Math.PI/180;
+ const earthMiles=3958.7613;
+ const dLat=toRad(b.latitude-a.latitude);
+ const dLon=toRad(b.longitude-a.longitude);
+ const lat1=toRad(a.latitude);
+ const lat2=toRad(b.latitude);
+ const h=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;
+ return earthMiles*2*Math.asin(Math.sqrt(h));
+};
+
+export async function getSellerDistanceFromPostcode(sellerId:string,buyerPostcode:string|null|undefined){
+ if(!buyerPostcode)return null;
+ const buyer=await lookupPostcodeLocation(buyerPostcode);
+ if(!buyer)return null;
+
+ const admin=createSupabaseAdminClient();
+ const {data,error}=await admin
+  .from("sellers")
+  .select("latitude,longitude,postcode_geocode_approximate")
+  .eq("id",sellerId)
+  .maybeSingle();
+ if(error||data?.latitude===null||data?.longitude===null||data?.latitude===undefined||data?.longitude===undefined)return null;
+
+ return {
+  miles:Math.round(milesBetween(buyer,{latitude:data.latitude,longitude:data.longitude})*10)/10,
+  approximate:Boolean(data.postcode_geocode_approximate)
+ };
+}
