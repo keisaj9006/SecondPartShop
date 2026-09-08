@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/identifiers";
 import type { ActionState } from "@/lib/types";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 export async function askSeller(_previous:ActionState,formData:FormData):Promise<ActionState>{
  await requireUser("/account");
@@ -22,5 +23,6 @@ export async function askSeller(_previous:ActionState,formData:FormData):Promise
   if(lower.includes("rate limit")||lower.includes("conversation limit"))return {status:"error",message:"You have sent a lot of messages recently. Please try again later."};
   return {status:"error",message:"We could not send this question right now."};
  }
+ schedulePushDispatch(50);
  redirect("/inbox/"+data);
 }

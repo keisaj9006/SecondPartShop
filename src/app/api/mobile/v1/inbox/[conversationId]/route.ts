@@ -1,5 +1,6 @@
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
 import { isUuid } from "@/lib/identifiers";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -104,5 +105,6 @@ export async function POST(request:Request,{params}:{params:Promise<{conversatio
   return mobileJson(request,{ok:false,error:"message_failed"},400);
  }
 
+ schedulePushDispatch(50);
  return mobileJson(request,{ok:true,messageId:data},201);
 }

@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/identifiers";
 import type { ActionState } from "@/lib/types";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 export async function sendListingMessage(_previous:ActionState,formData:FormData):Promise<ActionState>{
  await requireUser("/inbox");
@@ -23,6 +24,7 @@ export async function sendListingMessage(_previous:ActionState,formData:FormData
   if(error.message.toLowerCase().includes("rate limit"))return {status:"error",message:"Message limit reached. Please try again later."};
   return {status:"error",message:"We could not send this message right now."};
  }
+ schedulePushDispatch(50);
  revalidatePath("/inbox");
  revalidatePath("/inbox/"+conversationId);
  return {status:"success",message:"Message sent."};
