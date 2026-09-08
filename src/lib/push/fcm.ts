@@ -98,7 +98,7 @@ export async function sendFcmPush(input:{
       href:String(input.href??"").slice(0,500),
       notificationId:input.notificationId
      },
-     android:{priority:"NORMAL"}
+     android:{priority:"HIGH"}
     }
    }),
    cache:"no-store",

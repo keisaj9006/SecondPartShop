@@ -13,19 +13,19 @@ export async function GET(request:Request){
  if(request.headers.get("authorization")!==`Bearer ${secret}`)return NextResponse.json({ok:false},{status:401});
 
  try{
-  const [orders,payouts,sellers,push]=await Promise.all([
+  const [orders,payouts,sellers]=await Promise.all([
    reconcileStripeOrders(100),
    releaseDuePayouts(100),
-   syncPendingSellerPaymentAccounts(100),
-   dispatchPushOutbox(100).catch(error=>({
-    skipped:false,
-    claimed:0,
-    sent:0,
-    retried:0,
-    disabled:0,
-    error:error instanceof Error?error.message:"push_dispatch_failed"
-   }))
+   syncPendingSellerPaymentAccounts(100)
   ]);
+  const push=await dispatchPushOutbox(100).catch(error=>({
+   skipped:false,
+   claimed:0,
+   sent:0,
+   retried:0,
+   disabled:0,
+   error:error instanceof Error?error.message:"push_dispatch_failed"
+  }));
   return NextResponse.json({ok:true,orders,payouts,sellers,push});
  }catch{
   return NextResponse.json({ok:false},{status:500});

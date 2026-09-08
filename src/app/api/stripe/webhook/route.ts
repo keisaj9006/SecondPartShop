@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getPaymentIntent,verifyStripeWebhookSignature } from "@/lib/stripe-payments";
 import { closeProviderPaymentDispute } from "@/lib/commerce-provider-disputes";
 import { isUuid } from "@/lib/identifiers";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -179,6 +180,7 @@ export async function POST(request:Request){
    }
   }
 
+  schedulePushDispatch(50);
   return NextResponse.json({received:true});
  }catch{
   return NextResponse.json({received:false},{status:500});

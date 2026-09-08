@@ -11,6 +11,8 @@ export type PushDispatchResult={
  disabled:number;
 };
 
+const CONCURRENCY=5;
+
 const retryAt=(attempts:number)=>{
  const minutes=Math.min(30,Math.max(1,2**Math.max(0,attempts-1)));
  return new Date(Date.now()+minutes*60*1000).toISOString();
@@ -45,9 +47,8 @@ export async function dispatchPushOutbox(limit=20):Promise<PushDispatchResult>{
 
  const notificationById=new Map((notifications??[]).map(item=>[item.id,item] as const));
  const deviceById=new Map((devices??[]).map(item=>[item.id,item] as const));
- let sent=0,retried=0,disabled=0;
 
- for(const row of rows){
+ const processRow=async(row:(typeof rows)[number])=>{
   const notification=notificationById.get(row.notification_id);
   const device=deviceById.get(row.device_id);
   if(!notification||!device||notification.profile_id!==row.profile_id||device.profile_id!==row.profile_id||!device.enabled){
@@ -56,7 +57,7 @@ export async function dispatchPushOutbox(limit=20):Promise<PushDispatchResult>{
     last_error:device&&!device.enabled?"device_disabled":"push_target_missing",
     updated_at:new Date().toISOString()
    }).eq("id",row.id);
-   continue;
+   return {sent:0,retried:0,disabled:0};
   }
 
   try{
@@ -68,31 +69,42 @@ export async function dispatchPushOutbox(limit=20):Promise<PushDispatchResult>{
     href:notification.href
    });
    if(result.ok){
-    sent+=1;
     await admin.from("mobile_push_outbox").update({status:"sent",last_error:null,updated_at:new Date().toISOString()}).eq("id",row.id);
-   }else if(result.invalidToken){
-    disabled+=1;
+    return {sent:1,retried:0,disabled:0};
+   }
+   if(result.invalidToken){
     await Promise.all([
      admin.from("mobile_push_devices").update({enabled:false,updated_at:new Date().toISOString()}).eq("id",device.id),
      admin.from("mobile_push_outbox").update({status:"sent",last_error:"device_unregistered",updated_at:new Date().toISOString()}).eq("id",row.id)
     ]);
-   }else{
-    retried+=1;
-    await admin.from("mobile_push_outbox").update({
-     status:"failed",
-     next_attempt_at:retryAt(row.attempts),
-     last_error:result.error,
-     updated_at:new Date().toISOString()
-    }).eq("id",row.id);
+    return {sent:0,retried:0,disabled:1};
    }
+
+   await admin.from("mobile_push_outbox").update({
+    status:"failed",
+    next_attempt_at:retryAt(row.attempts),
+    last_error:result.error,
+    updated_at:new Date().toISOString()
+   }).eq("id",row.id);
+   return {sent:0,retried:1,disabled:0};
   }catch{
-   retried+=1;
    await admin.from("mobile_push_outbox").update({
     status:"failed",
     next_attempt_at:retryAt(row.attempts),
     last_error:"push_send_failed",
     updated_at:new Date().toISOString()
    }).eq("id",row.id);
+   return {sent:0,retried:1,disabled:0};
+  }
+ };
+
+ let sent=0,retried=0,disabled=0;
+ for(let index=0;index<rows.length;index+=CONCURRENCY){
+  const results=await Promise.all(rows.slice(index,index+CONCURRENCY).map(processRow));
+  for(const result of results){
+   sent+=result.sent;
+   retried+=result.retried;
+   disabled+=result.disabled;
   }
  }
 
