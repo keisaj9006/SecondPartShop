@@ -5,8 +5,10 @@ import { requireAdmin } from "@/lib/auth";
 import { refundTransactionCase } from "@/lib/commerce-refunds";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 const revalidateCases=()=>{
+ schedulePushDispatch(50);
  revalidatePath("/admin/commerce");
  revalidatePath("/account/cases");
  revalidatePath("/account/orders");

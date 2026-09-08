@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 export async function openTransactionCase(_previous:ActionState,formData:FormData):Promise<ActionState>{
  await requireUser("/account/cases");
@@ -31,6 +32,7 @@ export async function openTransactionCase(_previous:ActionState,formData:FormDat
   return {status:"error",message:"We could not open the transaction case right now."};
  }
 
+ schedulePushDispatch(50);
  revalidatePath("/account/cases");
  revalidatePath("/account/orders");
  revalidatePath("/dashboard/cases");
@@ -54,6 +56,7 @@ export async function markReturnShipped(_previous:ActionState,formData:FormData)
  });
  if(error)return {status:"error",message:"We could not record the return shipment right now."};
 
+ schedulePushDispatch(50);
  revalidatePath("/account/cases");
  revalidatePath("/dashboard/cases");
  return {status:"success",message:"Return shipment recorded. The seller has been notified."};

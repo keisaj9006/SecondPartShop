@@ -7,6 +7,7 @@ import { getCheckoutSession } from "@/lib/stripe-payments";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/identifiers";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 export async function resumeCheckout(formData:FormData){
  const orderId=String(formData.get("orderId")??"");
@@ -52,5 +53,6 @@ export async function resumeCheckout(formData:FormData){
   target="/account/orders/"+orderId+"?checkout=unavailable";
  }
 
+ schedulePushDispatch(50);
  redirect(target);
 }
