@@ -5,6 +5,38 @@ const UI=window.SecondPartUI;
 const C=UI.C;
 let nativeListenersBound=false;
 
+const marketplacePrefetchPath=()=>{
+ const params=new URLSearchParams();
+ const remembered=C.state.marketplaceParams&&typeof C.state.marketplaceParams==="object"?C.state.marketplaceParams:{};
+ ["category","condition","sort","min","max","pc","collection"].forEach(key=>{
+  const value=remembered[key];
+  if(value!==undefined&&value!==null&&String(value)!=="")params.set(key,String(value));
+ });
+ if(C.state.currentSearch)params.set("q",C.state.currentSearch);
+ const vehicle=C.state.activeVehicle;
+ if(vehicle){
+  if(vehicle.variantId)params.set("cv",vehicle.variantId);
+  if(vehicle.year)params.set("cy",String(vehicle.year));
+  if(vehicle.fuelType)params.set("cf",vehicle.fuelType);
+  if(vehicle.engineSizeSimple!==null&&vehicle.engineSizeSimple!==undefined)params.set("ce",String(vehicle.engineSizeSimple));
+  params.set("fit",C.state.vehicleCompatibleOnly?"1":"0");
+ }
+ params.set("limit","60");
+ return "/marketplace?"+params.toString();
+};
+
+const prefetchPrimaryNavigation=()=>{
+ C.prefetch(marketplacePrefetchPath(),{auth:false,maxAge:20000});
+ C.prefetch("/categories",{auth:false,maxAge:10*60*1000});
+ C.prefetch("/vehicle-catalogue?level=makes",{auth:false,maxAge:10*60*1000});
+ if(C.state.session){
+  C.prefetch("/garage",{auth:true,maxAge:60000});
+  C.prefetch("/orders?limit=20&offset=0",{auth:true,maxAge:20000});
+  C.prefetch("/inbox",{auth:true,maxAge:15000});
+  C.prefetch("/notifications",{auth:true,maxAge:20000});
+ }
+};
+
 document.querySelectorAll("[data-nav]").forEach(button=>{
  button.addEventListener("click",()=>UI.route(button.dataset.nav));
 });
@@ -25,6 +57,7 @@ const refreshActiveScreen=async()=>{
   await C.loadMe();
   await UI.refreshUserChrome();
  }
+ prefetchPrimaryNavigation();
  if(["orders","order","inbox","conversation","transactionChat","seller","sellerSales","inventory","notifications","saved","savedSearches","recentlyViewed","requests","sellerRequests","sellerDonors","garage","fittingRequests","garagePartner","garagePartnerRequests","fittingChat"].includes(C.state.currentView)){
   await UI.refreshCurrent();
  }
@@ -179,17 +212,11 @@ const boot=async()=>{
     restoreGarage()
    ]);
 
-   C.prefetch("/garage",{auth:true,maxAge:60000});
-   C.prefetch("/notifications",{auth:true,maxAge:20000});
-   C.prefetch("/orders?limit=20&offset=0",{auth:true,maxAge:20000});
-   C.prefetch("/inbox",{auth:true,maxAge:15000});
   }else{
    await UI.refreshUserChrome();
   }
 
-  C.prefetch("/vehicle-catalogue?level=makes",{auth:false,maxAge:10*60*1000});
-  C.prefetch("/categories",{auth:false,maxAge:10*60*1000});
-  C.prefetch("/marketplace?limit=60",{auth:false,maxAge:20000});
+  prefetchPrimaryNavigation();
   await bindNativeListeners();
 
   const launchUrl=await C.Native.getLaunchUrl();
