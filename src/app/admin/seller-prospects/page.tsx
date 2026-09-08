@@ -57,9 +57,10 @@ export default async function SellerProspectsPage({searchParams}:{searchParams:P
     .limit(300)
   :{data:[],error:null};
  if(activityError)throw new Error("Seller prospect activity history is temporarily unavailable.");
- const activitiesByProspect=new Map<string,NonNullable<typeof activityRows>>();
+ type ActivityRow=NonNullable<typeof activityRows>[number];
+ const activitiesByProspect=new Map<string,ActivityRow[]>();
  for(const activity of activityRows??[]){
-  const list=activitiesByProspect.get(activity.prospect_id)??[];
+  const list:ActivityRow[]=activitiesByProspect.get(activity.prospect_id)??[];
   if(list.length<5)list.push(activity);
   activitiesByProspect.set(activity.prospect_id,list);
  }
