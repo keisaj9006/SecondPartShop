@@ -21,7 +21,7 @@ const orders=async()=>{
  let hasMore=false;
 
  const fetchPage=async(offset)=>{
-  const result=await C.api("/orders?limit="+pageSize+"&offset="+offset,{auth:true});
+  const path="/orders?limit="+pageSize+"&offset="+offset;\n  const result=await C.apiCached(path,{auth:true,maxAge:offset===0?20000:10000});
   return {items:result.items||[],hasMore:Boolean(result.pagination&&result.pagination.hasMore)};
  };
 
@@ -97,7 +97,7 @@ const order=async(payload)=>{
  if(!await UI.requireAuth("orders"))return;
  UI.loading("Loading order");
  let data;
- try{data=(await C.api("/orders/"+encodeURIComponent(payload.id),{auth:true})).order;}
+ try{data=(await C.apiCached("/orders/"+encodeURIComponent(payload.id),{auth:true,maxAge:10000})).order;}
  catch(error){UI.empty("!","Order unavailable",error.message,"Back to purchases",()=>UI.route("orders"));return;}
 
  const html=[];
@@ -179,7 +179,7 @@ const inbox=async()=>{
  if(!await UI.requireAuth("inbox"))return;
  UI.loading("Loading Inbox");
  let items;
- try{items=(await C.api("/inbox",{auth:true})).items||[];}
+ try{items=(await C.apiCached("/inbox",{auth:true,maxAge:15000})).items||[];}
  catch(error){UI.empty("◫","Inbox unavailable",error.message,"Try again",()=>UI.route("inbox"));return;}
 
  UI.app.innerHTML="<div class=\"section-head\"><div><p class=\"eyebrow\">Messages</p><h2>Part questions</h2><p>Private pre-purchase conversations.</p></div></div>"+(items.length?items.map(item=>"<button type=\"button\" class=\"conversation-card wide\" data-conversation=\""+C.escapeHtml(item.id)+"\" style=\"text-align:left\"><div class=\"row-between\"><div><h3>"+C.escapeHtml(item.partTitle)+"</h3><p class=\"subtle\">"+C.escapeHtml(item.sellerOwnerId===C.state.me.profile.id?"Buyer question":"Seller: "+item.sellerName)+" · "+C.dateTime(item.lastMessageAt)+"</p></div><span class=\"pill\">"+C.escapeHtml(item.status)+"</span></div></button>").join(""):"<div class=\"empty\"><div class=\"empty-icon\">◫</div><h3>No part questions yet</h3><p>Questions you send to sellers, or buyers send about your listings, will appear here.</p></div>");
@@ -203,7 +203,7 @@ const conversation=async(payload)=>{
   event.preventDefault();
   const body=String(document.getElementById("conversation-body").value||"").trim();
   if(!body)return;
-  try{await C.api("/inbox/"+encodeURIComponent(thread.id),{method:"POST",auth:true,body:{body}});UI.route("conversation",{id:thread.id});}
+  try{await C.api("/inbox/"+encodeURIComponent(thread.id),{method:"POST",auth:true,body:{body}});C.invalidateCache("/inbox");UI.route("conversation",{id:thread.id});}
   catch(error){UI.toast(error.message,"error");}
  });
 };
@@ -218,7 +218,7 @@ const sellerSales=async()=>{
  let hasMore=false;
 
  const fetchPage=async(offset)=>{
-  const result=await C.api("/seller/sales?limit="+pageSize+"&offset="+offset,{auth:true});
+  const path="/seller/sales?limit="+pageSize+"&offset="+offset;\n  const result=await C.apiCached(path,{auth:true,maxAge:offset===0?15000:8000});
   return {items:result.items||[],hasMore:Boolean(result.pagination&&result.pagination.hasMore)};
  };
 
