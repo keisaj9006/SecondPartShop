@@ -41,6 +41,16 @@ export const mobileJson=(request:Request,body:unknown,status=200)=>
   })
  });
 
+export const mobilePublicJson=(request:Request,body:unknown,status=200,sMaxAge=30,staleWhileRevalidate=120)=>{
+ const response=mobileJson(request,body,status);
+ if(status>=200&&status<300){
+  const safeMaxAge=Math.max(0,Math.floor(sMaxAge));
+  const safeStale=Math.max(0,Math.floor(staleWhileRevalidate));
+  response.headers.set("Cache-Control",`public, max-age=0, s-maxage=${safeMaxAge}, stale-while-revalidate=${safeStale}`);
+ }
+ return response;
+};
+
 export const mobileOptions=(request:Request)=>new Response(null,{status:204,headers:mobileCorsHeaders(request)});
 
 const bearerToken=(request:Request)=>{
