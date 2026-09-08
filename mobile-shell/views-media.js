@@ -120,7 +120,9 @@ const cases=async()=>{
     "<div class=\"row-between\"><div><p class=\"eyebrow\">"+C.escapeHtml(C.human(item.caseType))+"</p><h3>"+C.escapeHtml(item.partTitle)+"</h3><p class=\"subtle\">Seller: "+C.escapeHtml(item.sellerName)+" · "+C.dateOnly(item.createdAt)+"</p></div><span class=\"pill\">"+C.escapeHtml(C.human(item.status))+"</span></div>"+
     "<p style=\"font-size:11px;line-height:1.55\"><strong>"+C.escapeHtml(item.reason)+"</strong><br>"+C.escapeHtml(item.details)+"</p>"+
     (item.sellerResponse?"<div class=\"status info\">Seller response: "+C.escapeHtml(item.sellerResponse)+"</div>":"")+
-    "<div class=\"button-row\" style=\"margin-top:10px\"><button type=\"button\" class=\"secondary small-button\" data-case-evidence=\""+C.escapeHtml(item.id)+"\">Photos & evidence</button></div>"+
+    (item.returnTrackingNumber?"<div class=\"status info\" style=\"margin-top:8px\"><strong>Return shipment:</strong> "+C.escapeHtml((item.returnTrackingCarrier?item.returnTrackingCarrier+" · ":"")+item.returnTrackingNumber)+"</div>":"")+
+    (item.status==="return_shipped"?"<div class=\"status warning\" style=\"margin-top:8px\">Return is in transit. Waiting for the seller to confirm receipt.</div>":"")+
+    "<div class=\"button-row\" style=\"margin-top:10px\">"+(item.status==="return_authorized"?"<button type=\"button\" class=\"primary small-button\" data-return-shipped=\""+C.escapeHtml(item.id)+"\">Mark return shipped</button>":"")+"<button type=\"button\" class=\"secondary small-button\" data-case-evidence=\""+C.escapeHtml(item.id)+"\">Photos & evidence</button></div>"+
    "</section>"
   ).join(""));
  }else{
@@ -128,6 +130,31 @@ const cases=async()=>{
  }
  UI.app.innerHTML=html.join("");
  document.getElementById("cases-back").addEventListener("click",()=>UI.route("account"));
+ UI.app.querySelectorAll("[data-return-shipped]").forEach(button=>button.addEventListener("click",()=>{
+  const caseId=button.dataset.returnShipped;
+  UI.modal("Mark return shipped","<form id=\"return-shipment-form\" class=\"form-grid\"><p class=\"subtle\">Use a tracked shipment where possible. The seller will be notified and can confirm the return when it arrives.</p><label class=\"label\">Carrier <span class=\"subtle\">(optional)</span><input id=\"return-carrier\" class=\"input\" maxlength=\"80\" placeholder=\"Royal Mail, DPD, Evri…\"></label><label class=\"label\">Tracking / shipment reference<input id=\"return-tracking\" class=\"input\" minlength=\"3\" maxlength=\"160\" required></label><div id=\"return-shipment-status\"></div><button id=\"return-shipment-submit\" class=\"primary wide\" type=\"submit\">Confirm return shipment</button></form>");
+  document.getElementById("return-shipment-form").addEventListener("submit",async event=>{
+   event.preventDefault();
+   const submit=document.getElementById("return-shipment-submit");
+   const status=document.getElementById("return-shipment-status");
+   const carrier=String(document.getElementById("return-carrier").value||"").trim();
+   const trackingNumber=String(document.getElementById("return-tracking").value||"").trim();
+   if(trackingNumber.length<3){status.innerHTML="<div class=\"status warning\">Add a tracking or shipment reference.</div>";return;}
+   submit.disabled=true;submit.textContent="Saving…";
+   try{
+    await C.api("/cases/"+encodeURIComponent(caseId),{method:"POST",auth:true,body:{action:"mark_return_shipped",carrier,trackingNumber}});
+    C.invalidateCache("/cases");
+    C.invalidateCache("/seller/cases");
+    C.invalidateCache("/notifications");
+    UI.closeModal();
+    UI.toast("Return shipment recorded. The seller has been notified.");
+    UI.route("cases");
+   }catch(error){
+    status.innerHTML="<div class=\"status error\">"+C.escapeHtml(error.message.replaceAll("_"," "))+"</div>";
+    submit.disabled=false;submit.textContent="Confirm return shipment";
+   }
+  });
+ }));
  UI.app.querySelectorAll("[data-case-evidence]").forEach(button=>button.addEventListener("click",()=>void openEvidence(button.dataset.caseEvidence)));
 };
 
