@@ -20,6 +20,7 @@ import type { MarketplaceFilters } from "@/lib/types";
 import { conditionLabel } from "@/lib/listing-trust";
 import { isUuid } from "@/lib/identifiers";
 import { isStripeCheckoutConfigured } from "@/lib/stripe-payments";
+import { getSellerDistanceFromPostcode } from "@/lib/seller-geo";
 
 export const dynamic="force-dynamic";
 
@@ -70,11 +71,12 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
  }
  if(filters.vehicleRegistration&&vehicleLabel)vehicleLabel=`${filters.vehicleRegistration} · ${vehicleLabel}`;
 
- const [savedIds,sellerTrust,sellerCheckoutReady,passportEvidence]=await Promise.all([
+ const [savedIds,sellerTrust,sellerCheckoutReady,passportEvidence,sellerDistance]=await Promise.all([
   user?getSavedPartIdsForParts(user.id,[item.id]):Promise.resolve([]),
   getPublicMemberProfileById(item.seller.ownerId).catch(()=>null),
   isSellerCheckoutReady(item.sellerId).catch(()=>false),
-  getPartPassportEvidence(item.id).catch(()=>null)
+  getPartPassportEvidence(item.id).catch(()=>null),
+  getSellerDistanceFromPostcode(item.sellerId,filters.postcode).catch(()=>null)
  ]);
  const backHref=context.toString()?`/?${context.toString()}#marketplace`:"/#marketplace";
  const currentHref=context.toString()?`/parts/${slug}?${context.toString()}`:`/parts/${slug}`;
@@ -137,7 +139,7 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
         {item.seller.verified&&<span className="flex items-center gap-2"><ShieldCheck className="text-[#d4f44d]" size={18}/>Verified seller</span>}
         <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-black capitalize">{item.seller.sellerType} seller</span>
       </div>
-      <span className="flex items-center gap-2"><MapPin className="text-[#d4f44d]" size={18}/>{item.seller.businessName}, {item.seller.location}</span>
+      <span className="flex items-center gap-2"><MapPin className="text-[#d4f44d]" size={18}/>{item.seller.businessName}, {item.seller.location}{sellerDistance?` · ${sellerDistance.approximate?"~":""}${sellerDistance.miles.toFixed(1)} mi away`:""}</span>
       {sellerTrust&&<div className="rounded-xl bg-white/10 p-3">
         <Link href={`/member/${sellerTrust.handle}`} className="font-black text-[#d4f44d] hover:underline">@{sellerTrust.handle}</Link>
         <p className="mt-1 font-bold">★ {sellerTrust.sellerRating?.toFixed(1)??"New"} · {sellerTrust.sellerReviewCount} verified reviews · {sellerTrust.soldCount} sold · {sellerTrust.boughtCount} bought</p>
