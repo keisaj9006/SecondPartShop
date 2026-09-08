@@ -390,7 +390,7 @@ const saved=async()=>{
  if(!await UI.requireAuth("saved"))return;
  UI.loading("Loading saved parts");
  let result;
- try{result=await C.api("/saved",{auth:true});C.state.savedIds=new Set(result.ids||[]);}
+ try{result=await C.apiCached("/saved",{auth:true,maxAge:15000});C.state.savedIds=new Set(result.ids||[]);}
  catch(error){UI.empty("♡","Saved parts unavailable",error.message,"Try again",()=>UI.route("saved"));return;}
 
  UI.app.innerHTML="<div class=\"section-head\"><div><p class=\"eyebrow\">Your account</p><h2>Saved parts</h2><p>"+(result.items||[]).length+" saved listing(s).</p></div></div>"+((result.items||[]).length?"<section class=\"list-grid\">"+result.items.map(UI.listingCard).join("")+"</section>":"<div class=\"empty\"><div class=\"empty-icon\">♡</div><h3>No saved parts yet</h3><p>Tap the heart on a listing to save it here.</p><button id=\"saved-shop\" class=\"primary small-button\" style=\"margin-top:14px\" type=\"button\">Browse parts</button></div>");
@@ -402,7 +402,7 @@ const notifications=async()=>{
  if(!await UI.requireAuth("notifications"))return;
  UI.loading("Loading notifications");
  let result;
- try{result=await C.api("/notifications",{auth:true});C.state.unreadNotifications=Number(result.unreadCount||0);UI.updateBadge();}
+ try{result=await C.apiCached("/notifications",{auth:true,maxAge:15000});C.state.unreadNotifications=Number(result.unreadCount||0);UI.updateBadge();}
  catch(error){UI.empty("♢","Notifications unavailable",error.message,"Try again",()=>UI.route("notifications"));return;}
 
  const items=result.items||[];
@@ -415,11 +415,11 @@ const notifications=async()=>{
 
  const markAll=document.getElementById("mark-all-read");
  if(markAll)markAll.addEventListener("click",async()=>{
-  try{await C.api("/notifications",{method:"PATCH",auth:true,body:{all:true}});C.state.unreadNotifications=0;UI.updateBadge();UI.route("notifications");}
+  try{await C.api("/notifications",{method:"PATCH",auth:true,body:{all:true}});C.invalidateCache("/notifications");C.state.unreadNotifications=0;UI.updateBadge();UI.route("notifications");}
   catch(error){UI.toast(error.message,"error");}
  });
  UI.app.querySelectorAll("[data-notification-read]").forEach(button=>button.addEventListener("click",async()=>{
-  try{await C.api("/notifications",{method:"PATCH",auth:true,body:{id:button.dataset.notificationRead}});UI.route("notifications");}
+  try{await C.api("/notifications",{method:"PATCH",auth:true,body:{id:button.dataset.notificationRead}});C.invalidateCache("/notifications");UI.route("notifications");}
   catch(error){UI.toast(error.message,"error");}
  }));
  UI.app.querySelectorAll("[data-notification-open]").forEach(button=>button.addEventListener("click",()=>{
