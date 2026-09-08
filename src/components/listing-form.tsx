@@ -17,7 +17,7 @@ const selectableDescendants=(node:CategoryNode|null)=>{
  return result;
 };
 
-export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defaultCategoryId,defaultRequestId,initialCatalogueFitments=[],listing}:{categories:Category[];donors:DonorVehicle[];defaultDonorId?:string;defaultTitle?:string;defaultCategoryId?:string;defaultRequestId?:string;initialCatalogueFitments?:CatalogueFitmentSelection[];listing?:Listing}){
+export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defaultCategoryId,defaultRequestId,initialCatalogueFitments=[],listing,sellerCheckoutReady=true}:{categories:Category[];donors:DonorVehicle[];defaultDonorId?:string;defaultTitle?:string;defaultCategoryId?:string;defaultRequestId?:string;initialCatalogueFitments?:CatalogueFitmentSelection[];listing?:Listing;sellerCheckoutReady?:boolean}){
  const handler=listing?updateListing:createListing;
  const [state,action,pending]=useActionState(handler,initial);
  const [optimizingImages,setOptimizingImages]=useState(false);
@@ -45,6 +45,7 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
  const selectedDonor=donorOptions.find(donor=>donor.id===donorId)??donors.find(donor=>donor.id===donorId);
  const donorSummary=selectedDonor?[selectedDonor.registration,selectedDonor.make+" "+selectedDonor.model,selectedDonor.year,selectedDonor.variant,selectedDonor.engineSizeSimple?selectedDonor.engineSizeSimple+"cc":null,selectedDonor.fuelType].filter(Boolean).join(" · "):"";
  const input="mt-2 w-full rounded-xl border border-black/15 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#173c31]";
+ const activeAllowed=sellerCheckoutReady||listing?.status==="active";
 
  const selectDepartment=(value:string)=>{setDepartmentId(value);setGroupId("");setCategoryId("");};
  const selectGroup=(value:string)=>{
@@ -138,7 +139,10 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
    <label className="text-sm font-bold">Delivery min days<input type="number" min="0" max="30" name="deliveryDaysMin" defaultValue={listing?.deliveryDaysMin??""} className={input} placeholder="1"/></label>
    <label className="text-sm font-bold">Delivery max days<input type="number" min="0" max="30" name="deliveryDaysMax" defaultValue={listing?.deliveryDaysMax??""} className={input} placeholder="3"/></label>
   </fieldset>
-  <label className="text-sm font-bold">Listing status<select name="status" defaultValue={listing?.status==="active"?"active":"draft"} className={input}><option value="draft">Draft</option><option value="active">Active</option></select></label>
+  <div className="lg:col-span-2">
+   {!sellerCheckoutReady&&<div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><p className="font-black">Payments & payouts setup required before publishing</p><p className="mt-1 leading-6 text-amber-900/80">You can keep building and saving draft inventory now. Complete Stripe Connect before making a new listing active.</p><a href="/dashboard/payments" className="mt-3 inline-block rounded-xl bg-[#173c31] px-4 py-2.5 font-black text-white">Complete payments & payouts</a></div>}
+   <label className="text-sm font-bold">Listing status<select name="status" defaultValue={listing?.status==="active"?"active":"draft"} className={input}><option value="draft">Draft</option><option value="active" disabled={!activeAllowed}>Active{!activeAllowed?" · complete payouts first":""}</option></select></label>
+  </div>
   <label className="text-sm font-bold lg:col-span-2">Real product photos<OptimizedImageInput name="images" existingCount={listing?.images.length??0} onProcessingChange={setOptimizingImages} className={`${input} file:mr-3 file:rounded-lg file:border-0 file:bg-[#eef1eb] file:px-3 file:py-2 file:font-bold`}/><small className="mt-2 block font-normal leading-5 text-[#63706a]">Real photos of the actual part only. Up to 6 JPG, PNG or WebP files. SecondPart optimizes new photos on this device before upload (max edge about 1800 px, WebP where smaller). At least one photo is required to publish an active listing; we recommend a whole-part photo, the label/OE number and connectors or any visible damage. Existing images remain when editing.</small></label>
 
   <SellerCompatibilityEditor initialFitments={initialCatalogueFitments}/>
