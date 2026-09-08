@@ -14,7 +14,7 @@ config.webDir="mobile-shell";
 config.loggingBehavior="none";
 config.android={...(config.android||{}),backgroundColor:"#173c31",webContentsDebuggingEnabled:false};
 config.plugins={...(config.plugins||{}),PushNotifications:{presentationOptions:["badge","sound","alert"]}};
-config.server={...(config.server||{}),url:base,cleartext:false};
+delete config.server;
 await writeFile(capacitorPath,JSON.stringify(config,null,2)+"\n","utf8");
 
 const mobileConfigPath="mobile-shell/config.js";
