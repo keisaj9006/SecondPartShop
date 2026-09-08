@@ -1,5 +1,6 @@
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
 import { isSellerBusinessKind } from "@/lib/seller-business";
+import { persistSellerGeo,sellerGeoFromPostcode } from "@/lib/seller-geo";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -79,6 +80,7 @@ export async function POST(request:Request){
   if(upgradeError||!upgraded)return mobileJson(request,{ok:false,error:"seller_enable_failed"},409);
  }
 
+ const sellerGeo=await sellerGeoFromPostcode(postcode);
  const slugBase=slugify(businessName)||"seller";
  const {data,error}=await supabase
   .from("sellers")
@@ -87,7 +89,7 @@ export async function POST(request:Request){
    business_name:businessName,
    slug:`${slugBase}-${user.id.slice(0,6)}`,
    location,
-   postcode,
+   postcode:sellerGeo.postcode,
    description,
    seller_type:sellerType,
    business_kind:businessKind
@@ -96,6 +98,8 @@ export async function POST(request:Request){
   .single();
 
  if(error||!data)return mobileJson(request,{ok:false,error:"seller_profile_create_failed"},503);
+ try{await persistSellerGeo(data.id,user.id,sellerGeo);}
+ catch{return mobileJson(request,{ok:false,error:"seller_geo_prepare_failed"},503);}
  return mobileJson(request,{ok:true,id:data.id},201);
 }
 
@@ -131,12 +135,13 @@ export async function PATCH(request:Request){
  if(existingError)return mobileJson(request,{ok:false,error:"seller_profile_unavailable"},503);
  if(!existing)return mobileJson(request,{ok:false,error:"seller_profile_required"},404);
 
+ const sellerGeo=await sellerGeoFromPostcode(postcode);
  const {data:updated,error}=await supabase
   .from("sellers")
   .update({
    business_name:businessName,
    location,
-   postcode,
+   postcode:sellerGeo.postcode,
    description,
    seller_type:sellerType,
    business_kind:businessKind
@@ -147,6 +152,8 @@ export async function PATCH(request:Request){
   .single();
 
  if(error||!updated)return mobileJson(request,{ok:false,error:"seller_profile_update_failed"},503);
+ try{await persistSellerGeo(updated.id,user.id,sellerGeo);}
+ catch{return mobileJson(request,{ok:false,error:"seller_geo_prepare_failed"},503);}
  return mobileJson(request,{
   ok:true,
   seller:{
