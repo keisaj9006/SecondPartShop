@@ -4,6 +4,37 @@
 const UI=window.SecondPartUI;
 const C=UI.C;
 
+const errorText=value=>{
+ const key=String(value||"").trim();
+ const messages={
+  title_too_short:"Add a longer listing title.",
+  description_too_short:"Add a fuller description before saving.",
+  invalid_category:"Choose a specific part category.",
+  invalid_condition:"Choose a valid condition.",
+  invalid_testing:"Choose a valid testing status.",
+  invalid_price:"Enter a valid price.",
+  invalid_shipping:"Enter a valid delivery price.",
+  invalid_stock:"Enter a valid stock quantity.",
+  invalid_dispatch:"Enter a valid dispatch time.",
+  invalid_warranty:"Choose a valid warranty period.",
+  invalid_delivery_range:"Check the delivery day range.",
+  invalid_donor:"Choose a donor vehicle from your seller account.",
+  transmission_codes_required:"Add gearbox family and gearbox code for this transmission-specific part.",
+  invalid_fitments:"One of the confirmed vehicle fitments is invalid.",
+  duplicate_fitment:"The same exact vehicle fitment was added more than once.",
+  fitment_save_failed:"Confirmed vehicle fitments could not be saved.",
+  photo_required:"Add at least one real product photo before publishing.",
+  compatibility_evidence_required:"Add a donor vehicle, exact fitment, OE/OEM number, or manufacturer part number before publishing.",
+  stock_required:"Add at least one item to stock before publishing.",
+  seller_payout_setup:"Complete seller payment and payout setup before publishing.",
+  payout_setup_required:"Complete seller payment and payout setup before publishing.",
+  listing_reserved:"This listing is reserved in an active checkout and cannot be edited right now.",
+  publish_failed:"The listing could not be published. Check the readiness items and try again.",
+  publish_check_failed:"We could not verify listing readiness right now."
+ };
+ return messages[key]||key.replaceAll("_"," ")||"Something went wrong.";
+};
+
 const photoGrid=(items,removable=false)=>items.length
  ?"<div style=\"display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px\">"+
    items.map(item=>"<article style=\"overflow:hidden;border:1px solid rgba(18,34,29,.1);border-radius:13px;background:#fff\"><img src=\""+C.escapeHtml(C.safeHttpUrl(item.signedUrl||item.url))+"\" alt=\""+C.escapeHtml(item.originalName||item.alt||"Photo")+"\" style=\"width:100%;aspect-ratio:1/1;object-fit:cover\"/>"+(removable?"<button type=\"button\" class=\"danger-button small-button wide\" style=\"border-radius:0;border-left:0;border-right:0;border-bottom:0\" data-remove-photo=\""+C.escapeHtml(item.id)+"\">Remove</button>":"<div style=\"padding:8px\"><p class=\"subtle\" style=\"margin:0\">"+C.escapeHtml(item.originalName||"Evidence photo")+"</p></div>")+"</article>").join("")+
@@ -458,7 +489,9 @@ const listingEditor=async(payload={})=>{
  const readinessText=readinessMissing.map(value=>
   value==="real_product_photo"
    ?"add at least one real product photo"
-   :"add donor / exact fitment / OE-OEM / manufacturer part number"
+   :value==="seller_payout_setup"
+    ?"complete seller payment and payout setup"
+    :"add donor / exact fitment / OE-OEM / manufacturer part number"
  ).join(" · ")||"complete the required evidence";
  const html=[];
  html.push("<button class=\"back\" id=\"listing-editor-back\" type=\"button\">‹ Back to inventory</button>");
@@ -476,7 +509,7 @@ const listingEditor=async(payload={})=>{
   "<section class=\"card\"><p class=\"eyebrow\">2 · Identify the part</p><p class=\"subtle\">Enter numbers you can actually read. Do not guess.</p><label class=\"label\">OE/OEM number<input id=\"le-oem\" class=\"input\" maxlength=\"160\" value=\""+C.escapeHtml(item?.oemNumber||"")+"\"></label><div class=\"spec-grid\" style=\"margin-top:10px\"><label class=\"label\">Manufacturer / brand<input id=\"le-manufacturer\" class=\"input\" maxlength=\"160\" value=\""+C.escapeHtml(item?.manufacturer||"")+"\"></label><label class=\"label\">Manufacturer part number<input id=\"le-part-number\" class=\"input\" maxlength=\"160\" value=\""+C.escapeHtml(item?.partNumber||"")+"\"></label></div><div id=\"le-transmission\" style=\"margin-top:10px\"><div class=\"spec-grid\"><label class=\"label\">Gearbox family<input id=\"le-gearbox-family\" class=\"input\" maxlength=\"80\" value=\""+C.escapeHtml(item?.gearboxFamily||"")+"\"></label><label class=\"label\">Gearbox code<input id=\"le-gearbox-code\" class=\"input\" maxlength=\"80\" value=\""+C.escapeHtml(item?.gearboxCode||"")+"\"></label></div></div></section>"+
   "<section class=\"card\"><p class=\"eyebrow\">3 · Other confirmed vehicles <span class=\"subtle\">(optional)</span></p><p class=\"subtle\">Only add exact vehicles when you can support the fitment.</p><div id=\"le-fitments\"></div><button id=\"le-add-fitment\" class=\"secondary small-button\" type=\"button\">+ Add confirmed vehicle</button></section>"+
   "<section class=\"card\"><p class=\"eyebrow\">Selling details</p><div class=\"spec-grid\"><label class=\"label\">Price £<input id=\"le-price\" class=\"input\" type=\"number\" min=\"0\" step=\"0.01\" value=\""+C.escapeHtml(item?Number(item.pricePence||0)/100:"")+"\"></label><label class=\"label\">Stock<input id=\"le-stock\" class=\"input\" type=\"number\" min=\"0\" value=\""+C.escapeHtml(item?.stock??1)+"\"></label><label class=\"label\">Delivery £<input id=\"le-shipping\" class=\"input\" type=\"number\" min=\"0\" step=\"0.01\" value=\""+C.escapeHtml(item?Number(item.shippingPence||0)/100:"0")+"\"></label><label class=\"label\">Dispatch days<input id=\"le-dispatch\" class=\"input\" type=\"number\" min=\"0\" max=\"30\" value=\""+C.escapeHtml(item?.dispatchDays??2)+"\"></label><label class=\"label\">Warranty days<input id=\"le-warranty\" class=\"input\" type=\"number\" min=\"0\" max=\"730\" value=\""+C.escapeHtml(item?.warrantyDays??0)+"\"></label><label class=\"label\" style=\"align-self:end\"><span style=\"display:flex;align-items:center;gap:8px\"><input id=\"le-collection\" type=\"checkbox\" "+(item?.collectionAvailable?"checked":"")+"> Collection available</span></label></div><details style=\"margin-top:10px\"><summary class=\"link-button\">Condition & delivery details</summary><div class=\"form-grid\"><label class=\"label\">Condition notes<textarea id=\"le-condition-notes\" class=\"textarea\" maxlength=\"500\">"+C.escapeHtml(item?.conditionNotes||"")+"</textarea></label><label class=\"label\">Damage notes<textarea id=\"le-damage-notes\" class=\"textarea\" maxlength=\"500\">"+C.escapeHtml(item?.damageNotes||"")+"</textarea></label><div class=\"spec-grid\"><label class=\"label\">Delivery min days<input id=\"le-delivery-min\" class=\"input\" type=\"number\" min=\"0\" max=\"30\" value=\""+C.escapeHtml(item?.deliveryDaysMin??"")+"\"></label><label class=\"label\">Delivery max days<input id=\"le-delivery-max\" class=\"input\" type=\"number\" min=\"0\" max=\"30\" value=\""+C.escapeHtml(item?.deliveryDaysMax??"")+"\"></label></div></div></details></section>"+
-  (item?"<section class=\"card\"><p class=\"eyebrow\">Photos & publishing</p>"+(item.publishReadiness?.ready?"<div class=\"status success\">Ready to publish: real photo and compatibility / part identity evidence are present.</div>":"<div class=\"status warning\">Before publishing: "+C.escapeHtml(readinessText)+"</div>")+"<p class=\"subtle\" style=\"margin-top:8px\">"+C.escapeHtml(item.imageCount||0)+" product photo(s) currently attached.</p><div class=\"button-row\" style=\"margin-top:10px\"><button id=\"le-photos\" class=\"secondary\" type=\"button\">Manage photos</button>"+(item.status==="active"?"<button id=\"le-save\" class=\"primary\" type=\"button\">Save changes</button><button id=\"le-draft\" class=\"secondary\" type=\"button\">Move to draft</button>":"<button id=\"le-save\" class=\"secondary\" type=\"button\">Save draft</button><button id=\"le-publish\" class=\"lime-button\" type=\"button\">Publish listing</button>")+"</div><div id=\"le-status\" style=\"margin-top:10px\"></div></section>":"<section class=\"card\"><p class=\"eyebrow\">Next step</p><p class=\"subtle\">Create the draft first. Then the app will let you take real product photos before publishing.</p><button id=\"le-create\" class=\"primary wide\" type=\"button\">Create draft & add photos</button><div id=\"le-status\" style=\"margin-top:10px\"></div></section>")+
+  (item?"<section class=\"card\"><p class=\"eyebrow\">Photos & publishing</p>"+(item.publishReadiness?.ready?"<div class=\"status success\">Ready to publish: photos, evidence and seller payouts are ready.</div>":"<div class=\"status warning\">Before publishing: "+C.escapeHtml(readinessText)+"</div>")+(readinessMissing.includes("seller_payout_setup")?"<button id=\"le-seller-setup\" class=\"secondary wide\" style=\"margin-top:10px\" type=\"button\">Complete payment & payout setup</button>":"")+"<p class=\"subtle\" style=\"margin-top:8px\">"+C.escapeHtml(item.imageCount||0)+" product photo(s) currently attached.</p><div class=\"button-row\" style=\"margin-top:10px\"><button id=\"le-photos\" class=\"secondary\" type=\"button\">Manage photos</button>"+(item.status==="active"?"<button id=\"le-save\" class=\"primary\" type=\"button\">Save changes</button><button id=\"le-draft\" class=\"secondary\" type=\"button\">Move to draft</button>":"<button id=\"le-save\" class=\"secondary\" type=\"button\">Save draft</button><button id=\"le-publish\" class=\"lime-button\" type=\"button\">Publish listing</button>")+"</div><div id=\"le-status\" style=\"margin-top:10px\"></div></section>":"<section class=\"card\"><p class=\"eyebrow\">Next step</p><p class=\"subtle\">Create the draft first. Then the app will let you take real product photos before publishing.</p><button id=\"le-create\" class=\"primary wide\" type=\"button\">Create draft & add photos</button><div id=\"le-status\" style=\"margin-top:10px\"></div></section>")+
  "</form>");
  UI.app.innerHTML=html.join("");
  document.getElementById("le-condition").value=item?.condition||"used";
@@ -598,6 +631,8 @@ const listingEditor=async(payload={})=>{
  };
 
  if(item){
+  const sellerSetup=document.getElementById("le-seller-setup");
+  if(sellerSetup)sellerSetup.addEventListener("click",()=>UI.route("sellerSetup"));
   document.getElementById("le-photos").addEventListener("click",()=>void openListingPhotos({id:item.id,title:String(document.getElementById("le-title").value||item.title)}));
   document.getElementById("le-save").addEventListener("click",()=>void patch(item.status==="active"?"active":"draft"));
   const publish=document.getElementById("le-publish");if(publish)publish.addEventListener("click",()=>void patch("active"));
