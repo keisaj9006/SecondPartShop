@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { persistSellerGeoAdmin,sellerGeoFromPostcode } from "@/lib/seller-geo";
 import { schedulePushDispatch } from "@/lib/push/schedule";
+import { releaseDuePayouts } from "@/lib/commerce-payouts";
 
 export async function refreshMissingSellerGeo(){
  await requireAdmin("/admin/system");
@@ -67,4 +68,26 @@ export async function retryExhaustedPushes(){
  schedulePushDispatch(100);
  revalidatePath("/admin/system");
  redirect("/admin/system?push-retried="+ids.length);
+}
+
+
+export async function runDuePayoutMaintenance(){
+ await requireAdmin("/admin/system");
+ let result;
+ try{
+  result=await releaseDuePayouts(100);
+ }catch{
+  redirect("/admin/system?payout-error=run");
+ }
+
+ schedulePushDispatch(100);
+ revalidatePath("/admin/system");
+ revalidatePath("/admin/commerce");
+ revalidatePath("/account/orders");
+ revalidatePath("/dashboard/orders");
+ redirect(
+  "/admin/system?payout-released="+result.released+
+  "&payout-deferred="+result.deferred+
+  "&payout-rollbacks="+result.rollbacksCompleted
+ );
 }

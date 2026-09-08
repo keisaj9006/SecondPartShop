@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { BellRing,CheckCircle2,CircleAlert,RotateCcw,Settings2 } from "lucide-react";
+import { Banknote,BellRing,CheckCircle2,CircleAlert,RotateCcw,Settings2 } from "lucide-react";
 import { Header } from "@/components/header";
 import { requireAdmin } from "@/lib/auth";
 import { getPlatformReadiness } from "@/lib/platform-readiness";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { refreshMissingSellerGeo,retryExhaustedPushes } from "./actions";
+import { refreshMissingSellerGeo,retryExhaustedPushes,runDuePayoutMaintenance } from "./actions";
 
 export const dynamic="force-dynamic";
 
@@ -15,7 +15,7 @@ export default async function SystemReadinessPage({searchParams}:{searchParams:P
  const params=await searchParams;
  const readiness=getPlatformReadiness();
  const admin=createSupabaseAdminClient();
- const [listingResult,sellerPostcodeResult,sellerGeoResult,garageActiveResult,garageGeoResult,pushDevicesResult,pushPendingResult,pushProcessingResult,pushRetryingResult,pushExhaustedResult,oldestPushResult]=await Promise.all([
+ const [listingResult,sellerPostcodeResult,sellerGeoResult,garageActiveResult,garageGeoResult,pushDevicesResult,pushPendingResult,pushProcessingResult,pushRetryingResult,pushExhaustedResult,oldestPushResult,duePayoutResult,payoutRollbackResult]=await Promise.all([
   admin.rpc("admin_active_listing_checkout_readiness"),
   admin.from("sellers").select("id",{count:"exact",head:true}).not("postcode","is",null),
   admin.from("sellers").select("id",{count:"exact",head:true}).not("postcode","is",null).not("latitude","is",null).not("longitude","is",null),
@@ -26,7 +26,9 @@ export default async function SystemReadinessPage({searchParams}:{searchParams:P
   admin.from("mobile_push_outbox").select("id",{count:"exact",head:true}).eq("status","processing"),
   admin.from("mobile_push_outbox").select("id",{count:"exact",head:true}).eq("status","failed").lt("attempts",5),
   admin.from("mobile_push_outbox").select("id",{count:"exact",head:true}).eq("status","failed").gte("attempts",5),
-  admin.from("mobile_push_outbox").select("created_at,status,attempts,last_error").neq("status","sent").order("created_at",{ascending:true}).limit(1).maybeSingle()
+  admin.from("mobile_push_outbox").select("created_at,status,attempts,last_error").neq("status","sent").order("created_at",{ascending:true}).limit(1).maybeSingle(),
+  admin.rpc("get_due_payout_order_items",{p_limit:100}),
+  admin.from("order_items").select("id",{count:"exact",head:true}).eq("payout_rollback_required",true)
  ]);
  const listingReadiness=listingResult.data;
  const listingRow=listingReadiness?.[0];
@@ -54,6 +56,13 @@ export default async function SystemReadinessPage({searchParams}:{searchParams:P
  const pushHealthy=exhaustedPush===0;
  const pushRetried=Number(first(params["push-retried"])??-1);
  const pushError=first(params["push-error"]);
+ const duePayouts=duePayoutResult.data?.length??0;
+ const payoutRollbacks=payoutRollbackResult.count??0;
+ const payoutOpsHealthy=duePayouts===0&&payoutRollbacks===0;
+ const payoutReleased=Number(first(params["payout-released"])??-1);
+ const payoutDeferred=Number(first(params["payout-deferred"])??0);
+ const payoutRollbacksCompleted=Number(first(params["payout-rollbacks"])??0);
+ const payoutError=first(params["payout-error"]);
 
  return <><Header/><main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
   <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -97,6 +106,18 @@ export default async function SystemReadinessPage({searchParams}:{searchParams:P
      {geoError&&<p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm font-bold text-red-900">Seller geo refresh could not be completed. No guessed coordinates were written.</p>}
     </div>
     {missingSellerGeo>0&&<form action={refreshMissingSellerGeo}><button className="shrink-0 rounded-xl bg-[#173c31] px-5 py-3 text-sm font-black text-white">Re-geocode seller locations</button></form>}
+   </div>
+  </section>
+
+  <section className={"mt-8 rounded-[30px] border p-6 sm:p-8 "+(payoutOpsHealthy?"border-emerald-200 bg-emerald-50":"border-amber-200 bg-amber-50")}>
+   <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
+    <div>
+     <div className="flex items-center gap-3">{payoutOpsHealthy?<Banknote size={26} className="text-emerald-800"/>:<CircleAlert size={26} className="text-amber-900"/>}<div><p className="text-xs font-black uppercase tracking-[.14em] text-[#63706a]">Payout operations</p><h2 className="mt-1 text-2xl font-black">{payoutOpsHealthy?"No due payout backlog":"Payout worker has work waiting"}</h2></div></div>
+     <p className="mt-3 text-sm leading-6 text-[#56625d]">{duePayouts} eligible payout(s) waiting · {payoutRollbacks} transfer rollback(s) requiring completion. Active transaction cases remain excluded from payout release.</p>
+     {payoutReleased>=0&&<p className="mt-3 rounded-xl bg-emerald-100 px-3 py-2 text-sm font-bold text-emerald-900">Worker run: {payoutReleased} released · {payoutDeferred} deferred · {payoutRollbacksCompleted} rollback(s) completed.</p>}
+     {payoutError&&<p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm font-bold text-red-900">Payout maintenance failed safely. No buyer-protection gate was bypassed.</p>}
+    </div>
+    {!payoutOpsHealthy&&<form action={runDuePayoutMaintenance}><button className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-[#173c31] px-5 py-3 text-sm font-black text-white"><RotateCcw size={16}/>Run payout worker</button></form>}
    </div>
   </section>
 
