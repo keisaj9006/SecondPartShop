@@ -778,6 +778,67 @@ export type Database = {
           },
         ]
       }
+      mobile_push_outbox: {
+        Row: {
+          attempts: number
+          created_at: string
+          device_id: string
+          id: number
+          last_error: string | null
+          next_attempt_at: string
+          notification_id: string
+          profile_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          device_id: string
+          id?: never
+          last_error?: string | null
+          next_attempt_at?: string
+          notification_id: string
+          profile_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          device_id?: string
+          id?: never
+          last_error?: string | null
+          next_attempt_at?: string
+          notification_id?: string
+          profile_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mobile_push_outbox_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "mobile_push_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mobile_push_outbox_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mobile_push_outbox_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string | null
@@ -2900,6 +2961,27 @@ export type Database = {
         Returns: {
           id: string
         }[]
+      }
+      claim_mobile_push_outbox: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          created_at: string
+          device_id: string
+          id: number
+          last_error: string | null
+          next_attempt_at: string
+          notification_id: string
+          profile_id: string
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "mobile_push_outbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       claim_order_item_payout_release: {
         Args: { p_order_item_id: string }
