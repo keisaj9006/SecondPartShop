@@ -61,6 +61,12 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Restore stable preview signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: secondpart-android-preview-debug-keystore-v1
+
       - name: Generate Android project
         run: npx cap add android
 
