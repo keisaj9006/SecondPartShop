@@ -25,4 +25,5 @@ jobs:
       - run: git diff --check HEAD^ HEAD
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm run validate:notifications
       - run: npm run build
