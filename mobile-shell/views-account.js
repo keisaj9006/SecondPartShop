@@ -426,18 +426,33 @@ const notifications=async()=>{
   try{await C.api("/notifications",{method:"PATCH",auth:true,body:{id:button.dataset.notificationRead}});C.invalidateCache("/notifications");UI.route("notifications");}
   catch(error){UI.toast(error.message,"error");}
  }));
- UI.app.querySelectorAll("[data-notification-open]").forEach(button=>button.addEventListener("click",()=>{
+ UI.app.querySelectorAll("[data-notification-open]").forEach(button=>button.addEventListener("click",async()=>{
   const item=items.find(value=>value.id===button.dataset.notificationOpen);
-  if(item)openNotification(item);
+  if(!item)return;
+  if(!item.readAt){
+   void C.api("/notifications",{method:"PATCH",auth:true,body:{id:item.id}}).then(()=>{
+    C.invalidateCache("/notifications");
+    C.state.unreadNotifications=Math.max(0,Number(C.state.unreadNotifications||0)-1);
+    UI.updateBadge();
+   }).catch(()=>{});
+  }
+  openNotification(item);
  }));
 };
 
 const openNotification=(item)=>{
  const href=String(item.href||"");
+ if(href.startsWith("/parts/")){const slug=href.split("/").filter(Boolean)[1];if(slug){UI.route("listing",{slug});return;}}
  if(href.startsWith("/inbox/")){UI.route("conversation",{id:href.split("/").pop()});return;}
  if(href.startsWith("/account/reviews")){UI.route("reviews");return;}
  if(href.startsWith("/account/orders")){UI.route("orders");return;}
  if(href.startsWith("/account/cases")){UI.route("cases");return;}
+ if(href.startsWith("/account/fitting")){UI.route("fittingRequests");return;}
+ if(href.startsWith("/account/saved")){UI.route("saved");return;}
+ if(href.startsWith("/garage-partner/requests")){UI.route("garagePartnerRequests");return;}
+ if(href.startsWith("/garages")){UI.route("garages");return;}
+ if(href.startsWith("/requests")){UI.route("requests");return;}
+ if(href.startsWith("/dashboard/requests")){C.state.accountMode="selling";UI.route("sellerRequests");return;}
  if(href.startsWith("/dashboard/orders")){C.state.accountMode="selling";UI.route("sellerSales");return;}
  if(href.startsWith("/dashboard/cases")){C.state.accountMode="selling";UI.route("seller");return;}
  if(href.startsWith("/dashboard/verification")){C.state.accountMode="selling";UI.route("sellerVerification");return;}
