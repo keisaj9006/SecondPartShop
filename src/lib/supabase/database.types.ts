@@ -2876,6 +2876,16 @@ export type Database = {
         Args: { p_case_id: string; p_notes?: string }
         Returns: boolean
       }
+      admin_find_my_part_metrics: {
+        Args: { p_since: string }
+        Returns: {
+          completed_requests: number
+          matched_requests: number
+          paid_requests: number
+          requests: number
+          responded_requests: number
+        }[]
+      }
       admin_next_best_seller_prospects: {
         Args: { p_limit?: number }
         Returns: {
