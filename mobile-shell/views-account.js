@@ -471,18 +471,54 @@ const reviews=async()=>{
  UI.loading("Loading reviews");
 
  let items=[];
- try{items=(await C.api("/reviews",{auth:true})).items||[];}
- catch(error){UI.empty("☆","Reviews unavailable",error.message,"Try again",()=>UI.route("reviews"));return;}
+ let fitItems=[];
+ let fitUnavailable=false;
+ try{
+  const [reviewsResult,fitResult]=await Promise.all([
+   C.api("/reviews",{auth:true}),
+   C.api("/fit-feedback?limit=60",{auth:true}).catch(()=>null)
+  ]);
+  items=reviewsResult.items||[];
+  fitItems=fitResult?.items||[];
+  fitUnavailable=!fitResult;
+ }catch(error){UI.empty("☆","Reviews unavailable",error.message,"Try again",()=>UI.route("reviews"));return;}
 
  const pending=items.filter(item=>!item.existingReviewId);
  const submitted=items.filter(item=>Boolean(item.existingReviewId));
  const ratings={};
+ const fitSelected={};
+ fitItems.forEach(item=>{fitSelected[item.orderItemId]=item.existingResult||"";});
+ const fitLabels={
+  exact_fit:"Yes — exact fit",
+  fit_with_modification:"Fit after modification",
+  did_not_fit:"No — it did not fit",
+  not_installed:"I haven't installed it yet"
+ };
+ const fitDetails={
+  exact_fit:"Fitted this exact checkout vehicle without modification.",
+  fit_with_modification:"Worked after coding, adaptation, trimming or another change.",
+  did_not_fit:"Was not compatible with this exact vehicle configuration.",
+  not_installed:"Save this for now and update it after installation."
+ };
+ const fitCard=(item)=>"<article class=\"order-card\" style=\"margin-top:10px\"><p class=\"eyebrow\">Verified fitment</p><h3>"+C.escapeHtml(item.partTitle)+"</h3><p class=\"subtle\">"+C.escapeHtml([item.vehicle?.make,item.vehicle?.model,item.vehicle?.year].filter(Boolean).join(" "))+"</p><p class=\"subtle\">"+C.escapeHtml([item.vehicle?.variant,item.vehicle?.engine?item.vehicle.engine+"cc":null,item.vehicle?.fuel].filter(Boolean).join(" · "))+"</p><p style=\"font-size:12px;font-weight:800;margin-top:12px\">Did this exact part fit this vehicle?</p><div class=\"button-row\" style=\"margin-top:8px;align-items:stretch\">"+Object.keys(fitLabels).map(value=>"<button type=\"button\" class=\"secondary small-button"+(fitSelected[item.orderItemId]===value?" selected":"")+"\" style=\"white-space:normal;text-align:left;flex:1 1 45%\" data-fit-select=\""+C.escapeHtml(item.orderItemId)+"\" data-fit-value=\""+C.escapeHtml(value)+"\"><strong>"+C.escapeHtml(fitLabels[value])+"</strong><small style=\"display:block;margin-top:3px\">"+C.escapeHtml(fitDetails[value])+"</small></button>").join("")+"</div><label class=\"label\" style=\"display:block;margin-top:12px\">Fitment notes <span class=\"subtle\">(optional)</span><textarea class=\"textarea\" data-fit-notes=\""+C.escapeHtml(item.orderItemId)+"\" maxlength=\"1000\" placeholder=\"e.g. Direct fit; same connector and mounting points.\">"+C.escapeHtml(item.existingNotes||"")+"</textarea></label><p class=\"subtle\" style=\"margin-top:8px\">Evidence is tied to this completed SecondPart transaction and the vehicle saved at checkout. Registration is not exposed publicly.</p><div data-fit-status=\""+C.escapeHtml(item.orderItemId)+"\"></div><button type=\"button\" class=\"primary wide\" style=\"margin-top:10px\" data-fit-submit=\""+C.escapeHtml(item.orderItemId)+"\">"+(item.existingResult?"Update fitment feedback":"Save verified fitment feedback")+"</button></article>";
 
  const starField=(itemId,field,label,required=false)=>
   "<fieldset class=\"review-rating\" data-rating-group=\""+C.escapeHtml(itemId)+"|"+C.escapeHtml(field)+"\"><legend style=\"font-size:12px;font-weight:800\">"+C.escapeHtml(label)+(required?" · required":"")+"</legend><div style=\"display:flex;gap:3px;margin-top:5px\">"+[1,2,3,4,5].map(value=>"<button type=\"button\" data-review-id=\""+C.escapeHtml(itemId)+"\" data-review-field=\""+C.escapeHtml(field)+"\" data-review-value=\""+value+"\" aria-label=\""+value+" star"+(value===1?"":"s")+"\" style=\"border:0;background:transparent;padding:2px;font-size:25px;line-height:1;color:#b8b8b0\">☆</button>").join("")+"</div></fieldset>";
 
  const html=[];
- html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Trust & reputation</p><h2>Transaction reviews</h2><p>Reviews unlock only after a successfully completed, non-refunded transaction and released seller funds.</p></div></div>");
+ html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Compatibility evidence</p><h2>Verified fitment feedback</h2><p>Help future buyers using evidence from completed SecondPart purchases linked to the vehicle saved at checkout.</p></div></div>");
+ if(fitUnavailable){
+  html.push("<div class=\"status warning\">Verified fitment feedback is temporarily unavailable. Transaction reviews still work normally.</div>");
+ }else if(fitItems.length){
+  const fitPending=fitItems.filter(item=>!item.existingResult||item.existingResult==="not_installed");
+  const fitSubmitted=fitItems.filter(item=>item.existingResult&&item.existingResult!=="not_installed");
+  if(fitPending.length)html.push("<section><p class=\"eyebrow\">Waiting for fitment confirmation</p>"+fitPending.map(fitCard).join("")+"</section>");
+  if(fitSubmitted.length)html.push("<section style=\"margin-top:18px\"><p class=\"eyebrow\">Submitted compatibility evidence</p>"+fitSubmitted.map(fitCard).join("")+"</section>");
+ }else{
+  html.push("<div class=\"empty\"><div class=\"empty-icon\">✓</div><h3>No fitment feedback waiting</h3><p>Eligible purchases appear here after the transaction is completed and seller funds are released.</p></div>");
+ }
+
+ html.push("<div class=\"section-head\" style=\"margin-top:22px\"><div><p class=\"eyebrow\">Trust & reputation</p><h2>Transaction reviews</h2><p>Reviews unlock only after a successfully completed, non-refunded transaction and released seller funds.</p></div></div>");
 
  if(pending.length){
   html.push("<section><p class=\"eyebrow\">Waiting for your review</p>"+pending.map(item=>{
@@ -502,6 +538,38 @@ const reviews=async()=>{
  }
 
  UI.app.innerHTML=html.join("");
+
+ UI.app.querySelectorAll("[data-fit-select]").forEach(button=>button.addEventListener("click",()=>{
+  const id=button.dataset.fitSelect;
+  const value=button.dataset.fitValue;
+  if(!id||!value)return;
+  fitSelected[id]=value;
+  UI.app.querySelectorAll("[data-fit-select=\""+CSS.escape(id)+"\"]").forEach(option=>{
+   option.classList.toggle("selected",option.dataset.fitValue===value);
+  });
+ }));
+ UI.app.querySelectorAll("[data-fit-submit]").forEach(button=>button.addEventListener("click",async()=>{
+  const id=button.dataset.fitSubmit;
+  const result=fitSelected[id]||"";
+  const status=UI.app.querySelector("[data-fit-status=\""+CSS.escape(id)+"\"]");
+  if(!result){
+   if(status)status.innerHTML="<div class=\"status warning\">Choose a fitment result first.</div>";
+   return;
+  }
+  button.disabled=true;button.textContent="Saving…";
+  try{
+   await C.api("/fit-feedback",{method:"POST",auth:true,body:{
+    orderItemId:id,
+    result,
+    notes:String(UI.app.querySelector("[data-fit-notes=\""+CSS.escape(id)+"\"]")?.value||"").trim()
+   }});
+   UI.toast(result==="not_installed"?"Saved. You can update this after installation.":"Verified fitment feedback saved.");
+   UI.route("reviews");
+  }catch(error){
+   if(status)status.innerHTML="<div class=\"status error\">"+C.escapeHtml(error.message.replaceAll("_"," "))+"</div>";
+   button.disabled=false;button.textContent="Save fitment feedback";
+  }
+ }));
 
  UI.app.querySelectorAll("[data-review-value]").forEach(button=>button.addEventListener("click",()=>{
   const id=button.dataset.reviewId;
