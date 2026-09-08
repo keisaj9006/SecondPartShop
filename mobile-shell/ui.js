@@ -256,6 +256,7 @@ const bindListingActions=(container)=>{
   button.disabled=true;
   try{
    const result=await C.api("/saved",{method:"POST",body:{partId:button.dataset.savePart},auth:true});
+   C.invalidateCache("/saved");
    if(result.saved)C.state.savedIds.add(button.dataset.savePart);else C.state.savedIds.delete(button.dataset.savePart);
    button.classList.toggle("saved",result.saved);
    button.textContent=result.saved?"♥":"♡";
