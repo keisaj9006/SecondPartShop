@@ -48,7 +48,27 @@ export async function getSellerPartRequestLeads(options:{offset?:number;limit?:n
  if(error)throw new Error("Buyer request matching is temporarily unavailable.");
  const raw=data??[];
  const hasMore=raw.length>limit;
- const items=raw.slice(0,limit).map(row=>mapLead(row as SellerPartRequestLeadRow));
+ const page=raw.slice(0,limit);
+ const requestIds=page.map(row=>row.request_id);
+ const {data:drafts,error:draftError}=requestIds.length
+  ?await supabase.from("parts")
+    .select("id,source_request_id,title,updated_at")
+    .eq("status","draft")
+    .in("source_request_id",requestIds)
+    .order("updated_at",{ascending:false})
+  :{data:[],error:null};
+ if(draftError)throw new Error("Buyer request response drafts are temporarily unavailable.");
+ const draftByRequest=new Map<string,{id:string;title:string}>();
+ for(const draft of drafts??[]){
+  if(draft.source_request_id&&!draftByRequest.has(draft.source_request_id)){
+   draftByRequest.set(draft.source_request_id,{id:draft.id,title:draft.title});
+  }
+ }
+ const items=page.map(row=>{
+  const lead=mapLead(row as SellerPartRequestLeadRow);
+  const draft=draftByRequest.get(lead.id);
+  return {...lead,draftPartId:draft?.id??null,draftPartTitle:draft?.title??null};
+ });
  return {items,pagination:{hasMore,offset,limit}};
 }
 
