@@ -1,7 +1,7 @@
 import { getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
 import { getMarketplacePage } from "@/lib/data/marketplace";
 import { isUuid } from "@/lib/identifiers";
-import { mobileJson,mobileOptions } from "@/lib/mobile-api";
+import { mobileJson,mobileOptions,mobilePublicJson } from "@/lib/mobile-api";
 import { mobileThumbnailUrl } from "@/lib/mobile-image";
 import { normalizePostcode } from "@/lib/postcode";
 import type { MarketplaceFilters,MarketplaceSort,PartCondition } from "@/lib/types";
@@ -61,10 +61,10 @@ export async function GET(request:Request){
  const result=await getMarketplacePage(filters,{offset,limit});
  if(result.error)return mobileJson(request,{ok:false,error:"marketplace_unavailable",message:result.error},503);
 
- return mobileJson(request,{
+ return mobilePublicJson(request,{
   ok:true,
   items:result.data.map(item=>({...item,images:item.images.map(image=>({...image,thumbnailUrl:mobileThumbnailUrl(request,image.url)}))})),
   pagination:result.pagination,
   vehicle:selectedCatalogue
- });
+ },200,15,60);
 }
