@@ -19,7 +19,7 @@ export async function refundTransactionCase(caseId:string){
 
  const {data:item,error:itemError}=await admin
   .from("order_items")
-  .select("id,order_id,quantity,unit_price_pence,shipping_pence,seller_net_pence,payout_status,provider_transfer_id")
+  .select("id,order_id,quantity,unit_price_pence,shipping_pence,seller_net_pence,payout_status,funds_released_at,provider_transfer_id,provider_transfer_reversal_id")
   .eq("id",caseRow.order_item_id)
   .maybeSingle();
  if(itemError||!item)return {refunded:false,reason:"item_not_found"} as const;
@@ -32,9 +32,14 @@ export async function refundTransactionCase(caseId:string){
  if(orderError||!order?.provider_payment_intent_id)return {refunded:false,reason:"payment_not_found"} as const;
 
  const refundPence=item.unit_price_pence*item.quantity+item.shipping_pence;
- let reversalId:string|null=null;
+ let reversalId:string|null=item.provider_transfer_reversal_id??null;
+ const payoutWasReleased=Boolean(item.funds_released_at)||item.payout_status==="released";
 
- if(item.provider_transfer_id&&item.payout_status==="released"){
+ if(payoutWasReleased&&!item.provider_transfer_id){
+  return {refunded:false,reason:"payout_reconciliation_required"} as const;
+ }
+
+ if(payoutWasReleased&&item.provider_transfer_id&&!reversalId){
   const reversal=await reverseSellerTransfer(
    item.provider_transfer_id,
    item.seller_net_pence,
