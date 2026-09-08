@@ -59,7 +59,7 @@ const openMarketplaceFilters=async()=>{
     "<label class=\"label\">Sort<select id=\"mf-sort\" class=\"select\"><option value=\"best\">Best match</option><option value=\"price_asc\">Price: low to high</option><option value=\"price_desc\">Price: high to low</option><option value=\"distance\">Nearest first</option><option value=\"delivery\">Fastest delivery</option><option value=\"warranty\">Longest warranty</option></select></label>"+
    "</div>"+
    "<div class=\"spec-grid\"><label class=\"label\">Minimum price £<input id=\"mf-min\" class=\"input\" type=\"number\" min=\"0\" step=\"1\" value=\""+C.escapeHtml(current.min||"")+"\"></label><label class=\"label\">Maximum price £<input id=\"mf-max\" class=\"input\" type=\"number\" min=\"0\" step=\"1\" value=\""+C.escapeHtml(current.max||"")+"\"></label></div>"+
-   "<label class=\"label\">Buyer postcode <span class=\"subtle\">(for distance)</span><input id=\"mf-postcode\" class=\"input registration\" maxlength=\"8\" value=\""+C.escapeHtml(current.pc||"")+"\" placeholder=\"EH25 9BE\"></label>"+
+   "<label class=\"label\">Buyer postcode <span class=\"subtle\">(automatically uses Nearest first)</span><input id=\"mf-postcode\" class=\"input registration\" maxlength=\"8\" value=\""+C.escapeHtml(current.pc||"")+"\" placeholder=\"EH25 9BE\"></label>"+
    "<label class=\"card flat\" style=\"display:flex;align-items:center;gap:10px;padding:12px\"><input id=\"mf-collection\" type=\"checkbox\" "+(current.collection==="1"?"checked":"")+" style=\"width:20px;height:20px;accent-color:#173c31\"><span><strong>Collection only</strong><small class=\"subtle\" style=\"display:block\">Only show listings available for local collection.</small></span></label>"+
    "<div id=\"mf-status\"></div><div class=\"button-row\"><button id=\"mf-apply\" class=\"primary\" type=\"submit\">Apply filters</button><button id=\"mf-reset\" class=\"secondary\" type=\"button\">Reset filters</button></div>"+
   "</form>"
@@ -79,9 +79,11 @@ const openMarketplaceFilters=async()=>{
   const category=String(document.getElementById("mf-category").value||"");
   const conditionValue=String(condition.value||"");
   const sortValue=String(sort.value||"best");
+  if(sortValue==="distance"&&!rawPostcode){status.innerHTML="<div class=\"status warning\">Enter a valid full UK postcode to use Nearest first.</div>";return;}
   if(category)next.category=category;
   if(conditionValue)next.condition=conditionValue;
-  if(sortValue&&sortValue!=="best")next.sort=sortValue;
+  if(rawPostcode)next.sort="distance";
+  else if(sortValue&&sortValue!=="best")next.sort=sortValue;
   if(min)next.min=min;
   if(max)next.max=max;
   if(rawPostcode)next.pc=rawPostcode;
