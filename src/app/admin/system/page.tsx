@@ -50,8 +50,8 @@ export default async function SystemReadinessPage({searchParams}:{searchParams:P
  const retryingPush=pushRetryingResult.count??0;
  const exhaustedPush=pushExhaustedResult.count??0;
  const oldestPush=oldestPushResult.data;
- const oldestPushMinutes=oldestPush?Math.max(0,Math.floor((Date.now()-new Date(oldestPush.created_at).getTime())/60000)):0;
- const pushHealthy=exhaustedPush===0&&oldestPushMinutes<10;
+ const oldestPushAt=oldestPush?new Intl.DateTimeFormat("en-GB",{dateStyle:"medium",timeStyle:"short",timeZone:"UTC"}).format(new Date(oldestPush.created_at)):null;
+ const pushHealthy=exhaustedPush===0;
  const pushRetried=Number(first(params["push-retried"])??-1);
  const pushError=first(params["push-error"]);
 
@@ -105,7 +105,7 @@ export default async function SystemReadinessPage({searchParams}:{searchParams:P
     <div>
      <div className="flex items-center gap-3">{pushHealthy?<BellRing size={26} className="text-emerald-800"/>:<CircleAlert size={26} className="text-amber-900"/>}<div><p className="text-xs font-black uppercase tracking-[.14em] text-[#63706a]">Push delivery operations</p><h2 className="mt-1 text-2xl font-black">{pushHealthy?"Push delivery queue is healthy":"Push delivery needs attention"}</h2></div></div>
      <p className="mt-3 text-sm leading-6 text-[#56625d]">{enabledPushDevices} enabled device(s) · {pendingPush} pending · {processingPush} processing · {retryingPush} retrying · {exhaustedPush} exhausted.</p>
-     {oldestPush&&<p className="mt-2 text-sm text-[#56625d]">Oldest unsent push is {oldestPushMinutes} minute(s) old · {oldestPush.status} · attempt {oldestPush.attempts}{oldestPush.last_error?" · "+oldestPush.last_error:""}.</p>}
+     {oldestPush&&<p className="mt-2 text-sm text-[#56625d]">Oldest unsent push queued at {oldestPushAt} UTC · {oldestPush.status} · attempt {oldestPush.attempts}{oldestPush.last_error?" · "+oldestPush.last_error:""}.</p>}
      {pushRetried>=0&&<p className="mt-3 rounded-xl bg-emerald-100 px-3 py-2 text-sm font-bold text-emerald-900">{pushRetried>0?"Queued "+pushRetried+" exhausted push(es) for controlled retry.":"There were no exhausted pushes to retry."}</p>}
      {pushError&&<p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm font-bold text-red-900">Push retry could not be prepared. No queue records were discarded.</p>}
     </div>
