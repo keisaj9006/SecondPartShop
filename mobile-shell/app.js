@@ -225,48 +225,50 @@ const boot=async()=>{
   // request itself will surface a real connectivity problem if one exists.
   void C.api("/health").catch(error=>console.warn("Health check unavailable",error));
 
-  if(C.state.session){
-   const restoreGarage=async()=>{
-    if(C.state.activeVehicle)return;
-    try{
-     const garage=(await C.apiCached("/garage",{auth:true,maxAge:60000})).items||[];
-     if(garage.length===1){
-      const item=garage[0];
-      C.setActiveVehicle({
-       variantId:item.catalogueVariantId,
-       year:item.year,
-       fuelType:item.fuelType,
-       engineSizeSimple:item.engineSizeSimple,
-       make:item.make,
-       modelFamily:item.modelFamily,
-       variant:item.variant,
-       registration:item.registration,
-       colour:item.colour
-      },{compatibleOnly:true});
-     }
-    }catch(error){console.warn("Could not restore Garage vehicle",error);}
-   };
+  const restoreGarage=async()=>{
+   if(!C.state.session||C.state.activeVehicle)return;
+   try{
+    const garage=(await C.apiCached("/garage",{auth:true,maxAge:60000,staleWhileRevalidate:true})).items||[];
+    if(garage.length===1){
+     const item=garage[0];
+     C.setActiveVehicle({
+      variantId:item.catalogueVariantId,
+      year:item.year,
+      fuelType:item.fuelType,
+      engineSizeSimple:item.engineSizeSimple,
+      make:item.make,
+      modelFamily:item.modelFamily,
+      variant:item.variant,
+      registration:item.registration,
+      colour:item.colour
+     },{compatibleOnly:true});
+    }
+   }catch(error){console.warn("Could not restore Garage vehicle",error);}
+  };
 
-   // These used to run serially. Running them together cuts startup wait to
-   // the slowest request rather than the sum of /me, chrome and Garage.
-   await Promise.all([
-    C.loadMe(),
-    UI.refreshUserChrome(),
-    restoreGarage()
-   ]);
-
-  }else{
-   await UI.refreshUserChrome();
-  }
+  // Do not block first paint on account chrome, Garage or profile requests.
+  // Launch the work immediately so later screens can share the in-flight
+  // cache, then render Home while those requests finish in the background.
+  const bootstrapPromise=C.state.session
+   ?Promise.all([C.loadMe(),UI.refreshUserChrome(),restoreGarage()])
+   :Promise.resolve(UI.refreshUserChrome());
 
   prefetchPrimaryNavigation();
   await bindNativeListeners();
   if(C.state.session)void C.syncPushDevice().catch(error=>console.warn("Could not refresh push registration",error));
 
   const launchUrl=await C.Native.getLaunchUrl();
-  if(launchUrl&&await handleDeepLink(launchUrl))return;
+  if(launchUrl){
+   if(C.state.session&&!C.state.me)await C.loadMe();
+   if(await handleDeepLink(launchUrl))return;
+  }
 
   await UI.route("home");
+
+  void bootstrapPromise.then(()=>{
+   prefetchPrimaryNavigation();
+   if(C.state.currentView==="home")void UI.refreshCurrent();
+  }).catch(error=>console.warn("Background account bootstrap failed",error));
  }catch(error){
   UI.empty("⌁","SecondPart could not start",error.message,"Try again",boot);
  }
