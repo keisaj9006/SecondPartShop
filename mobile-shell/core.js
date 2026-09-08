@@ -374,7 +374,7 @@ const signIn=async(email,password)=>{
 };
 
 const signUp=async({email,password,displayName,role})=>{
- const redirectTo=config.webBaseUrl.replace(/\/$/,"")+"/auth/callback?next="+encodeURIComponent(role==="seller"?"/dashboard":"/account");
+ const redirectTo=config.webBaseUrl.replace(/\/$/,"")+"/auth/callback?next="+encodeURIComponent("/auth/mobile-complete?state=confirmed");
  const payload=await authFetch("/signup?redirect_to="+encodeURIComponent(redirectTo),{
   body:{
    email:String(email).trim().toLowerCase(),
@@ -387,14 +387,14 @@ const signUp=async({email,password,displayName,role})=>{
 };
 
 const requestPasswordReset=async(email)=>{
- const redirectTo=config.webBaseUrl.replace(/\/$/,"")+"/auth/callback?next="+encodeURIComponent("/auth/reset-password");
+ const redirectTo=config.webBaseUrl.replace(/\/$/,"")+"/auth/callback?next="+encodeURIComponent("/auth/reset-password?mobile=1");
  return authFetch("/recover?redirect_to="+encodeURIComponent(redirectTo),{
   body:{email:String(email).trim().toLowerCase()}
  });
 };
 
 const resendEmailConfirmation=async(email)=>{
- const redirectTo=config.webBaseUrl.replace(/\/$/,"")+"/auth/callback?next="+encodeURIComponent("/account");
+ const redirectTo=config.webBaseUrl.replace(/\/$/,"")+"/auth/callback?next="+encodeURIComponent("/auth/mobile-complete?state=confirmed");
  return authFetch("/resend?redirect_to="+encodeURIComponent(redirectTo),{
   body:{email:String(email).trim().toLowerCase(),type:"signup"}
  });
