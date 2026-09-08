@@ -21,7 +21,7 @@ const marketplacePrefetchPath=()=>{
   if(vehicle.engineSizeSimple!==null&&vehicle.engineSizeSimple!==undefined)params.set("ce",String(vehicle.engineSizeSimple));
   params.set("fit",C.state.vehicleCompatibleOnly?"1":"0");
  }
- params.set("limit","60");
+ params.set("limit","24");
  return "/marketplace?"+params.toString();
 };
 
