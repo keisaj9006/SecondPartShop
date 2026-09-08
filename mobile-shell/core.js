@@ -184,12 +184,21 @@ const clearSession=async()=>{
 const authFetch=async(path,{method="POST",body,accessToken}={})=>{
  const headers={"apikey":config.supabasePublishableKey,"Content-Type":"application/json"};
  if(accessToken)headers.Authorization="Bearer "+accessToken;
- const response=await fetch(config.supabaseUrl+"/auth/v1"+path,{
-  method,
-  headers,
-  body:body===undefined?undefined:JSON.stringify(body),
-  cache:"no-store"
- });
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),15000);
+ let response;
+ try{
+  response=await fetch(config.supabaseUrl+"/auth/v1"+path,{
+   method,
+   headers,
+   body:body===undefined?undefined:JSON.stringify(body),
+   cache:"no-store",
+   signal:controller.signal
+  });
+ }catch(error){
+  if(error&&error.name==="AbortError")throw new Error("Authentication took too long. Check your connection and try again.");
+  throw error;
+ }finally{clearTimeout(timer);}
  const payload=await response.json().catch(()=>({}));
  if(!response.ok){
   const message=payload?.msg||payload?.message||payload?.error_description||payload?.error||"Authentication request failed.";
@@ -244,17 +253,26 @@ const api=async(path,{method="GET",body,auth=false,retry=true}={})=>{
  }
 
  let response;
+ const started=performance.now();
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),10000);
  try{
   response=await fetch(apiUrl(path),{
    method,
    headers,
    body:body===undefined?undefined:JSON.stringify(body),
-   cache:"no-store"
+   cache:"no-store",
+   signal:controller.signal
   });
- }catch{
-  const error=new Error("SecondPart could not reach the marketplace. Check your connection.");
-  error.code="network";
+ }catch(cause){
+  const timedOut=Boolean(cause&&cause.name==="AbortError");
+  const error=new Error(timedOut?"This screen is taking too long to load. Check your connection and try again.":"SecondPart could not reach the marketplace. Check your connection.");
+  error.code=timedOut?"timeout":"network";
   throw error;
+ }finally{
+  clearTimeout(timer);
+  const elapsed=Math.round(performance.now()-started);
+  if(elapsed>2000)console.warn("[SecondPart] Slow API request",path,elapsed+"ms");
  }
 
  if(response.status===401&&auth&&retry){
@@ -307,18 +325,22 @@ const apiForm=async(path,{method="POST",formData,retry=true}={})=>{
   throw error;
  }
  let response;
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),45000);
  try{
   response=await fetch(apiUrl(path),{
    method,
    headers:{Accept:"application/json",Authorization:"Bearer "+token},
    body:formData,
-   cache:"no-store"
+   cache:"no-store",
+   signal:controller.signal
   });
- }catch{
-  const error=new Error("SecondPart could not upload the file. Check your connection.");
-  error.code="network";
+ }catch(cause){
+  const timedOut=Boolean(cause&&cause.name==="AbortError");
+  const error=new Error(timedOut?"The upload took too long. Check your connection and try again.":"SecondPart could not upload the file. Check your connection.");
+  error.code=timedOut?"timeout":"network";
   throw error;
- }
+ }finally{clearTimeout(timer);}
  if(response.status===401&&retry){
   const refreshed=await refreshSession();
   if(refreshed)return apiForm(path,{method,formData,retry:false});
