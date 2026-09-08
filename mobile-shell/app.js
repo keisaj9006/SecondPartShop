@@ -144,11 +144,14 @@ window.addEventListener("offline",()=>UI.toast("You are offline. Some marketplac
 const boot=async()=>{
  try{
   await C.initializeSession();
-  await C.api("/health");
-  if(C.state.session)await C.loadMe();
-  await UI.refreshUserChrome();
+
+  // Health is diagnostic, not a reason to block first paint. The marketplace
+  // request itself will surface a real connectivity problem if one exists.
+  void C.api("/health").catch(error=>console.warn("Health check unavailable",error));
+
   if(C.state.session){
-   if(!C.state.activeVehicle){
+   const restoreGarage=async()=>{
+    if(C.state.activeVehicle)return;
     try{
      const garage=(await C.apiCached("/garage",{auth:true,maxAge:60000})).items||[];
      if(garage.length===1){
@@ -166,12 +169,27 @@ const boot=async()=>{
       },{compatibleOnly:true});
      }
     }catch(error){console.warn("Could not restore Garage vehicle",error);}
-   }
+   };
+
+   // These used to run serially. Running them together cuts startup wait to
+   // the slowest request rather than the sum of /me, chrome and Garage.
+   await Promise.all([
+    C.loadMe(),
+    UI.refreshUserChrome(),
+    restoreGarage()
+   ]);
+
    C.prefetch("/garage",{auth:true,maxAge:60000});
    C.prefetch("/notifications",{auth:true,maxAge:20000});
+   C.prefetch("/orders?limit=20&offset=0",{auth:true,maxAge:20000});
+   C.prefetch("/inbox",{auth:true,maxAge:15000});
+  }else{
+   await UI.refreshUserChrome();
   }
+
   C.prefetch("/vehicle-catalogue?level=makes",{auth:false,maxAge:10*60*1000});
   C.prefetch("/categories",{auth:false,maxAge:10*60*1000});
+  C.prefetch("/marketplace?limit=60",{auth:false,maxAge:20000});
   await bindNativeListeners();
 
   const launchUrl=await C.Native.getLaunchUrl();
