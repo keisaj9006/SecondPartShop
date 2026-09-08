@@ -122,6 +122,7 @@ const home=async(payload={})=>{
   result=await C.apiCached(marketplacePath(C.state.currentSearch),{auth:false,maxAge:20000});
  }catch(error){
   if(!UI.isCurrent("home"))return;
+  if(UI.isSilentRefresh()){UI.toast("Could not refresh marketplace. Showing the last loaded view.","warning");return;}
   UI.empty("⌁","Marketplace unavailable",error.message,"Try again",()=>UI.route("home"));
   return;
  }
@@ -456,7 +457,7 @@ const garage=async()=>{
  UI.loading("Loading Garage");
  let items;
  try{items=(await C.apiCached("/garage",{auth:true,maxAge:60000})).items||[];}
- catch(error){if(!UI.isCurrent("garage"))return;UI.empty("▱","Garage unavailable",error.message,"Try again",()=>UI.route("garage"));return;}
+ catch(error){if(!UI.isCurrent("garage"))return;if(UI.isSilentRefresh()){UI.toast("Could not refresh Garage. Showing the last loaded view.","warning");return;}UI.empty("▱","Garage unavailable",error.message,"Try again",()=>UI.route("garage"));return;}
  if(!UI.isCurrent("garage"))return;
 
  const html=[];
