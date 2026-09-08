@@ -26,7 +26,7 @@ export async function GET(request:Request){
  const level=clean(searchParams.get("level"));
 
  try{
-  if(level==="makes")return mobilePublicJson(request,{ok:true,items:await getCatalogueMakes()});
+  if(level==="makes")return mobilePublicJson(request,{ok:true,items:await getCatalogueMakes()},200,3600,86400);
   if(level==="models"){
    const make=clean(searchParams.get("make"));
    if(!make)return mobileJson(request,{ok:false,error:"make_required"},400);
@@ -70,7 +70,7 @@ export async function GET(request:Request){
    if(!variantId||!year|| (engine!==undefined&&!Number.isInteger(engine)))return mobileJson(request,{ok:false,error:"invalid_vehicle_selection"},400);
    const item=await getCatalogueSelection(variantId,year,fuel,engine);
    if(!item)return mobileJson(request,{ok:false,error:"vehicle_not_found"},404);
-   return mobileJson(request,{ok:true,item},200,3600,86400);
+   return mobilePublicJson(request,{ok:true,item},200,3600,86400);
   }
   return mobileJson(request,{ok:false,error:"unknown_catalogue_level"},400);
  }catch{
