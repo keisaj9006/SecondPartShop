@@ -121,9 +121,11 @@ const home=async(payload={})=>{
  try{
   result=await C.apiCached(marketplacePath(C.state.currentSearch),{auth:false,maxAge:20000});
  }catch(error){
+  if(!UI.isCurrent("home"))return;
   UI.empty("⌁","Marketplace unavailable",error.message,"Try again",()=>UI.route("home"));
   return;
  }
+ if(!UI.isCurrent("home"))return;
 
  const html=[];
  const extraFilters=rememberedMarketplaceParams();
@@ -454,7 +456,8 @@ const garage=async()=>{
  UI.loading("Loading Garage");
  let items;
  try{items=(await C.apiCached("/garage",{auth:true,maxAge:60000})).items||[];}
- catch(error){UI.empty("▱","Garage unavailable",error.message,"Try again",()=>UI.route("garage"));return;}
+ catch(error){if(!UI.isCurrent("garage"))return;UI.empty("▱","Garage unavailable",error.message,"Try again",()=>UI.route("garage"));return;}
+ if(!UI.isCurrent("garage"))return;
 
  const html=[];
  html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Your account</p><h2>SecondPart Garage</h2><p>Saved vehicles for one-tap compatibility searches.</p></div><button id=\"garage-add\" class=\"primary small-button\" type=\"button\">Add vehicle</button></div>");
