@@ -10,6 +10,34 @@ const registry=new Map();
 let toastTimer=null;
 let currentRoute=null;
 const routeStack=[];
+let routePending=false;
+let loadingTimer=null;
+let routeLoader=null;
+
+const ensureRouteLoader=()=>{
+ if(routeLoader&&document.body.contains(routeLoader))return routeLoader;
+ routeLoader=document.createElement("div");
+ routeLoader.id="route-loader";
+ routeLoader.className="route-loader hidden";
+ routeLoader.setAttribute("role","status");
+ routeLoader.setAttribute("aria-live","polite");
+ routeLoader.innerHTML="<span class=\"route-loader-spinner\" aria-hidden=\"true\"></span><span class=\"route-loader-label\">Loading…</span>";
+ document.body.appendChild(routeLoader);
+ return routeLoader;
+};
+
+const showRouteLoading=(label)=>{
+ const loader=ensureRouteLoader();
+ const text=loader.querySelector(".route-loader-label");
+ if(text)text.textContent=String(label||"Loading…");
+ if(loadingTimer)clearTimeout(loadingTimer);
+ loadingTimer=setTimeout(()=>loader.classList.remove("hidden"),120);
+};
+
+const hideRouteLoading=()=>{
+ if(loadingTimer){clearTimeout(loadingTimer);loadingTimer=null;}
+ if(routeLoader)routeLoader.classList.add("hidden");
+};
 
 const routeKey=(route)=>route?route.name+"|"+JSON.stringify(route.payload||{}):"";
 
@@ -57,12 +85,15 @@ const route=async(name,payload,options={})=>{
    ||(name==="listingEditor"&&button.dataset.nav==="inventory")
    ||(["saved","notifications","reviews","cases","profile","security","sellerSetup","sellerProfile","sellerVerification"].includes(name)&&button.dataset.nav==="account");
   button.classList.toggle("active",active);
+  if(active)button.setAttribute("aria-current","page");else button.removeAttribute("aria-current");
  });
  if(!registry.has(name)){
   app.innerHTML="<div class=\"empty\"><div class=\"empty-icon\">!</div><h3>Screen unavailable</h3><p>This mobile screen has not been registered.</p></div>";
   return;
  }
  window.scrollTo({top:0,behavior:"instant"});
+ routePending=true;
+ showRouteLoading("Loading "+String(name||"screen").replaceAll("_"," ")+"…");
  try{await registry.get(name)(payload||{});}
  catch(error){
   console.error(error);
@@ -70,6 +101,9 @@ const route=async(name,payload,options={})=>{
   app.innerHTML="<div class=\"empty\"><div class=\"empty-icon\">!</div><h3>Could not load this screen</h3><p>"+message+"</p><button id=\"retry-screen\" class=\"primary small-button\" type=\"button\">Try again</button></div>";
   const retry=document.getElementById("retry-screen");
   if(retry)retry.addEventListener("click",()=>route(name,payload));
+ }finally{
+  routePending=false;
+  hideRouteLoading();
  }
 };
 
@@ -89,6 +123,10 @@ const refreshCurrent=async()=>{
 };
 
 const loading=(label)=>{
+ if(routePending&&app.childElementCount){
+  showRouteLoading(label||"Loading…");
+  return;
+ }
  app.innerHTML="<section class=\"boot-screen\"><span class=\"spinner\"></span><h1>"+C.escapeHtml(label||"Loading")+"</h1><p>Please wait a moment…</p></section>";
 };
 
