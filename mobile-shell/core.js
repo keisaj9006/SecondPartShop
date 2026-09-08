@@ -296,17 +296,38 @@ const api=async(path,{method="GET",body,auth=false,retry=true}={})=>{
  return payload;
 };
 
-const apiCached=async(path,{auth=false,maxAge=30000,refresh=false}={})=>{
+const apiCached=async(path,{auth=false,maxAge=30000,refresh=false,staleWhileRevalidate=false}={})=>{
  const key=cacheKey(path,auth);
  const existing=responseCache.get(key);
  const now=Date.now();
- if(!refresh&&existing&&existing.value&&now-existing.at<maxAge)return existing.value;
+ const hasValue=Boolean(existing&&existing.value);
+ if(!refresh&&hasValue&&now-existing.at<maxAge)return existing.value;
+
+ // Navigation surfaces prefer instant stale data over blocking the UI on a
+ // network refresh. Revalidate in the background and keep the last known-good
+ // payload if that refresh fails.
+ if(!refresh&&staleWhileRevalidate&&hasValue){
+  if(!existing.promise){
+   const background=api(path,{auth}).then(value=>{
+    responseCache.set(key,{value,at:Date.now(),promise:null});
+    return value;
+   }).catch(error=>{
+    responseCache.set(key,{value:existing.value,at:existing.at,promise:null});
+    console.warn("[SecondPart] Background cache refresh failed",path,error);
+    return existing.value;
+   });
+   responseCache.set(key,{value:existing.value,at:existing.at,promise:background});
+  }
+  return existing.value;
+ }
+
  if(existing?.promise)return existing.promise;
  const promise=api(path,{auth}).then(value=>{
   responseCache.set(key,{value,at:Date.now(),promise:null});
   return value;
  }).catch(error=>{
-  responseCache.delete(key);
+  if(hasValue)responseCache.set(key,{value:existing.value,at:existing.at,promise:null});
+  else responseCache.delete(key);
   throw error;
  });
  responseCache.set(key,{value:existing?.value??null,at:existing?.at??0,promise});
