@@ -7,6 +7,7 @@ import { isUuid } from "@/lib/identifiers";
 import type { MarketplaceFilters } from "@/lib/types";
 import { mobileJson,mobileOptions,mobilePublicJson } from "@/lib/mobile-api";
 import { mobileThumbnailUrl } from "@/lib/mobile-image";
+import { getSellerDistanceFromPostcode } from "@/lib/seller-geo";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -30,11 +31,12 @@ export async function GET(request:Request,{params}:{params:Promise<{slug:string}
  const result=await getListingBySlug(safeSlug);
  if(result.error)return mobileJson(request,{ok:false,error:"listing_unavailable"},503);
  if(!result.data)return mobileJson(request,{ok:false,error:"not_found"},404);
- const [reputation,compatibility,sellerCheckoutReady]=await Promise.all([
+ const [reputation,compatibility,sellerCheckoutReady,sellerDistance]=await Promise.all([
   getPublicMemberProfileById(result.data.seller.ownerId).catch(()=>null),
   (filters.catalogueVariant&&filters.catalogueYear!==undefined)?getPartCompatibility(result.data.id,filters).catch(()=>null):Promise.resolve(null),
-  isSellerCheckoutReady(result.data.sellerId).catch(()=>false)
+  isSellerCheckoutReady(result.data.sellerId).catch(()=>false),
+  getSellerDistanceFromPostcode(result.data.sellerId,url.searchParams.get("pc")).catch(()=>null)
  ]);
  const item={...result.data,images:result.data.images.map(image=>({...image,thumbnailUrl:mobileThumbnailUrl(request,image.url)}))};
- return mobilePublicJson(request,{ok:true,item,sellerReputation:reputation,compatibility,checkoutReady:isStripeCheckoutConfigured()&&sellerCheckoutReady},200,15,60);
+ return mobilePublicJson(request,{ok:true,item,sellerReputation:reputation,compatibility,distance:sellerDistance,checkoutReady:isStripeCheckoutConfigured()&&sellerCheckoutReady},200,15,60);
 }
