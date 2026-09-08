@@ -1,5 +1,6 @@
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -64,5 +65,6 @@ export async function POST(request:Request){
   if(message.includes("too many"))return mobileJson(request,{ok:false,error:"fitting_request_limit"},429);
   return mobileJson(request,{ok:false,error:"fitting_request_failed"},409);
  }
+ schedulePushDispatch(50);
  return mobileJson(request,{ok:true,id:data},201);
 }

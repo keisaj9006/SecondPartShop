@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isPlausibleUkRegistration,normalizeRegistration } from "@/lib/vehicle-registration";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 const text=(value:FormDataEntryValue|null)=>String(value??"").trim();
 
@@ -38,6 +39,7 @@ export async function createPartRequest(formData:FormData){
   notes
  });
  if(error)throw error;
+ schedulePushDispatch(50);
  revalidatePath("/requests");
  redirect("/requests?created=1");
 }

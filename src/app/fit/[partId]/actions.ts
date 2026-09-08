@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/identifiers";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 const value=(formData:FormData,name:string)=>String(formData.get(name)??"").trim();
 
@@ -37,5 +38,6 @@ export async function requestFittingQuote(formData:FormData){
   if(message.includes("too many"))redirect("/account/fitting?error=limit");
   redirect("/account/fitting?error=request");
  }
+ schedulePushDispatch(50);
  redirect("/account/fitting?created=1");
 }

@@ -1,5 +1,6 @@
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 import { isPlausibleUkRegistration,normalizeRegistration } from "@/lib/vehicle-registration";
 
 export const dynamic="force-dynamic";
@@ -107,6 +108,7 @@ export async function POST(request:Request){
  }).select("id").single();
 
  if(error||!data)return mobileJson(request,{ok:false,error:"part_request_create_failed"},503);
+ schedulePushDispatch(50);
  return mobileJson(request,{ok:true,id:data.id},201);
 }
 

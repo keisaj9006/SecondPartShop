@@ -2,6 +2,7 @@ import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileSeller } from "@/lib/mobile-api";
 import { canPublishMobileListing,listingRow,parseMobileListingInput,replaceMobileListingFitments,validateMobileListingInput } from "@/lib/mobile-seller-listing-write";
 import { isSellerCheckoutReady } from "@/lib/data/checkout";
+import { schedulePushDispatch } from "@/lib/push/schedule";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -134,6 +135,7 @@ export async function PATCH(request:Request,{params}:{params:Promise<{partId:str
    if(publishError)throw new Error("publish_failed");
   }
 
+  schedulePushDispatch(50);
   return mobileJson(request,{ok:true,id:partId,status:requestedStatus});
  }catch(error){
   const code=error instanceof Error?error.message:"listing_update_failed";
