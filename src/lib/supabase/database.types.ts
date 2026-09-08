@@ -728,6 +728,56 @@ export type Database = {
         }
         Relationships: []
       }
+      mobile_push_devices: {
+        Row: {
+          app_id: string
+          build_channel: string
+          created_at: string
+          enabled: boolean
+          id: string
+          last_seen_at: string
+          platform: string
+          profile_id: string
+          provider: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          app_id: string
+          build_channel?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_seen_at?: string
+          platform: string
+          profile_id: string
+          provider?: string
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          app_id?: string
+          build_channel?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_seen_at?: string
+          platform?: string
+          profile_id?: string
+          provider?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mobile_push_devices_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string | null
