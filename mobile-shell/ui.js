@@ -51,6 +51,7 @@ const clearScreenCache=(names)=>{
 };
 
 const isCurrent=(name)=>Boolean(currentRoute&&currentRoute.name===name&&C.state.currentView===name);
+const isSilentRefresh=()=>Boolean(routePending&&silentRouteRefresh);
 
 const ensureRouteLoader=()=>{
  if(routeLoader&&document.body.contains(routeLoader))return routeLoader;
@@ -320,6 +321,6 @@ const bindListingActions=(container)=>{
 
 window.SecondPartUI=Object.freeze({
  C,app,register,route,back,refreshCurrent,loading,toast,modal,closeModal,empty,requireAuth,updateBadge,refreshUserChrome,
- clearScreenCache,isCurrent,listingCard,vehicleVisual,bindListingActions,firstImage
+ clearScreenCache,isCurrent,isSilentRefresh,listingCard,vehicleVisual,bindListingActions,firstImage
 });
 })();
