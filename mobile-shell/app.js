@@ -154,9 +154,29 @@ const handleSellerPaymentDeepLink=async(rawUrl)=>{
  }
 };
 
+const handleAuthDeepLink=async(rawUrl)=>{
+ try{
+  const url=new URL(rawUrl);
+  const custom=url.protocol==="secondpart:"&&url.hostname==="auth";
+  const verifiedHttps=isTrustedHttpsReturn(url,"/auth/mobile-complete");
+  if(!custom&&!verifiedHttps)return false;
+  const state=String(url.searchParams.get("state")||"confirmed");
+  await C.Native.closeBrowser();
+  await C.initializeSession();
+  await UI.refreshUserChrome();
+  await UI.route("account",{mode:"signin"});
+  UI.toast(state==="password-updated"?"Password updated. Sign in with your new password.":"Email confirmed. Sign in to continue.");
+  return true;
+ }catch(error){
+  console.error("Auth deep-link handling failed",error);
+  return false;
+ }
+};
+
 const handleDeepLink=async(rawUrl)=>{
  if(await handleCheckoutDeepLink(rawUrl))return true;
  if(await handleSellerPaymentDeepLink(rawUrl))return true;
+ if(await handleAuthDeepLink(rawUrl))return true;
  return false;
 };
 
