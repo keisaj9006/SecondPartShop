@@ -1,5 +1,6 @@
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
-import { normalizePostcode } from "@/lib/postcode";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { isPlausibleUkPostcode,lookupPostcodeLocation,normalizePostcode } from "@/lib/postcode";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -38,7 +39,7 @@ export async function PUT(request:Request){
  const location=clean(input.location,120);
  const postcode=normalizePostcode(clean(input.postcode,20));
  const description=clean(input.description,2000);
- if(businessName.length<2||location.length<2||!postcode||description.length<20){
+ if(businessName.length<2||location.length<2||!isPlausibleUkPostcode(postcode)||description.length<20){
   return mobileJson(request,{ok:false,error:"invalid_garage_profile"},400);
  }
  const {data:existing,error:existingError}=await supabase
@@ -61,5 +62,15 @@ export async function PUT(request:Request){
   ?await supabase.from("garage_partners").update(values).eq("id",existing.id).eq("owner_id",user.id).select("id,business_name,slug,location,postcode,description,customer_supplied_parts,recycled_parts,mobile_fitting,status,verified_at").single()
   :await supabase.from("garage_partners").insert({...values,owner_id:user.id,slug:slugify(businessName)+"-"+user.id.slice(0,8)}).select("id,business_name,slug,location,postcode,description,customer_supplied_parts,recycled_parts,mobile_fitting,status,verified_at").single();
  if(result.error||!result.data)return mobileJson(request,{ok:false,error:"garage_partner_save_failed"},409);
+
+ const geo=await lookupPostcodeLocation(postcode);
+ const admin=createSupabaseAdminClient();
+ const {error:geoError}=await admin.from("garage_partners").update({
+  latitude:geo?.latitude??null,
+  longitude:geo?.longitude??null,
+  updated_at:new Date().toISOString()
+ }).eq("id",result.data.id).eq("owner_id",user.id);
+ if(geoError)return mobileJson(request,{ok:false,error:"garage_partner_geocode_failed"},503);
+
  return mobileJson(request,{ok:true,partner:shape(result.data)});
 }
