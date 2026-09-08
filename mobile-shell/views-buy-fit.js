@@ -4,7 +4,7 @@
 const UI=window.SecondPartUI;
 const C=UI.C;
 
-const garageCard=garage=>"<article class=\"order-card\"><div class=\"row-between\"><div><p class=\"eyebrow\">Buy + Fit garage</p><h3>"+C.escapeHtml(garage.businessName)+"</h3><p class=\"subtle\">"+C.escapeHtml(garage.location)+" · "+C.escapeHtml(garage.postcode)+"</p></div>"+(garage.verified?"<span class=\"pill\">Verified</span>":"")+"</div><p style=\"font-size:11px;line-height:1.6\">"+C.escapeHtml(garage.description)+"</p><div class=\"chips\"><span class=\"chip green\">Customer-supplied parts</span><span class=\"chip green\">Recycled parts</span>"+(garage.mobileFitting?"<span class=\"chip\">Mobile fitting</span>":"")+"</div></article>";
+const garageCard=garage=>"<article class=\"order-card\"><div class=\"row-between\"><div><p class=\"eyebrow\">Buy + Fit garage</p><h3>"+C.escapeHtml(garage.businessName)+"</h3><p class=\"subtle\">"+C.escapeHtml(garage.location)+" · "+C.escapeHtml(garage.postcode)+(garage.distanceMiles!==null&&garage.distanceMiles!==undefined?" · "+C.escapeHtml(Number(garage.distanceMiles).toFixed(1))+" miles away":"")+"</p></div>"+(garage.verified?"<span class=\"pill\">Verified</span>":"")+"</div><p style=\"font-size:11px;line-height:1.6\">"+C.escapeHtml(garage.description)+"</p><div class=\"chips\"><span class=\"chip green\">Customer-supplied parts</span><span class=\"chip green\">Recycled parts</span>"+(garage.mobileFitting?"<span class=\"chip\">Mobile fitting</span>":"")+"</div></article>";
 
 const garages=async(payload={})=>{
  UI.loading("Loading Buy + Fit garages");
@@ -16,7 +16,9 @@ const garages=async(payload={})=>{
  const items=result.items||[];
  const html=[];
  html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Buy + Fit network</p><h2>Garages</h2><p>Approved workshops that accept customer-supplied recycled parts.</p></div></div>");
- html.push("<form id=\"garage-search-form\" class=\"search-row\" style=\"margin-bottom:12px\"><input id=\"garage-search\" class=\"input\" value=\""+C.escapeHtml(query)+"\" placeholder=\"Town, postcode or garage name\"/><button class=\"primary\" type=\"submit\">Search</button></form>");
+ html.push("<form id=\"garage-search-form\" class=\"search-row\" style=\"margin-bottom:12px\"><input id=\"garage-search\" class=\"input\" value=\""+C.escapeHtml(query)+"\" placeholder=\"Full postcode for nearest garages, or town / name\"/><button class=\"primary\" type=\"submit\">Search</button></form>");
+ if(result.nearbyPostcode)html.push("<div class=\"status success\" style=\"margin-bottom:10px\"><strong>Nearest garages to "+C.escapeHtml(result.nearbyPostcode)+"</strong><div style=\"margin-top:3px\">Results are ranked by straight-line distance.</div></div>");
+ else if(query)html.push("<div class=\"status info\" style=\"margin-bottom:10px\">Use a full UK postcode to rank garages by distance.</div>");
  html.push("<div class=\"status info\"><strong>Important:</strong> A labour quote does not confirm that a part fits your vehicle. Part purchase and fitting remain separate.</div>");
  if(items.length)html.push(items.map(garageCard).join(""));
  else html.push("<div class=\"empty\"><div class=\"empty-icon\">⌁</div><h3>Garage recruitment is open</h3><p>Approved Buy + Fit partners will appear here.</p></div>");
@@ -50,9 +52,11 @@ const fitPart=async(payload={})=>{
  html.push("<button class=\"back\" id=\"fit-back\" type=\"button\">‹ Back to part</button>");
  html.push("<div class=\"section-head\"><div><p class=\"eyebrow\">Buy + Fit</p><h2>Request fitting quote</h2><p>"+C.escapeHtml(item.title)+"</p></div></div>");
  html.push("<div class=\"status info\"><strong>"+C.escapeHtml(vehicleLabel)+"</strong><div style=\"margin-top:4px\">Labour quote only. The workshop quote is not a compatibility guarantee and does not buy the part.</div></div>");
- html.push("<form id=\"fit-garage-search-form\" class=\"search-row\" style=\"margin:12px 0\"><input id=\"fit-garage-search\" class=\"input\" value=\""+C.escapeHtml(query)+"\" placeholder=\"Town, postcode or garage name\"/><button class=\"primary\" type=\"submit\">Search</button></form>");
+ html.push("<form id=\"fit-garage-search-form\" class=\"search-row\" style=\"margin:12px 0\"><input id=\"fit-garage-search\" class=\"input\" value=\""+C.escapeHtml(query)+"\" placeholder=\"Full postcode for nearest garages, or town / name\"/><button class=\"primary\" type=\"submit\">Search</button></form>");
+ if(garagesResult.nearbyPostcode)html.push("<div class=\"status success\" style=\"margin-bottom:10px\"><strong>Nearest garages to "+C.escapeHtml(garagesResult.nearbyPostcode)+"</strong><div style=\"margin-top:3px\">Results are ranked by straight-line distance.</div></div>");
+ else if(query)html.push("<div class=\"status info\" style=\"margin-bottom:10px\">Use a full UK postcode to rank garages by distance.</div>");
  if(items.length)html.push(items.map(garage=>
-  "<article class=\"order-card\"><div class=\"row-between\"><div><h3>"+C.escapeHtml(garage.businessName)+"</h3><p class=\"subtle\">"+C.escapeHtml(garage.location)+" · "+C.escapeHtml(garage.postcode)+"</p></div>"+(garage.verified?"<span class=\"pill\">Verified</span>":"")+"</div><p style=\"font-size:11px;line-height:1.6\">"+C.escapeHtml(garage.description)+"</p><button class=\"primary wide\" style=\"margin-top:10px\" data-fit-garage=\""+C.escapeHtml(garage.id)+"\" type=\"button\">Request labour quote</button></article>"
+  "<article class=\"order-card\"><div class=\"row-between\"><div><h3>"+C.escapeHtml(garage.businessName)+"</h3><p class=\"subtle\">"+C.escapeHtml(garage.location)+" · "+C.escapeHtml(garage.postcode)+(garage.distanceMiles!==null&&garage.distanceMiles!==undefined?" · "+C.escapeHtml(Number(garage.distanceMiles).toFixed(1))+" miles away":"")+"</p></div>"+(garage.verified?"<span class=\"pill\">Verified</span>":"")+"</div><p style=\"font-size:11px;line-height:1.6\">"+C.escapeHtml(garage.description)+"</p><button class=\"primary wide\" style=\"margin-top:10px\" data-fit-garage=\""+C.escapeHtml(garage.id)+"\" type=\"button\">Request labour quote</button></article>"
  ).join(""));
  else html.push("<div class=\"empty\"><div class=\"empty-icon\">⌁</div><h3>No fitting partners yet</h3><p>You can still buy the part without fitting.</p></div>");
  UI.app.innerHTML=html.join("");
