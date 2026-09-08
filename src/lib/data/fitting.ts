@@ -92,7 +92,6 @@ export async function getGaragePartnersPage(offset=0,limit=24,query=""){
    const {data,error}=await supabase.rpc("find_garage_partners_nearby",{
     p_lat:geo.latitude,
     p_lon:geo.longitude,
-    p_query:null,
     p_limit:pageSize,
     p_offset:safeOffset
    });
