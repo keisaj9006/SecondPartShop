@@ -1714,6 +1714,54 @@ export type Database = {
           },
         ]
       }
+      seller_prospect_activities: {
+        Row: {
+          activity_type: string
+          actor_profile_id: string
+          created_at: string
+          id: string
+          next_action_at: string | null
+          note: string | null
+          outcome: string | null
+          prospect_id: string
+        }
+        Insert: {
+          activity_type: string
+          actor_profile_id: string
+          created_at?: string
+          id?: string
+          next_action_at?: string | null
+          note?: string | null
+          outcome?: string | null
+          prospect_id: string
+        }
+        Update: {
+          activity_type?: string
+          actor_profile_id?: string
+          created_at?: string
+          id?: string
+          next_action_at?: string | null
+          note?: string | null
+          outcome?: string | null
+          prospect_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_prospect_activities_actor_profile_id_fkey"
+            columns: ["actor_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_prospect_activities_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "seller_prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seller_prospects: {
         Row: {
           business_kind: string
@@ -2613,6 +2661,26 @@ export type Database = {
       admin_authorize_transaction_return: {
         Args: { p_case_id: string; p_notes?: string }
         Returns: boolean
+      }
+      admin_next_best_seller_prospects: {
+        Args: { p_limit?: number }
+        Returns: {
+          business_kind: string
+          business_name: string
+          estimated_inventory: number
+          id: string
+          last_contacted_at: string
+          location: string
+          next_action_at: string
+          postcode: string
+          priority: string
+          public_email: string
+          public_phone: string
+          score: number
+          score_reasons: string[]
+          status: string
+          website_url: string
+        }[]
       }
       admin_prepare_returnless_refund: {
         Args: { p_case_id: string; p_notes: string }
