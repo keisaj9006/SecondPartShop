@@ -12,6 +12,7 @@ export type PushDispatchResult={
 };
 
 const CONCURRENCY=5;
+const PRIVATE_MESSAGE_TYPES=new Set(["order_message","listing_message","fitting_message"]);
 
 const retryAt=(attempts:number)=>{
  const minutes=Math.min(30,Math.max(1,2**Math.max(0,attempts-1)));
@@ -31,7 +32,7 @@ export async function dispatchPushOutbox(limit=20):Promise<PushDispatchResult>{
  const notificationIds=[...new Set(rows.map(row=>row.notification_id))];
  const deviceIds=[...new Set(rows.map(row=>row.device_id))];
  const [{data:notifications,error:notificationError},{data:devices,error:deviceError}]=await Promise.all([
-  admin.from("notifications").select("id,profile_id,title,body,href").in("id",notificationIds),
+  admin.from("notifications").select("id,profile_id,type,title,body,href").in("id",notificationIds),
   admin.from("mobile_push_devices").select("id,profile_id,token,enabled").in("id",deviceIds)
  ]);
 
@@ -65,7 +66,7 @@ export async function dispatchPushOutbox(limit=20):Promise<PushDispatchResult>{
     token:device.token,
     notificationId:notification.id,
     title:notification.title,
-    body:notification.body,
+    body:PRIVATE_MESSAGE_TYPES.has(notification.type)?"Open SecondPart to read the message.":notification.body,
     href:notification.href
    });
    if(result.ok){
