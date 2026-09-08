@@ -6,7 +6,7 @@ export const runtime="nodejs";
 
 export function OPTIONS(request:Request){return mobileOptions(request);}
 
-const allowed=new Set(["q","category","condition","sort","min","max","pc","collection","vehicle","vr","vc","cv","cy","cf","ce"]);
+const allowed=new Set(["q","category","condition","sort","min","max","pc","collection","fit","vehicle","vr","vc","cv","cy","cf","ce"]);
 const safeParams=(value:unknown)=>{
  if(typeof value!=="object"||value===null||Array.isArray(value))return null;
  const result:Record<string,string>={};
