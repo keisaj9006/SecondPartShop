@@ -16,7 +16,7 @@ let routeLoader=null;
 let routeSequence=0;
 let silentRouteRefresh=false;
 const screenCache=new Map();
-const CACHED_ROOTS=new Set(["home","garage","orders","inbox","account","seller","inventory","sellerSales"]);
+const CACHED_ROOTS=new Set(["home","garage","orders","inbox","account"]);
 const cacheContext=()=>String(C.state.me?.profile?.id||"guest");
 const isRootCacheable=(route)=>Boolean(route&&CACHED_ROOTS.has(route.name)&&Object.keys(route.payload||{}).length===0);
 const cacheKeyForRoute=(route)=>cacheContext()+"::"+routeKey(route);
