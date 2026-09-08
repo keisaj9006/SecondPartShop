@@ -2872,6 +2872,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_active_listing_checkout_readiness: {
+        Args: never
+        Returns: {
+          active_listings: number
+          checkout_blocked_listings: number
+          checkout_ready_listings: number
+        }[]
+      }
       admin_authorize_transaction_return: {
         Args: { p_case_id: string; p_notes?: string }
         Returns: boolean
