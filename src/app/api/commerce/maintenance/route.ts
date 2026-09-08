@@ -17,7 +17,14 @@ export async function GET(request:Request){
    reconcileStripeOrders(100),
    releaseDuePayouts(100),
    syncPendingSellerPaymentAccounts(100),
-   dispatchPushOutbox(100)
+   dispatchPushOutbox(100).catch(error=>({
+    skipped:false,
+    claimed:0,
+    sent:0,
+    retried:0,
+    disabled:0,
+    error:error instanceof Error?error.message:"push_dispatch_failed"
+   }))
   ]);
   return NextResponse.json({ok:true,orders,payouts,sellers,push});
  }catch{
