@@ -228,3 +228,46 @@ export async function addSellerProspectActivity(formData:FormData){
  if(updateError)throw updateError;
  revalidatePath("/admin/seller-prospects");
 }
+
+
+export async function createSellerProspectInvite(formData:FormData){
+ const {profile}=await requireAdmin("/admin/seller-prospects");
+ const prospectId=String(formData.get("prospectId")??"");
+ if(!isUuid(prospectId))return;
+ const supabase=await createSupabaseServerClient();
+ const {data:prospect,error:prospectError}=await supabase.from("seller_prospects")
+  .select("id,status")
+  .eq("id",prospectId)
+  .maybeSingle();
+ if(prospectError||!prospect||["onboarded","not_interested","do_not_contact"].includes(prospect.status))return;
+
+ const token=crypto.randomUUID()+"-"+crypto.randomUUID();
+ const expiresAt=new Date(Date.now()+30*24*60*60*1000).toISOString();
+ const followUpAt=new Date(Date.now()+3*24*60*60*1000).toISOString();
+ const {error:inviteError}=await supabase.from("seller_prospect_invites").upsert({
+  prospect_id:prospectId,
+  token,
+  created_by:profile.id,
+  expires_at:expiresAt,
+  used_at:null
+ },{onConflict:"prospect_id"});
+ if(inviteError)throw inviteError;
+
+ const {error:activityError}=await supabase.from("seller_prospect_activities").insert({
+  prospect_id:prospectId,
+  actor_profile_id:profile.id,
+  activity_type:"invite",
+  outcome:"Founding Seller invite link created",
+  note:"Unique 30-day Founding Seller application link generated.",
+  next_action_at:followUpAt
+ });
+ if(activityError)throw activityError;
+
+ const {error:updateError}=await supabase.from("seller_prospects").update({
+  status:"invited",
+  last_contacted_at:new Date().toISOString(),
+  next_action_at:followUpAt
+ }).eq("id",prospectId);
+ if(updateError)throw updateError;
+ revalidatePath("/admin/seller-prospects");
+}

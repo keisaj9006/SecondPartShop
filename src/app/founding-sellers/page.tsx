@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Boxes,FileSpreadsheet,Rocket,ShieldCheck,Sparkles,Wrench } from "lucide-react";
 import { Header } from "@/components/header";
 import { FoundingSellerApplicationForm } from "@/components/founding-seller-application-form";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic="force-dynamic";
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
@@ -9,7 +10,32 @@ const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:val
 export default async function FoundingSellersPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
  const params=await searchParams;
  const sourceRaw=first(params.source)??"website";
- const source=/^[a-zA-Z0-9._-]{1,80}$/.test(sourceRaw)?sourceRaw:"website";
+ const inviteToken=(first(params.invite)??"").trim().slice(0,200);
+ let inviteInitial:Parameters<typeof FoundingSellerApplicationForm>[0]["initialValues"]={};
+ let validInviteToken="";
+ if(inviteToken){
+  const supabase=createSupabaseAdminClient();
+  const {data:invite}=await supabase.from("seller_prospect_invites").select("prospect_id,expires_at,used_at").eq("token",inviteToken).maybeSingle();
+  if(invite&&!invite.used_at&&new Date(invite.expires_at)>new Date()){
+   const {data:prospect}=await supabase.from("seller_prospects").select("business_name,business_kind,website_url,public_email,public_phone,postcode,estimated_inventory").eq("id",invite.prospect_id).maybeSingle();
+   if(prospect){
+    validInviteToken=inviteToken;
+    const mappedKind=prospect.business_kind==="ebay_seller"?"parts_business":prospect.business_kind;
+    inviteInitial={
+     email:prospect.public_email??"",
+     phone:prospect.public_phone??"",
+     businessName:prospect.business_name,
+     businessKind:["breaker","atf","garage","parts_business","other"].includes(mappedKind)?mappedKind:"other",
+     postcode:prospect.postcode??"",
+     website:prospect.website_url??"",
+     estimatedActiveParts:prospect.estimated_inventory,
+     channels:prospect.website_url?.includes("ebay.")?["ebay"]:[],
+     importInterest:(prospect.estimated_inventory??0)>=250?"csv":"unsure"
+    };
+   }
+  }
+ }
+ const source=validInviteToken?"outbound_invite":/^[a-zA-Z0-9._-]{1,80}$/.test(sourceRaw)?sourceRaw:"website";
  return <><Header/><main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
   <section className="overflow-hidden rounded-[34px] bg-[#173c31] p-6 text-white sm:p-9 lg:p-11">
    <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[.18em] text-[#d4f44d]"><Rocket size={16}/>Founding Seller Programme</p>
@@ -42,7 +68,7 @@ export default async function FoundingSellersPage({searchParams}:{searchParams:P
     </div>
     <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"><strong>Important:</strong> SecondPart does not silently publish imported stock. Real photos and sufficient part-identity / compatibility evidence remain publication gates.</div>
    </div>
-   <div id="apply"><FoundingSellerApplicationForm source={source}/></div>
+   <div id="apply">{validInviteToken&&<div className="mb-3 rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-900">You were invited to the Founding Seller Programme. We pre-filled the public business details we already had — please review and correct anything that has changed.</div>}<FoundingSellerApplicationForm source={source} inviteToken={validInviteToken} initialValues={inviteInitial}/></div>
   </section>
 
   <section className="mt-10 rounded-3xl border border-black/10 bg-white p-6">

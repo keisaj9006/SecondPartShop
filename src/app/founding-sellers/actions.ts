@@ -43,7 +43,7 @@ export async function submitFoundingSellerApplication(
  const importInterest=clean(formData,"importInterest",40);
  const notes=clean(formData,"notes",2000);
  const sourceRaw=clean(formData,"source",80);
- const source=/^[a-zA-Z0-9._-]{1,80}$/.test(sourceRaw)?sourceRaw:"website";
+ const inviteToken=clean(formData,"inviteToken",200);
  const selectedChannels=[...new Set(formData.getAll("channels").map(value=>String(value)).filter(value=>channels.has(value)))];
 
  if(contactName.length<2)return {status:"error",message:"Enter your contact name."};
@@ -60,6 +60,16 @@ export async function submitFoundingSellerApplication(
 
  try{
   const supabase=createSupabaseAdminClient();
+  let prospectId:string|null=null;
+  let validInvite=false;
+  if(inviteToken){
+   const {data:invite}=await supabase.from("seller_prospect_invites").select("prospect_id,expires_at,used_at").eq("token",inviteToken).maybeSingle();
+   if(invite&&!invite.used_at&&new Date(invite.expires_at)>new Date()){
+    prospectId=invite.prospect_id;
+    validInvite=true;
+   }
+  }
+  const source=validInvite?"outbound_invite":/^[a-zA-Z0-9._-]{1,80}$/.test(sourceRaw)?sourceRaw:"website";
   const {error}=await supabase.from("founding_seller_applications").insert({
    contact_name:contactName,
    email,
@@ -72,9 +82,26 @@ export async function submitFoundingSellerApplication(
    estimated_active_parts:estimatedActiveParts,
    import_interest:importInterest,
    notes:notes||null,
-   source
+   source,
+   prospect_id:prospectId
   });
   if(error&&error.code!=="23505")return {status:"error",message:"We could not submit the application right now. Please try again."};
+
+  let attributed=!error&&Boolean(prospectId);
+  if(error?.code==="23505"&&prospectId){
+   const {data:existing}=await supabase.from("founding_seller_applications").select("id,prospect_id").eq("email",email).maybeSingle();
+   if(existing&&(!existing.prospect_id||existing.prospect_id===prospectId)){
+    if(!existing.prospect_id)await supabase.from("founding_seller_applications").update({prospect_id:prospectId,source:"outbound_invite"}).eq("id",existing.id);
+    attributed=true;
+   }
+  }
+  if(attributed&&prospectId){
+   const followUpAt=new Date(Date.now()+24*60*60*1000).toISOString();
+   await Promise.all([
+    supabase.from("seller_prospect_invites").update({used_at:new Date().toISOString()}).eq("prospect_id",prospectId).eq("token",inviteToken),
+    supabase.from("seller_prospects").update({status:"onboarding",next_action_at:followUpAt}).eq("id",prospectId)
+   ]);
+  }
   return {
    status:"success",
    message:error?.code==="23505"
