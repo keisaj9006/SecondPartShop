@@ -60,9 +60,12 @@ if(!hardening.includes("processing_lease_expired")||!hardening.includes("interva
  failures.push("push outbox processing lease recovery invariant missing");
 }
 
-const findMyPart=read("supabase/migrations/20260908201500_part_request_response_on_publish.sql");
-if(!findMyPart.includes("new.status::text<>'active'")||!findMyPart.includes("update of status,source_request_id")){
- failures.push("Find My Part response must be counted only on active publication");
+const canonicalFindMyPart=read("supabase/migrations/20260908181500_mark_find_my_part_responded_on_publish.sql");
+const laterFindMyPart=read("supabase/migrations/20260908201500_part_request_response_on_publish.sql");
+for(const [label,source] of [["canonical",canonicalFindMyPart],["later",laterFindMyPart]]){
+ if(!source.includes("active")||!source.includes("reserved")||!source.includes("sold")||!source.includes("source_request_id")){
+  failures.push("Find My Part "+label+" migration must ignore drafts and preserve active/reserved/sold response semantics");
+ }
 }
 
 if(failures.length){

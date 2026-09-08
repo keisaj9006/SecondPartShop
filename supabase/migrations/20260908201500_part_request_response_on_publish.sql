@@ -1,3 +1,8 @@
+-- Keep the later migration idempotent with the canonical publish semantics already
+-- established by 20260908181500_mark_find_my_part_responded_on_publish.sql.
+-- A draft must never consume a seller lead. Active/reserved/sold listings are
+-- buyer-visible or transaction-visible responses and may close the open match.
+
 create or replace function private.mark_part_request_match_responded()
 returns trigger
 language plpgsql
@@ -5,13 +10,11 @@ security definer
 set search_path=''
 as $$
 begin
-  if new.source_request_id is null or new.status::text<>'active' then
+  if new.source_request_id is null then
     return new;
   end if;
 
-  if tg_op='UPDATE'
-     and old.status::text='active'
-     and old.source_request_id is not distinct from new.source_request_id then
+  if new.status::text not in ('active','reserved','sold') then
     return new;
   end if;
 
@@ -30,7 +33,7 @@ $$;
 
 drop trigger if exists mark_part_request_match_responded_trigger on public.parts;
 create trigger mark_part_request_match_responded_trigger
-after insert or update of status,source_request_id
+after insert or update of source_request_id,status
 on public.parts
 for each row execute function private.mark_part_request_match_responded();
 
