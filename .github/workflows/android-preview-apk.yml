@@ -106,7 +106,17 @@ jobs:
         run: |
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
           "$APKSIGNER" verify --print-certs android/app/build/outputs/apk/debug/app-debug.apk
-          "$APKSIGNER" verify --print-certs android/app/build/outputs/apk/debug/app-debug.apk | grep "Signer #1 certificate SHA-256 digest"
+
+          EXPECTED="$(keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | sed -n 's/.*SHA256: //p' | head -n 1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          ACTUAL="$("$APKSIGNER" verify --print-certs android/app/build/outputs/apk/debug/app-debug.apk | sed -n 's/.*certificate SHA-256 digest: //p' | head -n 1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+
+          echo "Expected signer SHA-256: $EXPECTED"
+          echo "APK signer SHA-256:      $ACTUAL"
+
+          if [ -z "$EXPECTED" ] || [ -z "$ACTUAL" ] || [ "$EXPECTED" != "$ACTUAL" ]; then
+            echo "::error::APK signer does not match the persistent SecondPart Preview signing key."
+            exit 1
+          fi
 
       - name: Prepare APK artifact
         run: cp android/app/build/outputs/apk/debug/app-debug.apk SecondPart-preview.apk
