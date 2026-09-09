@@ -82,6 +82,7 @@ html,body,#app-shell,.app-main{width:100%;max-width:100%;overflow-x:hidden}
 .app-main>*,
 .card,.vehicle-card,.listing-card,.order-card,.conversation-card,.notification-card,
 .account-tile,.auth-card,.detail-hero,.section-head>*,.row-between>*{min-width:0;max-width:100%}
+.order-card,.conversation-card,.notification-card{content-visibility:auto;contain-intrinsic-size:160px}
 button,input,select,textarea{min-width:0;max-width:100%}
 h1,h2,h3,p,small,strong,span{overflow-wrap:anywhere}
 
