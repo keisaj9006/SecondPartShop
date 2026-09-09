@@ -29,6 +29,11 @@ const reviewTermsGate=read("supabase/migrations/20260909214500_review_ugc_terms_
 const silentBuyerPayout=read("supabase/migrations/20260909222000_silent_buyer_payout_review.sql");
 const commerceSettings=read("src/components/commerce-settings-form.tsx");
 const commerceAdmin=read("src/app/admin/commerce/page.tsx");
+const accountDeletionWorker=read("src/lib/account-deletion.ts");
+const accountDeletionIdentity=read("supabase/migrations/20260909232000_account_deletion_identity_detach.sql");
+const accountDeletionRetry=read("supabase/migrations/20260909233000_account_deletion_retry_context.sql");
+const accountRetention=read("docs/account-data-retention.md");
+const maintenanceRoute=read("src/app/api/commerce/maintenance/route.ts");
 
 const checks=[
  ["Production Android package must be separate from Preview",productionPrep.includes('config.appId="com.secondpart.marketplace"')&&!productionPrep.includes('marketplace.preview')],
@@ -62,6 +67,13 @@ const checks=[
  ["Reviews must enforce Terms at the database boundary",reviewTermsGate.includes("transaction_reviews_terms_gate")&&reviewTermsGate.includes("verified_fit_feedback_terms_gate")&&reviewTermsGate.includes("has_current_marketplace_terms")],
  ["Silent buyer must never auto-release payout from inactivity alone",silentBuyerPayout.includes("admin_start_unverified_delivery_release_window")&&silentBuyerPayout.includes("unverified_delivery_review_days")&&silentBuyerPayout.includes("payout_status='scheduled'")],
  ["Silent-buyer fallback must require admin evidence review before release window",silentBuyerPayout.includes("Administrator access required")&&commerceAdmin.includes("Silent-buyer payout reviews")&&commerceSettings.includes("Silent-buyer delivery review")],
+ ["Account deletion must hard-delete Auth identity, not only queue a request",accountDeletionWorker.includes("auth.admin.deleteUser")&&accountDeletionWorker.includes("complete_account_deletion_request")],
+ ["Account deletion must preserve required commerce records by detaching identity",accountDeletionIdentity.includes("orders_buyer_id_fkey")&&accountDeletionIdentity.includes("on delete set null")&&accountDeletionIdentity.includes("sellers_owner_id_fkey")],
+ ["Account deletion must freeze seller commerce and be retry-safe",accountDeletionRetry.includes("for update of p")&&accountDeletionRetry.includes("status='archived'")&&accountDeletionRetry.includes("cleanup_seller_ids")],
+ ["Account deletion must purge tracked listing images before Auth deletion",accountDeletionWorker.includes('storage.from("part-images").remove')&&accountDeletionWorker.indexOf('storage.from("part-images").remove')<accountDeletionWorker.indexOf("auth.admin.deleteUser")],
+ ["Retention matrix must distinguish deletion from legally required retention",accountRetention.includes("Retention matrix")&&accountRetention.includes("6 years")&&accountRetention.includes("Hard-delete Auth user")],
+ ["Scheduled maintenance must process pending account deletions",maintenanceRoute.includes("processAccountDeletionQueue")],
+
 ];
 
 const unresolved=[
