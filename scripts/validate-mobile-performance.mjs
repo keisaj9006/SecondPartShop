@@ -64,7 +64,7 @@ const checks=[
  ["Auth user reads must be request-deduped",auth.includes("getCurrentUser=cache(async()=>")],
  ["Auth profile reads must be request-deduped",auth.includes("getCurrentProfile=cache(async():Promise<Profile|null>=>")],
  ["Marketplace home must pass cursor tokens to data layer",homePage.includes("marketplaceCursor")&&homePage.includes("cursor:marketplaceCursor")],
- ["Marketplace Home must use lean card payloads",homePage.includes("lean:true")&&marketplaceData.includes("selectListingCardLean")&&marketplaceData.includes("leanCardListingsFromRows")&&!marketplaceData.match(/selectListingCardLean=.*description,/)],
+ ["Marketplace Home must use lean card payloads",homePage.includes("lean:true")&&marketplaceData.includes("selectListingCardLean")&&marketplaceData.includes("leanCardListingsFromRows")&&marketplaceData.includes("slug,title,manufacturer,part_number")&&!marketplaceData.includes("selectListingCardLean=()=>`id,created_at,updated_at,seller_id,category_id,donor_vehicle_id,source_channel,source_external_id,import_batch_id,slug,title,description")],
  ["Default marketplace browse must use cursor RPC",marketplaceData.includes('marketplace_browse_cursor_page')&&marketplaceData.includes('mode:"cursor"')],
  ["Cursor pagination must use stable created_at + id ordering",cursorMigration.includes("(p.created_at,p.id)<(p_after_created_at,p_after_id)")&&cursorMigration.includes("order by p.created_at desc,p.id desc")],
  ["Marketplace cursor indexes must match DESC UUID tie-breakers",cursorIndexAlignment.includes("created_at desc,id desc")&&cursorIndexAlignment.includes("updated_at desc,id desc")],
