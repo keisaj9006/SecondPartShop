@@ -92,7 +92,7 @@ begin
 
   if p_sort='delivery' then
     return query
-    select p.id,p.created_at,p.delivery_days_min
+    select p.id,p.created_at,p.delivery_days_min::integer
     from public.parts p
     where p.status='active'::public.listing_status
       and (p_category_ids is null or p.category_id=any(p_category_ids))
@@ -127,7 +127,7 @@ begin
 
   if p_sort='warranty' then
     return query
-    select p.id,p.created_at,p.warranty_days
+    select p.id,p.created_at,p.warranty_days::integer
     from public.parts p
     where p.status='active'::public.listing_status
       and (p_category_ids is null or p.category_id=any(p_category_ids))
