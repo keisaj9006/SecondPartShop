@@ -491,6 +491,8 @@ const listing=async(payload)=>{
   submit.disabled=true;submit.textContent="Starting checkout…";
   try{
    const result=await C.api("/checkout",{method:"POST",auth:true,body:{partId:item.id,quantity,deliveryMethod}});
+   C.invalidateCache("/marketplace");
+   C.invalidateCache("/orders");
    UI.toast("Opening secure Stripe checkout…");
    await C.Native.openBrowser(result.checkoutUrl);
   }catch(error){
