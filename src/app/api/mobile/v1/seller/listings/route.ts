@@ -1,5 +1,5 @@
 import { isUuid } from "@/lib/identifiers";
-import { mobileJson,mobileOptions,requireMobileSeller } from "@/lib/mobile-api";
+import { mobileJson,mobileMarketplaceTermsAccepted,mobileOptions,requireMobileSeller } from "@/lib/mobile-api";
 import { mobileThumbnailUrl } from "@/lib/mobile-image";
 import { listingRow,parseMobileListingInput,replaceMobileListingFitments,slugifyMobileListing,validateMobileListingInput } from "@/lib/mobile-seller-listing-write";
 
@@ -93,6 +93,7 @@ export async function POST(request:Request){
  const auth=await requireMobileSeller(request);
  if(!auth.context||!auth.seller)return auth.response;
  const {supabase}=auth.context;
+ if(!await mobileMarketplaceTermsAccepted(auth.context))return mobileJson(request,{ok:false,error:"terms_required"},428);
 
  let body:unknown;
  try{body=await request.json();}catch{return mobileJson(request,{ok:false,error:"invalid_json"},400);}
