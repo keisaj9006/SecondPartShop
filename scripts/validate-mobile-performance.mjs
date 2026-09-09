@@ -16,6 +16,10 @@ const marketplaceHome=read("src/components/marketplace-home.tsx");
 const previewPrep=read("scripts/prepare-android-preview.mjs");
 const searchScaleMigration=read("supabase/migrations/20260909100500_indexed_marketplace_search_candidates.sql");
 const cursorMigration=read("supabase/migrations/20260909103000_marketplace_cursor_pagination.sql");
+const garageLoading=read("src/app/garage/loading.tsx");
+const purchasesLoading=read("src/app/account/orders/loading.tsx");
+const inboxLoading=read("src/app/inbox/loading.tsx");
+const accountLoading=read("src/app/account/loading.tsx");
 
 const checks=[
  ["Root navigation must not detach large DOM trees into a holder",!ui.includes("holder.append(...Array.from(app.childNodes))")],
@@ -50,7 +54,11 @@ const checks=[
  ["Cursor pagination must use stable created_at + id ordering",cursorMigration.includes("(p.created_at,p.id)<(p_after_created_at,p_after_id)")&&cursorMigration.includes("order by p.created_at desc,p.id desc")],
  ["Search ranking must stay bounded to indexed candidates",searchScaleMigration.includes("candidate_rows as")&&searchScaleMigration.includes("candidate_limit")],
  ["Cursor UI must avoid deep OFFSET page links",marketplaceHome.includes('pagination.mode==="cursor"')&&marketplaceHome.includes("Next 24 parts")],
- ["Android Preview must keep loading the full Next.js frontend",previewPrep.includes("second-part-shop-preview.vercel.app")&&previewPrep.includes("config.server=")]
+ ["Android Preview must keep loading the full Next.js frontend",previewPrep.includes("second-part-shop-preview.vercel.app")&&previewPrep.includes("config.server=")],
+ ["Garage root tab must have an instant loading boundary",garageLoading.includes('variant="garage"')],
+ ["Purchases root tab must have an instant loading boundary",purchasesLoading.includes('variant="purchases"')],
+ ["Inbox root tab must have an instant loading boundary",inboxLoading.includes('variant="inbox"')],
+ ["Account root tab must have an instant loading boundary",accountLoading.includes('variant="account"')]
 ];
 
 const failed=checks.filter(([,ok])=>!ok);
