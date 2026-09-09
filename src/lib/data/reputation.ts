@@ -1,5 +1,6 @@
 import "server-only";
 
+import {cache} from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { PublicMemberProfile,ReviewDirection,SellerType,TransactionReview } from "@/lib/types";
 
@@ -49,14 +50,14 @@ export async function getPublicMemberProfile(handle:string):Promise<PublicMember
   return row?mapProfile(row):null;
 }
 
-export async function getPublicMemberProfileById(profileId:string|null):Promise<PublicMemberProfile|null>{
+export const getPublicMemberProfileById=cache(async(profileId:string|null):Promise<PublicMemberProfile|null>=>{
   if(!profileId)return null;
   const supabase=await createSupabaseServerClient();
   const {data,error}=await supabase.rpc("get_public_member_profile_by_id",{p_profile_id:profileId});
   if(error)throw new Error("Public member profile is temporarily unavailable.");
   const row=(data?.[0]??null) as PublicProfileRow|null;
   return row?mapProfile(row):null;
-}
+});
 
 export async function getPublicMemberReviews(profileId:string,limit=20):Promise<TransactionReview[]>{
   const supabase=await createSupabaseServerClient();
