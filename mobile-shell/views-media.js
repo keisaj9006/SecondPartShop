@@ -209,6 +209,7 @@ const openListingPhotos=async(part)=>{
    path:"/seller/listings/"+encodeURIComponent(part.id)+"/photos",
    prefix:"part-photo",
    onDone:async()=>{
+    C.invalidateCache("/seller/listings");
     result=await C.api("/seller/listings/"+encodeURIComponent(part.id)+"/photos",{auth:true});
     render();
    }
@@ -218,6 +219,7 @@ const openListingPhotos=async(part)=>{
    button.disabled=true;
    try{
     await C.api("/seller/listings/"+encodeURIComponent(part.id)+"/photos?imageId="+encodeURIComponent(button.dataset.removePhoto),{method:"DELETE",auth:true});
+    C.invalidateCache("/seller/listings");
     result=await C.api("/seller/listings/"+encodeURIComponent(part.id)+"/photos",{auth:true});
     UI.toast("Photo removed.");
     render();
@@ -236,7 +238,7 @@ const inventory=async(payload={})=>{
  if(!C.state.me||!C.state.me.seller){UI.empty("□","Seller profile required","Create or enable a seller profile before managing inventory.","Account",()=>UI.route("account"));return;}
 
  UI.loading("Loading inventory");
- const pageSize=40;
+ const pageSize=24;
  let items=[];
  let hasMore=false;
  let searchText="";
@@ -246,7 +248,12 @@ const inventory=async(payload={})=>{
   const params=new URLSearchParams({limit:String(pageSize),offset:String(offset)});
   if(query.trim())params.set("q",query.trim());
   if(importBatch)params.set("importBatch",importBatch);
-  const result=await C.api("/seller/listings?"+params.toString(),{auth:true});
+  const rootPage=offset===0&&!query.trim()&&!importBatch;
+  const result=await C.apiCached("/seller/listings?"+params.toString(),{
+   auth:true,
+   maxAge:rootPage?15000:8000,
+   staleWhileRevalidate:rootPage
+  });
   return {items:result.items||[],hasMore:Boolean(result.pagination&&result.pagination.hasMore)};
  };
 
@@ -625,6 +632,8 @@ const listingEditor=async(payload={})=>{
  const patch=async(nextStatus)=>{
   try{
    const result=await C.api("/seller/listings/"+encodeURIComponent(item.id),{method:"PATCH",auth:true,body:{...formBody(),status:nextStatus}});
+   C.invalidateCache("/seller/listings");
+   C.invalidateCache("/seller/readiness");
    UI.toast(nextStatus==="active"?"Listing published / updated.":"Draft saved.");
    await UI.route("listingEditor",{id:result.id});
   }catch(error){showError(error);}
@@ -642,6 +651,8 @@ const listingEditor=async(payload={})=>{
    const button=document.getElementById("le-create");button.disabled=true;button.textContent="Creating draft…";
    try{
     const result=await C.api("/seller/listings",{method:"POST",auth:true,body:formBody()});
+    C.invalidateCache("/seller/listings");
+    C.invalidateCache("/seller/readiness");
     UI.toast("Draft created. Add real product photos next.");
     await UI.route("listingEditor",{id:result.id});
     window.setTimeout(()=>void openListingPhotos({id:result.id,title:String(document.getElementById("le-title")?.value||"New listing")}),100);
