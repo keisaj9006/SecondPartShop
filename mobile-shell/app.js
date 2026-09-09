@@ -95,6 +95,8 @@ const handleCheckoutDeepLink=async(rawUrl)=>{
    }
   }
 
+  C.invalidateCache("/marketplace");
+  C.invalidateCache("/orders");
   await C.loadMe();
   await UI.refreshUserChrome();
 
