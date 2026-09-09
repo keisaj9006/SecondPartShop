@@ -20,3 +20,10 @@ export async function hasCurrentMarketplaceTerms(profileId:string){
 export async function requireCurrentMarketplaceTerms(profileId:string){
  if(!await hasCurrentMarketplaceTerms(profileId))throw new Error("marketplace_terms_required");
 }
+
+export async function isMarketplaceUserBlocked(profileId:string){
+ const supabase=await createSupabaseServerClient();
+ const {data,error}=await supabase.rpc("is_marketplace_user_blocked",{p_profile_id:profileId});
+ if(error)return false;
+ return Boolean(data);
+}
