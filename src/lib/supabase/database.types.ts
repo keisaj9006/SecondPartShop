@@ -3388,6 +3388,25 @@ export type Database = {
           total_count: number
         }[]
       }
+      marketplace_browse_cursor_page_v2: {
+        Args: {
+          p_after_created_at?: string
+          p_after_id?: string
+          p_after_sort_value?: number
+          p_category_ids?: string[]
+          p_collection_only?: boolean
+          p_condition?: string
+          p_limit?: number
+          p_max_price_pence?: number
+          p_min_price_pence?: number
+          p_sort?: string
+        }
+        Returns: {
+          created_at: string
+          part_id: string
+          sort_value: number
+        }[]
+      }
       marketplace_browse_cursor_page: {
         Args: {
           p_after_created_at?: string
