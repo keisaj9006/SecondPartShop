@@ -8,14 +8,19 @@ on:
       - "mobile-shell/**"
       - "mobile-native-src/**"
       - "capacitor.config.json"
-      - "scripts/patch-android-mobile.mjs"
+      - "scripts/prepare-android-production.mjs"
+      - "scripts/patch-android-production.mjs"
       - "scripts/patch-android-app-links.mjs"
-      - "scripts/prepare-android-release.mjs"
-      - "scripts/patch-android-release-signing.mjs"
+      - "scripts/write-ci-google-services.mjs"
+      - ".github/workflows/android-production-aab.yml"
       - ".github/workflows/android-release-check.yml"
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate-release-bundle:
@@ -24,10 +29,12 @@ jobs:
     timeout-minutes: 35
     env:
       SECOND_PART_PRODUCTION_URL: https://release-check.secondpart.invalid
-      SECOND_PART_KEYSTORE_PATH: /tmp/secondpart-ci-release.jks
-      ANDROID_KEYSTORE_PASSWORD: changeit
-      ANDROID_KEY_ALIAS: secondpart-ci
-      ANDROID_KEY_PASSWORD: changeit
+      SECOND_PART_VERSION_NAME: 1.0.0
+      SECOND_PART_VERSION_CODE: 1
+      SECOND_PART_RELEASE_KEYSTORE: /tmp/secondpart-ci-release.jks
+      ANDROID_RELEASE_STORE_PASSWORD: changeit
+      ANDROID_RELEASE_KEY_ALIAS: secondpart-ci
+      ANDROID_RELEASE_KEY_PASSWORD: changeit
 
     steps:
       - name: Checkout source
@@ -61,7 +68,7 @@ jobs:
           npm pkg set "dependencies.@aparajita/capacitor-secure-storage=8.0.0"
 
       - name: Prepare production-style config
-        run: node scripts/prepare-android-release.mjs
+        run: node scripts/prepare-android-production.mjs
 
       - name: Build native JavaScript bridge
         run: npx esbuild mobile-native-src/native.ts --bundle --platform=browser --format=iife --target=es2020 --outfile=mobile-shell/native.js
@@ -75,32 +82,41 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Generate Android project
-        run: npx cap add android
-
-      - name: Patch Android deep links
+      - name: Generate and sync Android project
         run: |
-          node scripts/patch-android-mobile.mjs
-          node scripts/patch-android-app-links.mjs
-
-      - name: Sync Capacitor project
-        run: npx cap sync android
-
-      - name: Configure CI Firebase placeholder
-        run: node scripts/write-ci-google-services.mjs
+          npx cap add android
+          npx cap sync android
 
       - name: Create ephemeral CI signing key
         run: |
           keytool -genkeypair -noprompt \
-            -keystore "$SECOND_PART_KEYSTORE_PATH" \
-            -storepass "$ANDROID_KEYSTORE_PASSWORD" \
-            -keypass "$ANDROID_KEY_PASSWORD" \
-            -alias "$ANDROID_KEY_ALIAS" \
+            -keystore "$SECOND_PART_RELEASE_KEYSTORE" \
+            -storepass "$ANDROID_RELEASE_STORE_PASSWORD" \
+            -keypass "$ANDROID_RELEASE_KEY_PASSWORD" \
+            -alias "$ANDROID_RELEASE_KEY_ALIAS" \
             -keyalg RSA -keysize 2048 -validity 2 \
             -dname "CN=SecondPart CI,O=SecondPart,C=GB"
 
-      - name: Configure release signing
-        run: node scripts/patch-android-release-signing.mjs
+      - name: Patch production Android release
+        run: |
+          node scripts/patch-android-production.mjs
+          node scripts/patch-android-app-links.mjs
+
+      - name: Configure CI Firebase placeholder
+        run: node scripts/write-ci-google-services.mjs
+
+      - name: Verify production-style configuration
+        run: |
+          node - <<'NODE'
+          const fs=require("fs");
+          const config=JSON.parse(fs.readFileSync("capacitor.config.json","utf8"));
+          if(config.appId!=="com.secondpart.marketplace")throw new Error("Wrong production package.");
+          if(config.android?.webContentsDebuggingEnabled!==false)throw new Error("Production WebView debugging is enabled.");
+          if(config.loggingBehavior!=="none")throw new Error("Production logging is enabled.");
+          if(config.server?.url!=="https://release-check.secondpart.invalid")throw new Error("Full production frontend URL was not preserved.");
+          const vars=fs.readFileSync("android/variables.gradle","utf8");
+          if(!/compileSdkVersion\s*=\s*36/.test(vars)||!/targetSdkVersion\s*=\s*36/.test(vars))throw new Error("API 36 not configured.");
+          NODE
 
       - name: Build production-style Android App Bundle
         working-directory: android
@@ -108,5 +124,8 @@ jobs:
           chmod +x gradlew
           ./gradlew bundleRelease --no-daemon
 
-      - name: Confirm AAB exists
-        run: test -s android/app/build/outputs/bundle/release/app-release.aab
+      - name: Verify CI AAB
+        run: |
+          AAB="android/app/build/outputs/bundle/release/app-release.aab"
+          test -s "$AAB"
+          jarsigner -verify -verbose -certs "$AAB" >/dev/null
