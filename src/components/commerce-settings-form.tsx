@@ -10,11 +10,13 @@ const initial:ActionState={status:"idle"};
 export function CommerceSettingsForm({
  platformFeePercent,
  checkoutReservationMinutes,
- autoReleaseHours
+ autoReleaseHours,
+ unverifiedDeliveryReviewDays
 }:{
  platformFeePercent:number;
  checkoutReservationMinutes:number;
  autoReleaseHours:number;
+ unverifiedDeliveryReviewDays:number;
 }){
  const [state,action,pending]=useActionState(updateCommerceSettings,initial);
  const input="mt-2 w-full rounded-xl border border-black/15 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#173c31]";
@@ -36,6 +38,12 @@ export function CommerceSettingsForm({
    <div className="flex items-center gap-2"><ShieldCheck size={20}/><h2 className="text-xl font-black">Buyer-protection release window</h2></div>
    <p className="mt-2 text-sm leading-6 text-[#63706a]">After the buyer confirms receipt without immediately accepting the item, seller funds become eligible after this period unless a return or dispute blocks them.</p>
    <label className="mt-4 block text-sm font-bold">Hours<input required type="number" min="12" max="168" step="1" name="autoReleaseHours" defaultValue={autoReleaseHours} className={input}/></label>
+  </section>
+
+  <section className="rounded-3xl border border-black/10 bg-white p-5 sm:p-6">
+   <div className="flex items-center gap-2"><Clock3 size={20}/><h2 className="text-xl font-black">Silent-buyer delivery review</h2></div>
+   <p className="mt-2 text-sm leading-6 text-[#63706a]">For shipped orders with no buyer receipt confirmation and no trusted carrier delivery event, funds are never released from silence alone. After this many days from dispatch, the order becomes eligible for an administrator evidence review. Approval only starts the normal Buyer Protection release window.</p>
+   <label className="mt-4 block text-sm font-bold">Days after dispatch<input required type="number" min="7" max="30" step="1" name="unverifiedDeliveryReviewDays" defaultValue={unverifiedDeliveryReviewDays} className={input}/></label>
   </section>
 
   {state.message&&<p role="status" className={"rounded-xl p-3 text-sm font-bold "+(state.status==="error"?"bg-red-50 text-red-800":"bg-emerald-50 text-emerald-800")}>{state.message}</p>}
