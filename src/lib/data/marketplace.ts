@@ -634,12 +634,12 @@ export async function getSellerListingsPage(sellerId:string,options:{includeInac
 
   const {data:rows,error:rowError}=await supabase.from("parts").select(selectListingCard()).eq("seller_id",sellerId).in("id",ids);
   if(rowError)throw new Error("Seller inventory is temporarily unavailable.");
-  const byId=new Map((rows??[]).map(row=>[row.id,row] as const));
+  const typedRows=(rows??[]) as unknown as Array<Omit<RawListing,"part_images"|"part_fitments">>;
+  const byId=new Map(typedRows.map(row=>[row.id,row] as const));
   const data=ids.flatMap(id=>{
    const row=byId.get(id);
    if(!row)return [];
-   const base=row as unknown as Omit<RawListing,"part_images"|"part_fitments">;
-   return [listingFrom({...base,part_images:[],part_fitments:[]} as RawListing)];
+   return [listingFrom({...row,part_images:[],part_fitments:[]} as RawListing)];
   });
   const last=visibleRows.at(-1);
   const nextCursor=hasMore&&last?encodeSellerInventoryCursor({updatedAt:last.updated_at,id:last.part_id}):null;
