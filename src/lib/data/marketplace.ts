@@ -283,12 +283,12 @@ export async function getMarketplacePage(
    p_min_price_pence:Number.isFinite(filters.minPrice)?Math.round((filters.minPrice??0)*100):undefined,
    p_max_price_pence:Number.isFinite(filters.maxPrice)?Math.round((filters.maxPrice??0)*100):undefined,
    p_collection_only:Boolean(filters.collectionOnly),
-   p_limit:limit,
+   p_limit:limit+1,
    p_offset:offset
   };
 
   const distanceResult=filters.catalogueVariant&&filters.catalogueYear!==undefined
-   ?await supabase.rpc("marketplace_catalogue_distance_page",{
+   ?await supabase.rpc("marketplace_catalogue_distance_page_v2",{
      ...common,
      p_variant_id:filters.catalogueVariant,
      p_year:filters.catalogueYear,
@@ -296,7 +296,7 @@ export async function getMarketplacePage(
      p_engine:filters.catalogueEngineSize,
      p_compatible_only:filters.compatibleOnly!==false
     })
-   :await supabase.rpc("marketplace_distance_page",common);
+   :await supabase.rpc("marketplace_distance_page_v2",common);
 
   if(distanceResult.error)return {...failure([],"Distance sorting is temporarily unavailable."),pagination:emptyPagination};
   const rawPageRows=distanceResult.data??[];
