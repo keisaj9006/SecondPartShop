@@ -130,6 +130,8 @@ const account=async(payload)=>{
  });
  document.getElementById("account-signout").addEventListener("click",async()=>{
   await C.signOut();
+  cachedPushToken=null;
+  pushTokenLoaded=false;
   UI.clearScreenCache();
   C.state.accountMode="buying";
   await UI.refreshUserChrome();
