@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
+import { reportOperationalError } from "@/lib/ops-monitoring";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -32,7 +33,10 @@ export async function DELETE(request:Request,{params}:{params:Promise<{orderId:s
   p_order_id:orderId,
   p_event_type:"mobile_buyer_cancelled_checkout"
  });
- if(cancelError)return mobileJson(request,{ok:false,error:"cancel_failed"},503);
+ if(cancelError){
+  await reportOperationalError({component:"checkout",event:"mobile_checkout_cancel_failed",error:cancelError,route:"/api/mobile/v1/orders/[orderId]/checkout"});
+  return mobileJson(request,{ok:false,error:"cancel_failed"},503);
+ }
 
  return mobileJson(request,{ok:true,cancelled:true});
 }
