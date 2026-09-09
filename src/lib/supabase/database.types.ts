@@ -3343,6 +3343,30 @@ export type Database = {
           total_count: number
         }[]
       }
+      marketplace_catalogue_cursor_page_v1: {
+        Args: {
+          p_after_confidence_rank?: number
+          p_after_created_at?: string
+          p_after_id?: string
+          p_category_ids?: string[]
+          p_collection_only?: boolean
+          p_compatible_only?: boolean
+          p_condition?: string
+          p_engine?: number
+          p_fuel?: string
+          p_limit?: number
+          p_max_price_pence?: number
+          p_min_price_pence?: number
+          p_variant_id: string
+          p_year: number
+        }
+        Returns: {
+          confidence: string
+          confidence_rank: number
+          created_at: string
+          part_id: string
+        }[]
+      }
       marketplace_catalogue_page: {
         Args: {
           p_category_ids?: string[]
