@@ -285,14 +285,15 @@ const conditionLabel=(value)=>{
  return C.human(key||"Part");
 };
 
-const firstImage=(item)=>{
+const firstImage=(item,preferThumbnail=false)=>{
  const images=Array.isArray(item&&item.images)?item.images:[];
- const url=images.length?C.safeHttpUrl(images[0].url):"";
- return url;
+ if(!images.length)return "";
+ const source=preferThumbnail?(images[0].thumbnailUrl||images[0].url):images[0].url;
+ return C.safeHttpUrl(source);
 };
 
 const listingCard=(item)=>{
- const image=firstImage(item);
+ const image=firstImage(item,true);
  const saved=C.state.savedIds.has(item.id);
  const compatibility=item.compatibility&&item.compatibility.label?item.compatibility.label:"";
  return "<article class=\"listing-card\">"+
