@@ -3,6 +3,7 @@ import { reconcileStripeOrders } from "@/lib/commerce-reconciliation";
 import { releaseDuePayouts } from "@/lib/commerce-payouts";
 import { syncPendingSellerPaymentAccounts } from "@/lib/seller-payment-sync";
 import { dispatchPushOutbox } from "@/lib/push/dispatch";
+import { processAccountDeletionQueue } from "@/lib/account-deletion";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -13,10 +14,19 @@ export async function GET(request:Request){
  if(request.headers.get("authorization")!==`Bearer ${secret}`)return NextResponse.json({ok:false},{status:401});
 
  try{
-  const [orders,payouts,sellers]=await Promise.all([
+  const [orders,payouts,sellers,deletions]=await Promise.all([
    reconcileStripeOrders(100),
    releaseDuePayouts(100),
-   syncPendingSellerPaymentAccounts(100)
+   syncPendingSellerPaymentAccounts(100),
+   processAccountDeletionQueue(20).catch(error=>({
+    checked:0,
+    completed:0,
+    blocked:0,
+    deferred:0,
+    failed:1,
+    results:[],
+    error:error instanceof Error?error.message:"account_deletion_failed"
+   }))
   ]);
   const push=await dispatchPushOutbox(100).catch(error=>({
    skipped:false,
@@ -26,7 +36,7 @@ export async function GET(request:Request){
    disabled:0,
    error:error instanceof Error?error.message:"push_dispatch_failed"
   }));
-  return NextResponse.json({ok:true,orders,payouts,sellers,push});
+  return NextResponse.json({ok:true,orders,payouts,sellers,deletions,push});
  }catch{
   return NextResponse.json({ok:false},{status:500});
  }
