@@ -605,6 +605,7 @@ export type Database = {
           id: string
           part_id: string | null
           reason: string
+          reported_profile_id: string | null
           reporter_id: string
           reviewed_at: string | null
           reviewed_by: string | null
@@ -617,6 +618,7 @@ export type Database = {
           id?: string
           part_id?: string | null
           reason: string
+          reported_profile_id?: string | null
           reporter_id: string
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -629,6 +631,7 @@ export type Database = {
           id?: string
           part_id?: string | null
           reason?: string
+          reported_profile_id?: string | null
           reporter_id?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -641,6 +644,13 @@ export type Database = {
             columns: ["part_id"]
             isOneToOne: false
             referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_reports_reported_profile_id_fkey"
+            columns: ["reported_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
