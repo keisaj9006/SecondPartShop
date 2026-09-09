@@ -31,6 +31,7 @@ type RawListing={id:string;created_at?:string;updated_at?:string;seller_id:strin
 const categorySelect="id,parent_id,name,slug,is_transmission_related,is_selectable,sort_order,search_terms";
 const selectListing=()=>`id,seller_id,category_id,donor_vehicle_id,source_channel,source_external_id,import_batch_id,slug,title,description,manufacturer,part_number,oem_number,gearbox_family,gearbox_code,condition,price_pence,shipping_pence,stock,status,dispatch_days,testing_status,warranty_days,condition_notes,damage_notes,collection_available,delivery_days_min,delivery_days_max,categories!inner(${categorySelect}),sellers!inner(id,owner_id,business_name,slug,location,postcode,description,verified_at,seller_type,business_kind),part_images(id,storage_path,alt_text,position),part_fitments(notes,vehicles(id,make,model,generation,year,engine,engine_code,fuel_type,gearbox_family,gearbox_code,data_status,source_reference))`;
 const selectListingCard=()=>`id,created_at,updated_at,seller_id,category_id,donor_vehicle_id,source_channel,source_external_id,import_batch_id,slug,title,description,manufacturer,part_number,oem_number,gearbox_family,gearbox_code,condition,price_pence,shipping_pence,stock,status,dispatch_days,testing_status,warranty_days,condition_notes,damage_notes,collection_available,delivery_days_min,delivery_days_max,categories!inner(${categorySelect}),sellers!inner(id,owner_id,business_name,slug,location,postcode,description,verified_at,seller_type,business_kind)`;
+const selectListingCardLean=()=>`id,created_at,updated_at,seller_id,category_id,donor_vehicle_id,source_channel,source_external_id,import_batch_id,slug,title,manufacturer,part_number,oem_number,gearbox_family,gearbox_code,condition,price_pence,shipping_pence,stock,status,dispatch_days,testing_status,warranty_days,collection_available,delivery_days_min,delivery_days_max,categories!inner(${categorySelect}),sellers!inner(id,owner_id,business_name,slug,location,postcode,description,verified_at,seller_type,business_kind)`;
 const one=<T>(value:T|T[])=>Array.isArray(value)?value[0]:value;
 const categoryFrom=(c:RawCategory):Category=>({id:c.id,parentId:c.parent_id,name:c.name,slug:c.slug,isTransmissionRelated:c.is_transmission_related,isSelectable:c.is_selectable,sortOrder:c.sort_order,searchTerms:c.search_terms??[]});
 const vehicleFrom=(v:RawVehicle):Vehicle=>({id:v.id,make:v.make,model:v.model,generation:v.generation,year:v.year,engine:v.engine,engineCode:v.engine_code,fuelType:v.fuel_type,gearboxFamily:v.gearbox_family,gearboxCode:v.gearbox_code,dataStatus:v.data_status,sourceReference:v.source_reference});
@@ -48,6 +49,23 @@ async function cardListingsFromRows(supabase:ServerSupabase,rows:unknown[]):Prom
  const covers=new Map((images??[]).map(image=>[image.part_id,image as RawCoverImage] as const));
  return rawRows.map(row=>listingFrom({
   ...row,
+  part_images:covers.get(row.id)?[covers.get(row.id)!]:[],
+  part_fitments:[]
+ } as RawListing));
+}
+
+type RawLeanListing=Omit<RawListing,"description"|"condition_notes"|"damage_notes"|"part_images"|"part_fitments">;
+async function leanCardListingsFromRows(supabase:ServerSupabase,rows:unknown[]):Promise<Listing[]>{
+ if(!rows.length)return [];
+ const rawRows=rows as unknown as RawLeanListing[];
+ const ids=rawRows.map(row=>row.id);
+ const {data:images}=await supabase.from("part_images").select("id,part_id,storage_path,alt_text,position").in("part_id",ids).eq("position",0);
+ const covers=new Map((images??[]).map(image=>[image.part_id,image as RawCoverImage] as const));
+ return rawRows.map(row=>listingFrom({
+  ...row,
+  description:"",
+  condition_notes:null,
+  damage_notes:null,
   part_images:covers.get(row.id)?[covers.get(row.id)!]:[],
   part_fitments:[]
  } as RawListing));
@@ -140,11 +158,13 @@ const decodeMarketplaceCursor=(value:string|undefined,currentSort:MarketplaceCur
 
 export async function getMarketplacePage(
  filters:MarketplaceFilters={},
- options:{offset?:number;limit?:number;cursor?:string}={}
+ options:{offset?:number;limit?:number;cursor?:string;lean?:boolean}={}
 ):Promise<MarketplacePageResult>{
  const limit=Math.max(1,Math.min(Math.floor(options.limit??24),60));
  const offset=Math.max(0,Math.floor(options.offset??0));
  const emptyPagination={offset,limit,returned:0,total:0,hasMore:false,mode:"offset" as const,nextCursor:null};
+ const cardSelect=options.lean?selectListingCardLean():selectListingCard();
+ const hydrateCards=options.lean?leanCardListingsFromRows:cardListingsFromRows;
  if(!isSupabaseConfigured())return {...failure([],"Connect Supabase to load marketplace data.",false),pagination:emptyPagination};
 
  const supabase=await createSupabaseServerClient();
@@ -194,9 +214,9 @@ export async function getMarketplacePage(
    return {data:[],error:null,configured:true,pagination:{offset:0,limit,returned:0,total:null,hasMore:false,mode:"cursor",nextCursor:null}};
   }
 
-  const {data:rows,error:rowError}=await supabase.from("parts").select(selectListingCard()).in("id",ids);
+  const {data:rows,error:rowError}=await supabase.from("parts").select(cardSelect).in("id",ids);
   if(rowError)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
-  const cardListings=await cardListingsFromRows(supabase,rows??[]);
+  const cardListings=await hydrateCards(supabase,rows??[]);
   const byId=new Map(cardListings.map(item=>[item.id,item] as const));
   const listings=ids.map(id=>byId.get(id)).filter((item):item is Listing=>Boolean(item));
   const last=visibleRows.at(-1);
@@ -281,9 +301,9 @@ export async function getMarketplacePage(
    "confidence" in row?row.confidence:null
   ] as const));
 
-  const {data:rows,error:rowError}=await supabase.from("parts").select(selectListingCard()).in("id",ids);
+  const {data:rows,error:rowError}=await supabase.from("parts").select(cardSelect).in("id",ids);
   if(rowError)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
-  const cardListings=await cardListingsFromRows(supabase,rows??[]);
+  const cardListings=await hydrateCards(supabase,rows??[]);
   const byId=new Map(cardListings.map(item=>[item.id,item] as const));
   const listings=ids.flatMap(id=>{
    const item=byId.get(id);
@@ -352,9 +372,9 @@ export async function getMarketplacePage(
    return {data:[],error:null,configured:true,pagination:{offset,limit,returned:0,total:null,hasMore:false,mode:"offset",nextCursor:null}};
   }
   const confidence=new Map(visibleRows.map(row=>[row.part_id,row.confidence] as const));
-  const {data:rows,error:rowError}=await supabase.from("parts").select(selectListingCard()).in("id",ids);
+  const {data:rows,error:rowError}=await supabase.from("parts").select(cardSelect).in("id",ids);
   if(rowError)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
-  const cardListings=await cardListingsFromRows(supabase,rows??[]);
+  const cardListings=await hydrateCards(supabase,rows??[]);
   const byId=new Map(cardListings.map(item=>[item.id,item] as const));
   const listings=ids.flatMap(id=>{
    const item=byId.get(id);
@@ -421,9 +441,9 @@ export async function getMarketplacePage(
   const pageIds=filteredIds.slice(offset,offset+limit);
   if(!pageIds.length)return {data:[],error:null,configured:true,pagination:{offset,limit,returned:0,total:filteredIds.length,hasMore:false,mode:"offset",nextCursor:null}};
 
-  const {data:rows,error:rowError}=await supabase.from("parts").select(selectListingCard()).in("id",pageIds);
+  const {data:rows,error:rowError}=await supabase.from("parts").select(cardSelect).in("id",pageIds);
   if(rowError)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
-  const cardListings=await cardListingsFromRows(supabase,rows??[]);
+  const cardListings=await hydrateCards(supabase,rows??[]);
   const byId=new Map(cardListings.map(item=>[item.id,item] as const));
   const listings=pageIds.map(id=>byId.get(id)).filter((item):item is Listing=>Boolean(item));
   return {
@@ -442,7 +462,7 @@ export async function getMarketplacePage(
   };
  }
 
- let query=supabase.from("parts").select(selectListingCard()).eq("status","active");
+ let query=supabase.from("parts").select(cardSelect).eq("status","active");
  if(categoryIds)query=query.in("category_id",categoryIds);
  if(filters.condition)query=query.eq("condition",filters.condition);
  if(filters.collectionOnly)query=query.eq("collection_available",true);
@@ -459,7 +479,7 @@ export async function getMarketplacePage(
  if(error)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
  const rawRows=data??[];
  const hasMore=rawRows.length>limit;
- const listings=await cardListingsFromRows(supabase,rawRows.slice(0,limit));
+ const listings=await hydrateCards(supabase,rawRows.slice(0,limit));
  return {
   data:listings,
   error:null,
