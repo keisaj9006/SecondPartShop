@@ -64,9 +64,9 @@ as $$
     'g'
    ) compact_query,
    pg_catalog.websearch_to_tsquery('english',p_query) ts_query,
-   pg_catalog.greatest(
+   greatest(
     100,
-    pg_catalog.least(pg_catalog.coalesce(p_limit,20)*6,1500)
+    least(coalesce(p_limit,20)*6,1500)
    ) candidate_limit
  ),
  category_matches as (
@@ -112,9 +112,9 @@ as $$
    cross join prepared_query q
    where p.status='active'::public.listing_status
     and q.raw_query<>''
-    and pg_catalog.lower(pg_catalog.coalesce(p.manufacturer,'')) like '%'||q.lower_query||'%'
+    and pg_catalog.lower(coalesce(p.manufacturer,'')) like '%'||q.lower_query||'%'
    order by
-    (pg_catalog.lower(pg_catalog.coalesce(p.manufacturer,''))=q.lower_query) desc,
+    (pg_catalog.lower(coalesce(p.manufacturer,''))=q.lower_query) desc,
     p.created_at desc,
     p.id
    limit (select candidate_limit from prepared_query)
@@ -129,14 +129,14 @@ as $$
    where p.status='active'::public.listing_status
     and q.compact_query<>''
     and pg_catalog.regexp_replace(
-     pg_catalog.lower(pg_catalog.coalesce(p.oem_number,'')),
+     pg_catalog.lower(coalesce(p.oem_number,'')),
      '[^a-z0-9]',
      '',
      'g'
     ) like '%'||q.compact_query||'%'
    order by
     (pg_catalog.regexp_replace(
-      pg_catalog.lower(pg_catalog.coalesce(p.oem_number,'')),
+      pg_catalog.lower(coalesce(p.oem_number,'')),
       '[^a-z0-9]',
       '',
       'g'
@@ -155,14 +155,14 @@ as $$
    where p.status='active'::public.listing_status
     and q.compact_query<>''
     and pg_catalog.regexp_replace(
-     pg_catalog.lower(pg_catalog.coalesce(p.part_number,'')),
+     pg_catalog.lower(coalesce(p.part_number,'')),
      '[^a-z0-9]',
      '',
      'g'
     ) like '%'||q.compact_query||'%'
    order by
     (pg_catalog.regexp_replace(
-      pg_catalog.lower(pg_catalog.coalesce(p.part_number,'')),
+      pg_catalog.lower(coalesce(p.part_number,'')),
       '[^a-z0-9]',
       '',
       'g'
@@ -180,7 +180,7 @@ as $$
    cross join prepared_query q
    where p.status='active'::public.listing_status
     and q.raw_query<>''
-    and pg_catalog.lower(pg_catalog.coalesce(p.gearbox_code,'')) like '%'||q.lower_query||'%'
+    and pg_catalog.lower(coalesce(p.gearbox_code,'')) like '%'||q.lower_query||'%'
    order by p.created_at desc,p.id
    limit (select candidate_limit from prepared_query)
   ) gearbox_code_match
@@ -193,7 +193,7 @@ as $$
    cross join prepared_query q
    where p.status='active'::public.listing_status
     and q.raw_query<>''
-    and pg_catalog.lower(pg_catalog.coalesce(p.gearbox_family,'')) like '%'||q.lower_query||'%'
+    and pg_catalog.lower(coalesce(p.gearbox_family,'')) like '%'||q.lower_query||'%'
    order by p.created_at desc,p.id
    limit (select candidate_limit from prepared_query)
   ) gearbox_family_match
@@ -248,11 +248,11 @@ as $$
   select
    d.id part_id,
    d.created_at,
-   pg_catalog.greatest(
+   greatest(
     case
      when q.compact_query<>''
       and pg_catalog.regexp_replace(
-       pg_catalog.lower(pg_catalog.coalesce(d.oem_number,'')),
+       pg_catalog.lower(coalesce(d.oem_number,'')),
        '[^a-z0-9]',
        '',
        'g'
@@ -262,7 +262,7 @@ as $$
     case
      when q.compact_query<>''
       and pg_catalog.regexp_replace(
-       pg_catalog.lower(pg_catalog.coalesce(d.part_number,'')),
+       pg_catalog.lower(coalesce(d.part_number,'')),
        '[^a-z0-9]',
        '',
        'g'
@@ -272,7 +272,7 @@ as $$
     case when pg_catalog.lower(d.title)=q.lower_query then 130 else 0 end,
     case when pg_catalog.lower(d.title) like q.lower_query||'%' then 120 else 0 end,
     case when pg_catalog.lower(d.category_name)=q.lower_query then 110 else 0 end,
-    case when pg_catalog.lower(pg_catalog.coalesce(d.manufacturer,''))=q.lower_query then 105 else 0 end,
+    case when pg_catalog.lower(coalesce(d.manufacturer,''))=q.lower_query then 105 else 0 end,
     case
      when q.compact_query<>''
       and pg_catalog.strpos(
@@ -288,7 +288,7 @@ as $$
     end,
     case when pg_catalog.lower(d.title) like '%'||q.lower_query||'%' then 90 else 0 end,
     case when d.category_text like '%'||q.lower_query||'%' then 80 else 0 end,
-    case when pg_catalog.lower(pg_catalog.coalesce(d.manufacturer,'')) like '%'||q.lower_query||'%' then 75 else 0 end,
+    case when pg_catalog.lower(coalesce(d.manufacturer,'')) like '%'||q.lower_query||'%' then 75 else 0 end,
     case when d.search_text like '%'||q.lower_query||'%' then 65 else 0 end,
     case
      when d.search_vector@@q.ts_query
@@ -303,7 +303,7 @@ as $$
  select ranked.part_id
  from ranked
  order by ranked.search_rank desc,ranked.created_at desc,ranked.part_id
- limit pg_catalog.greatest(1,pg_catalog.least(pg_catalog.coalesce(p_limit,20),500));
+ limit greatest(1,least(coalesce(p_limit,20),500));
 $$;
 
 revoke all on function public.marketplace_search_part_ids_limited(text,integer) from public;
