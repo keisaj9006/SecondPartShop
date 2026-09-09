@@ -47,6 +47,7 @@ const checks=[
  ["Cold start must keep account bootstrap in the background",app.includes("const bootstrapPromise=")&&app.includes("await UI.route(\"home\")")&&app.includes("void bootstrapPromise.then")],
  ["Full frontend root tabs must optimistically acknowledge taps",fullNav.includes("pendingNavigation")&&fullNav.includes("setPendingNavigation")],
  ["Full frontend root tabs must prefetch destinations",fullNav.includes("router.prefetch(item.href)")&&fullNav.includes("onPointerDown")],
+ ["Full frontend root navigation latency must stay observable",fullNav.includes("[SecondPart][nav]")&&fullNav.includes("Slow route")&&fullNav.includes("elapsed>750")],
  ["Auth user reads must be request-deduped",auth.includes("getCurrentUser=cache(async()=>")],
  ["Auth profile reads must be request-deduped",auth.includes("getCurrentProfile=cache(async():Promise<Profile|null>=>")],
  ["Marketplace home must pass cursor tokens to data layer",homePage.includes("marketplaceCursor")&&homePage.includes("cursor:marketplaceCursor")],
