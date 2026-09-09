@@ -6,11 +6,13 @@ import { requireUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isPlausibleUkRegistration,normalizeRegistration } from "@/lib/vehicle-registration";
 import { schedulePushDispatch } from "@/lib/push/schedule";
+import { hasCurrentMarketplaceTerms } from "@/lib/marketplace-policy";
 
 const text=(value:FormDataEntryValue|null)=>String(value??"").trim();
 
 export async function createPartRequest(formData:FormData){
  const user=await requireUser("/requests");
+ if(!await hasCurrentMarketplaceTerms(user.id))redirect("/account/security?terms=required");
  const queryText=text(formData.get("queryText")).slice(0,160);
  const oemNumber=text(formData.get("oemNumber")).slice(0,80)||null;
  const notes=text(formData.get("notes")).slice(0,1000)||null;
