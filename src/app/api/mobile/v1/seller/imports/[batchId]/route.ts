@@ -1,5 +1,5 @@
 import { isUuid } from "@/lib/identifiers";
-import { mobileJson,mobileOptions,requireMobileSeller } from "@/lib/mobile-api";
+import { mobileJson,mobileMarketplaceTermsAccepted,mobileOptions,requireMobileSeller } from "@/lib/mobile-api";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -59,6 +59,7 @@ export async function GET(request:Request,{params}:{params:Promise<{batchId:stri
 export async function POST(request:Request,{params}:{params:Promise<{batchId:string}>}){
  const auth=await requireMobileSeller(request);
  if(!auth.context||!auth.seller)return auth.response;
+ if(!await mobileMarketplaceTermsAccepted(auth.context))return mobileJson(request,{ok:false,error:"terms_required"},428);
  const {supabase}=auth.context;
  const {batchId}=await params;
  if(!isUuid(batchId))return mobileJson(request,{ok:false,error:"invalid_import_batch"},400);
