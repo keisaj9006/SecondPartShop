@@ -123,7 +123,7 @@ const order=async(payload)=>{
  const cancel=document.getElementById("cancel-checkout");
  if(cancel)cancel.addEventListener("click",async()=>{
   cancel.disabled=true;
-  try{await C.api("/orders/"+encodeURIComponent(data.id)+"/checkout",{method:"DELETE",auth:true});UI.toast("Checkout reservation cancelled.");UI.route("orders");}
+  try{await C.api("/orders/"+encodeURIComponent(data.id)+"/checkout",{method:"DELETE",auth:true});C.invalidateCache("/orders");UI.toast("Checkout reservation cancelled.");UI.route("orders");}
   catch(error){UI.toast(error.message,"error");cancel.disabled=false;}
  });
 
@@ -144,6 +144,7 @@ const order=async(payload)=>{
 const receiptAction=async(itemId,acceptNow,orderId)=>{
  try{
   const result=await C.api("/order-items/"+encodeURIComponent(itemId)+"/receipt",{method:"POST",auth:true,body:{acceptNow}});
+  C.invalidateCache("/orders");
   UI.toast(acceptNow?(result.payoutReleased?"Transaction completed.":"Item accepted. Seller payout is queued."):"Delivery confirmed.");
   UI.route("order",{id:orderId});
  }catch(error){UI.toast(error.message,"error");}
@@ -160,6 +161,8 @@ const openCase=(itemId,type,orderId)=>{
   if(details.length<10){UI.toast("Add a little more detail.");return;}
   try{
    await C.api("/cases",{method:"POST",auth:true,body:{orderItemId:itemId,caseType:type,reason,details}});
+   C.invalidateCache("/orders");
+   C.invalidateCache("/cases");
    UI.closeModal();UI.toast("Case opened. Seller payout is protected.");UI.route("order",{id:orderId});
   }catch(error){UI.toast(error.message,"error");}
  });
