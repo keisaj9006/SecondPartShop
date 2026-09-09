@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft,LockKeyhole,MessageSquareText } from "lucide-react";
+import { ArrowLeft,Flag,LockKeyhole,MessageSquareText } from "lucide-react";
 import { closeListingConversation } from "@/app/inbox/actions";
 import { Header } from "@/components/header";
 import { ListingConversationComposer } from "@/components/listing-conversation-composer";
@@ -26,6 +26,7 @@ export default async function ListingConversationPage({params,searchParams}:{par
  const otherProfileId=sellerSide?thread.buyerId:thread.sellerOwnerId;
  const blockedUser=otherProfileId?await isMarketplaceUserBlocked(otherProfileId).catch(()=>false):false;
  const returnTo="/inbox/"+thread.id;
+ const reportUserHref=otherProfileId?`/report-user?profile=${encodeURIComponent(otherProfileId)}&returnTo=${encodeURIComponent(returnTo)}`:null;
 
  return <><Header/><main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
   <Link href="/inbox" className="inline-flex items-center gap-2 text-sm font-black"><ArrowLeft size={16}/>Back to messages</Link>
@@ -35,6 +36,7 @@ export default async function ListingConversationPage({params,searchParams}:{par
      <div><div className="flex items-center gap-2 text-xs font-black uppercase tracking-[.15em] text-[#d4f44d]"><LockKeyhole size={14}/>Private listing conversation</div><Link href={"/parts/"+thread.partSlug} className="mt-2 block break-words text-xl font-black hover:underline sm:text-2xl">{thread.partTitle}</Link><p className="mt-1 text-sm text-white/65">{sellerSide?"Pre-purchase buyer question":"Seller: "+thread.sellerName}</p></div>
      <div className="flex flex-wrap items-center gap-2">
       {otherProfileId&&<MarketplaceUserBlockButton targetProfileId={otherProfileId} blocked={blockedUser} returnTo={returnTo} compact/>}
+      {reportUserHref&&<Link href={reportUserHref} className="inline-flex items-center gap-1.5 rounded-full border border-white/20 px-3 py-1.5 text-xs font-black text-white/80"><Flag size={14}/>Report user</Link>}
       {thread.status==="open"&&<form action={closeListingConversation}><input type="hidden" name="conversationId" value={thread.id}/><button className="rounded-full border border-white/20 px-3 py-1.5 text-xs font-black text-white/80">Close conversation</button></form>}
      </div>
     </div>
