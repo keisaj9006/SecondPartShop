@@ -57,8 +57,8 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [ ] Test cancellation, refund, return/case, payment-dispute and payout-reversal paths end to end.
 - [ ] Test concurrency/stock reservation with competing checkout attempts.
 - [x] Decide and document the payout policy when a buyer never marks an item as received and no trusted carrier delivery event exists.
-- [ ] Define the account-data retention matrix for transactions, disputes, fraud prevention and legal records.
-- [ ] Implement and test the operational account deletion/anonymisation processor; a request must not merely freeze an account.
+- [x] Define the account-data retention matrix for transactions, disputes, fraud prevention and legal records.
+- [ ] Implement and test the operational account deletion/anonymisation processor; a request must not merely freeze an account. See `docs/account-data-retention.md` for the approved engineering matrix.
 - [ ] Final legal review of Privacy Policy and Terms with real contracting/developer identity, contact details, consumer-rights wording, seller obligations, returns/refunds, fees and retention.
 - [ ] Add a public privacy/support contact suitable for the Play listing.
 - [ ] Add production error/crash monitoring and alerting for web/API/checkout failures.
