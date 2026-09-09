@@ -74,6 +74,10 @@ export function AuthForm({
    </>}
    <label className={`${mode==="signup"?"mt-4":""} block text-sm font-bold`}>Email address<input name="email" type="email" required autoComplete="email" className={input} placeholder="you@example.co.uk"/></label>
    <label className="mt-4 block text-sm font-bold">Password<input name="password" type="password" required minLength={8} autoComplete={mode==="signin"?"current-password":"new-password"} className={input} placeholder="At least 8 characters"/></label>
+   {mode==="signup"&&<label className="mt-5 flex items-start gap-3 rounded-2xl border border-black/10 bg-[#f8f7f2] p-4 text-sm leading-6">
+    <input name="termsAccepted" value="1" type="checkbox" required className="mt-1 h-4 w-4 shrink-0 accent-[#173c31]"/>
+    <span>I agree to the <Link href="/terms" target="_blank" className="font-black underline">SecondPart Terms of Use</Link> and acknowledge the <Link href="/privacy" target="_blank" className="font-black underline">Privacy Policy</Link>. These rules apply to listings, photos, reviews and messages I submit.</span>
+   </label>}
 
    {mode==="signin"&&<div className="mt-2 flex justify-between gap-3 text-xs font-bold">
     <Link href="/auth/forgot-password" className="underline">Forgot password?</Link>
