@@ -14,10 +14,14 @@ const errorMessage=(error:unknown)=>error instanceof Error?error.message:String(
 
 async function markFailed(requestId:string,error:unknown){
  const admin=createSupabaseAdminClient();
- await admin.rpc("fail_account_deletion_request",{
-  p_request_id:requestId,
-  p_error:errorMessage(error).slice(0,500)
- }).catch(()=>null);
+ try{
+  await admin.rpc("fail_account_deletion_request",{
+   p_request_id:requestId,
+   p_error:errorMessage(error).slice(0,500)
+  });
+ }catch{
+  // Best-effort audit update. The original processing failure remains primary.
+ }
 }
 
 async function purgePartImages(requestId:string){
