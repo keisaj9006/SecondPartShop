@@ -11,6 +11,7 @@ const eventLabel=(event:OrderTimelineEvent)=>{
   case "buyer_received":return "Buyer confirmed receipt";
   case "buyer_accepted":return "Buyer accepted the item";
   case "seller_transfer_released":return "Seller transfer released";
+  case "unverified_delivery_release_window_started":return "Final Buyer Protection window started after delivery review";
   case "case_opened":return "Transaction case opened";
   case "case_status_changed":return event.toStatus?"Case moved to "+event.toStatus.replaceAll("_"," "):"Case status changed";
   case "provider_dispute_opened":return "Card-provider dispute opened";
