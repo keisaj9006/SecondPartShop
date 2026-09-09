@@ -17,6 +17,8 @@ const previewPrep=read("scripts/prepare-android-preview.mjs");
 const searchScaleMigration=read("supabase/migrations/20260909100500_indexed_marketplace_search_candidates.sql");
 const cursorMigration=read("supabase/migrations/20260909103000_marketplace_cursor_pagination.sql");
 const sellerCursorMigration=read("supabase/migrations/20260909104500_seller_inventory_cursor_pagination.sql");
+const sortedCursorMigration=read("supabase/migrations/20260909195500_marketplace_sorted_cursor_pagination.sql");
+const cursorIndexAlignment=read("supabase/migrations/20260909194000_align_cursor_indexes.sql");
 const importScale=read("src/lib/inventory-csv-import.ts");
 const savedSearchQueueScale=read("supabase/migrations/20260909111000_saved_search_queue_throughput.sql");
 const garageLoading=read("src/app/garage/loading.tsx");
@@ -64,6 +66,9 @@ const checks=[
  ["Marketplace home must pass cursor tokens to data layer",homePage.includes("marketplaceCursor")&&homePage.includes("cursor:marketplaceCursor")],
  ["Default marketplace browse must use cursor RPC",marketplaceData.includes('marketplace_browse_cursor_page')&&marketplaceData.includes('mode:"cursor"')],
  ["Cursor pagination must use stable created_at + id ordering",cursorMigration.includes("(p.created_at,p.id)<(p_after_created_at,p_after_id)")&&cursorMigration.includes("order by p.created_at desc,p.id desc")],
+ ["Marketplace cursor indexes must match DESC UUID tie-breakers",cursorIndexAlignment.includes("created_at desc,id desc")&&cursorIndexAlignment.includes("updated_at desc,id desc")],
+ ["Marketplace sort modes must use cursor V2",marketplaceData.includes("marketplace_browse_cursor_page_v2")&&marketplaceData.includes('cursorSorts:MarketplaceCursorSort[]=["best","price_asc","price_desc","delivery","warranty"]')],
+ ["Sorted cursor RPC must cover price, delivery and warranty",sortedCursorMigration.includes("p_sort='price_asc'")&&sortedCursorMigration.includes("p_sort='price_desc'")&&sortedCursorMigration.includes("p_sort='delivery'")&&sortedCursorMigration.includes("p_sort='warranty'")],
  ["Search ranking must stay bounded to indexed candidates",searchScaleMigration.includes("candidate_rows as")&&searchScaleMigration.includes("candidate_limit")],
  ["Cursor UI must avoid deep OFFSET page links",marketplaceHome.includes('pagination.mode==="cursor"')&&marketplaceHome.includes("Next 24 parts")],
  ["Large seller inventory must use keyset pagination by default",marketplaceData.includes("seller_inventory_cursor_page")&&marketplaceData.includes("encodeSellerInventoryCursor")],
