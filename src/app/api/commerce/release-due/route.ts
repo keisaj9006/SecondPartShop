@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { releaseDuePayouts } from "@/lib/commerce-payouts";
+import { reportOperationalError } from "@/lib/ops-monitoring";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -12,7 +13,8 @@ export async function GET(request:Request){
  try{
   const result=await releaseDuePayouts(100);
   return NextResponse.json({ok:true,...result});
- }catch{
+ }catch(error){
+  await reportOperationalError({severity:"critical",component:"payout",event:"payout_release_batch_failed",error,route:"/api/commerce/release-due"});
   return NextResponse.json({ok:false},{status:500});
  }
 }
