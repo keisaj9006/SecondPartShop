@@ -26,6 +26,9 @@ const mobileImportRoute=read("src/app/api/mobile/v1/seller/imports/route.ts");
 const requestActions=read("src/app/requests/actions.ts");
 const mobileRequestRoute=read("src/app/api/mobile/v1/requests/route.ts");
 const reviewTermsGate=read("supabase/migrations/20260909214500_review_ugc_terms_gate.sql");
+const silentBuyerPayout=read("supabase/migrations/20260909222000_silent_buyer_payout_review.sql");
+const commerceSettings=read("src/components/commerce-settings-form.tsx");
+const commerceAdmin=read("src/app/admin/commerce/page.tsx");
 
 const checks=[
  ["Production Android package must be separate from Preview",productionPrep.includes('config.appId="com.secondpart.marketplace"')&&!productionPrep.includes('marketplace.preview')],
@@ -57,6 +60,8 @@ const checks=[
  ["Bulk inventory import must enforce current Terms",dashboardImportActions.includes("hasCurrentMarketplaceTerms")&&mobileImportRoute.includes("mobileMarketplaceTermsAccepted")&&mobileImportRoute.includes("terms_required")],
  ["Find My Part UGC must enforce current Terms",requestActions.includes("hasCurrentMarketplaceTerms")&&mobileRequestRoute.includes("mobileMarketplaceTermsAccepted")&&mobileRequestRoute.includes("terms_required")],
  ["Reviews must enforce Terms at the database boundary",reviewTermsGate.includes("transaction_reviews_terms_gate")&&reviewTermsGate.includes("verified_fit_feedback_terms_gate")&&reviewTermsGate.includes("has_current_marketplace_terms")],
+ ["Silent buyer must never auto-release payout from inactivity alone",silentBuyerPayout.includes("admin_start_unverified_delivery_release_window")&&silentBuyerPayout.includes("unverified_delivery_review_days")&&silentBuyerPayout.includes("payout_status='scheduled'")],
+ ["Silent-buyer fallback must require admin evidence review before release window",silentBuyerPayout.includes("Administrator access required")&&commerceAdmin.includes("Silent-buyer payout reviews")&&commerceSettings.includes("Silent-buyer delivery review")],
 ];
 
 const unresolved=[
