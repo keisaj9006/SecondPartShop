@@ -33,3 +33,13 @@ export async function cancelAccountDeletion(){
   .eq("status","requested");
  revalidatePath("/account/security");
 }
+
+export async function acceptCurrentMarketplaceTerms(){
+ const user=await requireUser("/account/security");
+ const supabase=await createSupabaseServerClient();
+ const {error}=await supabase.rpc("accept_current_marketplace_terms");
+ if(error)throw error;
+ revalidatePath("/account/security");
+ revalidatePath("/account");
+ revalidatePath("/","layout");
+}
