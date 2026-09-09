@@ -288,7 +288,7 @@ export async function getMarketplacePage(
    data:listings,
    error:null,
    configured:true,
-   pagination:{offset,limit,returned:listings.length,total:null,hasMore}
+   pagination:{offset,limit,returned:listings.length,total:null,hasMore,mode:"offset",nextCursor:null}
   };
  }
 
@@ -352,7 +352,7 @@ export async function getMarketplacePage(
    data:listings,
    error:null,
    configured:true,
-   pagination:{offset,limit,returned:listings.length,total:null,hasMore}
+   pagination:{offset,limit,returned:listings.length,total:null,hasMore,mode:"offset",nextCursor:null}
   };
  }
 
@@ -369,7 +369,9 @@ export async function getMarketplacePage(
     limit,
     returned:page.length,
     total:result.data.length,
-    hasMore:offset+page.length<result.data.length
+    hasMore:offset+page.length<result.data.length,
+    mode:"offset",
+    nextCursor:null
    }
   };
  }
@@ -419,7 +421,9 @@ export async function getMarketplacePage(
     limit,
     returned:listings.length,
     total:filteredIds.length,
-    hasMore:offset+pageIds.length<filteredIds.length
+    hasMore:offset+pageIds.length<filteredIds.length,
+    mode:"offset",
+    nextCursor:null
    }
   };
  }
@@ -451,7 +455,9 @@ export async function getMarketplacePage(
    limit,
    returned:listings.length,
    total:null,
-   hasMore
+   hasMore,
+   mode:"offset",
+   nextCursor:null
   }
  };
 }
