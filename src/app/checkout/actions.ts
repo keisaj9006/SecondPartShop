@@ -10,6 +10,7 @@ import type { ActionState,MarketplaceFilters } from "@/lib/types";
 import { getPartCompatibility } from "@/lib/data/compatibility";
 import { syncSellerPaymentAccount } from "@/lib/seller-payment-sync";
 import { getAppUrl } from "@/lib/stripe-connect";
+import { reportOperationalError } from "@/lib/ops-monitoring";
 
 const knownMessage=(message:string)=>{
  const lower=message.toLowerCase();
@@ -55,7 +56,8 @@ export async function startCheckout(_previous:ActionState,formData:FormData):Pro
  try{
   const paymentStatus=await syncSellerPaymentAccount(part.seller_id);
   if(!paymentStatus.active)return {status:"error",message:"This seller is still completing marketplace payout setup."};
- }catch{
+ }catch(error){
+  await reportOperationalError({component:"checkout",event:"seller_payout_status_check_failed",error});
   return {status:"error",message:"We could not verify the seller payout account right now. Please try again."};
  }
 
@@ -107,16 +109,31 @@ export async function startCheckout(_previous:ActionState,formData:FormData):Pro
    .eq("id",reservation.order_id)
    .eq("payment_status","unpaid");
   if(updateError)throw updateError;
+  if(!session.url)throw new Error("Stripe checkout URL missing.");
   checkoutUrl=session.url;
- }catch{
+ }catch(error){
   const admin=createSupabaseAdminClient();
-  await admin.rpc("cancel_checkout_order",{
+  const {error:rollbackError}=await admin.rpc("cancel_checkout_order",{
    p_order_id:reservation.order_id,
    p_event_type:"checkout_setup_failed"
+  });
+  if(rollbackError){
+   await reportOperationalError({
+    severity:"critical",
+    component:"checkout",
+    event:"checkout_reservation_rollback_failed",
+    error:rollbackError
+   });
+  }
+  await reportOperationalError({
+   severity:"critical",
+   component:"checkout",
+   event:"checkout_setup_failed",
+   error
   });
   return {status:"error",message:"Checkout is temporarily unavailable. Your reserved stock has been released."};
  }
 
- if(!checkoutUrl)return {status:"error",message:"Stripe did not return a checkout page."};
+ if(!checkoutUrl)return {status:"error",message:"Checkout is temporarily unavailable."};
  redirect(checkoutUrl);
 }
