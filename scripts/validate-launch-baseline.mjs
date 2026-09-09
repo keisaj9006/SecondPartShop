@@ -36,6 +36,7 @@ const accountRetention=read("docs/account-data-retention.md");
 const maintenanceRoute=read("src/app/api/commerce/maintenance/route.ts");
 const accountDeletionBuyFit=read("supabase/migrations/20260909234500_account_deletion_buy_fit_guard.sql");
 const sensitiveRpcHardening=read("supabase/migrations/20260909235500_sensitive_rpc_execute_hardening.sql");
+const accountDeletionPrivacyFinal=read("supabase/migrations/20260909235900_account_deletion_privacy_finalization.sql");
 
 const checks=[
  ["Production Android package must be separate from Preview",productionPrep.includes('config.appId="com.secondpart.marketplace"')&&!productionPrep.includes('marketplace.preview')],
@@ -78,6 +79,8 @@ const checks=[
  ["Account deletion must not orphan active Buy + Fit workflows",accountDeletionBuyFit.includes("fitting_request_active")&&accountDeletionBuyFit.includes("requested','quoted','accepted")],
  ["Sensitive deletion RPCs must be service-role only",sensitiveRpcHardening.includes("claim_account_deletion_request(uuid) from public,anon,authenticated,service_role")&&sensitiveRpcHardening.includes("claim_account_deletion_request(uuid) to service_role")&&sensitiveRpcHardening.includes("prepare_claimed_account_deletion(uuid,uuid) to service_role")],
  ["Admin payout-review RPCs must not be executable by anon",sensitiveRpcHardening.includes("admin_start_unverified_delivery_release_window(uuid) from public,anon,authenticated,service_role")&&sensitiveRpcHardening.includes("get_unverified_delivery_payout_reviews(integer) from public,anon,authenticated,service_role")],
+ ["Deletion cancellation must stop once destructive processing starts",accountDeletionPrivacyFinal.includes("attempt_count=0")&&accountDeletionPrivacyFinal.includes("status in ('requested','blocked')")],
+ ["Deletion must erase terminal fulfilment and fitting PII",accountDeletionPrivacyFinal.includes("shipping_name=null")&&accountDeletionPrivacyFinal.includes("shipping_address=null")&&accountDeletionPrivacyFinal.includes("vehicle_registration=null")&&accountDeletionPrivacyFinal.includes("buyer_notes=null")],
 
 
 ];
