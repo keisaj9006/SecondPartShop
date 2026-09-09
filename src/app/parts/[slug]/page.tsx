@@ -85,6 +85,7 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
  const backHref=context.toString()?`/?${context.toString()}#marketplace`:"/#marketplace";
  const currentHref=context.toString()?`/parts/${slug}?${context.toString()}`:`/parts/${slug}`;
  const reportHref=`/report?part=${encodeURIComponent(item.id)}&returnTo=${encodeURIComponent(currentHref)}`;
+ const reportUserHref=`/report-user?profile=${encodeURIComponent(item.seller.ownerId)}&returnTo=${encodeURIComponent(currentHref)}`;
  const fitParams=new URLSearchParams();
  if(checkoutVehicleContext){
   fitParams.set("cv",checkoutVehicleContext.variantId);
@@ -135,6 +136,7 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
     {!blockedSeller&&<div className="mt-3"><AskSellerForm partId={item.id} signedIn={Boolean(user)} ownListing={ownListing} returnTo={currentHref}/></div>}
     {user&&!ownListing&&<div className="mt-3 flex flex-wrap items-center gap-3">
       <MarketplaceUserBlockButton targetProfileId={item.seller.ownerId} blocked={blockedSeller} returnTo={currentHref}/>
+      <Link href={reportUserHref} className="inline-flex items-center gap-2 rounded-xl border border-black/15 bg-white px-4 py-3 text-sm font-black"><Flag size={16}/>Report user</Link>
       {blockedSeller&&<span className="text-xs font-bold text-[#63706a]">Pre-purchase messaging with this user is blocked.</span>}
     </div>}
     {!ownListing&&<div className="mt-3 rounded-2xl border border-[#173c31]/15 bg-[#f4f7f2] p-4">
