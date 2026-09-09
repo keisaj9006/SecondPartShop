@@ -3404,7 +3404,7 @@ export type Database = {
         Returns: {
           created_at: string
           part_id: string
-          sort_value: number
+          sort_value: number | null
         }[]
       }
       marketplace_browse_cursor_page: {
