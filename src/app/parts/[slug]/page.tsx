@@ -5,6 +5,7 @@ import { AskSellerForm } from "@/components/ask-seller-form";
 import { BuyNowForm } from "@/components/buy-now-form";
 import { CompatibilityBadge } from "@/components/compatibility-badge";
 import { Header } from "@/components/header";
+import { MarketplaceUserBlockButton } from "@/components/marketplace-user-block-button";
 import { ProductGallery } from "@/components/product-gallery";
 import { PartPassport } from "@/components/part-passport";
 import { SaveButton } from "@/components/save-button";
@@ -20,6 +21,7 @@ import type { MarketplaceFilters } from "@/lib/types";
 import { conditionLabel } from "@/lib/listing-trust";
 import { isUuid } from "@/lib/identifiers";
 import { isStripeCheckoutConfigured } from "@/lib/stripe-payments";
+import { isMarketplaceUserBlocked } from "@/lib/marketplace-policy";
 import { getSellerDistanceFromPostcode } from "@/lib/seller-geo";
 
 export const dynamic="force-dynamic";
@@ -71,12 +73,14 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
  }
  if(filters.vehicleRegistration&&vehicleLabel)vehicleLabel=`${filters.vehicleRegistration} · ${vehicleLabel}`;
 
- const [savedIds,sellerTrust,sellerCheckoutReady,passportEvidence,sellerDistance]=await Promise.all([
+ const ownListing=Boolean(user&&item.seller.ownerId===user.id);
+ const [savedIds,sellerTrust,sellerCheckoutReady,passportEvidence,sellerDistance,blockedSeller]=await Promise.all([
   user?getSavedPartIdsForParts(user.id,[item.id]):Promise.resolve([]),
   getPublicMemberProfileById(item.seller.ownerId).catch(()=>null),
   isSellerCheckoutReady(item.sellerId).catch(()=>false),
   getPartPassportEvidence(item.id).catch(()=>null),
-  getSellerDistanceFromPostcode(item.sellerId,filters.postcode).catch(()=>null)
+  getSellerDistanceFromPostcode(item.sellerId,filters.postcode).catch(()=>null),
+  user&&!ownListing?isMarketplaceUserBlocked(item.seller.ownerId).catch(()=>false):Promise.resolve(false)
  ]);
  const backHref=context.toString()?`/?${context.toString()}#marketplace`:"/#marketplace";
  const currentHref=context.toString()?`/parts/${slug}?${context.toString()}`:`/parts/${slug}`;
@@ -122,14 +126,18 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
       shippingPence={item.shippingPence}
       collectionAvailable={item.collectionAvailable}
       signedIn={Boolean(user)}
-      ownListing={Boolean(user&&item.seller.ownerId===user.id)}
+      ownListing={ownListing}
       checkoutReady={isStripeCheckoutConfigured()&&sellerCheckoutReady}
       returnTo={currentHref}
       vehicleContext={checkoutVehicleContext}
       compatibility={compatibility}
     />
-    <div className="mt-3"><AskSellerForm partId={item.id} signedIn={Boolean(user)} ownListing={Boolean(user&&item.seller.ownerId===user.id)} returnTo={currentHref}/></div>
-    {!Boolean(user&&item.seller.ownerId===user.id)&&<div className="mt-3 rounded-2xl border border-[#173c31]/15 bg-[#f4f7f2] p-4">
+    {!blockedSeller&&<div className="mt-3"><AskSellerForm partId={item.id} signedIn={Boolean(user)} ownListing={ownListing} returnTo={currentHref}/></div>}
+    {user&&!ownListing&&<div className="mt-3 flex flex-wrap items-center gap-3">
+      <MarketplaceUserBlockButton targetProfileId={item.seller.ownerId} blocked={blockedSeller} returnTo={currentHref}/>
+      {blockedSeller&&<span className="text-xs font-bold text-[#63706a]">Pre-purchase messaging with this user is blocked.</span>}
+    </div>}
+    {!ownListing&&<div className="mt-3 rounded-2xl border border-[#173c31]/15 bg-[#f4f7f2] p-4">
       <div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#173c31] text-[#d4f44d]"><Wrench size={18}/></span><div><p className="font-black">Buy + Fit</p><p className="mt-1 text-xs leading-5 text-[#63706a]">Ask an approved garage partner for a labour quote. Fitting is separate from the part payment and does not guarantee compatibility.</p></div></div>
       {fitHref?<Link href={fitHref} className="mt-3 flex items-center justify-center rounded-xl border border-[#173c31]/20 bg-white px-4 py-3 text-sm font-black">Request fitting quote</Link>:<Link href="/?addVehicle=1#vehicle-picker" className="mt-3 flex items-center justify-center rounded-xl border border-[#173c31]/20 bg-white px-4 py-3 text-sm font-black">Select vehicle for Buy + Fit</Link>}
     </div>}
