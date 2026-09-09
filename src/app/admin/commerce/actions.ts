@@ -16,6 +16,28 @@ const revalidateCases=()=>{
  revalidatePath("/dashboard/orders");
 };
 
+export async function startUnverifiedDeliveryReleaseWindow(_previous:ActionState,formData:FormData):Promise<ActionState>{
+ await requireAdmin("/admin/commerce");
+ const orderItemId=String(formData.get("orderItemId")??"");
+ if(!orderItemId)return {status:"error",message:"Order item is missing."};
+
+ const supabase=await createSupabaseServerClient();
+ const {error}=await supabase.rpc("admin_start_unverified_delivery_release_window",{p_order_item_id:orderItemId});
+ if(error){
+  const lower=error.message.toLowerCase();
+  if(lower.includes("review period"))return {status:"error",message:"This shipment has not reached the manual review age yet."};
+  if(lower.includes("case blocks"))return {status:"error",message:"An active return or dispute is already blocking this payout."};
+  if(lower.includes("already scheduled")||lower.includes("already"))return {status:"error",message:"This payout is no longer waiting for manual delivery review."};
+  return {status:"error",message:"We could not start the final Buyer Protection window for this shipment."};
+ }
+
+ schedulePushDispatch(50);
+ revalidatePath("/admin/commerce");
+ revalidatePath("/account/orders");
+ revalidatePath("/dashboard/orders");
+ return {status:"success",message:"Manual delivery review approved. The final Buyer Protection window is now running before seller payout."};
+}
+
 export async function rejectTransactionCase(_previous:ActionState,formData:FormData):Promise<ActionState>{
  await requireAdmin("/admin/commerce");
  const caseId=String(formData.get("caseId")??"");
