@@ -267,7 +267,7 @@ const inventory=async(payload={})=>{
 
   if(items.length){
    html.push(items.map(item=>{
-    const cover=item.images&&item.images.length?C.safeHttpUrl(item.images[0].url):"";
+    const cover=item.images&&item.images.length?C.safeHttpUrl(item.images[0].thumbnailUrl||item.images[0].url):"";
     return "<section class=\"order-card\"><div style=\"display:grid;grid-template-columns:82px 1fr;gap:12px;align-items:start\">"+
      "<div style=\"width:82px;height:82px;border-radius:13px;overflow:hidden;background:#eef1eb;display:grid;place-items:center\">"+(cover?"<img src=\""+C.escapeHtml(cover)+"\" alt=\""+C.escapeHtml(item.title)+"\" style=\"width:100%;height:100%;object-fit:cover\"/>":"PART")+"</div>"+
      "<div><div class=\"row-between\"><h3 style=\"margin:0\">"+C.escapeHtml(item.title)+"</h3><span class=\"pill\">"+C.escapeHtml(C.human(item.status))+"</span></div><p class=\"subtle\">"+C.money(item.pricePence)+" · Stock "+C.escapeHtml(item.stock)+" · "+C.escapeHtml((item.images||[]).length)+" photo(s)</p>"+(item.sellerReference?"<p class=\"subtle\">Ref: "+C.escapeHtml(item.sellerReference)+"</p>":"")+"<div class=\"button-row\" style=\"margin-top:9px\"><button type=\"button\" class=\"primary small-button\" data-listing-photos=\""+C.escapeHtml(item.id)+"\">Photos</button><button type=\"button\" class=\"secondary small-button\" data-listing-edit=\""+C.escapeHtml(item.id)+"\">Edit details</button></div></div>"+
