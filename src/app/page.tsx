@@ -59,7 +59,7 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   compatibleOnly:Boolean(selectedCatalogue||isUuid(first(params.vehicle)))&&first(params.fit)!=="0"
  };
  const [result,legacyVehicle,garagePage,selectedGarageVehicle,recentlyViewed]=await Promise.all([
-  getMarketplacePage(filters,{offset:(requestedPage-1)*pageSize,limit:pageSize,cursor:marketplaceCursor}),
+  getMarketplacePage(filters,{offset:(requestedPage-1)*pageSize,limit:pageSize,cursor:marketplaceCursor,lean:true}),
   legacyVehicleId?getVehicleById(legacyVehicleId):Promise.resolve(null),
   user?getGarageVehiclesPage(user.id,{limit:4}).catch(()=>({items:[],hasMore:false,offset:0,limit:4})):Promise.resolve({items:[],hasMore:false,offset:0,limit:4}),
   user&&selectedCatalogue?getGarageVehicleMatch(user.id,{catalogueVariantId:selectedCatalogue.variantId,year:selectedCatalogue.year,fuelType:selectedCatalogue.fuelType,engineSizeSimple:selectedCatalogue.engineSizeSimple,registration:vehicleRegistration??null}).catch(()=>null):Promise.resolve(null),
