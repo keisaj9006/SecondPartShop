@@ -3,12 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { hasCurrentMarketplaceTerms } from "@/lib/marketplace-policy";
 import type { ActionState,FitFeedbackResult } from "@/lib/types";
 
 const results=new Set<FitFeedbackResult>(["exact_fit","fit_with_modification","did_not_fit","not_installed"]);
 
 export async function submitVerifiedFitFeedback(_previous:ActionState,formData:FormData):Promise<ActionState>{
- await requireUser("/account/reviews");
+ const user=await requireUser("/account/reviews");
+ if(!await hasCurrentMarketplaceTerms(user.id))return {status:"error",message:"Accept the current Terms of Use and Privacy Policy in Account → Security before submitting fitment feedback."};
  const orderItemId=String(formData.get("orderItemId")??"").trim();
  const result=String(formData.get("result")??"").trim() as FitFeedbackResult;
  const notes=String(formData.get("notes")??"").trim();
