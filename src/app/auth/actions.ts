@@ -28,13 +28,15 @@ export async function signUp(_previous:ActionState,formData:FormData):Promise<Ac
  const displayName=String(formData.get("displayName")??"").trim();
  const requestedRole=String(formData.get("role")??"buyer");
  const role:UserRole=requestedRole==="seller"?"seller":"buyer";
+ const termsAccepted=String(formData.get("termsAccepted")??"")==="1";
  if(displayName.length<2)return {status:"error",message:"Enter your name or business contact name."};
  if(!email.includes("@"))return {status:"error",message:"Enter a valid email address."};
  if(password.length<8)return {status:"error",message:"Use at least 8 characters for your password."};
+ if(!termsAccepted)return {status:"error",message:"You need to accept the Terms of Use and Privacy Policy to create an account."};
  const supabase=await createSupabaseServerClient();
  const {data,error}=await supabase.auth.signUp({
   email,password,
-  options:{emailRedirectTo:`${siteUrl()}/auth/callback?next=${encodeURIComponent(role==="seller"?"/dashboard":"/account")}`,data:{display_name:displayName,role}}
+  options:{emailRedirectTo:`${siteUrl()}/auth/callback?next=${encodeURIComponent(role==="seller"?"/dashboard":"/account")}`,data:{display_name:displayName,role,terms_accepted:"true",terms_version:"2026-09-09"}}
  });
  if(error)return {status:"error",message:error.message};
  if(data.session){
