@@ -27,7 +27,6 @@ async function purgePartImages(requestId:string){
  for(;;){
   const {data,error}=await admin.rpc("get_account_deletion_part_image_paths",{
    p_request_id:requestId,
-   p_after:null,
    p_limit:BATCH_SIZE
   });
   if(error)throw error;
@@ -101,7 +100,7 @@ export async function processAccountDeletionRequest(requestId:string):Promise<Re
   if(prepareError)throw prepareError;
   if(!prepared)return {requestId,status:"blocked",reason:"blocker_detected_during_final_preflight"};
 
-  const {error:deleteError}=await admin.auth.admin.deleteUser(profileId);
+  const {error:deleteError}=await admin.auth.admin.deleteUser(profileId,false);
   if(deleteError){
    const stillExists=await identityStillExists(profileId);
    if(stillExists)throw deleteError;
