@@ -32,6 +32,7 @@ const checks=[
  ["Marketplace cards must prefer thumbnail URLs",ui.includes("firstImage(item,true)")&&ui.includes("thumbnailUrl||images[0].url")],
  ["Seller inventory cards must prefer thumbnail URLs",media.includes("thumbnailUrl||item.images[0].url")],
  ["Seller tabs must be treated as root navigation peers",ui.includes('"seller","inventory","sellerSales"')&&ui.includes("peerRootNavigation")],
+ ["Late seller responses must not overwrite a newer route",commerce.includes('UI.isCurrent("seller")')&&commerce.includes('UI.isCurrent("sellerSales")')&&media.includes('UI.isCurrent("inventory")')],
  ["Account must not await push storage before first render",!account.includes('const pushToken=C.Native.push?.supported?await C.Native.storage.get("pushToken")')],
  ["Cold start must keep account bootstrap in the background",app.includes("const bootstrapPromise=")&&app.includes("await UI.route(\"home\")")&&app.includes("void bootstrapPromise.then")]
 ];
