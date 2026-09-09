@@ -127,7 +127,7 @@ export type ListingConversationThread=ListingConversationSummary&{
 export type TransactionCaseEvidence={
  id:string;
  caseId:string;
- uploaderProfileId:string;
+ uploaderProfileId:string|null;
  uploaderHandle:string;
  uploaderDisplayName:string;
  originalName:string;
@@ -138,7 +138,7 @@ export type TransactionCaseEvidence={
 
 export type TransactionMessage={
  id:string;
- senderProfileId:string;
+ senderProfileId:string|null;
  senderHandle:string;
  senderDisplayName:string;
  body:string;
@@ -150,7 +150,7 @@ export type TransactionThread={
  partTitle:string;
  partSlug:string;
  sellerName:string;
- buyerId:string;
+ buyerId:string|null;
  sellerOwnerId:string|null;
  paymentStatus:string;
  messages:TransactionMessage[];
@@ -182,7 +182,7 @@ export type TransactionCase={
  partSlug:string;
  sellerName:string;
  sellerSlug:string;
- buyerId:string;
+ buyerId:string|null;
 };
 
 export type SellerPaymentAccount={
