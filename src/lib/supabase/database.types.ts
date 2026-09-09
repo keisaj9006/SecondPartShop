@@ -16,24 +16,39 @@ export type Database = {
     Tables: {
       account_deletion_requests: {
         Row: {
+          attempt_count: number
+          blocker_code: string | null
+          completed_at: string | null
           id: string
-          profile_id: string
+          last_error: string | null
+          processing_started_at: string | null
+          profile_id: string | null
           reason: string | null
           requested_at: string
           status: string
           updated_at: string
         }
         Insert: {
+          attempt_count?: number
+          blocker_code?: string | null
+          completed_at?: string | null
           id?: string
-          profile_id: string
+          last_error?: string | null
+          processing_started_at?: string | null
+          profile_id?: string | null
           reason?: string | null
           requested_at?: string
           status?: string
           updated_at?: string
         }
         Update: {
+          attempt_count?: number
+          blocker_code?: string | null
+          completed_at?: string | null
           id?: string
-          profile_id?: string
+          last_error?: string | null
+          processing_started_at?: string | null
+          profile_id?: string | null
           reason?: string | null
           requested_at?: string
           status?: string
@@ -3006,6 +3021,7 @@ export type Database = {
         Args: { p_accept_now?: boolean; p_order_item_id: string }
         Returns: boolean
       }
+      cancel_own_account_deletion_request: { Args: never; Returns: boolean }
       buyer_mark_transaction_return_shipped: {
         Args: {
           p_carrier: string
@@ -3160,6 +3176,15 @@ export type Database = {
         Args: { p_limit?: number }
         Returns: {
           order_item_id: string
+        }[]
+      }
+      get_account_deletion_processing_queue: {
+        Args: { p_limit?: number }
+        Returns: {
+          blocker_code: string | null
+          profile_id: string
+          request_id: string
+          requested_at: string
         }[]
       }
       get_unverified_delivery_payout_reviews: {
