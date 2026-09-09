@@ -32,7 +32,7 @@ export default async function AdminPrivacyPage(){
   <section className="mt-8 grid gap-3 sm:grid-cols-3">
    <div className="rounded-2xl border border-black/10 bg-white p-5"><p className="text-xs font-black uppercase tracking-[.14em] text-[#63706a]">Pending</p><p className="mt-2 text-3xl font-black">{pending.length}</p></div>
    <div className="rounded-2xl border border-black/10 bg-white p-5"><p className="text-xs font-black uppercase tracking-[.14em] text-[#63706a]">History</p><p className="mt-2 text-3xl font-black">{history.length}</p></div>
-   <div className="rounded-2xl border border-black/10 bg-white p-5"><p className="text-xs font-black uppercase tracking-[.14em] text-[#63706a]">Automatic deletion</p><p className="mt-2 text-lg font-black">Disabled</p><p className="mt-1 text-xs leading-5 text-[#63706a]">Intentional until retention/anonymisation policy receives final legal review.</p></div>
+   <div className="rounded-2xl border border-black/10 bg-white p-5"><p className="text-xs font-black uppercase tracking-[.14em] text-[#63706a]">Deletion processor</p><p className="mt-2 text-lg font-black">Automated</p><p className="mt-1 text-xs leading-5 text-[#63706a]">Maintenance retries safe requests automatically and blocks deletion while commerce, payout, dispute or moderation obligations remain active.</p></div>
   </section>
 
   <section className="mt-8">
