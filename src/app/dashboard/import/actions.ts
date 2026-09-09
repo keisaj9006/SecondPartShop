@@ -7,11 +7,13 @@ import {getSellerForOwner} from "@/lib/data/marketplace";
 import {createSupabaseServerClient} from "@/lib/supabase/server";
 import {isUuid} from "@/lib/identifiers";
 import {processSellerInventoryCsv,type BulkImportState} from "@/lib/inventory-csv-import";
+import {hasCurrentMarketplaceTerms} from "@/lib/marketplace-policy";
 
 export type {BulkImportIssue,BulkImportPreviewRow,BulkImportState} from "@/lib/inventory-csv-import";
 
 export async function bulkImportCsv(_previous:BulkImportState,formData:FormData):Promise<BulkImportState>{
  const {user}=await requireSeller("/dashboard/import");
+ if(!await hasCurrentMarketplaceTerms(user.id))return {status:"error",message:"Accept the current Terms of Use and Privacy Policy in Account → Security before importing listing content."};
  const seller=await getSellerForOwner(user.id);
  if(!seller)return {status:"error",message:"Create your seller profile before importing inventory."};
  const file=formData.get("file");
@@ -28,6 +30,7 @@ export async function bulkImportCsv(_previous:BulkImportState,formData:FormData)
 
 export async function publishReadyImportDrafts(formData:FormData){
  const {user}=await requireSeller("/dashboard/import");
+ if(!await hasCurrentMarketplaceTerms(user.id))return;
  const seller=await getSellerForOwner(user.id);
  if(!seller)return;
  const batchId=String(formData.get("batchId")??"").trim();
