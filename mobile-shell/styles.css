@@ -55,7 +55,7 @@ a{color:inherit}
 .small-button{padding:9px 11px;border-radius:10px;font-size:11px}.wide{width:100%}.button-row{display:flex;flex-wrap:wrap;gap:8px}
 .vehicle-search{display:grid;gap:10px}.registration{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase;font-weight:900;letter-spacing:.12em}
 .status{border-radius:12px;padding:10px 12px;font-size:11px;font-weight:800;line-height:1.5}.status.info{background:var(--mist);color:var(--deep)}.status.error{background:#fef2f2;color:#991b1b}.status.success{background:#ecfdf5;color:#166534}.status.warning{background:#fffbeb;color:#92400e}
-.list-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.listing-card{overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:19px;display:flex;flex-direction:column;content-visibility:auto;contain-intrinsic-size:320px}
+.list-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.listing-card{overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:19px;display:flex;flex-direction:column;}
 .listing-image{aspect-ratio:4/3;background:linear-gradient(135deg,#e8ece8,#f9faf8);overflow:hidden;display:grid;place-items:center;color:#84908a;font-weight:900;font-size:12px}.listing-image img{width:100%;height:100%;object-fit:cover}
 .listing-body{padding:12px;display:flex;flex:1;flex-direction:column}.listing-kicker{font-size:9px;font-weight:950;text-transform:uppercase;color:var(--green);letter-spacing:.1em}.listing-title{font-size:13px;font-weight:900;line-height:1.25;margin:5px 0 0}.listing-meta{font-size:10px;color:var(--muted);margin-top:5px;line-height:1.4}.listing-bottom{display:flex;align-items:end;justify-content:space-between;gap:7px;margin-top:auto;padding-top:10px}.price{font-size:18px;font-weight:950;letter-spacing:-.04em}.heart{border:1px solid var(--line);background:#fff;border-radius:10px;width:34px;height:34px;font-size:18px}.heart.saved{background:#fff0f2;color:#be123c}
 .detail-hero{border-radius:23px;overflow:hidden;background:#fff;border:1px solid var(--line);margin-bottom:12px}.detail-image{aspect-ratio:16/11;background:var(--mist);display:grid;place-items:center;overflow:hidden}.detail-image img{width:100%;height:100%;object-fit:cover}.detail-content{padding:17px}.detail-content h1{font-size:25px;line-height:1.05;letter-spacing:-.045em;margin:7px 0}.detail-price{font-size:28px;font-weight:950;margin:12px 0 4px}.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.chip{border-radius:999px;background:var(--mist);padding:6px 9px;font-size:9px;font-weight:900}.chip.green{background:#ecfdf5;color:#166534}.chip.amber{background:#fffbeb;color:#92400e}
@@ -82,7 +82,6 @@ html,body,#app-shell,.app-main{width:100%;max-width:100%;overflow-x:hidden}
 .app-main>*,
 .card,.vehicle-card,.listing-card,.order-card,.conversation-card,.notification-card,
 .account-tile,.auth-card,.detail-hero,.section-head>*,.row-between>*{min-width:0;max-width:100%}
-.order-card,.conversation-card,.notification-card{content-visibility:auto;contain-intrinsic-size:160px}
 button,input,select,textarea{min-width:0;max-width:100%}
 h1,h2,h3,p,small,strong,span{overflow-wrap:anywhere}
 
