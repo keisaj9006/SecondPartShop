@@ -74,7 +74,15 @@ export async function GET(request:Request){
    });
   }
 
-  await createSupabaseAdminClient().rpc("prune_ops_client_error_rate_limits");
+  const {error:pruneError}=await createSupabaseAdminClient().rpc("prune_ops_client_error_rate_limits");
+  if(pruneError){
+   reportOperationalWarning({
+    component:"commerce_maintenance",
+    event:"ops_rate_limit_prune_failed",
+    message:"Monitoring rate-limit cleanup was deferred.",
+    route:"/api/commerce/maintenance"
+   });
+  }
   return NextResponse.json({ok:true,orders,payouts,sellers,deletions,push});
  }catch(error){
   await reportOperationalError({severity:"critical",component:"commerce_maintenance",event:"commerce_maintenance_failed",error,route:"/api/commerce/maintenance"});
