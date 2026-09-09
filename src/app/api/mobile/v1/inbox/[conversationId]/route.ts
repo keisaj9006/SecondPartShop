@@ -101,6 +101,8 @@ export async function POST(request:Request,{params}:{params:Promise<{conversatio
  if(error){
   const lower=error.message.toLowerCase();
   if(lower.includes("rate limit"))return mobileJson(request,{ok:false,error:"rate_limited"},429);
+  if(lower.includes("accept current terms"))return mobileJson(request,{ok:false,error:"terms_required"},428);
+  if(lower.includes("messaging is unavailable"))return mobileJson(request,{ok:false,error:"user_blocked"},403);
   if(lower.includes("participant"))return mobileJson(request,{ok:false,error:"forbidden"},403);
   return mobileJson(request,{ok:false,error:"message_failed"},400);
  }
