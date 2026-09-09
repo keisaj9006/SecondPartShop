@@ -1,5 +1,5 @@
 import { isUuid } from "@/lib/identifiers";
-import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
+import { mobileJson,mobileMarketplaceTermsAccepted,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
 import { schedulePushDispatch } from "@/lib/push/schedule";
 import { isPlausibleUkRegistration,normalizeRegistration } from "@/lib/vehicle-registration";
 
@@ -73,6 +73,7 @@ export async function GET(request:Request){
 export async function POST(request:Request){
  const auth=await requireMobileUser(request);
  if(!auth.context)return auth.response;
+ if(!await mobileMarketplaceTermsAccepted(auth.context))return mobileJson(request,{ok:false,error:"terms_required"},428);
  const {user,supabase}=auth.context;
  let body:unknown;
  try{body=await request.json();}catch{return mobileJson(request,{ok:false,error:"invalid_json"},400);}
