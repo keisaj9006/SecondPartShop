@@ -19,8 +19,8 @@ export default async function AdminPrivacyPage(){
  if(error)throw new Error("Privacy requests are temporarily unavailable.");
 
  const rows=data??[];
- const pending=rows.filter(item=>item.status==="requested");
- const history=rows.filter(item=>item.status!=="requested");
+ const pending=rows.filter(item=>["requested","blocked","failed"].includes(item.status));
+ const history=rows.filter(item=>!["requested","blocked","failed"].includes(item.status));
  const one=<T,>(value:T|T[]|null)=>Array.isArray(value)?value[0]??null:value;
 
  return <><Header/><main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
@@ -40,7 +40,7 @@ export default async function AdminPrivacyPage(){
    {pending.length?<div className="mt-4 grid gap-3">{pending.map(item=>{
     const profile=one(item.profiles);
     return <article key={item.id} className="rounded-3xl border border-red-100 bg-white p-5">
-     <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-black">{profile?.display_name??"SecondPart member"}</p><p className="mt-1 text-sm text-[#63706a]">{profile?.handle?"@"+profile.handle+" · ":""}Profile {item.profile_id.slice(0,8).toUpperCase()}</p></div><span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black text-red-800">Requested</span></div>
+     <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-black">{profile?.display_name??"SecondPart member"}</p><p className="mt-1 text-sm text-[#63706a]">{profile?.handle?"@"+profile.handle+" · ":""}Profile {item.profile_id?item.profile_id.slice(0,8).toUpperCase():"anonymised"}</p></div><span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black text-red-800">{label(item.status)}</span></div>
      <p className="mt-3 text-sm text-[#63706a]">Requested {new Date(item.requested_at).toLocaleString("en-GB")}</p>
      {item.reason&&<div className="mt-3 rounded-2xl bg-[#f8f7f2] p-4 text-sm"><strong>Member reason</strong><p className="mt-1 leading-6 text-[#63706a]">{item.reason}</p></div>}
      <div className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-950"><strong>Before processing:</strong> verify active orders, open transaction cases, refunds/chargebacks, seller payouts, tax/accounting retention and any legal preservation requirement. Final erasure/anonymisation must follow the approved privacy retention policy.</div>
