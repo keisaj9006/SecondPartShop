@@ -104,3 +104,13 @@ export async function requireMobileSeller(request:Request){
  }
  return {context:auth.context,seller,response:null};
 }
+
+export async function mobileMarketplaceTermsAccepted(context:MobileApiContext){
+ const {data,error}=await context.supabase
+  .from("profiles")
+  .select("terms_accepted_at,terms_version,privacy_acknowledged_at")
+  .eq("id",context.user.id)
+  .maybeSingle();
+ if(error||!data)return false;
+ return Boolean(data.terms_accepted_at&&data.privacy_acknowledged_at&&data.terms_version==="2026-09-09");
+}
