@@ -24,8 +24,6 @@ export function MobileBottomNav(){
  },[pathname]);
 
  useEffect(()=>{
-  setPendingHref(null);
-
   // Root tabs are the highest-frequency navigation in the Android app.
   // Force a full prefetch of each destination after every committed route so
   // dynamic Server Component pages are already warm before the next tap.
