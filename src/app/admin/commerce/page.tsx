@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { Scale,Settings2 } from "lucide-react";
+import { Scale,Settings2,Truck } from "lucide-react";
 import { AdminCaseResolution } from "@/components/admin-case-resolution";
+import { AdminDeliveryPayoutReview } from "@/components/admin-delivery-payout-review";
 import { CaseEvidencePanel } from "@/components/case-evidence-panel";
 import { Header } from "@/components/header";
 import { requireAdmin } from "@/lib/auth";
 import { getTransactionCaseEvidence } from "@/lib/data/case-evidence";
 import { getTransactionCasesPage } from "@/lib/data/transaction-cases";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic="force-dynamic";
 const label=(value:string)=>value.replaceAll("_"," ").replace(/\b\w/g,letter=>letter.toUpperCase());
@@ -20,9 +22,17 @@ export default async function CommerceAdminPage({searchParams}:{searchParams:Pro
  const result=await getTransactionCasesPage({offset:(page-1)*pageSize,limit:pageSize}).catch(()=>({items:[],hasMore:false,offset:(page-1)*pageSize,limit:pageSize}));
  const cases=result.items;
  const evidenceByCase=await getTransactionCaseEvidence(cases.map(item=>item.id)).catch(()=>new Map());
+ const supabase=await createSupabaseServerClient();
+ const {data:deliveryReviews}=await supabase.rpc("get_unverified_delivery_payout_reviews",{p_limit:30});
+ const payoutReviews=deliveryReviews??[];
 
  return <><Header/><main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
   <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-xs font-black uppercase tracking-[.2em] text-[#287154]">Marketplace operations</p><h1 className="mt-2 text-4xl font-black tracking-[-.045em]">Commerce cases</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-[#63706a]">Review buyer returns and disputes. Full refund runs the controlled Stripe reversal/refund path; rejecting the case re-opens an eligible blocked payout.</p></div><div className="flex flex-wrap gap-2"><Link href="/admin/commerce/settings" className="w-fit rounded-full bg-[#173c31] px-4 py-2.5 text-sm font-black text-white">Commerce settings</Link><Link href="/admin/moderation" className="w-fit rounded-full border border-black/15 px-4 py-2.5 text-sm font-black">Moderation</Link><Link href="/admin/system" className="inline-flex w-fit items-center gap-2 rounded-full border border-black/15 px-4 py-2.5 text-sm font-black"><Settings2 size={15}/>System readiness</Link></div></div>
+
+  <section className="mt-8 rounded-3xl border border-black/10 bg-white p-5 sm:p-6">
+   <div className="flex items-start gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-amber-50 text-amber-900"><Truck size={21}/></span><div><h2 className="text-xl font-black">Silent-buyer payout reviews</h2><p className="mt-1 max-w-3xl text-sm leading-6 text-[#63706a]">These shipped orders passed the configured unverified-delivery age without buyer receipt confirmation. SecondPart does not release funds from buyer silence alone. Review the shipment reference first; approval starts the normal Buyer Protection window rather than an immediate payout.</p></div></div>
+   {payoutReviews.length?<div className="mt-5 grid gap-4">{payoutReviews.map(item=><article key={item.order_item_id} className="rounded-2xl border border-black/10 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><Link href={"/parts/"+item.part_slug} className="font-black hover:underline">{item.part_title}</Link><p className="mt-1 text-xs text-[#63706a]">Seller: {item.seller_name} · Order {item.order_id.slice(0,8).toUpperCase()}</p></div><Link href={"/dashboard/orders/"+item.order_item_id} className="text-xs font-black text-[#287154] underline">Open sale</Link></div><AdminDeliveryPayoutReview orderItemId={item.order_item_id} trackingCarrier={item.tracking_carrier} trackingNumber={item.tracking_number} dispatchedAt={item.dispatched_at} ageDays={item.age_days} sellerNetPence={item.seller_net_pence}/></article>)}</div>:<p className="mt-5 rounded-2xl bg-[#f8f7f2] p-4 text-sm text-[#63706a]">No shipments currently require an unverified-delivery payout review.</p>}
+  </section>
 
   {cases.length?<div className="mt-8 grid gap-5">{cases.map(item=><article key={item.id} className="rounded-3xl border border-black/10 bg-white p-5 sm:p-6">
    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wide text-[#287154]">{label(item.caseType)}</p><Link href={"/parts/"+item.partSlug} className="mt-1 block text-xl font-black hover:underline">{item.partTitle}</Link><p className="mt-1 text-sm text-[#63706a]">Seller: {item.sellerName} · Case {item.id.slice(0,8).toUpperCase()}</p></div><span className="rounded-full bg-[#eef1eb] px-3 py-1 text-xs font-black">{label(item.status)}</span></div>
