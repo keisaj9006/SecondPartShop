@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname,useRouter } from "next/navigation";
-import { useEffect,useMemo,useState } from "react";
+import { useEffect,useMemo,useRef,useState } from "react";
 import { CarFront,Home,MessageSquareText,PackageCheck,UserRound } from "lucide-react";
 
 const items=[
@@ -17,6 +17,7 @@ export function MobileBottomNav(){
  const pathname=usePathname();
  const router=useRouter();
  const [pendingNavigation,setPendingNavigation]=useState<{href:string;fromPath:string}|null>(null);
+ const navigationTiming=useRef<{from:string;to:string;startedAt:number}|null>(null);
 
  const currentHref=useMemo(()=>{
   const current=items.find(item=>item.active(pathname));
@@ -24,6 +25,17 @@ export function MobileBottomNav(){
  },[pathname]);
 
  useEffect(()=>{
+  const timing=navigationTiming.current;
+  if(timing&&pathname!==timing.from){
+   const destination=items.find(item=>item.active(pathname))?.href;
+   if(destination===timing.to){
+    const elapsed=Math.round(performance.now()-timing.startedAt);
+    console.info(`[SecondPart][nav] ${timing.from} -> ${pathname} ${elapsed}ms`);
+    if(elapsed>750)console.warn(`[SecondPart][nav] Slow route ${timing.from} -> ${pathname}: ${elapsed}ms`);
+    navigationTiming.current=null;
+   }
+  }
+
   // Root tabs are the highest-frequency navigation in the Android app.
   // Force a full prefetch of each destination after every committed route so
   // dynamic Server Component pages are already warm before the next tap.
@@ -53,7 +65,7 @@ export function MobileBottomNav(){
      prefetch={true}
      aria-current={active?"page":undefined}
      onPointerDown={()=>{if(item.href!==currentHref)router.prefetch(item.href);}}
-     onClick={()=>{if(item.href!==currentHref)setPendingNavigation({href:item.href,fromPath:pathname});}}
+     onClick={()=>{if(item.href!==currentHref){navigationTiming.current={from:pathname,to:item.href,startedAt:performance.now()};setPendingNavigation({href:item.href,fromPath:pathname});}}}
      className={"flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 text-[10px] font-bold transition "+(active?"text-[#173c31]":"text-[#63706a]")}
     >
      <span className={"grid h-8 w-10 place-items-center rounded-xl transition "+(active?"bg-[#d4f44d]":"bg-transparent")}><Icon size={19} strokeWidth={active?2.7:2}/></span>
