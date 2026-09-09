@@ -16,7 +16,7 @@ let routeLoader=null;
 let routeSequence=0;
 let silentRouteRefresh=false;
 const screenCache=new Map();
-const CACHED_ROOTS=new Set(["home","garage","orders","inbox","account"]);
+const CACHED_ROOTS=new Set(["home","garage","orders","inbox","account","seller","inventory","sellerSales"]);
 const cacheContext=()=>String(C.state.me?.profile?.id||"guest");
 const isRootCacheable=(route)=>Boolean(route&&CACHED_ROOTS.has(route.name)&&Object.keys(route.payload||{}).length===0);
 const cacheKeyForRoute=(route)=>cacheContext()+"::"+routeKey(route);
@@ -115,7 +115,8 @@ const route=async(name,payload,options={})=>{
  const next={name,payload:payload||{}};
  const previous=currentRoute;
  const sameRoute=Boolean(previous&&routeKey(previous)===routeKey(next));
- if(previous&&!options.fromBack&&!sameRoute)routeStack.push(previous);
+ const peerRootNavigation=Boolean(previous&&isRootCacheable(previous)&&isRootCacheable(next));
+ if(previous&&!options.fromBack&&!sameRoute&&!peerRootNavigation)routeStack.push(previous);
  if(previous&&!sameRoute)stashCurrentScreen();
  currentRoute=next;
  const mySequence=++routeSequence;
