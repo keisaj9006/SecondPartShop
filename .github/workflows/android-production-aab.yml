@@ -4,12 +4,26 @@ on:
   workflow_dispatch:
     inputs:
       production_url:
-        description: "Production HTTPS origin, e.g. https://secondpart.example"
+        description: "Production HTTPS URL loaded by the native app"
         required: true
+        type: string
+      version_name:
+        description: "Android version name, e.g. 1.0.0"
+        required: true
+        default: "1.0.0"
+        type: string
+      version_code:
+        description: "Monotonically increasing Android version code"
+        required: true
+        default: "1"
         type: string
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-production-aab:
@@ -18,26 +32,12 @@ jobs:
     timeout-minutes: 35
     env:
       SECOND_PART_PRODUCTION_URL: ${{ inputs.production_url }}
-      SECOND_PART_KEYSTORE_PATH: /tmp/secondpart-release.jks
-      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      SECOND_PART_VERSION_NAME: ${{ inputs.version_name }}
+      SECOND_PART_VERSION_CODE: ${{ inputs.version_code }}
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
-
-      - name: Validate release inputs and secrets
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
-        run: |
-          node -e 'const u=new URL(process.env.SECOND_PART_PRODUCTION_URL); if(u.protocol!=="https:") process.exit(1)'
-          test -n "$ANDROID_KEYSTORE_BASE64"
-          test -n "$ANDROID_KEYSTORE_PASSWORD"
-          test -n "$ANDROID_KEY_ALIAS"
-          test -n "$ANDROID_KEY_PASSWORD"
-          test -n "$GOOGLE_SERVICES_JSON_BASE64"
 
       - name: Set up Node 22
         uses: actions/setup-node@v4
@@ -66,8 +66,8 @@ jobs:
           npm pkg set "dependencies.@capacitor/push-notifications=8.0.4"
           npm pkg set "dependencies.@aparajita/capacitor-secure-storage=8.0.0"
 
-      - name: Prepare isolated production config
-        run: node scripts/prepare-android-release.mjs
+      - name: Prepare full production frontend
+        run: node scripts/prepare-android-production.mjs
 
       - name: Build native JavaScript bridge
         run: npx esbuild mobile-native-src/native.ts --bundle --platform=browser --format=iife --target=es2020 --outfile=mobile-shell/native.js
@@ -81,43 +81,98 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Generate Android project
-        run: npx cap add android
-
-      - name: Patch Android deep links
+      - name: Restore production upload key
+        env:
+          ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
         run: |
-          node scripts/patch-android-mobile.mjs
-          node scripts/patch-android-app-links.mjs
+          if [ -z "$ANDROID_RELEASE_KEYSTORE_BASE64" ] || [ -z "$ANDROID_RELEASE_STORE_PASSWORD" ] || [ -z "$ANDROID_RELEASE_KEY_ALIAS" ] || [ -z "$ANDROID_RELEASE_KEY_PASSWORD" ]; then
+            echo "::error::Production Android signing secrets are incomplete."
+            exit 1
+          fi
+          export SECOND_PART_RELEASE_KEYSTORE="$RUNNER_TEMP/secondpart-release.jks"
+          echo "$ANDROID_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$SECOND_PART_RELEASE_KEYSTORE"
+          keytool -list -keystore "$SECOND_PART_RELEASE_KEYSTORE" -storepass "$ANDROID_RELEASE_STORE_PASSWORD" -alias "$ANDROID_RELEASE_KEY_ALIAS" >/dev/null
+          echo "SECOND_PART_RELEASE_KEYSTORE=$SECOND_PART_RELEASE_KEYSTORE" >> "$GITHUB_ENV"
 
-      - name: Sync Capacitor project
-        run: npx cap sync android
+      - name: Generate and sync Android project
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      - name: Patch production Android release
+        env:
+          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: |
+          node scripts/patch-android-production.mjs
+          node scripts/patch-android-app-links.mjs
 
       - name: Configure production Firebase services
         env:
-          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
-        run: echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > android/app/google-services.json
+          GOOGLE_SERVICES_JSON_BASE64_PRODUCTION: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64_PRODUCTION }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON_BASE64_PRODUCTION" ]; then
+            echo "::error::GOOGLE_SERVICES_JSON_BASE64_PRODUCTION is required for com.secondpart.marketplace."
+            exit 1
+          fi
+          echo "$GOOGLE_SERVICES_JSON_BASE64_PRODUCTION" | base64 --decode > android/app/google-services.json
 
-      - name: Restore release keystore
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$SECOND_PART_KEYSTORE_PATH"
-
-      - name: Configure release signing
-        run: node scripts/patch-android-release-signing.mjs
+      - name: Verify production configuration
+        run: |
+          node - <<'NODE'
+          const fs=require("fs");
+          const config=JSON.parse(fs.readFileSync("capacitor.config.json","utf8"));
+          if(config.appId!=="com.secondpart.marketplace")throw new Error("Wrong production appId.");
+          if(config.loggingBehavior!=="none")throw new Error("Production logging must be disabled.");
+          if(config.android?.webContentsDebuggingEnabled!==false)throw new Error("WebView debugging must be disabled.");
+          if(!config.server?.url?.startsWith("https://"))throw new Error("Production frontend must use HTTPS.");
+          if(/preview|localhost|127\.0\.0\.1/i.test(new URL(config.server.url).hostname))throw new Error("Production build points to a preview/local host.");
+          const vars=fs.readFileSync("android/variables.gradle","utf8");
+          if(!/compileSdkVersion\s*=\s*36/.test(vars)||!/targetSdkVersion\s*=\s*36/.test(vars))throw new Error("Android API 36 is required.");
+          const gradle=fs.readFileSync("android/app/build.gradle","utf8");
+          if(!gradle.includes("secondPartReleaseSigning"))throw new Error("Production release signing is not configured.");
+          console.log("Production package:",config.appId);
+          console.log("Production frontend:",config.server.url);
+          NODE
 
       - name: Build signed Android App Bundle
         working-directory: android
+        env:
+          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
         run: |
           chmod +x gradlew
           ./gradlew bundleRelease --no-daemon
 
-      - name: Prepare AAB artifact
-        run: cp android/app/build/outputs/bundle/release/app-release.aab SecondPart-production.aab
+      - name: Verify AAB signature
+        env:
+          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+        run: |
+          AAB="android/app/build/outputs/bundle/release/app-release.aab"
+          test -f "$AAB"
+          jarsigner -verify -verbose -certs "$AAB" >/dev/null
+          EXPECTED="$(keytool -list -v -keystore "$SECOND_PART_RELEASE_KEYSTORE" -storepass "$ANDROID_RELEASE_STORE_PASSWORD" -alias "$ANDROID_RELEASE_KEY_ALIAS" | sed -n 's/.*SHA256: //p' | head -n 1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          ACTUAL="$(keytool -printcert -jarfile "$AAB" | sed -n 's/.*SHA256: //p' | head -n 1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          echo "Expected upload signer SHA-256: $EXPECTED"
+          echo "AAB signer SHA-256:             $ACTUAL"
+          if [ -z "$EXPECTED" ] || [ -z "$ACTUAL" ] || [ "$EXPECTED" != "$ACTUAL" ]; then
+            echo "::error::AAB signer does not match the production upload key."
+            exit 1
+          fi
+
+      - name: Prepare production artifact
+        run: cp android/app/build/outputs/bundle/release/app-release.aab "SecondPart-${{ inputs.version_name }}-${{ inputs.version_code }}.aab"
 
       - name: Upload signed AAB
         uses: actions/upload-artifact@v4
         with:
-          name: SecondPart-Android-Production-AAB
-          path: SecondPart-production.aab
+          name: SecondPart-Production-AAB-${{ inputs.version_name }}-${{ inputs.version_code }}
+          path: SecondPart-${{ inputs.version_name }}-${{ inputs.version_code }}.aab
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
