@@ -323,7 +323,8 @@ const inventory=async(payload={})=>{
  try{
   const page=await fetchPage(0);
   items=page.items;hasMore=page.hasMore;
- }catch(error){UI.empty("□","Inventory unavailable",error.message,"Try again",()=>UI.route("inventory"));return;}
+ }catch(error){if(!UI.isCurrent("inventory"))return;UI.empty("□","Inventory unavailable",error.message,"Try again",()=>UI.route("inventory"));return;}
+ if(!UI.isCurrent("inventory"))return;
 
  render();
 };
