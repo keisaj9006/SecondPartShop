@@ -20,6 +20,9 @@ const garageLoading=read("src/app/garage/loading.tsx");
 const purchasesLoading=read("src/app/account/orders/loading.tsx");
 const inboxLoading=read("src/app/inbox/loading.tsx");
 const accountLoading=read("src/app/account/loading.tsx");
+const accountPage=read("src/app/account/page.tsx");
+const accountDashboard=read("src/components/account-dashboard-content.tsx");
+const reputation=read("src/lib/data/reputation.ts");
 
 const checks=[
  ["Root navigation must not detach large DOM trees into a holder",!ui.includes("holder.append(...Array.from(app.childNodes))")],
@@ -59,7 +62,9 @@ const checks=[
  ["Garage root tab must have an instant loading boundary",garageLoading.includes('variant="garage"')],
  ["Purchases root tab must have an instant loading boundary",purchasesLoading.includes('variant="purchases"')],
  ["Inbox root tab must have an instant loading boundary",inboxLoading.includes('variant="inbox"')],
- ["Account root tab must have an instant loading boundary",accountLoading.includes('variant="account"')]
+ ["Account root tab must have an instant loading boundary",accountLoading.includes('variant="account"')],
+ ["Account heavy dashboard data must stream behind Suspense",accountPage.includes("<Suspense")&&accountPage.includes("AccountDashboardContent")&&accountDashboard.includes("Promise.all")],
+ ["Account trust profile reads must be request-deduped",reputation.includes("getPublicMemberProfileById=cache(async")]
 ];
 
 const failed=checks.filter(([,ok])=>!ok);
