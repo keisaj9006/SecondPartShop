@@ -20,6 +20,8 @@ export async function askSeller(_previous:ActionState,formData:FormData):Promise
  if(error){
   const lower=error.message.toLowerCase();
   if(lower.includes("your own listing"))return {status:"error",message:"You cannot message yourself about your own listing."};
+  if(lower.includes("accept current terms"))return {status:"error",message:"Accept the current Terms of Use and Privacy Policy in Account → Security before messaging."};
+  if(lower.includes("messaging is unavailable"))return {status:"error",message:"Pre-purchase messaging with this account is blocked."};
   if(lower.includes("rate limit")||lower.includes("conversation limit"))return {status:"error",message:"You have sent a lot of messages recently. Please try again later."};
   return {status:"error",message:"We could not send this question right now."};
  }
