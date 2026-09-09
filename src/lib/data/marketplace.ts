@@ -121,15 +121,20 @@ export async function getListings(filters:MarketplaceFilters={}):Promise<DataRes
  return {data:listings,error:null,configured:true};
 }
 
-type MarketplaceCursor={createdAt:string;id:string};
+type MarketplaceCursorSort="best"|"price_asc"|"price_desc"|"delivery"|"warranty";
+type MarketplaceCursor={createdAt:string;id:string;sort:MarketplaceCursorSort;sortValue:number|null};
 const encodeMarketplaceCursor=(cursor:MarketplaceCursor)=>Buffer.from(JSON.stringify(cursor),"utf8").toString("base64url");
-const decodeMarketplaceCursor=(value:string|undefined):MarketplaceCursor|null=>{
+const decodeMarketplaceCursor=(value:string|undefined,currentSort:MarketplaceCursorSort):MarketplaceCursor|null=>{
  if(!value)return null;
  try{
   const parsed=JSON.parse(Buffer.from(value,"base64url").toString("utf8")) as Partial<MarketplaceCursor>;
   if(typeof parsed.createdAt!=="string"||typeof parsed.id!=="string")return null;
   if(Number.isNaN(Date.parse(parsed.createdAt))||!/^[0-9a-f-]{36}$/i.test(parsed.id))return null;
-  return {createdAt:parsed.createdAt,id:parsed.id};
+  const parsedSort=parsed.sort??"best";
+  if(parsedSort!==currentSort)return null;
+  const sortValue=typeof parsed.sortValue==="number"&&Number.isFinite(parsed.sortValue)?parsed.sortValue:null;
+  if(currentSort!=="best"&&currentSort!=="delivery"&&sortValue===null)return null;
+  return {createdAt:parsed.createdAt,id:parsed.id,sort:currentSort,sortValue};
  }catch{return null;}
 };
 
@@ -153,19 +158,22 @@ export async function getMarketplacePage(
 
  const sort=filters.sort??"best";
 
- // Default marketplace browsing uses keyset pagination. This keeps the cost of
- // "next results" stable even when the catalogue grows to hundreds of thousands
- // of rows, instead of asking PostgreSQL to skip an ever-growing OFFSET.
+ // All non-search browse sorts use keyset pagination. The phone still receives
+ // only one small page and PostgreSQL seeks into a matching ordered index rather
+ // than walking an ever-growing OFFSET.
+ const cursorSorts:MarketplaceCursorSort[]=["best","price_asc","price_desc","delivery","warranty"];
+ const cursorSort=cursorSorts.includes(sort as MarketplaceCursorSort)?sort as MarketplaceCursorSort:null;
  const canUseCursor=
-  sort==="best" &&
+  Boolean(cursorSort) &&
   !filters.query?.trim() &&
   !filters.vehicle &&
   !filters.catalogueVariant &&
   !filters.ids?.length;
 
- if(canUseCursor){
-  const cursor=decodeMarketplaceCursor(options.cursor);
-  const {data:pageRows,error:pageError}=await supabase.rpc("marketplace_browse_cursor_page",{
+ if(canUseCursor&&cursorSort){
+  const cursor=decodeMarketplaceCursor(options.cursor,cursorSort);
+  const {data:pageRows,error:pageError}=await supabase.rpc("marketplace_browse_cursor_page_v2",{
+   p_sort:cursorSort,
    p_category_ids:categoryIds,
    p_condition:filters.condition,
    p_min_price_pence:Number.isFinite(filters.minPrice)?Math.round((filters.minPrice??0)*100):undefined,
@@ -173,6 +181,7 @@ export async function getMarketplacePage(
    p_collection_only:Boolean(filters.collectionOnly),
    p_after_created_at:cursor?.createdAt,
    p_after_id:cursor?.id,
+   p_after_sort_value:cursor?.sortValue??undefined,
    p_limit:limit+1
   });
   if(pageError)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
@@ -191,7 +200,12 @@ export async function getMarketplacePage(
   const byId=new Map(cardListings.map(item=>[item.id,item] as const));
   const listings=ids.map(id=>byId.get(id)).filter((item):item is Listing=>Boolean(item));
   const last=visibleRows.at(-1);
-  const nextCursor=hasMore&&last?encodeMarketplaceCursor({createdAt:last.created_at,id:last.part_id}):null;
+  const nextCursor=hasMore&&last?encodeMarketplaceCursor({
+   createdAt:last.created_at,
+   id:last.part_id,
+   sort:cursorSort,
+   sortValue:last.sort_value??null
+  }):null;
 
   return {
    data:listings,
