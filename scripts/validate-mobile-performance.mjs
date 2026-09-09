@@ -8,7 +8,14 @@ const market=read("mobile-shell/views-marketplace.js");
 const commerce=read("mobile-shell/views-commerce.js");
 const account=read("mobile-shell/views-account.js");
 const media=read("mobile-shell/views-media.js");
-const styles=read("mobile-shell/styles.css");
+const fullNav=read("src/components/mobile-bottom-nav.tsx");
+const auth=read("src/lib/auth.ts");
+const marketplaceData=read("src/lib/data/marketplace.ts");
+const homePage=read("src/app/page.tsx");
+const marketplaceHome=read("src/components/marketplace-home.tsx");
+const previewPrep=read("scripts/prepare-android-preview.mjs");
+const searchScaleMigration=read("supabase/migrations/20260909100500_indexed_marketplace_search_candidates.sql");
+const cursorMigration=read("supabase/migrations/20260909103000_marketplace_cursor_pagination.sql");
 
 const checks=[
  ["Root navigation must not detach large DOM trees into a holder",!ui.includes("holder.append(...Array.from(app.childNodes))")],
@@ -33,7 +40,17 @@ const checks=[
  ["Seller tabs must be treated as root navigation peers",ui.includes('"seller","inventory","sellerSales"')&&ui.includes("peerRootNavigation")],
  ["Late seller responses must not overwrite a newer route",commerce.includes('UI.isCurrent("seller")')&&commerce.includes('UI.isCurrent("sellerSales")')&&media.includes('UI.isCurrent("inventory")')],
  ["Account must not await push storage before first render",!account.includes('const pushToken=C.Native.push?.supported?await C.Native.storage.get("pushToken")')],
- ["Cold start must keep account bootstrap in the background",app.includes("const bootstrapPromise=")&&app.includes("await UI.route(\"home\")")&&app.includes("void bootstrapPromise.then")]
+ ["Cold start must keep account bootstrap in the background",app.includes("const bootstrapPromise=")&&app.includes("await UI.route(\"home\")")&&app.includes("void bootstrapPromise.then")],
+ ["Full frontend root tabs must optimistically acknowledge taps",fullNav.includes("pendingNavigation")&&fullNav.includes("setPendingNavigation")],
+ ["Full frontend root tabs must prefetch destinations",fullNav.includes("router.prefetch(item.href)")&&fullNav.includes("onPointerDown")],
+ ["Auth user reads must be request-deduped",auth.includes("getCurrentUser=cache(async()=>")],
+ ["Auth profile reads must be request-deduped",auth.includes("getCurrentProfile=cache(async():Promise<Profile|null>=>")],
+ ["Marketplace home must pass cursor tokens to data layer",homePage.includes("marketplaceCursor")&&homePage.includes("cursor:marketplaceCursor")],
+ ["Default marketplace browse must use cursor RPC",marketplaceData.includes('marketplace_browse_cursor_page')&&marketplaceData.includes('mode:"cursor"')],
+ ["Cursor pagination must use stable created_at + id ordering",cursorMigration.includes("(p.created_at,p.id)<(p_after_created_at,p_after_id)")&&cursorMigration.includes("order by p.created_at desc,p.id desc")],
+ ["Search ranking must stay bounded to indexed candidates",searchScaleMigration.includes("candidate_rows as")&&searchScaleMigration.includes("candidate_limit")],
+ ["Cursor UI must avoid deep OFFSET page links",marketplaceHome.includes('pagination.mode==="cursor"')&&marketplaceHome.includes("Next 24 parts")],
+ ["Android Preview must keep loading the full Next.js frontend",previewPrep.includes("second-part-shop-preview.vercel.app")&&previewPrep.includes("config.server=")]
 ];
 
 const failed=checks.filter(([,ok])=>!ok);
