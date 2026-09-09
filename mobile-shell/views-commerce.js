@@ -274,9 +274,11 @@ const sellerSales=async()=>{
   sales=firstPage.items;
   hasMore=firstPage.hasMore;
  }catch(error){
+  if(!UI.isCurrent("sellerSales"))return;
   UI.empty("□","Sales unavailable",error.message,"Try again",()=>UI.route("sellerSales"));
   return;
  }
+ if(!UI.isCurrent("sellerSales"))return;
 
  render();
 };
@@ -295,7 +297,8 @@ const seller=async()=>{
   sales=results[0].items||[];
   cases=results[1].items||[];
   readiness=results[2].readiness||null;
- }catch(error){UI.empty("□","Seller dashboard unavailable",error.message,"Try again",()=>UI.route("seller"));return;}
+ }catch(error){if(!UI.isCurrent("seller"))return;UI.empty("□","Seller dashboard unavailable",error.message,"Try again",()=>UI.route("seller"));return;}
+ if(!UI.isCurrent("seller"))return;
 
  const html=[];
  html.push("<section class=\"account-hero\"><p class=\"eyebrow\" style=\"color:#d4f44d\">Seller dashboard</p><h1>"+C.escapeHtml(C.state.me.seller.businessName)+"</h1><p>"+sales.length+" sale"+(sales.length===1?"":"s")+" · "+cases.filter(item=>!["resolved","rejected","cancelled"].includes(item.status)).length+" active case(s)</p><div class=\"button-row\" style=\"margin-top:14px\"><button id=\"seller-inventory\" class=\"lime-button small-button\" type=\"button\">Inventory & photos</button><button id=\"seller-imports\" class=\"secondary small-button\" type=\"button\">Bulk CSV import</button></div></section>");
