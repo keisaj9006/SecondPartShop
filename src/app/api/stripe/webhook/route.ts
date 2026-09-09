@@ -4,6 +4,7 @@ import { getPaymentIntent,verifyStripeWebhookSignature } from "@/lib/stripe-paym
 import { closeProviderPaymentDispute } from "@/lib/commerce-provider-disputes";
 import { isUuid } from "@/lib/identifiers";
 import { schedulePushDispatch } from "@/lib/push/schedule";
+import { reportOperationalError } from "@/lib/ops-monitoring";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -182,7 +183,15 @@ export async function POST(request:Request){
 
   schedulePushDispatch(50);
   return NextResponse.json({received:true});
- }catch{
+ }catch(error){
+  await reportOperationalError({
+   severity:"critical",
+   component:"stripe_webhook",
+   event:"stripe_webhook_processing_failed",
+   error,
+   route:"/api/stripe/webhook",
+   context:{stripeEventType:event.type}
+  });
   return NextResponse.json({received:false},{status:500});
  }
 }
