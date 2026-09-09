@@ -8,7 +8,7 @@ type ThreadRow={
  id:string;
  parts:{title:string;slug:string}|Array<{title:string;slug:string}>|null;
  sellers:{business_name:string;owner_id:string|null}|Array<{business_name:string;owner_id:string|null}>|null;
- orders:{buyer_id:string;payment_status:string}|Array<{buyer_id:string;payment_status:string}>|null;
+ orders:{buyer_id:string|null;payment_status:string}|Array<{buyer_id:string|null;payment_status:string}>|null;
 };
 
 const one=<T>(value:T|T[]|null)=>Array.isArray(value)?value[0]??null:value;
@@ -42,7 +42,7 @@ export async function getTransactionThread(orderItemId:string,options:{offset?:n
  const messages=rawMessages.slice(0,limit).reverse();
  if(messageError)throw new Error("Transaction messages are temporarily unavailable.");
 
- const senderIds=[...new Set(messages.map(message=>message.sender_profile_id))];
+ const senderIds=[...new Set(messages.map(message=>message.sender_profile_id).filter((id):id is string=>Boolean(id)))];
  const senderProfiles=await Promise.all(senderIds.map(id=>getPublicMemberProfileById(id).catch(()=>null)));
  const profiles=new Map(senderProfiles.filter((profile):profile is NonNullable<typeof profile>=>Boolean(profile)).map(profile=>[profile.id,profile]));
 
@@ -55,12 +55,12 @@ export async function getTransactionThread(orderItemId:string,options:{offset?:n
   sellerOwnerId:seller.owner_id,
   paymentStatus:order.payment_status,
   messages:messages.map(message=>{
-   const profile=profiles.get(message.sender_profile_id);
+   const profile=message.sender_profile_id?profiles.get(message.sender_profile_id):undefined;
    return {
     id:message.id,
     senderProfileId:message.sender_profile_id,
-    senderHandle:profile?.handle??"member",
-    senderDisplayName:profile?.displayName??"SecondPart member",
+    senderHandle:profile?.handle??(message.sender_profile_id?"member":"deleted-member"),
+    senderDisplayName:profile?.displayName??(message.sender_profile_id?"SecondPart member":"Deleted member"),
     body:message.body,
     createdAt:message.created_at
    };
