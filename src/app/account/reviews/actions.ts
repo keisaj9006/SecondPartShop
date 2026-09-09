@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { hasCurrentMarketplaceTerms } from "@/lib/marketplace-policy";
 import type { ActionState } from "@/lib/types";
 
 const rating=(formData:FormData,name:string,required=false)=>{
@@ -13,7 +14,8 @@ const rating=(formData:FormData,name:string,required=false)=>{
 };
 
 export async function submitReview(_previous:ActionState,formData:FormData):Promise<ActionState>{
- await requireUser("/account/reviews");
+ const user=await requireUser("/account/reviews");
+ if(!await hasCurrentMarketplaceTerms(user.id))return {status:"error",message:"Accept the current Terms of Use and Privacy Policy in Account → Security before submitting a review."};
  const orderItemId=String(formData.get("orderItemId")??"").trim();
  const overall=rating(formData,"overall",true);
  const itemAsDescribed=rating(formData,"itemAsDescribed");
