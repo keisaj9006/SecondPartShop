@@ -1,4 +1,4 @@
-import { mobileJson,mobileOptions,requireMobileSeller } from "@/lib/mobile-api";
+import { mobileJson,mobileMarketplaceTermsAccepted,mobileOptions,requireMobileSeller } from "@/lib/mobile-api";
 import { processSellerInventoryCsv } from "@/lib/inventory-csv-import";
 
 export const dynamic="force-dynamic";
@@ -50,6 +50,7 @@ export async function GET(request:Request){
 export async function POST(request:Request){
  const auth=await requireMobileSeller(request);
  if(!auth.context||!auth.seller)return auth.response;
+ if(!await mobileMarketplaceTermsAccepted(auth.context))return mobileJson(request,{ok:false,error:"terms_required"},428);
  let formData:FormData;
  try{formData=await request.formData();}catch{return mobileJson(request,{ok:false,error:"invalid_form_data"},400);}
  const file=formData.get("file");
