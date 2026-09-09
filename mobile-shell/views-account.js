@@ -3,6 +3,19 @@
 
 const UI=window.SecondPartUI;
 const C=UI.C;
+let cachedPushToken=null;
+let pushTokenLoaded=false;
+
+const updatePushButtonState=(button,token)=>{
+ if(!button)return;
+ button.classList.toggle("selected",Boolean(token));
+ const strong=button.querySelector("strong");
+ const small=button.querySelector("small");
+ if(strong)strong.textContent=token?"Push notifications on":"Enable push notifications";
+ if(small)small.textContent=token
+  ?"Tap to turn off alerts on this device."
+  :"Get order, message, Buy + Fit and marketplace alerts on this device.";
+};
 
 const account=async(payload)=>{
  await C.initializeSession();
@@ -20,7 +33,7 @@ const account=async(payload)=>{
  if(payload&&payload.view==="buying")C.state.accountMode="buying";
  if(!sellingEnabled)C.state.accountMode="buying";
  const mode=C.state.accountMode;
- const pushToken=C.Native.push?.supported?await C.Native.storage.get("pushToken").catch(()=>null):null;
+ const pushToken=C.Native.push?.supported&&pushTokenLoaded?cachedPushToken:null;
 
  const html=[];
  html.push("<section class=\"account-hero\"><p class=\"eyebrow\" style=\"color:#d4f44d\">Your SecondPart account</p><h1>"+C.escapeHtml(profile?profile.displayName:"SecondPart member")+"</h1><p>"+C.escapeHtml(profile?"@"+profile.handle:"")+" · "+C.escapeHtml(me.user&&me.user.email?me.user.email:"")+"</p><p style=\"margin-top:10px;font-size:12px;color:rgba(255,255,255,.7)\">One login for buying and selling. Selling never removes your buyer features.</p>"+(!me.user.emailConfirmed?"<div class=\"status warning\" style=\"margin-top:12px\">Email confirmation is still pending.</div>":"")+"</section>");
@@ -44,6 +57,18 @@ const account=async(payload)=>{
  html.push("<section class=\"account-grid\" style=\"margin-top:12px\"><button class=\"account-tile\" id=\"account-member-profile\" type=\"button\"><strong>Profile & username</strong><small>Public name, @username, bio and private phone.</small></button><button class=\"account-tile\" id=\"account-security\" type=\"button\"><strong>Security & account</strong><small>Email, password recovery and account controls.</small></button>"+(C.Native.push?.supported?"<button class=\"account-tile"+(pushToken?" selected":"")+"\" id=\"account-push\" type=\"button\"><strong>"+(pushToken?"Push notifications on":"Enable push notifications")+"</strong><small>"+(pushToken?"Tap to turn off alerts on this device.":"Get order, message, Buy + Fit and marketplace alerts on this device.")+"</small></button>":"")+"</section>");
  html.push("<div class=\"button-row\" style=\"margin-top:14px\"><button id=\"account-signout\" class=\"danger-button small-button\" type=\"button\">Sign out</button></div>");
  UI.app.innerHTML=html.join("");
+
+ const pushButton=document.getElementById("account-push");
+ if(pushButton&&C.Native.push?.supported&&!pushTokenLoaded){
+  void C.Native.storage.get("pushToken").then(token=>{
+   cachedPushToken=token||null;
+   pushTokenLoaded=true;
+   if(UI.isCurrent("account"))updatePushButtonState(document.getElementById("account-push"),cachedPushToken);
+  }).catch(()=>{
+   cachedPushToken=null;
+   pushTokenLoaded=true;
+  });
+ }
 
  const buying=document.getElementById("mode-buying");if(buying)buying.addEventListener("click",()=>{C.state.accountMode="buying";UI.route("account",{view:"buying"});});
  const selling=document.getElementById("mode-selling");if(selling)selling.addEventListener("click",()=>{if(!sellingEnabled){UI.route("sellerSetup");return;}C.state.accountMode="selling";UI.route("account",{view:"selling"});});
@@ -72,15 +97,21 @@ const account=async(payload)=>{
  const finishSelling=document.getElementById("account-finish-selling");if(finishSelling)finishSelling.addEventListener("click",()=>UI.route("sellerSetup"));
  const memberProfileButton=document.getElementById("account-member-profile");if(memberProfileButton)memberProfileButton.addEventListener("click",()=>UI.route("profile"));
  const securityButton=document.getElementById("account-security");if(securityButton)securityButton.addEventListener("click",()=>UI.route("security"));
- const pushButton=document.getElementById("account-push");
  if(pushButton)pushButton.addEventListener("click",async()=>{
   pushButton.disabled=true;
   try{
-   if(pushToken){
+   const currentToken=pushTokenLoaded
+    ?cachedPushToken
+    :await C.Native.storage.get("pushToken").catch(()=>null);
+   cachedPushToken=currentToken||null;
+   pushTokenLoaded=true;
+   if(currentToken){
     await C.unregisterPushDevice();
+    cachedPushToken=null;
     UI.toast("Push notifications turned off on this device.");
    }else{
     const result=await C.registerPushDevice();
+    if(result.registered)cachedPushToken=await C.Native.storage.get("pushToken").catch(()=>null);
     if(result.registered)UI.toast("Push notifications enabled.");
     else if(!result.granted)UI.toast("Notification permission was not granted.","warning");
     else UI.toast("Push registration is not available yet.","warning");
