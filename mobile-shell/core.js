@@ -65,6 +65,9 @@ const setVehicleCompatibleOnly=(value)=>{
 };
 
 const responseCache=new Map();
+let sessionRefreshPromise=null;
+let meRequestPromise=null;
+let identityEpoch=0;
 const cacheKey=(path,auth)=>String(auth?"auth:":"public:")+String(path);
 const invalidateCache=(prefix="")=>{
  for(const key of responseCache.keys()){
@@ -171,6 +174,8 @@ const storeSession=async(payload)=>{
 };
 
 const clearSession=async()=>{
+ identityEpoch+=1;
+ meRequestPromise=null;
  state.session=null;
  state.sessionReady=true;
  state.me=null;
@@ -211,16 +216,21 @@ const authFetch=async(path,{method="POST",body,accessToken}={})=>{
 };
 
 const refreshSession=async()=>{
- if(!state.sessionReady)await initializeSession();
- const current=state.session;
- if(!current?.refreshToken){await clearSession();return null;}
- try{
-  const payload=await authFetch("/token?grant_type=refresh_token",{body:{refresh_token:current.refreshToken}});
-  return await storeSession(payload);
- }catch{
-  await clearSession();
-  return null;
- }
+ if(sessionRefreshPromise)return sessionRefreshPromise;
+ sessionRefreshPromise=(async()=>{
+  if(!state.sessionReady)await initializeSession();
+  const current=state.session;
+  if(!current?.refreshToken){await clearSession();return null;}
+  try{
+   const payload=await authFetch("/token?grant_type=refresh_token",{body:{refresh_token:current.refreshToken}});
+   return await storeSession(payload);
+  }catch{
+   await clearSession();
+   return null;
+  }
+ })();
+ try{return await sessionRefreshPromise;}
+ finally{sessionRefreshPromise=null;}
 };
 
 const accessToken=async()=>{
@@ -485,15 +495,21 @@ const signOut=async()=>{
 };
 
 const loadMe=async()=>{
- try{
-  const payload=await api("/me",{auth:true});
-  state.me=payload;
-  return payload;
- }catch(error){
-  if(error?.status===401)void clearSession();
-  state.me=null;
-  return null;
- }
+ if(meRequestPromise)return meRequestPromise;
+ const requestEpoch=identityEpoch;
+ meRequestPromise=(async()=>{
+  try{
+   const payload=await api("/me",{auth:true});
+   if(requestEpoch===identityEpoch&&state.session)state.me=payload;
+   return requestEpoch===identityEpoch?payload:null;
+  }catch(error){
+   if(error?.status===401)void clearSession();
+   if(requestEpoch===identityEpoch)state.me=null;
+   return null;
+  }
+ })();
+ try{return await meRequestPromise;}
+ finally{meRequestPromise=null;}
 };
 
 const refreshSaved=async()=>{
