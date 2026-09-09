@@ -24,14 +24,11 @@ export async function requestAccountDeletion(_previous:ActionState,formData:Form
 }
 
 export async function cancelAccountDeletion(){
- const user=await requireUser("/account/security");
+ await requireUser("/account/security");
  const supabase=await createSupabaseServerClient();
- await supabase
-  .from("account_deletion_requests")
-  .update({status:"cancelled",updated_at:new Date().toISOString()})
-  .eq("profile_id",user.id)
-  .eq("status","requested");
+ await supabase.rpc("cancel_own_account_deletion_request");
  revalidatePath("/account/security");
+ revalidatePath("/account-deletion");
 }
 
 export async function acceptCurrentMarketplaceTerms(){
