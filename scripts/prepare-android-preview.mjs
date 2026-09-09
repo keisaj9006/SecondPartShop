@@ -20,3 +20,4 @@ config.plugins={...(config.plugins||{}),PushNotifications:{presentationOptions:[
 
 await writeFile(capacitorPath,JSON.stringify(config,null,2)+"\n","utf8");
 console.log("Prepared Android Preview to load full Next.js frontend from "+previewUrl.origin);
+console.log("Android Preview wrapper source:",String(process.env.GITHUB_SHA||"local"));
