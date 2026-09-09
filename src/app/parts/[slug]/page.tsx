@@ -73,19 +73,20 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
  }
  if(filters.vehicleRegistration&&vehicleLabel)vehicleLabel=`${filters.vehicleRegistration} · ${vehicleLabel}`;
 
- const ownListing=Boolean(user&&item.seller.ownerId===user.id);
+ const sellerOwnerId=item.seller.ownerId;
+ const ownListing=Boolean(user&&sellerOwnerId===user.id);
  const [savedIds,sellerTrust,sellerCheckoutReady,passportEvidence,sellerDistance,blockedSeller]=await Promise.all([
   user?getSavedPartIdsForParts(user.id,[item.id]):Promise.resolve([]),
-  getPublicMemberProfileById(item.seller.ownerId).catch(()=>null),
+  sellerOwnerId?getPublicMemberProfileById(sellerOwnerId).catch(()=>null):Promise.resolve(null),
   isSellerCheckoutReady(item.sellerId).catch(()=>false),
   getPartPassportEvidence(item.id).catch(()=>null),
   getSellerDistanceFromPostcode(item.sellerId,filters.postcode).catch(()=>null),
-  user&&!ownListing?isMarketplaceUserBlocked(item.seller.ownerId).catch(()=>false):Promise.resolve(false)
+  user&&!ownListing&&sellerOwnerId?isMarketplaceUserBlocked(sellerOwnerId).catch(()=>false):Promise.resolve(false)
  ]);
  const backHref=context.toString()?`/?${context.toString()}#marketplace`:"/#marketplace";
  const currentHref=context.toString()?`/parts/${slug}?${context.toString()}`:`/parts/${slug}`;
  const reportHref=`/report?part=${encodeURIComponent(item.id)}&returnTo=${encodeURIComponent(currentHref)}`;
- const reportUserHref=`/report-user?profile=${encodeURIComponent(item.seller.ownerId)}&returnTo=${encodeURIComponent(currentHref)}`;
+ const reportUserHref=sellerOwnerId?`/report-user?profile=${encodeURIComponent(sellerOwnerId)}&returnTo=${encodeURIComponent(currentHref)}`:null;
  const fitParams=new URLSearchParams();
  if(checkoutVehicleContext){
   fitParams.set("cv",checkoutVehicleContext.variantId);
@@ -133,9 +134,9 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
       vehicleContext={checkoutVehicleContext}
       compatibility={compatibility}
     />
-    {!blockedSeller&&<div className="mt-3"><AskSellerForm partId={item.id} signedIn={Boolean(user)} ownListing={ownListing} returnTo={currentHref}/></div>}
-    {user&&!ownListing&&<div className="mt-3 flex flex-wrap items-center gap-3">
-      <MarketplaceUserBlockButton targetProfileId={item.seller.ownerId} blocked={blockedSeller} returnTo={currentHref}/>
+    {sellerOwnerId&&!blockedSeller&&<div className="mt-3"><AskSellerForm partId={item.id} signedIn={Boolean(user)} ownListing={ownListing} returnTo={currentHref}/></div>}
+    {user&&!ownListing&&sellerOwnerId&&reportUserHref&&<div className="mt-3 flex flex-wrap items-center gap-3">
+      <MarketplaceUserBlockButton targetProfileId={sellerOwnerId} blocked={blockedSeller} returnTo={currentHref}/>
       <Link href={reportUserHref} className="inline-flex items-center gap-2 rounded-xl border border-black/15 bg-white px-4 py-3 text-sm font-black"><Flag size={16}/>Report user</Link>
       {blockedSeller&&<span className="text-xs font-bold text-[#63706a]">Pre-purchase messaging with this user is blocked.</span>}
     </div>}
