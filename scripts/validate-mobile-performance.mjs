@@ -20,6 +20,7 @@ const sellerCursorMigration=read("supabase/migrations/20260909104500_seller_inve
 const sortedCursorMigration=read("supabase/migrations/20260909195500_marketplace_sorted_cursor_pagination.sql");
 const cursorIndexAlignment=read("supabase/migrations/20260909194000_align_cursor_indexes.sql");
 const compatibilityCursorMigration=read("supabase/migrations/20260909202000_catalogue_compatibility_cursor.sql");
+const distanceV2Migration=read("supabase/migrations/20260909203500_distance_page_v2.sql");
 const importScale=read("src/lib/inventory-csv-import.ts");
 const savedSearchQueueScale=read("supabase/migrations/20260909111000_saved_search_queue_throughput.sql");
 const garageLoading=read("src/app/garage/loading.tsx");
@@ -74,6 +75,10 @@ const checks=[
  ["Default vehicle compatibility must use keyset pagination",marketplaceData.includes("marketplace_catalogue_cursor_page_v1")&&marketplaceData.includes('const canUseCatalogueCursor=sort==="best"&&!filters.query?.trim()')],
  ["Compatibility cursor must preserve confidence + created_at + id ordering",compatibilityCursorMigration.includes("f.confidence_rank<p_after_confidence_rank")&&compatibilityCursorMigration.includes("order by f.confidence_rank desc,f.created_at desc,f.part_id desc")],
  ["Compatibility search and special sorts must keep bounded fallback",marketplaceData.includes("marketplace_catalogue_sorted_page")&&marketplaceData.includes("p_part_ids:rankedIds")],
+ ["Distance pagination must request limit+1",marketplaceData.includes("p_limit:limit+1")&&marketplaceData.includes("const hasMore=rawPageRows.length>limit")],
+ ["Distance browse must use V2 RPCs",marketplaceData.includes("marketplace_distance_page_v2")&&marketplaceData.includes("marketplace_catalogue_distance_page_v2")],
+ ["Distance V2 must compute distance once per seller",distanceV2Migration.includes("seller_distances as")&&distanceV2Migration.includes("join seller_distances d on d.seller_id=p.seller_id")],
+ ["Distance V2 must avoid COUNT window on hot path",!distanceV2Migration.includes("count(*) over() as total_count")],
  ["Search ranking must stay bounded to indexed candidates",searchScaleMigration.includes("candidate_rows as")&&searchScaleMigration.includes("candidate_limit")],
  ["Cursor UI must avoid deep OFFSET page links",marketplaceHome.includes('pagination.mode==="cursor"')&&marketplaceHome.includes("Next 24 parts")],
  ["Large seller inventory must use keyset pagination by default",marketplaceData.includes("seller_inventory_cursor_page")&&marketplaceData.includes("encodeSellerInventoryCursor")],
