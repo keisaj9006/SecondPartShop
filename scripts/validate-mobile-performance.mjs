@@ -17,6 +17,8 @@ const previewPrep=read("scripts/prepare-android-preview.mjs");
 const searchScaleMigration=read("supabase/migrations/20260909100500_indexed_marketplace_search_candidates.sql");
 const cursorMigration=read("supabase/migrations/20260909103000_marketplace_cursor_pagination.sql");
 const sellerCursorMigration=read("supabase/migrations/20260909104500_seller_inventory_cursor_pagination.sql");
+const importScale=read("src/lib/inventory-csv-import.ts");
+const savedSearchQueueScale=read("supabase/migrations/20260909111000_saved_search_queue_throughput.sql");
 const garageLoading=read("src/app/garage/loading.tsx");
 const purchasesLoading=read("src/app/account/orders/loading.tsx");
 const inboxLoading=read("src/app/inbox/loading.tsx");
@@ -61,6 +63,8 @@ const checks=[
  ["Cursor UI must avoid deep OFFSET page links",marketplaceHome.includes('pagination.mode==="cursor"')&&marketplaceHome.includes("Next 24 parts")],
  ["Large seller inventory must use keyset pagination by default",marketplaceData.includes("seller_inventory_cursor_page")&&marketplaceData.includes("encodeSellerInventoryCursor")],
  ["Seller cursor must match seller updated-at index order",sellerCursorMigration.includes("(p.updated_at,p.id)<(p_after_updated_at,p_after_id)")&&sellerCursorMigration.includes("order by p.updated_at desc,p.id desc")],
+ ["Bulk CSV import must remain chunked for large inventories",importScale.includes("const MAX_ROWS=5000;")&&importScale.includes("const INSERT_CHUNK_SIZE=250;")&&importScale.includes("for(let start=0;start<payload.length;start+=INSERT_CHUNK_SIZE)")],
+ ["Saved-search backlog must be indexed and processed asynchronously in batches",savedSearchQueueScale.includes("saved_search_match_queue_enqueued_idx")&&savedSearchQueueScale.includes("process_saved_search_match_queue(250)")&&savedSearchQueueScale.includes("saved_search_match_queue_stats")],
  ["Android Preview must keep loading the full Next.js frontend",previewPrep.includes("second-part-shop-preview.vercel.app")&&previewPrep.includes("config.server=")],
  ["Garage root tab must have an instant loading boundary",garageLoading.includes('variant="garage"')],
  ["Purchases root tab must have an instant loading boundary",purchasesLoading.includes('variant="purchases"')],

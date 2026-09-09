@@ -25,10 +25,10 @@ export type BulkImportState={
  batchId?:string;
 };
 
-const MAX_FILE_BYTES=8*1024*1024;
-const MAX_ROWS=2000;
-const LOOKUP_CHUNK_SIZE=250;
-const INSERT_CHUNK_SIZE=100;
+const MAX_FILE_BYTES=20*1024*1024;
+const MAX_ROWS=5000;
+const LOOKUP_CHUNK_SIZE=500;
+const INSERT_CHUNK_SIZE=250;
 const REQUIRED_HEADERS=["title","description","category","price_gbp"] as const;
 const CONDITIONS=new Set(["used","new","reconditioned"]);
 const TESTING=new Set(["tested_working","removed_from_running_vehicle","visually_inspected","untested","not_specified"]);
