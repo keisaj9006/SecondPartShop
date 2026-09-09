@@ -3317,6 +3317,32 @@ export type Database = {
           part_id: string
         }[]
       }
+      marketplace_catalogue_distance_page_v2: {
+        Args: {
+          p_buyer_lat: number
+          p_buyer_lon: number
+          p_category_ids?: string[]
+          p_collection_only?: boolean
+          p_compatible_only?: boolean
+          p_condition?: string
+          p_engine?: number
+          p_fuel?: string
+          p_limit?: number
+          p_max_price_pence?: number
+          p_min_price_pence?: number
+          p_offset?: number
+          p_part_ids?: string[]
+          p_variant_id: string
+          p_year: number
+        }
+        Returns: {
+          confidence: string
+          distance_approximate: boolean
+          distance_miles: number | null
+          part_id: string
+          total_count: number | null
+        }[]
+      }
       marketplace_catalogue_distance_page: {
         Args: {
           p_buyer_lat: number
@@ -3445,6 +3471,26 @@ export type Database = {
         Returns: {
           created_at: string
           part_id: string
+        }[]
+      }
+      marketplace_distance_page_v2: {
+        Args: {
+          p_buyer_lat: number
+          p_buyer_lon: number
+          p_category_ids?: string[]
+          p_collection_only?: boolean
+          p_condition?: string
+          p_limit?: number
+          p_max_price_pence?: number
+          p_min_price_pence?: number
+          p_offset?: number
+          p_part_ids?: string[]
+        }
+        Returns: {
+          distance_approximate: boolean
+          distance_miles: number | null
+          part_id: string
+          total_count: number | null
         }[]
       }
       marketplace_distance_page: {
