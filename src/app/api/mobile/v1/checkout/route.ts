@@ -6,6 +6,7 @@ import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
 import { getPartCompatibility } from "@/lib/data/compatibility";
 import type { MarketplaceFilters } from "@/lib/types";
 import { syncSellerPaymentAccount } from "@/lib/seller-payment-sync";
+import { reportOperationalError } from "@/lib/ops-monitoring";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -60,7 +61,8 @@ export async function POST(request:Request){
  try{
   const paymentStatus=await syncSellerPaymentAccount(part.seller_id);
   if(!paymentStatus.active)return mobileJson(request,{ok:false,error:"seller_payout_setup_required"},409);
- }catch{
+ }catch(error){
+  await reportOperationalError({component:"checkout",event:"mobile_seller_payout_status_check_failed",error,route:"/api/mobile/v1/checkout"});
   return mobileJson(request,{ok:false,error:"seller_payment_status_unavailable"},503);
  }
 
@@ -122,11 +124,27 @@ export async function POST(request:Request){
    checkoutUrl:session.url,
    expiresAt:reservation.checkout_expires_at
   },201);
- }catch{
+ }catch(error){
   const admin=createSupabaseAdminClient();
-  await admin.rpc("cancel_checkout_order",{
+  const {error:rollbackError}=await admin.rpc("cancel_checkout_order",{
    p_order_id:reservation.order_id,
    p_event_type:"mobile_checkout_setup_failed"
+  });
+  if(rollbackError){
+   await reportOperationalError({
+    severity:"critical",
+    component:"checkout",
+    event:"mobile_checkout_reservation_rollback_failed",
+    error:rollbackError,
+    route:"/api/mobile/v1/checkout"
+   });
+  }
+  await reportOperationalError({
+   severity:"critical",
+   component:"checkout",
+   event:"mobile_checkout_setup_failed",
+   error,
+   route:"/api/mobile/v1/checkout"
   });
   return mobileJson(request,{ok:false,error:"checkout_provider_unavailable"},503);
  }
