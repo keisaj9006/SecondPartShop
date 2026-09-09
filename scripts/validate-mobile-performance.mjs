@@ -26,6 +26,11 @@ const accountLoading=read("src/app/account/loading.tsx");
 const accountPage=read("src/app/account/page.tsx");
 const accountDashboard=read("src/components/account-dashboard-content.tsx");
 const reputation=read("src/lib/data/reputation.ts");
+const nativeMode=read("src/components/native-app-mode.tsx");
+const nativeTopBar=read("src/components/native-top-bar.tsx");
+const webHeader=read("src/components/header.tsx");
+const rootLayout=read("src/app/layout.tsx");
+const globals=read("src/app/globals.css");
 
 const checks=[
  ["Root navigation must not detach large DOM trees into a holder",!ui.includes("holder.append(...Array.from(app.childNodes))")],
@@ -71,7 +76,11 @@ const checks=[
  ["Inbox root tab must have an instant loading boundary",inboxLoading.includes('variant="inbox"')],
  ["Account root tab must have an instant loading boundary",accountLoading.includes('variant="account"')],
  ["Account heavy dashboard data must stream behind Suspense",accountPage.includes("<Suspense")&&accountPage.includes("AccountDashboardContent")&&accountDashboard.includes("Promise.all")],
- ["Account trust profile reads must be request-deduped",reputation.includes("getPublicMemberProfileById=cache(async")]
+ ["Account trust profile reads must be request-deduped",reputation.includes("getPublicMemberProfileById=cache(async")],
+ ["Native mode must persist a server-visible marker",nativeMode.includes("secondpart_native=1")&&nativeMode.includes("Max-Age=31536000")],
+ ["Native app must skip heavy server web header reads",webHeader.includes('cookies()')&&webHeader.includes('secondpart_native')&&webHeader.includes('return null')],
+ ["Native app must keep a persistent lightweight top bar",rootLayout.includes("<NativeTopBar />")&&nativeTopBar.includes('native-persistent-topbar')],
+ ["Native chrome must hide the per-page web header",globals.includes("html.native-app .app-topbar")&&globals.includes("display: none")&&globals.includes("html.native-app .native-persistent-topbar")]
 ];
 
 const failed=checks.filter(([,ok])=>!ok);
