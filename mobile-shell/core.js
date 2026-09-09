@@ -65,13 +65,18 @@ const setVehicleCompatibleOnly=(value)=>{
 };
 
 const responseCache=new Map();
+const responseCacheVersions=new Map();
 let sessionRefreshPromise=null;
 let meRequestPromise=null;
 let identityEpoch=0;
 const cacheKey=(path,auth)=>String(auth?"auth:":"public:")+String(path);
+const cacheVersion=(key)=>Number(responseCacheVersions.get(key)||0);
 const invalidateCache=(prefix="")=>{
- for(const key of responseCache.keys()){
-  if(!prefix||key.includes(String(prefix)))responseCache.delete(key);
+ for(const key of [...responseCache.keys()]){
+  if(!prefix||key.includes(String(prefix))){
+   responseCache.delete(key);
+   responseCacheVersions.set(key,cacheVersion(key)+1);
+  }
  }
 };
 
@@ -217,20 +222,26 @@ const authFetch=async(path,{method="POST",body,accessToken}={})=>{
 
 const refreshSession=async()=>{
  if(sessionRefreshPromise)return sessionRefreshPromise;
- sessionRefreshPromise=(async()=>{
+ const requestEpoch=identityEpoch;
+ const request=(async()=>{
   if(!state.sessionReady)await initializeSession();
   const current=state.session;
-  if(!current?.refreshToken){await clearSession();return null;}
+  if(!current?.refreshToken){
+   if(requestEpoch===identityEpoch)await clearSession();
+   return null;
+  }
   try{
    const payload=await authFetch("/token?grant_type=refresh_token",{body:{refresh_token:current.refreshToken}});
+   if(requestEpoch!==identityEpoch)return null;
    return await storeSession(payload);
   }catch{
-   await clearSession();
+   if(requestEpoch===identityEpoch)await clearSession();
    return null;
   }
  })();
- try{return await sessionRefreshPromise;}
- finally{sessionRefreshPromise=null;}
+ sessionRefreshPromise=request;
+ try{return await request;}
+ finally{if(sessionRefreshPromise===request)sessionRefreshPromise=null;}
 };
 
 const accessToken=async()=>{
@@ -308,6 +319,7 @@ const api=async(path,{method="GET",body,auth=false,retry=true}={})=>{
 
 const apiCached=async(path,{auth=false,maxAge=30000,refresh=false,staleWhileRevalidate=false}={})=>{
  const key=cacheKey(path,auth);
+ const version=cacheVersion(key);
  const existing=responseCache.get(key);
  const now=Date.now();
  const hasValue=Boolean(existing&&existing.value);
@@ -315,14 +327,15 @@ const apiCached=async(path,{auth=false,maxAge=30000,refresh=false,staleWhileReva
 
  // Navigation surfaces prefer instant stale data over blocking the UI on a
  // network refresh. Revalidate in the background and keep the last known-good
- // payload if that refresh fails.
+ // payload if that refresh fails. A cache invalidation also bumps the key
+ // version, so an older in-flight request cannot resurrect pre-mutation data.
  if(!refresh&&staleWhileRevalidate&&hasValue){
   if(!existing.promise){
    const background=api(path,{auth}).then(value=>{
-    responseCache.set(key,{value,at:Date.now(),promise:null});
+    if(cacheVersion(key)===version)responseCache.set(key,{value,at:Date.now(),promise:null});
     return value;
    }).catch(error=>{
-    responseCache.set(key,{value:existing.value,at:existing.at,promise:null});
+    if(cacheVersion(key)===version)responseCache.set(key,{value:existing.value,at:existing.at,promise:null});
     console.warn("[SecondPart] Background cache refresh failed",path,error);
     return existing.value;
    });
@@ -333,11 +346,13 @@ const apiCached=async(path,{auth=false,maxAge=30000,refresh=false,staleWhileReva
 
  if(existing?.promise)return existing.promise;
  const promise=api(path,{auth}).then(value=>{
-  responseCache.set(key,{value,at:Date.now(),promise:null});
+  if(cacheVersion(key)===version)responseCache.set(key,{value,at:Date.now(),promise:null});
   return value;
  }).catch(error=>{
-  if(hasValue)responseCache.set(key,{value:existing.value,at:existing.at,promise:null});
-  else responseCache.delete(key);
+  if(cacheVersion(key)===version){
+   if(hasValue)responseCache.set(key,{value:existing.value,at:existing.at,promise:null});
+   else responseCache.delete(key);
+  }
   throw error;
  });
  responseCache.set(key,{value:existing?.value??null,at:existing?.at??0,promise});
@@ -508,8 +523,9 @@ const loadMe=async()=>{
    return null;
   }
  })();
- try{return await meRequestPromise;}
- finally{meRequestPromise=null;}
+ const request=meRequestPromise;
+ try{return await request;}
+ finally{if(meRequestPromise===request)meRequestPromise=null;}
 };
 
 const refreshSaved=async()=>{
