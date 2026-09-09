@@ -12,6 +12,15 @@ const terms=read("src/app/terms/page.tsx");
 const accountDeletion=read("src/app/account-deletion/page.tsx");
 const accountSecurity=read("src/app/account/security/page.tsx");
 const contact=read("src/app/contact/page.tsx");
+const authForm=read("src/components/auth-form.tsx");
+const authActions=read("src/app/auth/actions.ts");
+const ugcPolicyMigration=read("supabase/migrations/20260909211500_ugc_terms_and_user_blocking.sql");
+const userReportMigration=read("supabase/migrations/20260909213000_marketplace_user_reports.sql");
+const blockButton=read("src/components/marketplace-user-block-button.tsx");
+const userReportPage=read("src/app/report-user/page.tsx");
+const moderationPage=read("src/app/admin/moderation/page.tsx");
+const dashboardActions=read("src/app/dashboard/actions.ts");
+const mobileApi=read("src/lib/mobile-api.ts");
 
 const checks=[
  ["Production Android package must be separate from Preview",productionPrep.includes('config.appId="com.secondpart.marketplace"')&&!productionPrep.includes('marketplace.preview')],
@@ -30,6 +39,16 @@ const checks=[
  ["In-app account deletion must remain available",accountSecurity.includes("Delete account")&&accountSecurity.includes("AccountDeletionForm")],
  ["Support route must remain available",contact.includes("Contact SecondPart")],
  ["Terms must describe current payment architecture",terms.includes("Stripe")&&terms.includes("buyer protection")&&!terms.includes("Payments are not enabled in the current preview")],
+ ["Signup must require current Terms acceptance",authForm.includes('name="termsAccepted"')&&authForm.includes("required")&&authActions.includes("terms_accepted")&&authActions.includes("CURRENT_MARKETPLACE_TERMS_VERSION")],
+ ["UGC Terms acceptance must be auditable in profiles",ugcPolicyMigration.includes("terms_accepted_at")&&ugcPolicyMigration.includes("terms_version")&&ugcPolicyMigration.includes("privacy_acknowledged_at")],
+ ["Pre-purchase messaging must enforce current Terms",ugcPolicyMigration.includes("Accept current Terms before messaging")&&ugcPolicyMigration.includes("has_current_marketplace_terms")],
+ ["Marketplace must support user blocking",ugcPolicyMigration.includes("create table if not exists public.user_blocks")&&blockButton.includes("Block user")&&blockButton.includes("Unblock user")],
+ ["Blocking must stop pre-purchase messaging",ugcPolicyMigration.includes("marketplace_users_blocked")&&ugcPolicyMigration.includes("Messaging is unavailable for this account")],
+ ["Marketplace must support direct user reports",userReportMigration.includes("reported_profile_id")&&userReportPage.includes("Report user")],
+ ["Direct user reports must feed moderation queue",moderationPage.includes("reported_profile_id")&&moderationPage.includes("Reported user")],
+ ["Terms must define prohibited UGC conduct and report/block controls",terms.includes("User-generated content and conduct")&&terms.includes("harassment")&&terms.includes("spam")&&terms.includes("block another user")],
+ ["Seller web UGC must enforce current Terms",dashboardActions.includes("hasCurrentMarketplaceTerms")],
+ ["Mobile seller UGC must expose a Terms gate",mobileApi.includes("mobileMarketplaceTermsAccepted")],
 ];
 
 const unresolved=[
