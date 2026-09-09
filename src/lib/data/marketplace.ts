@@ -156,6 +156,18 @@ const decodeMarketplaceCursor=(value:string|undefined,currentSort:MarketplaceCur
  }catch{return null;}
 };
 
+type CatalogueCursor={kind:"catalogue";createdAt:string;id:string;confidenceRank:number};
+const encodeCatalogueCursor=(cursor:CatalogueCursor)=>Buffer.from(JSON.stringify(cursor),"utf8").toString("base64url");
+const decodeCatalogueCursor=(value:string|undefined):CatalogueCursor|null=>{
+ if(!value)return null;
+ try{
+  const parsed=JSON.parse(Buffer.from(value,"base64url").toString("utf8")) as Partial<CatalogueCursor>;
+  if(parsed.kind!=="catalogue"||typeof parsed.createdAt!=="string"||typeof parsed.id!=="string"||!Number.isInteger(parsed.confidenceRank))return null;
+  if(Number.isNaN(Date.parse(parsed.createdAt))||!/^[0-9a-f-]{36}$/i.test(parsed.id))return null;
+  return {kind:"catalogue",createdAt:parsed.createdAt,id:parsed.id,confidenceRank:parsed.confidenceRank as number};
+ }catch{return null;}
+};
+
 export async function getMarketplacePage(
  filters:MarketplaceFilters={},
  options:{offset?:number;limit?:number;cursor?:string;lean?:boolean}={}
@@ -344,6 +356,62 @@ export async function getMarketplacePage(
     }
    }
    if(!rankedIds.length)return {data:[],error:null,configured:true,pagination:emptyPagination};
+  }
+
+  const canUseCatalogueCursor=sort==="best"&&!filters.query?.trim();
+  if(canUseCatalogueCursor){
+   const cursor=decodeCatalogueCursor(options.cursor);
+   const {data:cursorRows,error:cursorError}=await supabase.rpc("marketplace_catalogue_cursor_page_v1",{
+    p_variant_id:filters.catalogueVariant,
+    p_year:filters.catalogueYear,
+    p_fuel:filters.catalogueFuel,
+    p_engine:filters.catalogueEngineSize,
+    p_category_ids:categoryIds,
+    p_condition:filters.condition,
+    p_min_price_pence:Number.isFinite(filters.minPrice)?Math.round((filters.minPrice??0)*100):undefined,
+    p_max_price_pence:Number.isFinite(filters.maxPrice)?Math.round((filters.maxPrice??0)*100):undefined,
+    p_collection_only:Boolean(filters.collectionOnly),
+    p_compatible_only:filters.compatibleOnly!==false,
+    p_after_confidence_rank:cursor?.confidenceRank,
+    p_after_created_at:cursor?.createdAt,
+    p_after_id:cursor?.id,
+    p_limit:limit+1
+   });
+   if(cursorError)return {...failure([],"Compatibility data is temporarily unavailable."),pagination:emptyPagination};
+
+   const rawRows=cursorRows??[];
+   const hasMore=rawRows.length>limit;
+   const visibleRows=rawRows.slice(0,limit);
+   const ids=visibleRows.map(row=>row.part_id);
+   if(!ids.length){
+    return {data:[],error:null,configured:true,pagination:{offset:0,limit,returned:0,total:null,hasMore:false,mode:"cursor",nextCursor:null}};
+   }
+
+   const confidence=new Map(visibleRows.map(row=>[row.part_id,row.confidence] as const));
+   const {data:rows,error:rowError}=await supabase.from("parts").select(cardSelect).in("id",ids);
+   if(rowError)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
+   const cardListings=await hydrateCards(supabase,rows??[]);
+   const byId=new Map(cardListings.map(item=>[item.id,item] as const));
+   const listings=ids.flatMap(id=>{
+    const item=byId.get(id);
+    const level=confidence.get(id);
+    if(!item||!(level==="confirmed"||level==="buyer_verified"||level==="family_match"||level==="unverified"))return [];
+    return [{...item,compatibility:compatibilityInfo(level)}];
+   });
+   const last=visibleRows.at(-1);
+   const nextCursor=hasMore&&last?encodeCatalogueCursor({
+    kind:"catalogue",
+    createdAt:last.created_at,
+    id:last.part_id,
+    confidenceRank:last.confidence_rank
+   }):null;
+
+   return {
+    data:listings,
+    error:null,
+    configured:true,
+    pagination:{offset:0,limit,returned:listings.length,total:null,hasMore,mode:"cursor",nextCursor}
+   };
   }
 
   const {data:pageRows,error:pageError}=await supabase.rpc("marketplace_catalogue_sorted_page",{
