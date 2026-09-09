@@ -21,6 +21,11 @@ const userReportPage=read("src/app/report-user/page.tsx");
 const moderationPage=read("src/app/admin/moderation/page.tsx");
 const dashboardActions=read("src/app/dashboard/actions.ts");
 const mobileApi=read("src/lib/mobile-api.ts");
+const dashboardImportActions=read("src/app/dashboard/import/actions.ts");
+const mobileImportRoute=read("src/app/api/mobile/v1/seller/imports/route.ts");
+const requestActions=read("src/app/requests/actions.ts");
+const mobileRequestRoute=read("src/app/api/mobile/v1/requests/route.ts");
+const reviewTermsGate=read("supabase/migrations/20260909214500_review_ugc_terms_gate.sql");
 
 const checks=[
  ["Production Android package must be separate from Preview",productionPrep.includes('config.appId="com.secondpart.marketplace"')&&!productionPrep.includes('marketplace.preview')],
@@ -49,6 +54,9 @@ const checks=[
  ["Terms must define prohibited UGC conduct and report/block controls",terms.includes("User-generated content and conduct")&&terms.includes("harassment")&&terms.includes("spam")&&terms.includes("block another user")],
  ["Seller web UGC must enforce current Terms",dashboardActions.includes("hasCurrentMarketplaceTerms")],
  ["Mobile seller UGC must expose a Terms gate",mobileApi.includes("mobileMarketplaceTermsAccepted")],
+ ["Bulk inventory import must enforce current Terms",dashboardImportActions.includes("hasCurrentMarketplaceTerms")&&mobileImportRoute.includes("mobileMarketplaceTermsAccepted")&&mobileImportRoute.includes("terms_required")],
+ ["Find My Part UGC must enforce current Terms",requestActions.includes("hasCurrentMarketplaceTerms")&&mobileRequestRoute.includes("mobileMarketplaceTermsAccepted")&&mobileRequestRoute.includes("terms_required")],
+ ["Reviews must enforce Terms at the database boundary",reviewTermsGate.includes("transaction_reviews_terms_gate")&&reviewTermsGate.includes("verified_fit_feedback_terms_gate")&&reviewTermsGate.includes("has_current_marketplace_terms")],
 ];
 
 const unresolved=[
