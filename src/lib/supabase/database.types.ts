@@ -3388,6 +3388,22 @@ export type Database = {
           total_count: number
         }[]
       }
+      marketplace_browse_cursor_page: {
+        Args: {
+          p_after_created_at?: string
+          p_after_id?: string
+          p_category_ids?: string[]
+          p_collection_only?: boolean
+          p_condition?: string
+          p_limit?: number
+          p_max_price_pence?: number
+          p_min_price_pence?: number
+        }
+        Returns: {
+          created_at: string
+          part_id: string
+        }[]
+      }
       marketplace_distance_page: {
         Args: {
           p_buyer_lat: number
