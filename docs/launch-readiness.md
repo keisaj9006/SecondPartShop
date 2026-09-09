@@ -38,6 +38,7 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [x] Database messaging RPCs enforce Terms acceptance and user blocks.
 - [x] Seller listing/profile/photo UGC, bulk inventory imports, reviews/fit feedback and Find My Part requests are Terms-gated across relevant web/mobile paths.
 - [x] Review / verified-fit Terms enforcement also exists at the database boundary.
+- [x] Silent-buyer payout fallback is explicit: no payout is released from buyer inactivity alone; stale unverified shipments enter admin evidence review before the normal Buyer Protection window can start.
 
 ## P0 — before the first real Google Play release candidate
 
@@ -55,12 +56,27 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [ ] Complete a real Stripe test-mode E2E transaction: buyer checkout -> webhook confirmation -> seller fulfilment -> buyer receipt/acceptance -> payout eligibility.
 - [ ] Test cancellation, refund, return/case, payment-dispute and payout-reversal paths end to end.
 - [ ] Test concurrency/stock reservation with competing checkout attempts.
-- [ ] Decide and document the payout policy when a buyer never marks an item as received and no trusted carrier delivery event exists.
+- [x] Decide and document the payout policy when a buyer never marks an item as received and no trusted carrier delivery event exists.
 - [ ] Define the account-data retention matrix for transactions, disputes, fraud prevention and legal records.
 - [ ] Implement and test the operational account deletion/anonymisation processor; a request must not merely freeze an account.
 - [ ] Final legal review of Privacy Policy and Terms with real contracting/developer identity, contact details, consumer-rights wording, seller obligations, returns/refunds, fees and retention.
 - [ ] Add a public privacy/support contact suitable for the Play listing.
 - [ ] Add production error/crash monitoring and alerting for web/API/checkout failures.
+
+## Buyer Protection — silent buyer / unverified delivery policy
+
+For shipped orders, SecondPart uses the following release hierarchy:
+
+1. If the buyer explicitly accepts the item, seller payout can become eligible immediately, subject to payment/case safety checks.
+2. If the buyer confirms receipt but does not immediately accept, the configured Buyer Protection release window runs before payout.
+3. A future trusted carrier integration may start the same Buyer Protection window from a verified delivery event.
+4. If the buyer does not confirm receipt and there is no trusted carrier delivery event, **silence alone never releases seller funds**.
+5. After the configured unverified-delivery review age (default: 14 days from dispatch), the shipment appears in the admin commerce payout-review queue.
+6. An administrator must review the seller's shipment/tracking reference. Approval starts the normal Buyer Protection window (default: 48 hours), sends a final notice to the buyer and notifies the seller.
+7. Any buyer return/dispute/cancellation case opened before release blocks the payout.
+8. Local collection is intentionally excluded from this fallback until SecondPart has a trusted collection handoff proof (for example a one-time collection code/QR or buyer confirmation).
+
+This policy is intentionally conservative for launch: it prevents both indefinite seller holds and blind auto-release based only on buyer inactivity. Once trusted carrier delivery events are integrated and proven, manual review can be reduced for eligible tracked shipments.
 
 ## Google Play Console / policy work
 
