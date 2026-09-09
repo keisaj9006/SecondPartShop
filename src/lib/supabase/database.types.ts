@@ -203,14 +203,14 @@ export type Database = {
           created_at: string
           fitting_request_id: string
           id: string
-          sender_profile_id: string
+          sender_profile_id: string | null
         }
         Insert: {
           body: string
           created_at?: string
           fitting_request_id: string
           id?: string
-          sender_profile_id: string
+          sender_profile_id: string | null
         }
         Update: {
           body?: string
@@ -238,7 +238,7 @@ export type Database = {
       }
       fitting_requests: {
         Row: {
-          buyer_id: string
+          buyer_id: string | null
           buyer_notes: string | null
           buyer_responded_at: string | null
           completed_at: string | null
@@ -259,7 +259,7 @@ export type Database = {
           vehicle_year: number
         }
         Insert: {
-          buyer_id: string
+          buyer_id: string | null
           buyer_notes?: string | null
           buyer_responded_at?: string | null
           completed_at?: string | null
@@ -420,7 +420,7 @@ export type Database = {
           location: string
           longitude: number | null
           mobile_fitting: boolean
-          owner_id: string
+          owner_id: string | null
           postcode: string
           recycled_parts: boolean
           slug: string
@@ -438,7 +438,7 @@ export type Database = {
           location: string
           longitude?: number | null
           mobile_fitting?: boolean
-          owner_id: string
+          owner_id: string | null
           postcode: string
           recycled_parts?: boolean
           slug: string
@@ -1114,7 +1114,7 @@ export type Database = {
       }
       orders: {
         Row: {
-          buyer_id: string
+          buyer_id: string | null
           cancelled_at: string | null
           checkout_expires_at: string | null
           created_at: string
@@ -1137,7 +1137,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          buyer_id: string
+          buyer_id: string | null
           cancelled_at?: string | null
           checkout_expires_at?: string | null
           created_at?: string
@@ -1929,7 +1929,7 @@ export type Database = {
       seller_prospect_activities: {
         Row: {
           activity_type: string
-          actor_profile_id: string
+          actor_profile_id: string | null
           created_at: string
           id: string
           next_action_at: string | null
@@ -1939,7 +1939,7 @@ export type Database = {
         }
         Insert: {
           activity_type: string
-          actor_profile_id: string
+          actor_profile_id: string | null
           created_at?: string
           id?: string
           next_action_at?: string | null
@@ -1977,7 +1977,7 @@ export type Database = {
       seller_prospect_invites: {
         Row: {
           created_at: string
-          created_by: string
+          created_by: string | null
           expires_at: string
           id: string
           prospect_id: string
@@ -1987,7 +1987,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          created_by: string
+          created_by: string | null
           expires_at: string
           id?: string
           prospect_id: string
@@ -2284,7 +2284,7 @@ export type Database = {
           mime_type: string
           original_name: string
           storage_path: string
-          uploader_profile_id: string
+          uploader_profile_id: string | null
         }
         Insert: {
           case_id: string
@@ -2293,7 +2293,7 @@ export type Database = {
           mime_type: string
           original_name: string
           storage_path: string
-          uploader_profile_id: string
+          uploader_profile_id: string | null
         }
         Update: {
           case_id?: string
@@ -2433,14 +2433,14 @@ export type Database = {
           created_at: string
           id: string
           order_item_id: string
-          sender_profile_id: string
+          sender_profile_id: string | null
         }
         Insert: {
           body: string
           created_at?: string
           id?: string
           order_item_id: string
-          sender_profile_id: string
+          sender_profile_id: string | null
         }
         Update: {
           body?: string
