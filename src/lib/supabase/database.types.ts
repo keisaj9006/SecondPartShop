@@ -96,6 +96,7 @@ export type Database = {
           checkout_reservation_minutes: number
           platform_fee_bps: number
           singleton: boolean
+          unverified_delivery_review_days: number
           updated_at: string
         }
         Insert: {
@@ -103,6 +104,7 @@ export type Database = {
           checkout_reservation_minutes?: number
           platform_fee_bps?: number
           singleton?: boolean
+          unverified_delivery_review_days?: number
           updated_at?: string
         }
         Update: {
@@ -110,6 +112,7 @@ export type Database = {
           checkout_reservation_minutes?: number
           platform_fee_bps?: number
           singleton?: boolean
+          unverified_delivery_review_days?: number
           updated_at?: string
         }
         Relationships: []
@@ -2933,6 +2936,10 @@ export type Database = {
           checkout_ready_listings: number
         }[]
       }
+      admin_start_unverified_delivery_release_window: {
+        Args: { p_order_item_id: string }
+        Returns: boolean
+      }
       admin_authorize_transaction_return: {
         Args: { p_case_id: string; p_notes?: string }
         Returns: boolean
@@ -3153,6 +3160,21 @@ export type Database = {
         Args: { p_limit?: number }
         Returns: {
           order_item_id: string
+        }[]
+      }
+      get_unverified_delivery_payout_reviews: {
+        Args: { p_limit?: number }
+        Returns: {
+          age_days: number
+          dispatched_at: string
+          order_id: string
+          order_item_id: string
+          part_slug: string
+          part_title: string
+          seller_name: string
+          seller_net_pence: number
+          tracking_carrier: string | null
+          tracking_number: string
         }[]
       }
       get_existing_csv_inventory_references: {
