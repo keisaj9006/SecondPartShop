@@ -15,6 +15,8 @@ export type MarketplacePagination={
  returned:number;
  total:number|null;
  hasMore:boolean;
+ mode:"offset"|"cursor";
+ nextCursor:string|null;
 };
 export type MarketplacePageResult=DataResult<Listing[]>&{pagination:MarketplacePagination};
 
@@ -24,11 +26,11 @@ type RawVehicle={id:string;make:string;model:string;generation:string;year:numbe
 type RawImage={id:string;storage_path:string;alt_text:string;position:number};
 type RawCoverImage=RawImage&{part_id:string};
 type RawFitment={notes:string|null;vehicles:RawVehicle|RawVehicle[]|null};
-type RawListing={id:string;seller_id:string;category_id:string;donor_vehicle_id:string|null;source_channel:Listing["sourceChannel"];source_external_id:string|null;import_batch_id:string|null;slug:string;title:string;description:string;manufacturer:string|null;part_number:string|null;oem_number:string|null;gearbox_family:string|null;gearbox_code:string|null;condition:Listing["condition"];price_pence:number;shipping_pence:number;stock:number;status:Listing["status"];dispatch_days:number;testing_status:Listing["testingStatus"];warranty_days:number;condition_notes:string|null;damage_notes:string|null;collection_available:boolean;delivery_days_min:number|null;delivery_days_max:number|null;categories:RawCategory|RawCategory[];sellers:RawSeller|RawSeller[];part_images:RawImage[]|null;part_fitments:RawFitment[]|null};
+type RawListing={id:string;created_at?:string;seller_id:string;category_id:string;donor_vehicle_id:string|null;source_channel:Listing["sourceChannel"];source_external_id:string|null;import_batch_id:string|null;slug:string;title:string;description:string;manufacturer:string|null;part_number:string|null;oem_number:string|null;gearbox_family:string|null;gearbox_code:string|null;condition:Listing["condition"];price_pence:number;shipping_pence:number;stock:number;status:Listing["status"];dispatch_days:number;testing_status:Listing["testingStatus"];warranty_days:number;condition_notes:string|null;damage_notes:string|null;collection_available:boolean;delivery_days_min:number|null;delivery_days_max:number|null;categories:RawCategory|RawCategory[];sellers:RawSeller|RawSeller[];part_images:RawImage[]|null;part_fitments:RawFitment[]|null};
 
 const categorySelect="id,parent_id,name,slug,is_transmission_related,is_selectable,sort_order,search_terms";
 const selectListing=()=>`id,seller_id,category_id,donor_vehicle_id,source_channel,source_external_id,import_batch_id,slug,title,description,manufacturer,part_number,oem_number,gearbox_family,gearbox_code,condition,price_pence,shipping_pence,stock,status,dispatch_days,testing_status,warranty_days,condition_notes,damage_notes,collection_available,delivery_days_min,delivery_days_max,categories!inner(${categorySelect}),sellers!inner(id,owner_id,business_name,slug,location,postcode,description,verified_at,seller_type,business_kind),part_images(id,storage_path,alt_text,position),part_fitments(notes,vehicles(id,make,model,generation,year,engine,engine_code,fuel_type,gearbox_family,gearbox_code,data_status,source_reference))`;
-const selectListingCard=()=>`id,seller_id,category_id,donor_vehicle_id,source_channel,source_external_id,import_batch_id,slug,title,description,manufacturer,part_number,oem_number,gearbox_family,gearbox_code,condition,price_pence,shipping_pence,stock,status,dispatch_days,testing_status,warranty_days,condition_notes,damage_notes,collection_available,delivery_days_min,delivery_days_max,categories!inner(${categorySelect}),sellers!inner(id,owner_id,business_name,slug,location,postcode,description,verified_at,seller_type,business_kind)`;
+const selectListingCard=()=>`id,created_at,seller_id,category_id,donor_vehicle_id,source_channel,source_external_id,import_batch_id,slug,title,description,manufacturer,part_number,oem_number,gearbox_family,gearbox_code,condition,price_pence,shipping_pence,stock,status,dispatch_days,testing_status,warranty_days,condition_notes,damage_notes,collection_available,delivery_days_min,delivery_days_max,categories!inner(${categorySelect}),sellers!inner(id,owner_id,business_name,slug,location,postcode,description,verified_at,seller_type,business_kind)`;
 const one=<T>(value:T|T[])=>Array.isArray(value)?value[0]:value;
 const categoryFrom=(c:RawCategory):Category=>({id:c.id,parentId:c.parent_id,name:c.name,slug:c.slug,isTransmissionRelated:c.is_transmission_related,isSelectable:c.is_selectable,sortOrder:c.sort_order,searchTerms:c.search_terms??[]});
 const vehicleFrom=(v:RawVehicle):Vehicle=>({id:v.id,make:v.make,model:v.model,generation:v.generation,year:v.year,engine:v.engine,engineCode:v.engine_code,fuelType:v.fuel_type,gearboxFamily:v.gearbox_family,gearboxCode:v.gearbox_code,dataStatus:v.data_status,sourceReference:v.source_reference});
@@ -119,13 +121,25 @@ export async function getListings(filters:MarketplaceFilters={}):Promise<DataRes
  return {data:listings,error:null,configured:true};
 }
 
+type MarketplaceCursor={createdAt:string;id:string};
+const encodeMarketplaceCursor=(cursor:MarketplaceCursor)=>Buffer.from(JSON.stringify(cursor),"utf8").toString("base64url");
+const decodeMarketplaceCursor=(value:string|undefined):MarketplaceCursor|null=>{
+ if(!value)return null;
+ try{
+  const parsed=JSON.parse(Buffer.from(value,"base64url").toString("utf8")) as Partial<MarketplaceCursor>;
+  if(typeof parsed.createdAt!=="string"||typeof parsed.id!=="string")return null;
+  if(Number.isNaN(Date.parse(parsed.createdAt))||!/^[0-9a-f-]{36}$/i.test(parsed.id))return null;
+  return {createdAt:parsed.createdAt,id:parsed.id};
+ }catch{return null;}
+};
+
 export async function getMarketplacePage(
  filters:MarketplaceFilters={},
- options:{offset?:number;limit?:number}={}
+ options:{offset?:number;limit?:number;cursor?:string}={}
 ):Promise<MarketplacePageResult>{
  const limit=Math.max(1,Math.min(Math.floor(options.limit??24),60));
  const offset=Math.max(0,Math.floor(options.offset??0));
- const emptyPagination={offset,limit,returned:0,total:0,hasMore:false};
+ const emptyPagination={offset,limit,returned:0,total:0,hasMore:false,mode:"offset" as const,nextCursor:null};
  if(!isSupabaseConfigured())return {...failure([],"Connect Supabase to load marketplace data.",false),pagination:emptyPagination};
 
  const supabase=await createSupabaseServerClient();
@@ -139,12 +153,60 @@ export async function getMarketplacePage(
 
  const sort=filters.sort??"best";
 
+ // Default marketplace browsing uses keyset pagination. This keeps the cost of
+ // "next results" stable even when the catalogue grows to hundreds of thousands
+ // of rows, instead of asking PostgreSQL to skip an ever-growing OFFSET.
+ const canUseCursor=
+  sort==="best" &&
+  !filters.query?.trim() &&
+  !filters.vehicle &&
+  !filters.catalogueVariant &&
+  !filters.ids?.length;
+
+ if(canUseCursor){
+  const cursor=decodeMarketplaceCursor(options.cursor);
+  const {data:pageRows,error:pageError}=await supabase.rpc("marketplace_browse_cursor_page",{
+   p_category_ids:categoryIds,
+   p_condition:filters.condition,
+   p_min_price_pence:Number.isFinite(filters.minPrice)?Math.round((filters.minPrice??0)*100):undefined,
+   p_max_price_pence:Number.isFinite(filters.maxPrice)?Math.round((filters.maxPrice??0)*100):undefined,
+   p_collection_only:Boolean(filters.collectionOnly),
+   p_after_created_at:cursor?.createdAt,
+   p_after_id:cursor?.id,
+   p_limit:limit+1
+  });
+  if(pageError)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
+
+  const rawPage=pageRows??[];
+  const hasMore=rawPage.length>limit;
+  const visibleRows=rawPage.slice(0,limit);
+  const ids=visibleRows.map(row=>row.part_id);
+  if(!ids.length){
+   return {data:[],error:null,configured:true,pagination:{offset:0,limit,returned:0,total:null,hasMore:false,mode:"cursor",nextCursor:null}};
+  }
+
+  const {data:rows,error:rowError}=await supabase.from("parts").select(selectListingCard()).in("id",ids);
+  if(rowError)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
+  const cardListings=await cardListingsFromRows(supabase,rows??[]);
+  const byId=new Map(cardListings.map(item=>[item.id,item] as const));
+  const listings=ids.map(id=>byId.get(id)).filter((item):item is Listing=>Boolean(item));
+  const last=visibleRows.at(-1);
+  const nextCursor=hasMore&&last?encodeMarketplaceCursor({createdAt:last.created_at,id:last.part_id}):null;
+
+  return {
+   data:listings,
+   error:null,
+   configured:true,
+   pagination:{offset:0,limit,returned:listings.length,total:null,hasMore,mode:"cursor",nextCursor}
+  };
+ }
+
  // Distance sorting is also paged inside PostgreSQL. Seller coordinates are persisted
  // on profile save; only the buyer postcode is resolved for the current request.
  if(sort==="distance"){
   if(filters.vehicle&&!filters.catalogueVariant){
    const result=await getListings(filters);
-   return {...result,pagination:{offset,limit,returned:result.data.length,total:result.data.length,hasMore:false}};
+   return {...result,pagination:{offset,limit,returned:result.data.length,total:result.data.length,hasMore:false,mode:"offset",nextCursor:null}};
   }
   const buyer=filters.postcode?await lookupPostcodeLocation(filters.postcode):null;
   if(!buyer)return {...failure([],"Enter a valid UK postcode to sort by distance."),pagination:emptyPagination};
@@ -195,7 +257,7 @@ export async function getMarketplacePage(
   const hasMore=rawPageRows.length>limit;
   const pageRows=rawPageRows.slice(0,limit);
   const ids=pageRows.map(row=>row.part_id);
-  if(!ids.length)return {data:[],error:null,configured:true,pagination:{offset,limit,returned:0,total:null,hasMore:false}};
+  if(!ids.length)return {data:[],error:null,configured:true,pagination:{offset,limit,returned:0,total:null,hasMore:false,mode:"offset",nextCursor:null}};
   const distanceById=new Map(pageRows.map(row=>[row.part_id,{
    miles:row.distance_miles===null?null:Math.round(Number(row.distance_miles)*10)/10,
    approximate:Boolean(row.distance_approximate)
@@ -273,7 +335,7 @@ export async function getMarketplacePage(
   const visibleRows=rawRows.slice(0,limit);
   const ids=visibleRows.map(row=>row.part_id);
   if(!ids.length){
-   return {data:[],error:null,configured:true,pagination:{offset,limit,returned:0,total:null,hasMore:false}};
+   return {data:[],error:null,configured:true,pagination:{offset,limit,returned:0,total:null,hasMore:false,mode:"offset",nextCursor:null}};
   }
   const confidence=new Map(visibleRows.map(row=>[row.part_id,row.confidence] as const));
   const {data:rows,error:rowError}=await supabase.from("parts").select(selectListingCard()).in("id",ids);
@@ -341,7 +403,7 @@ export async function getMarketplacePage(
   const allowed=new Set((idRows??[]).map(row=>row.id));
   const filteredIds=rankedIds.filter(id=>allowed.has(id));
   const pageIds=filteredIds.slice(offset,offset+limit);
-  if(!pageIds.length)return {data:[],error:null,configured:true,pagination:{offset,limit,returned:0,total:filteredIds.length,hasMore:false}};
+  if(!pageIds.length)return {data:[],error:null,configured:true,pagination:{offset,limit,returned:0,total:filteredIds.length,hasMore:false,mode:"offset",nextCursor:null}};
 
   const {data:rows,error:rowError}=await supabase.from("parts").select(selectListingCard()).in("id",pageIds);
   if(rowError)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
@@ -499,7 +561,7 @@ export async function getListingCardsByIds(ids:string[]):Promise<Listing[]>{
 export async function getSavedListingsPage(userId:string,options:{offset?:number;limit?:number}={}){
  const limit=Math.max(1,Math.min(Math.floor(options.limit??24),60));
  const offset=Math.max(0,Math.floor(options.offset??0));
- if(!isSupabaseConfigured())return {data:[] as Listing[],error:null,configured:false,pagination:{offset,limit,returned:0,hasMore:false}};
+ if(!isSupabaseConfigured())return {data:[] as Listing[],error:null,configured:false,pagination:{offset,limit,returned:0,hasMore:false,mode:"offset",nextCursor:null}};
  const supabase=await createSupabaseServerClient();
  const {data,error}=await supabase
   .from("saved_parts")
@@ -508,12 +570,12 @@ export async function getSavedListingsPage(userId:string,options:{offset?:number
   .order("created_at",{ascending:false})
   .order("part_id")
   .range(offset,offset+limit);
- if(error)return {data:[] as Listing[],error:"Saved parts are temporarily unavailable.",configured:true,pagination:{offset,limit,returned:0,hasMore:false}};
+ if(error)return {data:[] as Listing[],error:"Saved parts are temporarily unavailable.",configured:true,pagination:{offset,limit,returned:0,hasMore:false,mode:"offset",nextCursor:null}};
  const raw=data??[];
  const hasMore=raw.length>limit;
  const ids=raw.slice(0,limit).map(row=>row.part_id);
  const listings=await getListingCardsByIds(ids);
- return {data:listings,error:null,configured:true,pagination:{offset,limit,returned:listings.length,hasMore}};
+ return {data:listings,error:null,configured:true,pagination:{offset,limit,returned:listings.length,hasMore,mode:"offset",nextCursor:null}};
 }
 
 export async function getSavedListings(userId:string):Promise<DataResult<Listing[]>>{
