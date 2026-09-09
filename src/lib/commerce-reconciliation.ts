@@ -2,6 +2,7 @@ import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getCheckoutSession,getPaymentIntent,isStripeCheckoutConfigured } from "@/lib/stripe-payments";
+import { reportOperationalWarning } from "@/lib/ops-monitoring";
 
 type PendingOrder={
  id:string;
@@ -101,7 +102,12 @@ export async function reconcileStripeOrder(orderId:string,expectedSessionId?:str
 
  try{
   return await reconcileOrderRow(admin,data as PendingOrder);
- }catch{
+ }catch(error){
+  reportOperationalWarning({
+   component:"reconciliation",
+   event:"single_order_reconciliation_failed",
+   message:error instanceof Error?error.message:"Stripe reconciliation failed."
+  });
   return {state:"deferred" as const};
  }
 }
@@ -130,8 +136,13 @@ export async function reconcileStripeOrders(limit=100){
    if(result.state==="paid")repairedPaid+=1;
    else if(result.state==="expired")repairedExpired+=1;
    else deferred+=1;
-  }catch{
+  }catch(error){
    deferred+=1;
+   reportOperationalWarning({
+    component:"reconciliation",
+    event:"batch_order_reconciliation_failed",
+    message:error instanceof Error?error.message:"Stripe reconciliation failed."
+   });
   }
  }
 
