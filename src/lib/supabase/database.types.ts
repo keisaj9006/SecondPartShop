@@ -3541,6 +3541,18 @@ export type Database = {
         Args: { p_order_item_id: string }
         Returns: boolean
       }
+      seller_inventory_cursor_page: {
+        Args: {
+          p_after_id?: string
+          p_after_updated_at?: string
+          p_limit?: number
+          p_seller_id: string
+        }
+        Returns: {
+          part_id: string
+          updated_at: string
+        }[]
+      }
       seller_checkout_ready: { Args: { p_seller_id: string }; Returns: boolean }
       seller_confirm_transaction_return_received: {
         Args: { p_case_id: string }

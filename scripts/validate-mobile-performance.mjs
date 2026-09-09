@@ -16,6 +16,7 @@ const marketplaceHome=read("src/components/marketplace-home.tsx");
 const previewPrep=read("scripts/prepare-android-preview.mjs");
 const searchScaleMigration=read("supabase/migrations/20260909100500_indexed_marketplace_search_candidates.sql");
 const cursorMigration=read("supabase/migrations/20260909103000_marketplace_cursor_pagination.sql");
+const sellerCursorMigration=read("supabase/migrations/20260909104500_seller_inventory_cursor_pagination.sql");
 const garageLoading=read("src/app/garage/loading.tsx");
 const purchasesLoading=read("src/app/account/orders/loading.tsx");
 const inboxLoading=read("src/app/inbox/loading.tsx");
@@ -58,6 +59,8 @@ const checks=[
  ["Cursor pagination must use stable created_at + id ordering",cursorMigration.includes("(p.created_at,p.id)<(p_after_created_at,p_after_id)")&&cursorMigration.includes("order by p.created_at desc,p.id desc")],
  ["Search ranking must stay bounded to indexed candidates",searchScaleMigration.includes("candidate_rows as")&&searchScaleMigration.includes("candidate_limit")],
  ["Cursor UI must avoid deep OFFSET page links",marketplaceHome.includes('pagination.mode==="cursor"')&&marketplaceHome.includes("Next 24 parts")],
+ ["Large seller inventory must use keyset pagination by default",marketplaceData.includes("seller_inventory_cursor_page")&&marketplaceData.includes("encodeSellerInventoryCursor")],
+ ["Seller cursor must match seller updated-at index order",sellerCursorMigration.includes("(p.updated_at,p.id)<(p_after_updated_at,p_after_id)")&&sellerCursorMigration.includes("order by p.updated_at desc,p.id desc")],
  ["Android Preview must keep loading the full Next.js frontend",previewPrep.includes("second-part-shop-preview.vercel.app")&&previewPrep.includes("config.server=")],
  ["Garage root tab must have an instant loading boundary",garageLoading.includes('variant="garage"')],
  ["Purchases root tab must have an instant loading boundary",purchasesLoading.includes('variant="purchases"')],

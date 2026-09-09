@@ -26,11 +26,11 @@ type RawVehicle={id:string;make:string;model:string;generation:string;year:numbe
 type RawImage={id:string;storage_path:string;alt_text:string;position:number};
 type RawCoverImage=RawImage&{part_id:string};
 type RawFitment={notes:string|null;vehicles:RawVehicle|RawVehicle[]|null};
-type RawListing={id:string;created_at?:string;seller_id:string;category_id:string;donor_vehicle_id:string|null;source_channel:Listing["sourceChannel"];source_external_id:string|null;import_batch_id:string|null;slug:string;title:string;description:string;manufacturer:string|null;part_number:string|null;oem_number:string|null;gearbox_family:string|null;gearbox_code:string|null;condition:Listing["condition"];price_pence:number;shipping_pence:number;stock:number;status:Listing["status"];dispatch_days:number;testing_status:Listing["testingStatus"];warranty_days:number;condition_notes:string|null;damage_notes:string|null;collection_available:boolean;delivery_days_min:number|null;delivery_days_max:number|null;categories:RawCategory|RawCategory[];sellers:RawSeller|RawSeller[];part_images:RawImage[]|null;part_fitments:RawFitment[]|null};
+type RawListing={id:string;created_at?:string;updated_at?:string;seller_id:string;category_id:string;donor_vehicle_id:string|null;source_channel:Listing["sourceChannel"];source_external_id:string|null;import_batch_id:string|null;slug:string;title:string;description:string;manufacturer:string|null;part_number:string|null;oem_number:string|null;gearbox_family:string|null;gearbox_code:string|null;condition:Listing["condition"];price_pence:number;shipping_pence:number;stock:number;status:Listing["status"];dispatch_days:number;testing_status:Listing["testingStatus"];warranty_days:number;condition_notes:string|null;damage_notes:string|null;collection_available:boolean;delivery_days_min:number|null;delivery_days_max:number|null;categories:RawCategory|RawCategory[];sellers:RawSeller|RawSeller[];part_images:RawImage[]|null;part_fitments:RawFitment[]|null};
 
 const categorySelect="id,parent_id,name,slug,is_transmission_related,is_selectable,sort_order,search_terms";
 const selectListing=()=>`id,seller_id,category_id,donor_vehicle_id,source_channel,source_external_id,import_batch_id,slug,title,description,manufacturer,part_number,oem_number,gearbox_family,gearbox_code,condition,price_pence,shipping_pence,stock,status,dispatch_days,testing_status,warranty_days,condition_notes,damage_notes,collection_available,delivery_days_min,delivery_days_max,categories!inner(${categorySelect}),sellers!inner(id,owner_id,business_name,slug,location,postcode,description,verified_at,seller_type,business_kind),part_images(id,storage_path,alt_text,position),part_fitments(notes,vehicles(id,make,model,generation,year,engine,engine_code,fuel_type,gearbox_family,gearbox_code,data_status,source_reference))`;
-const selectListingCard=()=>`id,created_at,seller_id,category_id,donor_vehicle_id,source_channel,source_external_id,import_batch_id,slug,title,description,manufacturer,part_number,oem_number,gearbox_family,gearbox_code,condition,price_pence,shipping_pence,stock,status,dispatch_days,testing_status,warranty_days,condition_notes,damage_notes,collection_available,delivery_days_min,delivery_days_max,categories!inner(${categorySelect}),sellers!inner(id,owner_id,business_name,slug,location,postcode,description,verified_at,seller_type,business_kind)`;
+const selectListingCard=()=>`id,created_at,updated_at,seller_id,category_id,donor_vehicle_id,source_channel,source_external_id,import_batch_id,slug,title,description,manufacturer,part_number,oem_number,gearbox_family,gearbox_code,condition,price_pence,shipping_pence,stock,status,dispatch_days,testing_status,warranty_days,condition_notes,damage_notes,collection_available,delivery_days_min,delivery_days_max,categories!inner(${categorySelect}),sellers!inner(id,owner_id,business_name,slug,location,postcode,description,verified_at,seller_type,business_kind)`;
 const one=<T>(value:T|T[])=>Array.isArray(value)?value[0]:value;
 const categoryFrom=(c:RawCategory):Category=>({id:c.id,parentId:c.parent_id,name:c.name,slug:c.slug,isTransmissionRelated:c.is_transmission_related,isSelectable:c.is_selectable,sortOrder:c.sort_order,searchTerms:c.search_terms??[]});
 const vehicleFrom=(v:RawVehicle):Vehicle=>({id:v.id,make:v.make,model:v.model,generation:v.generation,year:v.year,engine:v.engine,engineCode:v.engine_code,fuelType:v.fuel_type,gearboxFamily:v.gearbox_family,gearboxCode:v.gearbox_code,dataStatus:v.data_status,sourceReference:v.source_reference});
@@ -592,13 +592,62 @@ export async function getSellers():Promise<Seller[]>{if(!isSupabaseConfigured())
 export async function getSellerBySlug(slug:string):Promise<Seller|null>{if(!isSupabaseConfigured())return null;const supabase=await createSupabaseServerClient();const {data}=await supabase.from("sellers").select("id,owner_id,business_name,slug,location,postcode,description,verified_at,seller_type,business_kind").eq("slug",slug).maybeSingle();return data?sellerFrom(data as RawSeller):null;}
 export async function getSellerListings(sellerId:string,includeInactive=false):Promise<Listing[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();let query=supabase.from("parts").select(selectListing()).eq("seller_id",sellerId).order("updated_at",{ascending:false});if(!includeInactive)query=query.eq("status","active");const {data}=await query;return (data??[]).map(row=>listingFrom(row as unknown as RawListing));}
 
-export async function getSellerListingsPage(sellerId:string,options:{includeInactive?:boolean;offset?:number;limit?:number;query?:string;status?:Listing["status"]|"all";sourceChannel?:Listing["sourceChannel"]|"all";importBatchId?:string}={}){
+type SellerInventoryCursor={updatedAt:string;id:string};
+const encodeSellerInventoryCursor=(cursor:SellerInventoryCursor)=>Buffer.from(JSON.stringify(cursor),"utf8").toString("base64url");
+const decodeSellerInventoryCursor=(value:string|undefined):SellerInventoryCursor|null=>{
+ if(!value)return null;
+ try{
+  const parsed=JSON.parse(Buffer.from(value,"base64url").toString("utf8")) as Partial<SellerInventoryCursor>;
+  if(typeof parsed.updatedAt!=="string"||typeof parsed.id!=="string")return null;
+  if(Number.isNaN(Date.parse(parsed.updatedAt))||!/^[0-9a-f-]{36}$/i.test(parsed.id))return null;
+  return {updatedAt:parsed.updatedAt,id:parsed.id};
+ }catch{return null;}
+};
+
+export async function getSellerListingsPage(sellerId:string,options:{includeInactive?:boolean;offset?:number;limit?:number;cursor?:string;query?:string;status?:Listing["status"]|"all";sourceChannel?:Listing["sourceChannel"]|"all";importBatchId?:string}={}){
  const limit=Math.max(1,Math.min(Math.floor(options.limit??25),100));
  const offset=Math.max(0,Math.floor(options.offset??0));
- if(!isSupabaseConfigured())return {data:[] as Listing[],hasMore:false,offset,limit};
+ if(!isSupabaseConfigured())return {data:[] as Listing[],hasMore:false,offset,limit,mode:"offset" as const,nextCursor:null};
  const supabase=await createSupabaseServerClient();
- let query=supabase.from("parts").select(selectListingCard()).eq("seller_id",sellerId).order("updated_at",{ascending:false}).order("id");
  const search=options.query?.trim().slice(0,120);
+ const canUseCursor=
+  Boolean(options.includeInactive) &&
+  !search &&
+  (!options.status||options.status==="all") &&
+  (!options.sourceChannel||options.sourceChannel==="all") &&
+  !options.importBatchId;
+
+ if(canUseCursor){
+  const cursor=decodeSellerInventoryCursor(options.cursor);
+  const {data:pageRows,error:pageError}=await supabase.rpc("seller_inventory_cursor_page",{
+   p_seller_id:sellerId,
+   p_after_updated_at:cursor?.updatedAt,
+   p_after_id:cursor?.id,
+   p_limit:limit+1
+  });
+  if(pageError)throw new Error("Seller inventory is temporarily unavailable.");
+  const rawPage=pageRows??[];
+  const hasMore=rawPage.length>limit;
+  const visibleRows=rawPage.slice(0,limit);
+  const ids=visibleRows.map(row=>row.part_id);
+  if(!ids.length)return {data:[] as Listing[],hasMore:false,offset:0,limit,mode:"cursor" as const,nextCursor:null};
+
+  const {data:rows,error:rowError}=await supabase.from("parts").select(selectListingCard()).eq("seller_id",sellerId).in("id",ids);
+  if(rowError)throw new Error("Seller inventory is temporarily unavailable.");
+  const byId=new Map((rows??[]).map(row=>[row.id,row] as const));
+  const data=ids.flatMap(id=>{
+   const row=byId.get(id);
+   if(!row)return [];
+   const base=row as unknown as Omit<RawListing,"part_images"|"part_fitments">;
+   return [listingFrom({...base,part_images:[],part_fitments:[]} as RawListing)];
+  });
+  const last=visibleRows.at(-1);
+  const nextCursor=hasMore&&last?encodeSellerInventoryCursor({updatedAt:last.updated_at,id:last.part_id}):null;
+  return {data,hasMore,offset:0,limit,mode:"cursor" as const,nextCursor};
+ }
+
+ let query=supabase.from("parts").select(selectListingCard()).eq("seller_id",sellerId).order("updated_at",{ascending:false}).order("id");
+
  if(search){
   const escaped=search.replaceAll("%","\\%").replaceAll("_","\\_");
   query=query.or(`title.ilike.%${escaped}%,oem_number.ilike.%${escaped}%,part_number.ilike.%${escaped}%,manufacturer.ilike.%${escaped}%,source_external_id.ilike.%${escaped}%`);
@@ -615,7 +664,9 @@ export async function getSellerListingsPage(sellerId:string,options:{includeInac
   data:raw.slice(0,limit).map(row=>{const base=row as unknown as Omit<RawListing,"part_images"|"part_fitments">;return listingFrom({...base,part_images:[],part_fitments:[]} as RawListing);}),
   hasMore,
   offset,
-  limit
+  limit,
+  mode:"offset" as const,
+  nextCursor:null
  };
 }
 export type PublicSellerInventorySummary={
