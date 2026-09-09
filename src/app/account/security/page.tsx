@@ -3,7 +3,7 @@ import { KeyRound,MailCheck,ShieldCheck,Trash2 } from "lucide-react";
 import { Header } from "@/components/header";
 import { requireUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { cancelAccountDeletion } from "./actions";
+import { acceptCurrentMarketplaceTerms,cancelAccountDeletion } from "./actions";
 import { AccountDeletionForm } from "@/components/account-deletion-form";
 
 export const dynamic="force-dynamic";
@@ -13,12 +13,20 @@ export default async function AccountSecurityPage({searchParams}:{searchParams:P
  const user=await requireUser("/account/security");
  const params=await searchParams;
  const supabase=await createSupabaseServerClient();
- const {data:pending}=await supabase
-  .from("account_deletion_requests")
-  .select("id,requested_at")
-  .eq("profile_id",user.id)
-  .eq("status","requested")
-  .maybeSingle();
+ const [{data:pending},{data:policy}]=await Promise.all([
+  supabase
+   .from("account_deletion_requests")
+   .select("id,requested_at")
+   .eq("profile_id",user.id)
+   .eq("status","requested")
+   .maybeSingle(),
+  supabase
+   .from("profiles")
+   .select("terms_accepted_at,terms_version,privacy_acknowledged_at")
+   .eq("id",user.id)
+   .maybeSingle()
+ ]);
+ const currentTermsAccepted=Boolean(policy?.terms_accepted_at&&policy?.privacy_acknowledged_at&&policy?.terms_version==="2026-09-09");
  return <><Header/><main className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
   <p className="text-xs font-black uppercase tracking-[.2em] text-[#287154]">Your account</p>
   <h1 className="mt-3 text-4xl font-black tracking-[-.045em]">Security & account</h1>
@@ -33,6 +41,13 @@ export default async function AccountSecurityPage({searchParams}:{searchParams:P
   <section className="mt-8 rounded-3xl border border-black/10 bg-white p-5 sm:p-7">
    <div className="flex items-start gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#173c31] text-[#d4f44d]"><ShieldCheck size={21}/></span><div><h2 className="text-xl font-black">Account protection</h2><p className="mt-1 text-sm leading-6 text-[#63706a]">SecondPart never asks you to send your password or recovery links to another user. Recovery emails should only be used by you.</p></div></div>
   </section>
+
+  {!currentTermsAccepted&&<section className="mt-8 rounded-3xl border border-amber-200 bg-amber-50 p-5 sm:p-7">
+   <h2 className="text-xl font-black text-amber-950">Marketplace Terms update required</h2>
+   <p className="mt-2 max-w-2xl text-sm leading-6 text-amber-900/80">Before posting listings, photos, reviews or pre-purchase messages, accept the current SecondPart Terms of Use and acknowledge the Privacy Policy.</p>
+   <p className="mt-3 text-sm text-amber-950"><Link href="/terms" target="_blank" className="font-black underline">Read Terms</Link> · <Link href="/privacy" target="_blank" className="font-black underline">Read Privacy Policy</Link></p>
+   <form action={acceptCurrentMarketplaceTerms}><button className="mt-4 rounded-xl bg-[#173c31] px-4 py-3 text-sm font-black text-white">Accept current Terms & Privacy</button></form>
+  </section>}
 
   <section className="mt-8 rounded-3xl border border-red-200 bg-red-50/50 p-5 sm:p-7">
    <div className="flex items-start gap-3"><Trash2 size={21} className="mt-0.5 shrink-0 text-red-700"/><div><h2 className="text-xl font-black text-red-950">Delete account</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-red-900/75">Submitting a request does not immediately erase your account. This gives us a controlled path for marketplace records, active disputes and future legal retention requirements before launch.</p></div></div>
