@@ -14,6 +14,8 @@ const checks=[
  ["Root navigation must not detach large DOM trees into a holder",!ui.includes("holder.append(...Array.from(app.childNodes))")],
  ["Navigation latency telemetry must remain enabled",ui.includes("[SecondPart][nav]")&&ui.includes("Slow route")],
  ["API cache must support stale-while-revalidate",core.includes("staleWhileRevalidate")&&core.includes("Background cache refresh failed")],
+ ["Cache invalidation must defeat stale in-flight responses",core.includes("responseCacheVersions")&&core.includes("cacheVersion(key)===version")],
+ ["Session refresh must not revive a cleared identity",core.includes("requestEpoch=identityEpoch")&&core.includes("requestEpoch!==identityEpoch")],
  ["Session refresh must be single-flight",core.includes("sessionRefreshPromise")&&core.includes("if(sessionRefreshPromise)return sessionRefreshPromise")],
  ["Profile loading must be single-flight",core.includes("meRequestPromise")&&core.includes("if(meRequestPromise)return meRequestPromise")],
  ["Home marketplace must render 24 items initially",market.includes("limit:24,offset:0")],
