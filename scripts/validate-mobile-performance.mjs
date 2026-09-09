@@ -14,6 +14,9 @@ const marketplaceData=read("src/lib/data/marketplace.ts");
 const homePage=read("src/app/page.tsx");
 const marketplaceHome=read("src/components/marketplace-home.tsx");
 const previewPrep=read("scripts/prepare-android-preview.mjs");
+const productionAndroidPrep=read("scripts/prepare-android-production.mjs");
+const productionAndroidPatch=read("scripts/patch-android-production.mjs");
+const productionAndroidWorkflow=read(".github/workflows/android-production-aab.yml");
 const searchScaleMigration=read("supabase/migrations/20260909100500_indexed_marketplace_search_candidates.sql");
 const cursorMigration=read("supabase/migrations/20260909103000_marketplace_cursor_pagination.sql");
 const sellerCursorMigration=read("supabase/migrations/20260909104500_seller_inventory_cursor_pagination.sql");
@@ -86,6 +89,12 @@ const checks=[
  ["Bulk CSV import must remain chunked for large inventories",importScale.includes("const MAX_ROWS=5000;")&&importScale.includes("const INSERT_CHUNK_SIZE=250;")&&importScale.includes("for(let start=0;start<payload.length;start+=INSERT_CHUNK_SIZE)")],
  ["Saved-search backlog must be indexed and processed asynchronously in batches",savedSearchQueueScale.includes("saved_search_match_queue_enqueued_idx")&&savedSearchQueueScale.includes("process_saved_search_match_queue(250)")&&savedSearchQueueScale.includes("saved_search_match_queue_stats")],
  ["Android Preview must keep loading the full Next.js frontend",previewPrep.includes("second-part-shop-preview.vercel.app")&&previewPrep.includes("config.server=")],
+ ["Production Android must use the full HTTPS frontend",productionAndroidPrep.includes('config.server={url:productionUrl.origin,cleartext:false}')&&productionAndroidPrep.includes('com.secondpart.marketplace')&&!productionAndroidPrep.includes('marketplace.preview')],
+ ["Production Android must disable debug WebView and logging",productionAndroidPrep.includes('loggingBehavior="none"')&&productionAndroidPrep.includes('webContentsDebuggingEnabled:false')],
+ ["Google Play build must target API 36",productionAndroidPatch.includes('compileSdkVersion = 36')&&productionAndroidPatch.includes('targetSdkVersion = 36')],
+ ["Google Play build must produce a signed release AAB",productionAndroidWorkflow.includes('./gradlew bundleRelease')&&productionAndroidWorkflow.includes('Verify AAB signature')],
+ ["Google Play build must never use the preview signing key",!productionAndroidWorkflow.includes('ANDROID_PREVIEW_KEYSTORE_BASE64')&&!productionAndroidWorkflow.includes('secondPartPreviewSigning')],
+ ["Production Android must reject preview/local hosts",productionAndroidPrep.includes('/preview|localhost|127\\.0\\.0\\.1/i')],
  ["Garage root tab must have an instant loading boundary",garageLoading.includes('variant="garage"')],
  ["Purchases root tab must have an instant loading boundary",purchasesLoading.includes('variant="purchases"')],
  ["Inbox root tab must have an instant loading boundary",inboxLoading.includes('variant="inbox"')],
