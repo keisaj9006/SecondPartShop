@@ -16,7 +16,7 @@ const items=[
 export function MobileBottomNav(){
  const pathname=usePathname();
  const router=useRouter();
- const [pendingHref,setPendingHref]=useState<string|null>(null);
+ const [pendingNavigation,setPendingNavigation]=useState<{href:string;fromPath:string}|null>(null);
 
  const currentHref=useMemo(()=>{
   const current=items.find(item=>item.active(pathname));
@@ -42,7 +42,7 @@ export function MobileBottomNav(){
   };
  },[pathname,router]);
 
- const selectedHref=pendingHref??currentHref;
+ const selectedHref=pendingNavigation&&pendingNavigation.fromPath===pathname?pendingNavigation.href:currentHref;
 
  return <nav aria-label="Mobile navigation" className="app-bottom-nav fixed inset-x-0 bottom-0 z-[80] border-t border-black/10 bg-[#fbfcfa]/96 px-1 pt-1.5 pb-[calc(6px+env(safe-area-inset-bottom))] shadow-[0_-10px_30px_rgba(18,34,29,.08)] backdrop-blur-xl md:hidden">
   <div className="mx-auto grid max-w-lg grid-cols-5">
@@ -55,7 +55,7 @@ export function MobileBottomNav(){
      prefetch={true}
      aria-current={active?"page":undefined}
      onPointerDown={()=>{if(item.href!==currentHref)router.prefetch(item.href);}}
-     onClick={()=>{if(item.href!==currentHref)setPendingHref(item.href);}}
+     onClick={()=>{if(item.href!==currentHref)setPendingNavigation({href:item.href,fromPath:pathname});}}
      className={"flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 text-[10px] font-bold transition "+(active?"text-[#173c31]":"text-[#63706a]")}
     >
      <span className={"grid h-8 w-10 place-items-center rounded-xl transition "+(active?"bg-[#d4f44d]":"bg-transparent")}><Icon size={19} strokeWidth={active?2.7:2}/></span>
