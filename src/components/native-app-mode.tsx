@@ -20,7 +20,12 @@ export function NativeAppMode(){
   const capacitor=(window as Window & {Capacitor?:CapacitorLike}).Capacitor;
   const native=Boolean(capacitor?.isNativePlatform?.());
   document.documentElement.classList.toggle("native-app",native);
-  if(!native)return()=>document.documentElement.classList.remove("native-app");
+  if(native){
+   document.cookie="secondpart_native=1; Path=/; Max-Age=31536000; SameSite=Lax";
+  }else{
+   document.cookie="secondpart_native=; Path=/; Max-Age=0; SameSite=Lax";
+   return()=>document.documentElement.classList.remove("native-app");
+  }
 
   const routeNativeUrl=(rawUrl:string)=>{
    try{
