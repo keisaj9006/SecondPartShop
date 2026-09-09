@@ -1,4 +1,4 @@
-import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
+import { mobileJson,mobileMarketplaceTermsAccepted,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
 import { isSellerBusinessKind } from "@/lib/seller-business";
 import { persistSellerGeo,sellerGeoFromPostcode } from "@/lib/seller-geo";
 
@@ -42,6 +42,7 @@ export async function POST(request:Request){
  const auth=await requireMobileUser(request);
  if(!auth.context)return auth.response;
  const {user,supabase}=auth.context;
+ if(!await mobileMarketplaceTermsAccepted(auth.context))return mobileJson(request,{ok:false,error:"terms_required"},428);
 
  let body:unknown;
  try{body=await request.json();}catch{return mobileJson(request,{ok:false,error:"invalid_json"},400);}
