@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import type { ActionState,UserRole } from "@/lib/types";
 import { safeInternalPath } from "@/lib/navigation";
+import { CURRENT_MARKETPLACE_TERMS_VERSION } from "@/lib/policy-versions";
 
 const siteUrl=()=>String(process.env.NEXT_PUBLIC_SITE_URL??"http://localhost:3000").replace(/\/$/,"");
 const emailValue=(formData:FormData)=>String(formData.get("email")??"").trim().toLowerCase();
@@ -36,7 +37,7 @@ export async function signUp(_previous:ActionState,formData:FormData):Promise<Ac
  const supabase=await createSupabaseServerClient();
  const {data,error}=await supabase.auth.signUp({
   email,password,
-  options:{emailRedirectTo:`${siteUrl()}/auth/callback?next=${encodeURIComponent(role==="seller"?"/dashboard":"/account")}`,data:{display_name:displayName,role,terms_accepted:"true",terms_version:"2026-09-09"}}
+  options:{emailRedirectTo:`${siteUrl()}/auth/callback?next=${encodeURIComponent(role==="seller"?"/dashboard":"/account")}`,data:{display_name:displayName,role,terms_accepted:"true",terms_version:CURRENT_MARKETPLACE_TERMS_VERSION}}
  });
  if(error)return {status:"error",message:error.message};
  if(data.session){
