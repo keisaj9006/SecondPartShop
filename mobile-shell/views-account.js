@@ -33,6 +33,12 @@ const account=async(payload)=>{
  if(payload&&payload.view==="buying")C.state.accountMode="buying";
  if(!sellingEnabled)C.state.accountMode="buying";
  const mode=C.state.accountMode;
+ if(mode==="selling"&&seller){
+  C.prefetch("/seller/sales?limit=30&offset=0",{auth:true,maxAge:15000});
+  C.prefetch("/seller/cases?limit=20&offset=0",{auth:true,maxAge:15000});
+  C.prefetch("/seller/readiness",{auth:true,maxAge:15000});
+  C.prefetch("/seller/listings?limit=24&offset=0",{auth:true,maxAge:15000});
+ }
  const pushToken=C.Native.push?.supported&&pushTokenLoaded?cachedPushToken:null;
 
  const html=[];
