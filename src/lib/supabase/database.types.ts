@@ -1544,7 +1544,10 @@ export type Database = {
           handle: string
           id: string
           phone: string | null
+          privacy_acknowledged_at: string | null
           role: Database["public"]["Enums"]["user_role"]
+          terms_accepted_at: string | null
+          terms_version: string | null
           updated_at: string
         }
         Insert: {
@@ -1554,7 +1557,10 @@ export type Database = {
           handle: string
           id: string
           phone?: string | null
+          privacy_acknowledged_at?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string
         }
         Update: {
@@ -1564,7 +1570,10 @@ export type Database = {
           handle?: string
           id?: string
           phone?: string | null
+          privacy_acknowledged_at?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -2496,6 +2505,39 @@ export type Database = {
           },
         ]
       }
+      user_blocks: {
+        Row: {
+          blocked_profile_id: string
+          blocker_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_profile_id: string
+          blocker_id: string
+          created_at?: string
+        }
+        Update: {
+          blocked_profile_id?: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_blocks_blocked_profile_id_fkey"
+            columns: ["blocked_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_blocks_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicle_catalogue_engines: {
         Row: {
           engine_size_desc: string | null
@@ -2872,6 +2914,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_current_marketplace_terms: { Args: never; Returns: boolean }
       admin_active_listing_checkout_readiness: {
         Args: never
         Returns: {
@@ -2937,6 +2980,10 @@ export type Database = {
       admin_update_marketplace_report: {
         Args: { p_report_id: string; p_status: string }
         Returns: undefined
+      }
+      block_marketplace_user: {
+        Args: { p_blocked_profile_id: string }
+        Returns: boolean
       }
       buyer_mark_order_item_received: {
         Args: { p_accept_now?: boolean; p_order_item_id: string }
@@ -3300,9 +3347,48 @@ export type Database = {
         }
         Returns: Json
       }
+      is_marketplace_user_blocked: {
+        Args: { p_profile_id: string }
+        Returns: boolean
+      }
       mark_order_item_payout_released: {
         Args: { p_order_item_id: string; p_transfer_id: string }
         Returns: boolean
+      }
+      marketplace_browse_cursor_page: {
+        Args: {
+          p_after_created_at?: string
+          p_after_id?: string
+          p_category_ids?: string[]
+          p_collection_only?: boolean
+          p_condition?: string
+          p_limit?: number
+          p_max_price_pence?: number
+          p_min_price_pence?: number
+        }
+        Returns: {
+          created_at: string
+          part_id: string
+        }[]
+      }
+      marketplace_browse_cursor_page_v2: {
+        Args: {
+          p_after_created_at?: string
+          p_after_id?: string
+          p_after_sort_value?: number
+          p_category_ids?: string[]
+          p_collection_only?: boolean
+          p_condition?: string
+          p_limit?: number
+          p_max_price_pence?: number
+          p_min_price_pence?: number
+          p_sort?: string
+        }
+        Returns: {
+          created_at: string
+          part_id: string
+          sort_value: number
+        }[]
       }
       marketplace_catalogue_compatibility: {
         Args: {
@@ -3317,10 +3403,11 @@ export type Database = {
           part_id: string
         }[]
       }
-      marketplace_catalogue_distance_page_v2: {
+      marketplace_catalogue_cursor_page_v1: {
         Args: {
-          p_buyer_lat: number
-          p_buyer_lon: number
+          p_after_confidence_rank?: number
+          p_after_created_at?: string
+          p_after_id?: string
           p_category_ids?: string[]
           p_collection_only?: boolean
           p_compatible_only?: boolean
@@ -3330,17 +3417,14 @@ export type Database = {
           p_limit?: number
           p_max_price_pence?: number
           p_min_price_pence?: number
-          p_offset?: number
-          p_part_ids?: string[]
           p_variant_id: string
           p_year: number
         }
         Returns: {
           confidence: string
-          distance_approximate: boolean
-          distance_miles: number | null
+          confidence_rank: number
+          created_at: string
           part_id: string
-          total_count: number | null
         }[]
       }
       marketplace_catalogue_distance_page: {
@@ -3369,11 +3453,10 @@ export type Database = {
           total_count: number
         }[]
       }
-      marketplace_catalogue_cursor_page_v1: {
+      marketplace_catalogue_distance_page_v2: {
         Args: {
-          p_after_confidence_rank?: number
-          p_after_created_at?: string
-          p_after_id?: string
+          p_buyer_lat: number
+          p_buyer_lon: number
           p_category_ids?: string[]
           p_collection_only?: boolean
           p_compatible_only?: boolean
@@ -3383,14 +3466,17 @@ export type Database = {
           p_limit?: number
           p_max_price_pence?: number
           p_min_price_pence?: number
+          p_offset?: number
+          p_part_ids?: string[]
           p_variant_id: string
           p_year: number
         }
         Returns: {
           confidence: string
-          confidence_rank: number
-          created_at: string
+          distance_approximate: boolean
+          distance_miles: number
           part_id: string
+          total_count: number
         }[]
       }
       marketplace_catalogue_page: {
@@ -3438,42 +3524,7 @@ export type Database = {
           total_count: number
         }[]
       }
-      marketplace_browse_cursor_page_v2: {
-        Args: {
-          p_after_created_at?: string
-          p_after_id?: string
-          p_after_sort_value?: number
-          p_category_ids?: string[]
-          p_collection_only?: boolean
-          p_condition?: string
-          p_limit?: number
-          p_max_price_pence?: number
-          p_min_price_pence?: number
-          p_sort?: string
-        }
-        Returns: {
-          created_at: string
-          part_id: string
-          sort_value: number | null
-        }[]
-      }
-      marketplace_browse_cursor_page: {
-        Args: {
-          p_after_created_at?: string
-          p_after_id?: string
-          p_category_ids?: string[]
-          p_collection_only?: boolean
-          p_condition?: string
-          p_limit?: number
-          p_max_price_pence?: number
-          p_min_price_pence?: number
-        }
-        Returns: {
-          created_at: string
-          part_id: string
-        }[]
-      }
-      marketplace_distance_page_v2: {
+      marketplace_distance_page: {
         Args: {
           p_buyer_lat: number
           p_buyer_lon: number
@@ -3488,12 +3539,12 @@ export type Database = {
         }
         Returns: {
           distance_approximate: boolean
-          distance_miles: number | null
+          distance_miles: number
           part_id: string
-          total_count: number | null
+          total_count: number
         }[]
       }
-      marketplace_distance_page: {
+      marketplace_distance_page_v2: {
         Args: {
           p_buyer_lat: number
           p_buyer_lon: number
@@ -3630,18 +3681,6 @@ export type Database = {
         Args: { p_order_item_id: string }
         Returns: boolean
       }
-      seller_inventory_cursor_page: {
-        Args: {
-          p_after_id?: string
-          p_after_updated_at?: string
-          p_limit?: number
-          p_seller_id: string
-        }
-        Returns: {
-          part_id: string
-          updated_at: string
-        }[]
-      }
       seller_checkout_ready: { Args: { p_seller_id: string }; Returns: boolean }
       seller_confirm_transaction_return_received: {
         Args: { p_case_id: string }
@@ -3674,6 +3713,18 @@ export type Database = {
           source_external_id: string
           title: string
           total_count: number
+        }[]
+      }
+      seller_inventory_cursor_page: {
+        Args: {
+          p_after_id?: string
+          p_after_updated_at?: string
+          p_limit?: number
+          p_seller_id: string
+        }
+        Returns: {
+          part_id: string
+          updated_at: string
         }[]
       }
       seller_part_request_lead: {
@@ -3762,6 +3813,10 @@ export type Database = {
       submit_verified_fit_feedback: {
         Args: { p_notes?: string; p_order_item_id: string; p_result: string }
         Returns: string
+      }
+      unblock_marketplace_user: {
+        Args: { p_blocked_profile_id: string }
+        Returns: boolean
       }
       upgrade_account_to_seller: { Args: never; Returns: boolean }
       vehicle_catalogue_makes: {
