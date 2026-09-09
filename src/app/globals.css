@@ -42,9 +42,16 @@ input,select,textarea,button { min-width:0; max-width:100%; }
 }
 
 
+.native-persistent-topbar {
+  display: none;
+}
+
 /* Native Android chrome polish. Applied only when Capacitor is detected. */
 html.native-app .app-topbar {
-  padding-top: env(safe-area-inset-top);
+  display: none;
+}
+html.native-app .native-persistent-topbar {
+  display: block;
 }
 html.native-app .native-redundant-action {
   display: none;
