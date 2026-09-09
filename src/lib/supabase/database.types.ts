@@ -18,6 +18,8 @@ export type Database = {
         Row: {
           attempt_count: number
           blocker_code: string | null
+          cleanup_garage_partner_ids: string[]
+          cleanup_seller_ids: string[]
           completed_at: string | null
           id: string
           last_error: string | null
@@ -26,11 +28,14 @@ export type Database = {
           reason: string | null
           requested_at: string
           status: string
+          target_profile_id: string | null
           updated_at: string
         }
         Insert: {
           attempt_count?: number
           blocker_code?: string | null
+          cleanup_garage_partner_ids?: string[]
+          cleanup_seller_ids?: string[]
           completed_at?: string | null
           id?: string
           last_error?: string | null
@@ -39,11 +44,14 @@ export type Database = {
           reason?: string | null
           requested_at?: string
           status?: string
+          target_profile_id?: string | null
           updated_at?: string
         }
         Update: {
           attempt_count?: number
           blocker_code?: string | null
+          cleanup_garage_partner_ids?: string[]
+          cleanup_seller_ids?: string[]
           completed_at?: string | null
           id?: string
           last_error?: string | null
@@ -52,6 +60,7 @@ export type Database = {
           reason?: string | null
           requested_at?: string
           status?: string
+          target_profile_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -2163,6 +2172,7 @@ export type Database = {
       }
       sellers: {
         Row: {
+          account_deleted_at: string | null
           business_kind: string | null
           business_name: string
           created_at: string
@@ -2181,6 +2191,7 @@ export type Database = {
           verified_at: string | null
         }
         Insert: {
+          account_deleted_at?: string | null
           business_kind?: string | null
           business_name: string
           created_at?: string
@@ -2199,6 +2210,7 @@ export type Database = {
           verified_at?: string | null
         }
         Update: {
+          account_deleted_at?: string | null
           business_kind?: string | null
           business_name?: string
           created_at?: string
@@ -3022,6 +3034,18 @@ export type Database = {
         Returns: boolean
       }
       cancel_own_account_deletion_request: { Args: never; Returns: boolean }
+      claim_account_deletion_request: {
+        Args: { p_request_id: string }
+        Returns: {
+          blocker_code: string | null
+          claimed: boolean
+          profile_id: string | null
+        }[]
+      }
+      complete_account_deletion_request: {
+        Args: { p_request_id: string }
+        Returns: boolean
+      }
       buyer_mark_transaction_return_shipped: {
         Args: {
           p_carrier: string
@@ -3172,6 +3196,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      fail_account_deletion_request: {
+        Args: { p_error: string; p_request_id: string }
+        Returns: boolean
+      }
+      prepare_claimed_account_deletion: {
+        Args: { p_profile_id: string; p_request_id: string }
+        Returns: boolean
+      }
       get_due_payout_order_items: {
         Args: { p_limit?: number }
         Returns: {
@@ -3185,6 +3217,13 @@ export type Database = {
           profile_id: string
           request_id: string
           requested_at: string
+          status: string
+        }[]
+      }
+      get_account_deletion_part_image_paths: {
+        Args: { p_after?: string; p_limit?: number; p_request_id: string }
+        Returns: {
+          storage_path: string
         }[]
       }
       get_unverified_delivery_payout_reviews: {
