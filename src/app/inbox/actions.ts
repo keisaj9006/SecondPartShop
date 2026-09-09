@@ -21,7 +21,10 @@ export async function sendListingMessage(_previous:ActionState,formData:FormData
   p_body:body
  });
  if(error){
-  if(error.message.toLowerCase().includes("rate limit"))return {status:"error",message:"Message limit reached. Please try again later."};
+  const lower=error.message.toLowerCase();
+  if(lower.includes("rate limit"))return {status:"error",message:"Message limit reached. Please try again later."};
+  if(lower.includes("accept current terms"))return {status:"error",message:"Accept the current Terms of Use and Privacy Policy in Account → Security before messaging."};
+  if(lower.includes("messaging is unavailable"))return {status:"error",message:"Pre-purchase messaging with this account is blocked."};
   return {status:"error",message:"We could not send this message right now."};
  }
  schedulePushDispatch(50);
