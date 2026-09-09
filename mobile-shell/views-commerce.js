@@ -232,7 +232,7 @@ const sellerSales=async()=>{
 
  const fetchPage=async(offset)=>{
   const path="/seller/sales?limit="+pageSize+"&offset="+offset;
-  const result=await C.apiCached(path,{auth:true,maxAge:offset===0?15000:8000});
+  const result=await C.apiCached(path,{auth:true,maxAge:offset===0?15000:8000,staleWhileRevalidate:offset===0});
   return {items:result.items||[],hasMore:Boolean(result.pagination&&result.pagination.hasMore)};
  };
 
@@ -288,9 +288,9 @@ const seller=async()=>{
  let sales=[],cases=[],readiness=null;
  try{
   const results=await Promise.all([
-   C.api("/seller/sales",{auth:true}),
-   C.api("/seller/cases",{auth:true}),
-   C.api("/seller/readiness",{auth:true})
+   C.apiCached("/seller/sales?limit=30&offset=0",{auth:true,maxAge:15000,staleWhileRevalidate:true}),
+   C.apiCached("/seller/cases?limit=20&offset=0",{auth:true,maxAge:15000,staleWhileRevalidate:true}),
+   C.apiCached("/seller/readiness",{auth:true,maxAge:15000,staleWhileRevalidate:true})
   ]);
   sales=results[0].items||[];
   cases=results[1].items||[];
@@ -353,6 +353,7 @@ const seller=async()=>{
   paymentRefresh.disabled=true;paymentRefresh.textContent="Refreshing…";
   try{
    const result=await C.api("/seller/payments/refresh",{method:"POST",auth:true});
+   C.invalidateCache("/seller/readiness");
    UI.toast(result.complete?"Payments & payouts are ready.":"Payment status refreshed.");
    UI.route("seller");
   }catch(error){
@@ -371,6 +372,7 @@ const seller=async()=>{
 const updateFulfilment=async(id,action,carrier,trackingNumber,returnRoute="seller")=>{
  try{
   await C.api("/seller/order-items/"+encodeURIComponent(id)+"/fulfilment",{method:"POST",auth:true,body:{action,carrier,trackingNumber}});
+  C.invalidateCache("/seller/sales");
   UI.toast("Sale updated.");UI.route(returnRoute);
  }catch(error){UI.toast(error.message,"error");}
 };
@@ -392,13 +394,13 @@ const sellerCaseResponse=(caseId)=>{
   event.preventDefault();
   const response=String(document.getElementById("seller-case-body").value||"").trim();
   if(response.length<10){UI.toast("Add a little more detail.");return;}
-  try{await C.api("/seller/cases",{method:"POST",auth:true,body:{caseId,action:"respond",response}});UI.closeModal();UI.route("seller");}
+  try{await C.api("/seller/cases",{method:"POST",auth:true,body:{caseId,action:"respond",response}});C.invalidateCache("/seller/cases");UI.closeModal();UI.route("seller");}
   catch(error){UI.toast(error.message,"error");}
  });
 };
 
 const sellerCaseAction=async(caseId,action)=>{
- try{await C.api("/seller/cases",{method:"POST",auth:true,body:{caseId,action}});UI.toast("Case updated.");UI.route("seller");}
+ try{await C.api("/seller/cases",{method:"POST",auth:true,body:{caseId,action}});C.invalidateCache("/seller/cases");UI.toast("Case updated.");UI.route("seller");}
  catch(error){UI.toast(error.message,"error");}
 };
 
