@@ -9,6 +9,7 @@ on:
       - "mobile-native-src/**"
       - "capacitor.config.json"
       - "scripts/patch-android-mobile.mjs"
+      - "scripts/prepare-android-preview.mjs"
       - ".github/workflows/android-preview-apk.yml"
 
 permissions:
@@ -51,6 +52,11 @@ jobs:
           npm pkg set "dependencies.@capacitor/push-notifications=8.0.4"
           npm pkg set "dependencies.@aparajita/capacitor-secure-storage=8.0.0"
 
+      - name: Prepare full Next.js frontend for Android Preview
+        env:
+          SECOND_PART_PREVIEW_URL: https://second-part-shop-preview.vercel.app
+        run: node scripts/prepare-android-preview.mjs
+
       - name: Build native JavaScript bridge
         run: npx esbuild mobile-native-src/native.ts --bundle --platform=browser --format=iife --target=es2020 --outfile=mobile-shell/native.js
 
@@ -85,6 +91,17 @@ jobs:
 
       - name: Sync Capacitor project
         run: npx cap sync android
+
+      - name: Verify Preview uses full frontend
+        run: |
+          node - <<'NODE'
+          const fs=require("fs");
+          const config=JSON.parse(fs.readFileSync("capacitor.config.json","utf8"));
+          if(config.server?.url!=="https://second-part-shop-preview.vercel.app"){
+            throw new Error("Android Preview is not pointed at the full Next.js frontend.");
+          }
+          console.log("Android Preview frontend:",config.server.url);
+          NODE
 
       - name: Configure Firebase services for preview
         env:
