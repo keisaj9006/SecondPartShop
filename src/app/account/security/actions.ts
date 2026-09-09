@@ -13,7 +13,7 @@ export async function requestAccountDeletion(_previous:ActionState,formData:Form
   .from("account_deletion_requests")
   .select("id,status")
   .eq("profile_id",user.id)
-  .eq("status","requested")
+  .in("status",["requested","processing","blocked","failed"])
   .maybeSingle();
  if(readError)return {status:"error",message:"We could not check your account request right now."};
  if(existing)return {status:"success",message:"Your account deletion request is already pending."};
