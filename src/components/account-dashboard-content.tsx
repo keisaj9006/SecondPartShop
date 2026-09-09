@@ -10,6 +10,12 @@ import {getGaragePartnerForOwner} from "@/lib/data/fitting";
 
 const card=(href:string,label:string,count:number,description:string,icon:ReactNode)=>({href,label,count,description,icon});
 
+export async function AccountTrustSummary({userId}:{userId:string}){
+ const trust=await getPublicMemberProfileById(userId).catch(()=>null);
+ if(!trust)return null;
+ return <p className="mt-3 text-sm font-bold text-white/75">★ {trust.sellerRating?.toFixed(1)??"New"} seller · {trust.soldCount} sold · {trust.boughtCount} bought</p>;
+}
+
 export async function AccountDashboardContent({
  userId,
  role,
