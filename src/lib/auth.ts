@@ -1,17 +1,18 @@
 import "server-only";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { isSupabaseConfigured } from "./supabase/env";
 import { createSupabaseServerClient } from "./supabase/server";
 import type { Profile } from "./types";
 
-export async function getCurrentUser(){
+export const getCurrentUser=cache(async()=>{
  if(!isSupabaseConfigured())return null;
  const supabase=await createSupabaseServerClient();
  const {data}=await supabase.auth.getUser();
  return data.user;
-}
+});
 
-export async function getCurrentProfile():Promise<Profile|null>{
+export const getCurrentProfile=cache(async():Promise<Profile|null>=>{
  const user=await getCurrentUser();
  if(!user)return null;
  const supabase=await createSupabaseServerClient();
@@ -28,7 +29,7 @@ export async function getCurrentProfile():Promise<Profile|null>{
   bio:data.bio,
   phone:data.phone
  }:null;
-}
+});
 
 export async function requireUser(returnTo="/account"){
  const user=await getCurrentUser();
