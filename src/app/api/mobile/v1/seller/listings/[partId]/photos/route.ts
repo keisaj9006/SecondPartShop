@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { isUuid } from "@/lib/identifiers";
-import { mobileJson,mobileOptions,requireMobileSeller } from "@/lib/mobile-api";
+import { mobileJson,mobileMarketplaceTermsAccepted,mobileOptions,requireMobileSeller } from "@/lib/mobile-api";
 import { mobileThumbnailUrl } from "@/lib/mobile-image";
 import { validateImageUpload } from "@/lib/image-upload";
 
@@ -49,6 +49,7 @@ export async function POST(request:Request,{params}:{params:Promise<{partId:stri
  const auth=await requireMobileSeller(request);
  if(!auth.context||!auth.seller)return auth.response;
  const {user,supabase}=auth.context;
+ if(!await mobileMarketplaceTermsAccepted(auth.context))return mobileJson(request,{ok:false,error:"terms_required"},428);
 
  const {data:part}=await supabase
   .from("parts")
