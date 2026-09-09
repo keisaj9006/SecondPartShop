@@ -10,11 +10,13 @@ export async function updateCommerceSettings(_previous:ActionState,formData:Form
 
  const feePercent=Number(formData.get("platformFeePercent"));
  const reservationMinutes=Math.round(Number(formData.get("checkoutReservationMinutes")));
- const autoReleaseHours=Math.round(Number(formData.get("autoReleaseHours")));\n const unverifiedDeliveryReviewDays=Math.round(Number(formData.get("unverifiedDeliveryReviewDays")));
+ const autoReleaseHours=Math.round(Number(formData.get("autoReleaseHours")));
+ const unverifiedDeliveryReviewDays=Math.round(Number(formData.get("unverifiedDeliveryReviewDays")));
 
  if(!Number.isFinite(feePercent)||feePercent<0||feePercent>25)return {status:"error",message:"Seller platform fee must be between 0% and 25%."};
  if(!Number.isInteger(reservationMinutes)||reservationMinutes<30||reservationMinutes>240)return {status:"error",message:"Checkout reservation must be between 30 and 240 minutes."};
- if(!Number.isInteger(autoReleaseHours)||autoReleaseHours<12||autoReleaseHours>168)return {status:"error",message:"Auto-release window must be between 12 and 168 hours."};\n if(!Number.isInteger(unverifiedDeliveryReviewDays)||unverifiedDeliveryReviewDays<7||unverifiedDeliveryReviewDays>30)return {status:"error",message:"Unverified-delivery review must be between 7 and 30 days."};
+ if(!Number.isInteger(autoReleaseHours)||autoReleaseHours<12||autoReleaseHours>168)return {status:"error",message:"Auto-release window must be between 12 and 168 hours."};
+ if(!Number.isInteger(unverifiedDeliveryReviewDays)||unverifiedDeliveryReviewDays<7||unverifiedDeliveryReviewDays>30)return {status:"error",message:"Unverified-delivery review must be between 7 and 30 days."};
 
  const feeBps=Math.round(feePercent*100);
  const admin=createSupabaseAdminClient();
@@ -23,7 +25,8 @@ export async function updateCommerceSettings(_previous:ActionState,formData:Form
   .update({
    platform_fee_bps:feeBps,
    checkout_reservation_minutes:reservationMinutes,
-   auto_release_hours:autoReleaseHours,\n   unverified_delivery_review_days:unverifiedDeliveryReviewDays
+   auto_release_hours:autoReleaseHours,
+   unverified_delivery_review_days:unverifiedDeliveryReviewDays
   })
   .eq("singleton",true);
 
