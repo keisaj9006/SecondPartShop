@@ -29,6 +29,15 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [x] In-app account deletion request exists.
 - [x] Public external account-deletion route exists.
 - [x] Terms reflect the current Stripe/buyer-protection architecture.
+- [x] Signup requires auditable acceptance of current Terms and Privacy Policy before UGC creation.
+- [x] Existing accounts can accept the current marketplace Terms from Account > Security.
+- [x] UGC policy defines prohibited conduct and applies to listings, photos, reviews, requests and messages.
+- [x] In-app listing/content reporting is available.
+- [x] Direct Report user flow feeds the existing moderation queue.
+- [x] Block / Unblock user is available for pre-purchase 1:1 messaging.
+- [x] Database messaging RPCs enforce Terms acceptance and user blocks.
+- [x] Seller listing/profile/photo UGC, bulk inventory imports, reviews/fit feedback and Find My Part requests are Terms-gated across relevant web/mobile paths.
+- [x] Review / verified-fit Terms enforcement also exists at the database boundary.
 
 ## P0 — before the first real Google Play release candidate
 
