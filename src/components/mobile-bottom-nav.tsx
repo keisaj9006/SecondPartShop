@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname,useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect,useMemo,useState } from "react";
 import { CarFront,Home,MessageSquareText,PackageCheck,UserRound } from "lucide-react";
 
 const items=[
@@ -16,13 +16,48 @@ const items=[
 export function MobileBottomNav(){
  const pathname=usePathname();
  const router=useRouter();
- useEffect(()=>{for(const item of items)router.prefetch(item.href);},[router]);
+ const [pendingHref,setPendingHref]=useState<string|null>(null);
+
+ const currentHref=useMemo(()=>{
+  const current=items.find(item=>item.active(pathname));
+  return current?.href??null;
+ },[pathname]);
+
+ useEffect(()=>{
+  setPendingHref(null);
+
+  // Root tabs are the highest-frequency navigation in the Android app.
+  // Force a full prefetch of each destination after every committed route so
+  // dynamic Server Component pages are already warm before the next tap.
+  const warm=()=>{for(const item of items)router.prefetch(item.href);};
+  warm();
+
+  const id=typeof window.requestIdleCallback==="function"
+   ?window.requestIdleCallback(warm,{timeout:1200})
+   :window.setTimeout(warm,250);
+
+  return()=>{
+   if(typeof window.cancelIdleCallback==="function"&&typeof id==="number")window.cancelIdleCallback(id);
+   else window.clearTimeout(id as number);
+  };
+ },[pathname,router]);
+
+ const selectedHref=pendingHref??currentHref;
+
  return <nav aria-label="Mobile navigation" className="app-bottom-nav fixed inset-x-0 bottom-0 z-[80] border-t border-black/10 bg-[#fbfcfa]/96 px-1 pt-1.5 pb-[calc(6px+env(safe-area-inset-bottom))] shadow-[0_-10px_30px_rgba(18,34,29,.08)] backdrop-blur-xl md:hidden">
   <div className="mx-auto grid max-w-lg grid-cols-5">
    {items.map(item=>{
     const Icon=item.icon;
-    const active=item.active(pathname);
-    return <Link key={item.href} href={item.href} aria-current={active?"page":undefined} className={"flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 text-[10px] font-bold transition "+(active?"text-[#173c31]":"text-[#63706a]")}>
+    const active=selectedHref===item.href;
+    return <Link
+     key={item.href}
+     href={item.href}
+     prefetch={true}
+     aria-current={active?"page":undefined}
+     onPointerDown={()=>{if(item.href!==currentHref)router.prefetch(item.href);}}
+     onClick={()=>{if(item.href!==currentHref)setPendingHref(item.href);}}
+     className={"flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 text-[10px] font-bold transition "+(active?"text-[#173c31]":"text-[#63706a]")}
+    >
      <span className={"grid h-8 w-10 place-items-center rounded-xl transition "+(active?"bg-[#d4f44d]":"bg-transparent")}><Icon size={19} strokeWidth={active?2.7:2}/></span>
      <span className="truncate">{item.label}</span>
     </Link>;
