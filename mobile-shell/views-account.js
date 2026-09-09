@@ -293,6 +293,8 @@ const sellerProfile=async()=>{
     postcode:String(document.getElementById("sp-postcode").value||"").trim(),
     description:String(document.getElementById("sp-description").value||"").trim()
    }});
+   C.invalidateCache("/seller/readiness");
+   C.invalidateCache("/marketplace");
    await C.loadMe();
    const stillVerified=Boolean(result.seller?.verified);
    UI.toast(stillVerified?"Seller profile saved.":"Seller profile saved.");
@@ -340,6 +342,7 @@ const sellerVerification=async()=>{
   button.disabled=true;button.textContent="Submitting…";
   try{
    await C.api("/seller/verification",{method:"POST",auth:true,body:{legalBusinessName:String(document.getElementById("verification-legal-name").value||"").trim(),businessReference:String(document.getElementById("verification-reference").value||"").trim(),referenceUrl:String(document.getElementById("verification-url").value||"").trim(),message:String(document.getElementById("verification-message").value||"").trim()}});
+   C.invalidateCache("/seller/readiness");
    UI.toast("Verification request submitted for manual review.");
    UI.route("sellerVerification");
   }catch(error){
