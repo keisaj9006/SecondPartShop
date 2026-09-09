@@ -1112,6 +1112,27 @@ export type Database = {
           },
         ]
       }
+      ops_client_error_rate_limits: {
+        Row: {
+          event_count: number
+          key_hash: string
+          updated_at: string
+          window_started_at: string
+        }
+        Insert: {
+          event_count?: number
+          key_hash: string
+          updated_at?: string
+          window_started_at?: string
+        }
+        Update: {
+          event_count?: number
+          key_hash?: string
+          updated_at?: string
+          window_started_at?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           buyer_id: string | null
@@ -3134,6 +3155,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      consume_ops_client_error_rate_limit: {
+        Args: {
+          p_key_hash: string
+          p_limit?: number
+          p_window_seconds?: number
+        }
+        Returns: {
+          allowed: boolean
+          remaining: number
+        }[]
+      }
       consume_ai_listing_quota: {
         Args: never
         Returns: {
@@ -3718,6 +3750,7 @@ export type Database = {
           unit_price_pence: number
         }[]
       }
+      prune_ops_client_error_rate_limits: { Args: never; Returns: number }
       prepare_checkout_order_v2: {
         Args: {
           p_delivery_method?: string
