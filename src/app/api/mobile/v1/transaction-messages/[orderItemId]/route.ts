@@ -47,7 +47,7 @@ export async function GET(request:Request,{params}:{params:Promise<{orderItemId:
  const hasOlder=rawMessages.length>limit;
  const messages=rawMessages.slice(0,limit).reverse();
 
- const senderIds=[...new Set(messages.map(message=>message.sender_profile_id))];
+ const senderIds=[...new Set(messages.map(message=>message.sender_profile_id).filter((id):id is string=>Boolean(id)))];
  const profiles=await Promise.all(senderIds.map(async id=>{
   const {data}=await supabase.rpc("get_public_member_profile_by_id",{p_profile_id:id});
   const profile=data?.[0];
@@ -66,12 +66,12 @@ export async function GET(request:Request,{params}:{params:Promise<{orderItemId:
    sellerOwnerId:seller.owner_id,
    paymentStatus:order.payment_status,
    messages:messages.map(message=>{
-    const profile=byId.get(message.sender_profile_id);
+    const profile=message.sender_profile_id?byId.get(message.sender_profile_id):undefined;
     return {
      id:message.id,
      senderProfileId:message.sender_profile_id,
-     senderHandle:profile?.handle??"member",
-     senderDisplayName:profile?.displayName??"SecondPart member",
+     senderHandle:profile?.handle??(message.sender_profile_id?"member":"deleted-member"),
+     senderDisplayName:profile?.displayName??(message.sender_profile_id?"SecondPart member":"Deleted member"),
      body:message.body,
      createdAt:message.created_at
     };
