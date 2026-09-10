@@ -4,13 +4,18 @@ This runbook is the release gate for real Stripe test-mode commerce on `rebuild-
 
 ## Current preflight gate
 
-Open `/admin/commerce/e2e` as an administrator. The preflight must show:
+Open `/admin/commerce/e2e` as an administrator. The preflight must show all launch-test prerequisites as ready:
 
+- at least one dedicated buyer profile created through the normal account flow;
 - at least one active listing;
-- at least one Stripe Connect seller with `onboarding_status=complete`, `transfers_enabled=true` and `payouts_enabled=true`;
+- at least one **checkout-ready** active listing belonging to a payout-ready seller;
+- at least one Stripe Connect seller with a real provider account and `onboarding_status=complete`, `transfers_enabled=true` and `payouts_enabled=true`;
+- payout-transfer recovery schema available in the release database;
 - no environment/configuration blocker preventing test checkout.
 
-If payout-ready sellers is zero, do not simulate readiness by editing `seller_payment_accounts`. Complete a real Stripe **test-mode** seller onboarding instead.
+`Existing orders` is informational only and may correctly be zero before the first genuine E2E transaction.
+
+If buyer profiles, checkout-ready listings or payout-ready sellers are zero, do not simulate readiness by editing database rows. Create the QA buyer through the normal sign-up flow and complete a real Stripe **test-mode** seller onboarding. A listing becomes acceptable for this gate only through the same seller/payment readiness rules used by production commerce.
 
 ## Scenario A — happy path, explicit buyer acceptance
 
