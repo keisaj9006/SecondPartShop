@@ -39,4 +39,5 @@ jobs:
       - run: npm run validate:public-contact
       - run: npm run validate:account-deletion-e2e
       - run: npm run validate:production-origin
+      - run: npm run validate:production-env
       - run: npm run build
