@@ -50,6 +50,8 @@ Replace `<production-domain>` only after the final stable HTTPS origin is config
 
 Do not submit Preview/Vercel preview URLs as permanent Play policy URLs.
 
+Production must also configure a real monitored `NEXT_PUBLIC_SUPPORT_EMAIL`. The same validated address is rendered on `/contact` and `/privacy` without requiring sign-in. Do not put a placeholder mailbox into the Play listing.
+
 ## 3. App content declarations
 
 ### Privacy policy
@@ -58,7 +60,8 @@ Expected: **Yes / required**.
 Evidence:
 - public `/privacy` route;
 - privacy route also available from the app;
-- final production URL must be publicly reachable without a reviewer account.
+- final production URL must be publicly reachable without a reviewer account;
+- the real monitored support/privacy email must be visible on the Production page.
 
 ### Account creation and deletion
 Expected:
@@ -67,7 +70,7 @@ Expected:
 - external deletion path: **Yes**, `/account-deletion`;
 - data-retention exceptions: disclose only legitimate retained categories/reasons described by the final Privacy Policy and `docs/account-data-retention.md`.
 
-Release evidence still required: destructive deletion E2E using a disposable QA account.
+Release evidence still required: destructive deletion E2E using a disposable QA account and `docs/account-deletion-e2e-runbook.md`.
 
 ### Ads declaration
 Current-code expected answer: **No**.
@@ -178,20 +181,24 @@ Store screenshots must come from the final release-candidate UI rather than old 
 
 Before pressing Submit for review, retain evidence that:
 - production domain is stable and policy URLs work without login;
+- real `NEXT_PUBLIC_SUPPORT_EMAIL` is configured, monitored and visible on `/contact` and `/privacy`;
 - permanent upload key is configured and backed up securely;
 - production Firebase Android app matches `com.secondpart.marketplace`;
 - final production AAB workflow succeeds;
 - AAB package/version/signature are correct;
 - test-track install succeeds on a physical Android device;
+- the complete P0 physical-device matrix in `docs/android-rc-test-matrix.md` passes;
 - sign-up/sign-in/logout/recovery works;
 - buyer and seller modes work;
 - camera/image upload works;
 - deep links/app links work;
 - network loss/recovery is acceptable;
 - FCM notification E2E passes;
-- real Stripe test-mode commerce E2E and edge cases have passed before public commerce;
-- destructive account-deletion QA passes;
-- production critical alerts have a real destination and a successful smoke alert;
+- real Stripe test-mode commerce E2E and edge cases have passed using `docs/commerce-e2e-runbook.md` before public commerce;
+- payout-transfer recovery migration is deployed and verified in the release database before money-flow sign-off;
+- destructive account-deletion QA passes using `docs/account-deletion-e2e-runbook.md`;
+- Production critical alerts have a real destination;
+- `/admin/system/alerts` returns a successful HTTP 2xx smoke result and the fixed smoke alert is visibly confirmed in the intended operations destination;
 - legal/privacy/support identity and wording are final;
 - Data Safety/App content answers match the exact release.
 
@@ -201,11 +208,23 @@ These cannot be represented as complete merely by committing code:
 - stable production domain/origin;
 - permanent Google Play upload key and production signing secrets;
 - production Firebase `google-services.json` secret;
-- final Vercel production environment/alert destination access;
+- final Vercel production environment access;
+- real monitored public support/privacy mailbox;
+- real Production critical-alert destination and successful smoke alert;
 - current Supabase connector permission needed to deploy/verify the pending payout-recovery migration;
 - Play Console developer/account verification and manual declarations;
-- physical-device/test-track QA;
-- real test transactions and reviewer/demo account creation.
+- physical-device/test-track QA using `docs/android-rc-test-matrix.md`;
+- real Stripe test transactions;
+- destructive deletion QA using a disposable account;
+- reviewer/demo account creation.
+
+## Release protocols in this repository
+
+- `docs/android-rc-test-matrix.md` — physical Android RC PASS/FAIL matrix and GO/NO-GO evidence.
+- `docs/commerce-e2e-runbook.md` — real Stripe test-mode happy path, protection, refund, dispute/reversal and stock-concurrency scenarios.
+- `docs/account-deletion-e2e-runbook.md` — destructive privacy/deletion test on disposable accounts only.
+- `docs/operations-monitoring.md` — production monitoring and critical-alert smoke-test procedure.
+- `docs/account-data-retention.md` — deletion/retention rules for identity, transaction and evidential records.
 
 ## Official Play references to re-check on submission day
 
