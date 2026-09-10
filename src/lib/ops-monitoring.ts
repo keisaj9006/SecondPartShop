@@ -15,6 +15,12 @@ export type OpsComponent=
 type OpsContextValue=string|number|boolean|null|undefined;
 type OpsContext=Record<string,OpsContextValue>;
 
+export type CriticalAlertDeliveryResult={
+ delivered:boolean;
+ reason:"delivered"|"not_configured"|"invalid_url"|"http_error"|"network_error";
+ status?:number;
+};
+
 const MAX_MESSAGE=700;
 const MAX_STACK=1800;
 const MAX_CONTEXT_VALUE=240;
@@ -71,12 +77,12 @@ const webhookPayload=(record:Record<string,unknown>)=>{
  return record;
 };
 
-async function sendCriticalAlert(record:Record<string,unknown>){
+async function sendCriticalAlert(record:Record<string,unknown>):Promise<CriticalAlertDeliveryResult>{
  const rawUrl=process.env.OPS_ALERT_WEBHOOK_URL?.trim();
- if(!rawUrl)return;
+ if(!rawUrl)return {delivered:false,reason:"not_configured"};
  let url:URL;
- try{url=new URL(rawUrl);}catch{return;}
- if(url.protocol!=="https:")return;
+ try{url=new URL(rawUrl);}catch{return {delivered:false,reason:"invalid_url"};}
+ if(url.protocol!=="https:")return {delivered:false,reason:"invalid_url"};
 
  const controller=new AbortController();
  const timer=setTimeout(()=>controller.abort(),1500);
@@ -84,13 +90,32 @@ async function sendCriticalAlert(record:Record<string,unknown>){
   const headers=new Headers({"content-type":"application/json"});
   const token=process.env.OPS_ALERT_WEBHOOK_TOKEN?.trim();
   if(token)headers.set("authorization",`Bearer ${token}`);
-  await fetch(url,{method:"POST",headers,body:JSON.stringify(webhookPayload(record)),signal:controller.signal,cache:"no-store"});
+  const response=await fetch(url,{method:"POST",headers,body:JSON.stringify(webhookPayload(record)),signal:controller.signal,cache:"no-store"});
+  if(!response.ok){
+   console.warn("SECOND_PART_ALERT_DELIVERY_FAILED",`HTTP ${response.status}`);
+   return {delivered:false,reason:"http_error",status:response.status};
+  }
+  return {delivered:true,reason:"delivered",status:response.status};
  }catch(error){
   console.warn("SECOND_PART_ALERT_DELIVERY_FAILED",sanitizeMonitoringText(error,240));
+  return {delivered:false,reason:"network_error"};
  }finally{
   clearTimeout(timer);
  }
 }
+
+const baseRecord=(input:{severity:OpsSeverity;component:OpsComponent;event:string;message:string;route?:string;context?:OpsContext})=>({
+ type:"secondpart_ops",
+ severity:input.severity,
+ component:input.component,
+ event:sanitizeMonitoringText(input.event,100),
+ message:sanitizeMonitoringText(input.message),
+ route:input.route?sanitizeMonitoringText(input.route.split("?")[0],240):undefined,
+ context:cleanContext(input.context),
+ environment:process.env.VERCEL_ENV??process.env.NODE_ENV??"unknown",
+ release:process.env.VERCEL_GIT_COMMIT_SHA?.slice(0,12)??null,
+ timestamp:new Date().toISOString()
+});
 
 export async function reportOperationalError(input:{
  severity?:"error"|"critical";
@@ -102,19 +127,17 @@ export async function reportOperationalError(input:{
 }){
  const details=errorDetails(input.error);
  const record={
-  type:"secondpart_ops",
-  severity:input.severity??"error",
-  component:input.component,
-  event:sanitizeMonitoringText(input.event,100),
-  message:details.message,
+  ...baseRecord({
+   severity:input.severity??"error",
+   component:input.component,
+   event:input.event,
+   message:details.message,
+   route:input.route,
+   context:input.context
+  }),
   errorName:details.errorName,
   stack:details.stack,
-  digest:details.digest,
-  route:input.route?sanitizeMonitoringText(input.route.split("?")[0],240):undefined,
-  context:cleanContext(input.context),
-  environment:process.env.VERCEL_ENV??process.env.NODE_ENV??"unknown",
-  release:process.env.VERCEL_GIT_COMMIT_SHA?.slice(0,12)??null,
-  timestamp:new Date().toISOString()
+  digest:details.digest
  };
  console.error("SECOND_PART_OPS",JSON.stringify(record));
  if(record.severity==="critical")await sendCriticalAlert(record);
@@ -128,18 +151,27 @@ export function reportOperationalWarning(input:{
  route?:string;
  context?:OpsContext;
 }){
- const record={
-  type:"secondpart_ops",
+ const record=baseRecord({
   severity:"warning",
   component:input.component,
-  event:sanitizeMonitoringText(input.event,100),
-  message:sanitizeMonitoringText(input.message),
-  route:input.route?sanitizeMonitoringText(input.route.split("?")[0],240):undefined,
-  context:cleanContext(input.context),
-  environment:process.env.VERCEL_ENV??process.env.NODE_ENV??"unknown",
-  release:process.env.VERCEL_GIT_COMMIT_SHA?.slice(0,12)??null,
-  timestamp:new Date().toISOString()
- };
+  event:input.event,
+  message:input.message,
+  route:input.route,
+  context:input.context
+ });
  console.warn("SECOND_PART_OPS",JSON.stringify(record));
  return record;
+}
+
+export async function sendCriticalAlertSmokeTest():Promise<CriticalAlertDeliveryResult>{
+ const record=baseRecord({
+  severity:"critical",
+  component:"commerce_maintenance",
+  event:"manual_alert_smoke_test",
+  message:"SecondPart production critical-alert smoke test.",
+  route:"/admin/system/alerts",
+  context:{kind:"manual_smoke_test"}
+ });
+ console.error("SECOND_PART_OPS",JSON.stringify(record));
+ return sendCriticalAlert(record);
 }
