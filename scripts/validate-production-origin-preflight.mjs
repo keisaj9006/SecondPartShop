@@ -14,11 +14,14 @@ const checks=[
  ["Production origin preflight must verify external account deletion",preflight.includes('get("/account-deletion")')&&preflight.includes("external account-deletion route for SecondPart")],
  ["Production origin preflight must verify Android asset links",preflight.includes('get("/.well-known/assetlinks.json"')&&preflight.includes("delegate_permission/common.handle_all_urls")],
  ["Production origin preflight must bind App Links to the production package",preflight.includes('PACKAGE_NAME="com.secondpart.marketplace"')],
- ["Production origin preflight must compare App Links to the expected signing fingerprint",preflight.includes("ANDROID_EXPECTED_SIGNER_SHA256")&&preflight.includes("normalizeFingerprint")],
+ ["Production origin preflight must require Play App Signing fingerprints rather than the upload key",preflight.includes("ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS")&&!preflight.includes("ANDROID_EXPECTED_SIGNER_SHA256")],
+ ["Production origin preflight must support multiple Play signing fingerprints",preflight.includes("expectedPlayFingerprints")&&preflight.includes("missingPlayFingerprints")&&preflight.includes("new Set")],
  ["Asset Links route must remain production-package scoped",assetlinks.includes('PACKAGE_NAME="com.secondpart.marketplace"')&&assetlinks.includes("ANDROID_APP_LINK_SHA256_FINGERPRINTS")],
- ["Production AAB workflow must derive an expected signer fingerprint before origin verification",workflow.includes("ANDROID_EXPECTED_SIGNER_SHA256")&&workflow.includes("keytool -list -v")],
+ ["Production AAB workflow must still derive the upload signer independently",workflow.includes("ANDROID_EXPECTED_SIGNER_SHA256")&&workflow.includes("keytool -list -v")],
+ ["Production AAB workflow must inject Play App Signing fingerprints only into origin verification",workflow.includes('ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS: ${{ secrets.ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS }}')],
  ["Production AAB workflow must run the network origin preflight",workflow.includes("node scripts/verify-production-origin.mjs")],
  ["Production origin preflight must happen before bundleRelease",workflow.indexOf("node scripts/verify-production-origin.mjs")>=0&&workflow.indexOf("node scripts/verify-production-origin.mjs")<workflow.indexOf("./gradlew bundleRelease")],
+ ["Final AAB signature verification must compare against the upload signer",workflow.includes('EXPECTED="$ANDROID_EXPECTED_SIGNER_SHA256"')&&workflow.includes("AAB signer does not match the production upload key")],
 ];
 
 let failed=0;
