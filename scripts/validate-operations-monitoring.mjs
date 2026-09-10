@@ -4,7 +4,6 @@ const read=(path)=>fs.readFileSync(path,"utf8");
 const exists=(path)=>fs.existsSync(path);
 
 const ops=read("src/lib/ops-monitoring.ts");
-const client=read("src/lib/client-monitoring.ts");
 const serverInstrumentation=read("src/instrumentation.ts");
 const clientInstrumentation=read("src/instrumentation-client.ts");
 const clientEndpoint=read("src/app/api/ops/client-error/route.ts");
@@ -15,13 +14,22 @@ const maintenance=read("src/app/api/commerce/maintenance/route.ts");
 const payoutCron=read("src/app/api/commerce/release-due/route.ts");
 const privacyMaintenance=read("src/app/api/privacy/maintenance/route.ts");
 const limiter=read("supabase/migrations/20260909235930_ops_client_error_rate_limit.sql");
+const alertAction=read("src/app/admin/system/alerts/actions.ts");
+const alertPage=read("src/app/admin/system/alerts/page.tsx");
 const env=read(".env.example");
 const runbook=read("docs/operations-monitoring.md");
 
 const checks=[
  ["Structured server logger must emit a stable operations marker",ops.includes("SECOND_PART_OPS")&&ops.includes('type:"secondpart_ops"')],
  ["Operations logger must sanitise obvious sensitive values",ops.includes("redacted-email")&&ops.includes("redacted-token")&&ops.includes("redacted-id")],
- ["Critical alert forwarding must remain optional and best-effort",ops.includes("OPS_ALERT_WEBHOOK_URL")&&ops.includes("sendCriticalAlert")&&ops.includes("ALERT_DELIVERY_FAILED")],
+ ["Critical alert forwarding must remain optional and best-effort at runtime",ops.includes("OPS_ALERT_WEBHOOK_URL")&&ops.includes("sendCriticalAlert")&&ops.includes("ALERT_DELIVERY_FAILED")],
+ ["Critical alert delivery must reject invalid/non-HTTPS destinations",ops.includes('reason:"invalid_url"')&&ops.includes('url.protocol!=="https:"')],
+ ["Critical alert delivery must treat non-2xx as failure",ops.includes("response.ok")&&ops.includes('reason:"http_error"')&&ops.includes("response.status")],
+ ["Critical alert smoke test must use a fixed server-side event",ops.includes("sendCriticalAlertSmokeTest")&&ops.includes('event:"manual_alert_smoke_test"')&&ops.includes("SecondPart production critical-alert smoke test.")],
+ ["Critical alert smoke action must be admin-only",alertAction.includes('requireAdmin("/admin/system/alerts")')&&alertAction.includes("sendCriticalAlertSmokeTest")],
+ ["Critical alert smoke action must expose only result metadata",alertAction.includes("result:result.delivered")&&alertAction.includes("reason:result.reason")&&!alertAction.includes("OPS_ALERT_WEBHOOK_URL")&&!alertAction.includes("OPS_ALERT_WEBHOOK_TOKEN")],
+ ["Critical alert smoke page must not accept arbitrary alert content",alertPage.includes("predefined SecondPart critical-alert test record")&&alertPage.includes("does not accept arbitrary message content")],
+ ["Critical alert smoke page must require real destination confirmation",alertPage.includes("Confirm the SecondPart smoke-test message is visible")],
  ["Next.js uncaught request errors must be captured",serverInstrumentation.includes("onRequestError")&&serverInstrumentation.includes("uncaught_request_error")],
  ["Browser runtime and unhandled rejection errors must be captured",clientInstrumentation.includes('addEventListener("error"')&&clientInstrumentation.includes('addEventListener("unhandledrejection"')],
  ["Client error endpoint must be same-origin and payload bounded",clientEndpoint.includes("sameOrigin")&&clientEndpoint.includes("content-length")&&clientEndpoint.includes("8192")],
@@ -35,7 +43,8 @@ const checks=[
  ["Payout release cron failures must be monitored",payoutCron.includes("payout_release_batch_failed")],
  ["Privacy maintenance failures must be monitored",privacyMaintenance.includes("privacy_maintenance_failed")],
  ["Monitoring alert environment must be documented",env.includes("OPS_ALERT_WEBHOOK_URL")&&env.includes("OPS_ALERT_WEBHOOK_KIND")&&env.includes("OPS_ALERT_WEBHOOK_TOKEN")],
- ["Operations runbook must exist",exists("docs/operations-monitoring.md")&&runbook.includes("Incident priority")&&runbook.includes("SECOND_PART_OPS")],
+ ["Operations runbook must document verifiable admin smoke testing",exists("docs/operations-monitoring.md")&&runbook.includes("/admin/system/alerts")&&runbook.includes("HTTP 2xx")&&runbook.includes("visibly confirmed")],
+ ["Operations runbook must retain incident-priority guidance",runbook.includes("Incident priority")&&runbook.includes("SECOND_PART_OPS")],
 ];
 
 let failed=0;
