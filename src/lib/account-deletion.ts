@@ -3,12 +3,32 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const BATCH_SIZE=500;
+const UUID_PATTERN=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type RequestResult={
  requestId:string;
  status:"completed"|"blocked"|"deferred"|"failed";
  reason?:string;
 };
+
+export type AccountDeletionQaPreflight=
+ |{found:false;reason:"invalid_request_id"|"request_missing"}
+ |{
+   found:true;
+   requestId:string;
+   profileId:string|null;
+   status:string;
+   blockerCode:string|null;
+   attemptCount:number;
+   requestedAt:string;
+   processingStartedAt:string|null;
+   completedAt:string|null;
+   processorErrorPresent:boolean;
+   profileExists:boolean;
+   authIdentity:"present"|"missing"|"unknown";
+   workerCandidate:boolean;
+   identityDetached:boolean;
+  };
 
 const errorMessage=(error:unknown)=>error instanceof Error?error.message:String(error??"unknown_error");
 
@@ -22,6 +42,55 @@ async function markFailed(requestId:string,error:unknown){
  }catch{
   // Best-effort audit update. The original processing failure remains primary.
  }
+}
+
+export async function getAccountDeletionQaPreflight(requestId:string):Promise<AccountDeletionQaPreflight>{
+ const normalized=requestId.trim();
+ if(!UUID_PATTERN.test(normalized))return {found:false,reason:"invalid_request_id"};
+
+ const admin=createSupabaseAdminClient();
+ const {data:request,error}=await admin
+  .from("account_deletion_requests")
+  .select("id,status,profile_id,target_profile_id,blocker_code,attempt_count,requested_at,processing_started_at,completed_at,last_error")
+  .eq("id",normalized)
+  .maybeSingle();
+
+ if(error)throw error;
+ if(!request)return {found:false,reason:"request_missing"};
+
+ const profileId=request.profile_id??request.target_profile_id;
+ let profileExists=false;
+ let authIdentity:"present"|"missing"|"unknown"=profileId?"unknown":"missing";
+
+ if(profileId){
+  const {data:profile,error:profileError}=await admin.from("profiles").select("id").eq("id",profileId).maybeSingle();
+  if(profileError)throw profileError;
+  profileExists=Boolean(profile);
+
+  const {data:authData,error:authError}=await admin.auth.admin.getUserById(profileId);
+  if(!authError){
+   authIdentity=authData.user?"present":"missing";
+  }else if(("status" in authError&&authError.status===404)||/user.*not found|not found.*user/i.test(authError.message)){
+   authIdentity="missing";
+  }
+ }
+
+ return {
+  found:true,
+  requestId:request.id,
+  profileId,
+  status:request.status,
+  blockerCode:request.blocker_code,
+  attemptCount:request.attempt_count,
+  requestedAt:request.requested_at,
+  processingStartedAt:request.processing_started_at,
+  completedAt:request.completed_at,
+  processorErrorPresent:Boolean(request.last_error),
+  profileExists,
+  authIdentity,
+  workerCandidate:["requested","blocked","failed","processing"].includes(request.status),
+  identityDetached:request.profile_id===null&&Boolean(request.target_profile_id)
+ };
 }
 
 async function purgePartImages(requestId:string){
