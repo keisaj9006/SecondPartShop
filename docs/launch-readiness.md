@@ -15,6 +15,7 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [x] Android target/compile SDK 36.
 - [x] Production WebView debugging and debug logging disabled.
 - [x] Verified HTTPS deep-link/app-link patch path.
+- [x] Native production launcher/adaptive icon and splash are generated from the versioned SecondPart vector mark and verified inside the production-style AAB pipeline.
 - [x] Marketplace keyset pagination for default browse and major sort modes.
 - [x] Keyset pagination for default catalogue compatibility.
 - [x] Seller inventory keyset pagination.
@@ -49,7 +50,7 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [ ] Register the Firebase Android production app for `com.secondpart.marketplace` and store its production `google-services.json` secret.
 - [ ] Run the real production AAB workflow using the production URL, signing key and Firebase config.
 - [ ] Confirm release package/version/signature and install/test the generated release candidate through a Google Play test track.
-- [ ] Finish native launcher/adaptive icon and production splash/brand assets.
+- [x] Finish native launcher/adaptive icon and production splash/brand assets. Verified by Android Release Pipeline Check on 2026-09-10, including generated assets, production-style `bundleRelease` and AAB verification.
 - [ ] Complete physical-device RC smoke testing: sign-up/sign-in/logout/recovery, Home/Garage/navigation, seller mode, image/camera upload, deep links, app links, network loss/recovery.
 - [ ] Complete physical FCM end-to-end notification testing.
 - [ ] Configure and smoke-test the final production critical-alert destination after the production Vercel environment is fixed.
