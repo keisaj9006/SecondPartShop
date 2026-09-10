@@ -12,12 +12,38 @@ type CapacitorLike={
  isNativePlatform?:()=>boolean;
  Plugins?:{App?:AppPluginLike};
 };
+type NativePushNotification={
+ id:string;
+ title:string;
+ body:string;
+ data:Record<string,unknown>;
+};
+type SecondPartNativeLike={
+ push?:{
+  onReceived?:(callback:(notification:NativePushNotification)=>void)=>Promise<ListenerHandle>|ListenerHandle;
+  onAction?:(callback:(notification:NativePushNotification)=>void)=>Promise<ListenerHandle>|ListenerHandle;
+ };
+};
+
+const safeInternalHref=(raw:unknown)=>{
+ if(typeof raw!=="string")return null;
+ const value=raw.trim();
+ if(!value.startsWith("/")||value.startsWith("//")||value.includes("\\"))return null;
+ try{
+  const url=new URL(value,window.location.origin);
+  if(url.origin!==window.location.origin)return null;
+  return `${url.pathname}${url.search}${url.hash}`;
+ }catch{
+  return null;
+ }
+};
 
 export function NativeAppMode(){
  const router=useRouter();
 
  useEffect(()=>{
-  const capacitor=(window as Window & {Capacitor?:CapacitorLike}).Capacitor;
+  const nativeWindow=window as Window & {Capacitor?:CapacitorLike;SecondPartNative?:SecondPartNativeLike};
+  const capacitor=nativeWindow.Capacitor;
   const native=Boolean(capacitor?.isNativePlatform?.());
   document.documentElement.classList.toggle("native-app",native);
   if(native){
@@ -49,12 +75,15 @@ export function NativeAppMode(){
   };
 
   const app=capacitor?.Plugins?.App;
-  let handle:ListenerHandle|undefined;
+  const push=nativeWindow.SecondPartNative?.push;
+  let appUrlHandle:ListenerHandle|undefined;
+  let pushReceivedHandle:ListenerHandle|undefined;
+  let pushActionHandle:ListenerHandle|undefined;
   let cancelled=false;
 
   if(app?.addListener){
    Promise.resolve(app.addListener("appUrlOpen",event=>routeNativeUrl(event.url)))
-    .then(result=>{if(cancelled)void result.remove();else handle=result;})
+    .then(result=>{if(cancelled)void result.remove();else appUrlHandle=result;})
     .catch(()=>{});
   }
 
@@ -64,10 +93,30 @@ export function NativeAppMode(){
    }).catch(()=>{});
   }
 
+  if(push?.onReceived){
+   Promise.resolve(push.onReceived(()=>{
+    if(!cancelled)router.refresh();
+   }))
+    .then(result=>{if(cancelled)void result.remove();else pushReceivedHandle=result;})
+    .catch(()=>{});
+  }
+
+  if(push?.onAction){
+   Promise.resolve(push.onAction(notification=>{
+    if(cancelled)return;
+    const href=safeInternalHref(notification.data?.href);
+    if(href)router.push(href);
+   }))
+    .then(result=>{if(cancelled)void result.remove();else pushActionHandle=result;})
+    .catch(()=>{});
+  }
+
   return()=>{
    cancelled=true;
    document.documentElement.classList.remove("native-app");
-   if(handle)void handle.remove();
+   if(appUrlHandle)void appUrlHandle.remove();
+   if(pushReceivedHandle)void pushReceivedHandle.remove();
+   if(pushActionHandle)void pushActionHandle.remove();
   };
  },[router]);
 
