@@ -29,7 +29,6 @@ export async function updateMarketplaceReport(formData:FormData){
  revalidatePath("/admin/moderation");
 }
 
-
 export async function updateSupportRequest(formData:FormData){
  await requireAdmin("/admin/moderation");
  const requestId=String(formData.get("requestId")??"");
@@ -39,8 +38,8 @@ export async function updateSupportRequest(formData:FormData){
  const {error}=await supabase.from("support_requests").update({status,updated_at:new Date().toISOString()}).eq("id",requestId);
  if(error)throw error;
  revalidatePath("/admin/moderation");
+ revalidatePath("/admin/beta-feedback");
 }
-
 
 export async function reviewGaragePartner(formData:FormData){
  await requireAdmin("/admin/moderation");
