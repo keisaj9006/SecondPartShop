@@ -79,6 +79,7 @@ export async function refreshStripePaymentStatus(){
   const {error}=await admin.from("seller_payment_accounts").update({
    onboarding_status:complete?"complete":"pending",
    transfers_enabled:complete,
+   payouts_enabled:complete,
    details_submitted:complete
   }).eq("seller_id",seller.id);
   if(error)throw error;
