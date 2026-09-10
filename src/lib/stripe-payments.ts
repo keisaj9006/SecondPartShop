@@ -31,7 +31,21 @@ export type StripePaymentIntent={
  metadata?:Record<string,string>;
 };
 
-export type StripeTransfer={id:string;amount:number;currency:string;destination:string|{id:string}};
+export type StripeTransfer={
+ id:string;
+ amount:number;
+ amount_reversed?:number;
+ currency:string;
+ destination:string|{id:string};
+ reversed?:boolean;
+ transfer_group?:string|null;
+ metadata?:Record<string,string>;
+ reversals?:{
+  data?:Array<{id:string;amount?:number}>;
+  has_more?:boolean;
+ };
+};
+export type StripeTransferList={data:StripeTransfer[];has_more:boolean};
 export type StripeRefund={id:string;status:string|null;amount:number};
 export type StripeTransferReversal={id:string;amount:number};
 
@@ -64,6 +78,9 @@ async function stripeV1<T>(path:string,init:RequestInit={}):Promise<T>{
 const append=(body:URLSearchParams,key:string,value:string|number|undefined|null)=>{
  if(value!==undefined&&value!==null)body.append(key,String(value));
 };
+
+const destinationId=(value:StripeTransfer["destination"])=>typeof value==="string"?value:value.id;
+const cleanAttemptTag=(value:string)=>value.trim().replace(/[^A-Za-z0-9_-]/g,"-").slice(0,120)||"initial";
 
 export async function createCheckoutSession(input:{
  orderId:string;
@@ -116,13 +133,36 @@ export async function getPaymentIntent(paymentIntentId:string){
  return stripeV1<StripePaymentIntent>(`/v1/payment_intents/${encodeURIComponent(paymentIntentId)}`,{method:"GET"});
 }
 
+export async function findSellerTransferForAttempt(input:{
+ orderId:string;
+ orderItemId:string;
+ amountPence:number;
+ destinationAccountId:string;
+ attemptTag:string;
+}){
+ const params=new URLSearchParams({
+  transfer_group:`order_${input.orderId}`,
+  limit:"100"
+ });
+ const result=await stripeV1<StripeTransferList>(`/v1/transfers?${params.toString()}`,{method:"GET"});
+ const attemptTag=cleanAttemptTag(input.attemptTag);
+ return result.data.find(transfer=>
+  transfer.amount===input.amountPence&&
+  destinationId(transfer.destination)===input.destinationAccountId&&
+  transfer.metadata?.order_item_id===input.orderItemId&&
+  transfer.metadata?.payout_attempt===attemptTag
+ )??null;
+}
+
 export async function createSellerTransfer(input:{
  orderId:string;
  orderItemId:string;
  amountPence:number;
  destinationAccountId:string;
  sourceChargeId:string;
+ attemptTag:string;
 }){
+ const attemptTag=cleanAttemptTag(input.attemptTag);
  const body=new URLSearchParams();
  append(body,"amount",input.amountPence);
  append(body,"currency","gbp");
@@ -131,7 +171,12 @@ export async function createSellerTransfer(input:{
  append(body,"source_transaction",input.sourceChargeId);
  append(body,"metadata[order_id]",input.orderId);
  append(body,"metadata[order_item_id]",input.orderItemId);
- return stripeV1<StripeTransfer>("/v1/transfers",{method:"POST",body,headers:{"Idempotency-Key":`secondpart-transfer-${input.orderItemId}`}});
+ append(body,"metadata[payout_attempt]",attemptTag);
+ return stripeV1<StripeTransfer>("/v1/transfers",{
+  method:"POST",
+  body,
+  headers:{"Idempotency-Key":`secondpart-transfer-${input.orderItemId}-${attemptTag}`.slice(0,255)}
+ });
 }
 
 export async function reverseSellerTransfer(transferId:string,amountPence?:number,idempotencyKey?:string){
