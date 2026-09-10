@@ -50,6 +50,36 @@ if(!schedule.includes('after('))failures.push("push schedule must use Next after
 const fcm=read("src/lib/push/fcm.ts");
 if(!fcm.includes('priority:"HIGH"'))failures.push("Android transactional pushes must use HIGH priority");
 
+const nativeMode=read("src/components/native-app-mode.tsx");
+if(!nativeMode.includes("SecondPartNative")||!nativeMode.includes("onReceived")||!nativeMode.includes("router.refresh()")){
+ failures.push("native foreground push must refresh hosted application state");
+}
+if(!nativeMode.includes("onAction")||!nativeMode.includes("notification.data?.href")||!nativeMode.includes("router.push(href)")){
+ failures.push("native push action must route the notification href through the hosted application");
+}
+if(!nativeMode.includes('value.startsWith("/")')||!nativeMode.includes('value.startsWith("//")')||!nativeMode.includes('url.origin!==window.location.origin')){
+ failures.push("native push action href must be restricted to a safe same-origin internal path");
+}
+
+const smokeAction=read("src/app/admin/system/push-test/actions.ts");
+if(!smokeAction.includes('from("notifications")')||!smokeAction.includes('type:"system_push_test"')||!smokeAction.includes("schedulePushDispatch(")){
+ failures.push("FCM smoke test must use the normal notifications -> outbox -> dispatcher pipeline");
+}
+if(!smokeAction.includes("isFcmPushConfigured")){
+ failures.push("FCM smoke test must fail closed when Firebase server credentials are unavailable");
+}
+if(smokeAction.includes("sendFcmPush")||/from\(["']mobile_push_outbox["']\)[\s\S]{0,200}insert\(/.test(smokeAction)){
+ failures.push("FCM smoke test must not bypass the production notification pipeline");
+}
+
+const smokePage=read("src/app/admin/system/push-test/page.tsx");
+if(!smokePage.includes("Server-side delivery is not the physical PASS")){
+ failures.push("FCM smoke test UI must not represent server acceptance as physical-device PASS");
+}
+if(smokePage.includes("token")&&smokePage.includes("select(\"id,profile_id,platform,app_id,build_channel,last_seen_at,updated_at,token\")")){
+ failures.push("FCM smoke test UI must not load or expose device tokens");
+}
+
 const mobileUi=read("mobile-shell/ui.js");
 if(!mobileUi.includes('href.startsWith("/fitting/")')||!mobileUi.includes('route("fittingChat",{id})')){
  failures.push("Buy + Fit push href must open the native fitting chat");
@@ -74,4 +104,4 @@ if(failures.length){
  process.exit(1);
 }
 
-console.log("Notification delivery invariants passed for "+criticalDispatchFiles.length+" critical event paths.");
+console.log("Notification delivery invariants passed for "+criticalDispatchFiles.length+" critical event paths plus native FCM routing and smoke-test safety.");
