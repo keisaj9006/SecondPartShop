@@ -5,11 +5,13 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { isUuid } from "@/lib/identifiers";
+import { isFcmPushConfigured } from "@/lib/push/fcm";
 import { schedulePushDispatch } from "@/lib/push/schedule";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export async function queueFcmSmokeTest(formData:FormData){
  await requireAdmin("/admin/system/push-test");
+ if(!isFcmPushConfigured())redirect("/admin/system/push-test?error=firebase-not-configured");
  const deviceId=String(formData.get("deviceId")??"").trim();
  if(!isUuid(deviceId))redirect("/admin/system/push-test?error=invalid-device");
 
