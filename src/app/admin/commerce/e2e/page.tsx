@@ -22,22 +22,28 @@ export default async function CommerceE2EPage({searchParams}:{searchParams:Promi
  ]);
  const searched=Boolean(orderId);
 
+ const preflightChecks=[
+  {label:"Buyer accounts",value:String(preflight.buyerProfiles),ready:preflight.buyerProfiles>0,detail:"At least one buyer profile is required for the controlled checkout."},
+  {label:"Active listings",value:String(preflight.activeListings),ready:preflight.activeListings>0,detail:"There must be an active part with stock available."},
+  {label:"Checkout-ready listings",value:String(preflight.checkoutReadyListings),ready:preflight.checkoutReadyListings>0,detail:"The test listing must belong to a seller who can receive Stripe transfers."},
+  {label:"Payout-ready sellers",value:String(preflight.payoutReadySellers),ready:preflight.payoutReadySellers>0,detail:"Stripe Connect must report complete onboarding, transfers and payouts enabled."},
+  {label:"Payout recovery",value:preflight.payoutRecoveryReady?"Ready":"Missing",ready:preflight.payoutRecoveryReady,detail:"Release database must expose the service-only payout recovery RPCs."},
+  {label:"Existing orders",value:String(preflight.existingOrders),ready:true,detail:"Informational only. Zero is expected before the first genuine E2E order."}
+ ];
+
  return <><Header/><main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
   <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
    <div><p className="text-xs font-black uppercase tracking-[.2em] text-[#287154]">Release QA</p><h1 className="mt-2 text-4xl font-black tracking-[-.045em]">Commerce E2E verifier</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-[#63706a]">Read-only verification of a real Stripe transaction. This page never advances fulfilment, changes payment state or forces a payout.</p></div>
-   <Link href="/admin/commerce" className="w-fit rounded-full border border-black/15 bg-white px-4 py-2.5 text-sm font-black">Back to commerce</Link>
+   <div className="flex flex-wrap gap-2"><Link href="/admin/system" className="w-fit rounded-full border border-black/15 bg-white px-4 py-2.5 text-sm font-black">System readiness</Link><Link href="/admin/commerce" className="w-fit rounded-full border border-black/15 bg-white px-4 py-2.5 text-sm font-black">Back to commerce</Link></div>
   </div>
 
   <section className="mt-8 rounded-3xl border border-black/10 bg-white p-5 sm:p-6">
-   <div className="flex items-start gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#173c31] text-[#d4f44d]"><FlaskConical size={21}/></span><div><h2 className="text-xl font-black">Real E2E preflight</h2><p className="mt-1 text-sm leading-6 text-[#63706a]">A genuine payment test needs at least one live listing and one seller whose Stripe Connect account can receive transfers.</p></div></div>
-   <div className="mt-5 grid gap-3 sm:grid-cols-4">
-    <div className="rounded-2xl bg-[#f8f7f2] p-4"><p className="text-xs font-black uppercase tracking-wide text-[#63706a]">Active listings</p><p className="mt-2 text-2xl font-black">{preflight.activeListings}</p></div>
-    <div className="rounded-2xl bg-[#f8f7f2] p-4"><p className="text-xs font-black uppercase tracking-wide text-[#63706a]">Active sellers</p><p className="mt-2 text-2xl font-black">{preflight.sellersWithActiveListings}</p></div>
-    <div className="rounded-2xl bg-[#f8f7f2] p-4"><p className="text-xs font-black uppercase tracking-wide text-[#63706a]">Payout-ready</p><p className="mt-2 text-2xl font-black">{preflight.payoutReadySellers}</p></div>
-    <div className="rounded-2xl bg-[#f8f7f2] p-4"><p className="text-xs font-black uppercase tracking-wide text-[#63706a]">Orders</p><p className="mt-2 text-2xl font-black">{preflight.existingOrders}</p></div>
+   <div className="flex items-start gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#173c31] text-[#d4f44d]"><FlaskConical size={21}/></span><div><h2 className="text-xl font-black">Real E2E preflight</h2><p className="mt-1 text-sm leading-6 text-[#63706a]">A genuine payment test requires a buyer account, an active checkout-ready listing, a real payout-ready Stripe Connect seller and the deployed payout-recovery schema. No readiness state is fabricated for testing.</p></div></div>
+   <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    {preflightChecks.map(item=><div key={item.label} className={`rounded-2xl border p-4 ${item.ready?"border-emerald-200 bg-emerald-50":"border-amber-200 bg-amber-50"}`}><div className="flex items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-wide text-[#63706a]">{item.label}</p>{item.ready?<CheckCircle2 size={17} className="text-emerald-800"/>:<AlertTriangle size={17} className="text-amber-900"/>}</div><p className="mt-2 text-2xl font-black">{item.value}</p><p className="mt-2 text-xs leading-5 text-[#63706a]">{item.detail}</p></div>)}
    </div>
    <div className={`mt-4 rounded-2xl border p-4 text-sm ${preflight.readyForRealE2E?"border-emerald-200 bg-emerald-50 text-emerald-900":"border-amber-200 bg-amber-50 text-amber-950"}`}>
-    <p className="font-black">{preflight.readyForRealE2E?"Environment is ready for a real transaction test.":"Real Stripe E2E is blocked by environment readiness."}</p>
+    <p className="font-black">{preflight.readyForRealE2E?"Environment is ready for a controlled real Stripe transaction test.":"Real Stripe E2E is blocked by environment readiness."}</p>
     {!preflight.readyForRealE2E&&<ul className="mt-2 list-disc space-y-1 pl-5">{preflight.blockers.map(item=><li key={item}>{item}</li>)}</ul>}
    </div>
   </section>
