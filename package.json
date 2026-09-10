@@ -13,7 +13,8 @@
     "validate:launch-baseline": "node scripts/validate-launch-baseline.mjs",
     "validate:monitoring": "node scripts/validate-operations-monitoring.mjs",
     "validate:commerce-e2e": "node scripts/validate-commerce-e2e-harness.mjs",
-    "validate:payout-recovery": "node scripts/validate-payout-recovery.mjs"
+    "validate:payout-recovery": "node scripts/validate-payout-recovery.mjs",
+    "validate:android-rc": "node scripts/validate-android-rc-gate.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.5",
