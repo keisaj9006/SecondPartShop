@@ -36,4 +36,5 @@ jobs:
       - run: npm run validate:commerce-e2e
       - run: npm run validate:payout-recovery
       - run: npm run validate:android-rc
+      - run: npm run validate:public-contact
       - run: npm run build
