@@ -46,7 +46,7 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [x] Seller listing/profile/photo UGC, bulk inventory imports, reviews/fit feedback and Find My Part requests are Terms-gated across relevant web/mobile paths.
 - [x] Review / verified-fit Terms enforcement also exists at the database boundary.
 - [x] Silent-buyer payout fallback is explicit: no payout is released from buyer inactivity alone; stale unverified shipments enter admin evidence review before the normal Buyer Protection window can start.
-- [x] Payout transfer recovery code is guarded by a dedicated CI invariant suite; deployment of its pending migration still requires restored Supabase project access.
+- [x] Payout transfer recovery code is guarded by a dedicated CI invariant suite, and the recovery migration was deployed and privilege-verified against the live `secondpart` Supabase project on 2026-09-10.
 - [x] Operational account-deletion processor is implemented with hard Auth deletion, identity detachment, PII cleanup, storage cleanup, blockers and retry-safe maintenance processing.
 - [x] Structured production monitoring covers uncaught server/client failures plus checkout, Stripe webhook, payout, reconciliation, push, deletion and maintenance critical paths.
 - [x] Public support/privacy contact code is ready: a validated `NEXT_PUBLIC_SUPPORT_EMAIL` is rendered on `/contact` and `/privacy`, while account-linked support remains authenticated. The real Production mailbox still must be configured.
@@ -69,7 +69,7 @@ This document is the canonical launch checklist for the Android / Google Play an
 
 ## P0 — before public commerce
 
-- [ ] Restore Supabase project access and deploy/verify the pending payout-transfer recovery migration before running the final money-flow E2E.
+- [x] Restore Supabase project access and deploy/verify the payout-transfer recovery migration before running the final money-flow E2E. Verified on 2026-09-10: all recovery RPCs exist as `SECURITY DEFINER`; `anon` and `authenticated` cannot execute them; `service_role` can.
 - [ ] Complete a real Stripe test-mode E2E transaction: buyer checkout -> webhook confirmation -> seller fulfilment -> buyer receipt/acceptance -> payout eligibility.
 - [ ] Test cancellation, refund, return/case, payment-dispute and payout-reversal paths end to end.
 - [ ] Test concurrency/stock reservation with competing checkout attempts.
