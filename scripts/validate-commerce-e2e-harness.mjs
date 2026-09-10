@@ -18,6 +18,9 @@ const isReadOnly=forbiddenMutations.every(token=>!diagnostic.includes(token));
 const checks=[
  ["Commerce E2E diagnostic must remain read-only",isReadOnly],
  ["Diagnostic must require a valid order UUID",diagnostic.includes("isUuid(orderId)")],
+ ["Preflight must fail closed unless Stripe API credentials are test-mode",diagnostic.includes("getStripeApiMode")&&diagnostic.includes('key.startsWith("sk_test_")')&&diagnostic.includes('key.startsWith("rk_test_")')&&diagnostic.includes('stripeApiMode==="live"')&&diagnostic.includes("Release QA is blocked")],
+ ["Preflight must require Stripe webhook signing configuration",diagnostic.includes("STRIPE_WEBHOOK_SECRET")&&diagnostic.includes('startsWith("whsec_")')&&diagnostic.includes("stripeWebhookConfigured")],
+ ["Preflight must require a safe HTTPS site origin",diagnostic.includes("isSafeHttpsUrl")&&diagnostic.includes("NEXT_PUBLIC_SITE_URL")&&diagnostic.includes('url.protocol==="https:"')&&diagnostic.includes("siteUrlConfigured")],
  ["Preflight must check for a buyer account",diagnostic.includes('from("profiles")')&&diagnostic.includes('.eq("role","buyer")')&&diagnostic.includes("buyerProfiles<1")],
  ["Preflight must use aggregate checkout readiness instead of loading all active listings",diagnostic.includes('rpc("admin_active_listing_checkout_readiness")')&&diagnostic.includes("checkout_ready_listings")&&!diagnostic.includes('from("parts").select("seller_id",{count:"exact"}).eq("status","active")')],
  ["Preflight must check payout-ready sellers",diagnostic.includes('onboarding_status","complete"')&&diagnostic.includes('transfers_enabled",true')&&diagnostic.includes('payouts_enabled",true')&&diagnostic.includes("provider_account_id")],
@@ -33,7 +36,8 @@ const checks=[
  ["Released payout must require transfer evidence",diagnostic.includes("provider_transfer_id")&&diagnostic.includes("funds_released_at")],
  ["Unresolved payout rollback must fail verification",diagnostic.includes("payout_rollback_required")],
  ["Admin page must explicitly describe verifier as read-only",page.includes("Read-only verification")&&page.includes("never advances fulfilment")],
- ["Admin page must expose strict preflight readiness",page.includes("readyForRealE2E")&&page.includes("preflight.blockers")&&page.includes("Buyer accounts")&&page.includes("Checkout-ready listings")&&page.includes("Payout recovery")],
+ ["Admin page must visibly block Stripe LIVE mode without exposing credentials",page.includes("LIVE — blocked")&&page.includes("Stripe LIVE mode detected")&&page.includes("Secret values are never shown here")],
+ ["Admin page must expose strict preflight readiness",page.includes("readyForRealE2E")&&page.includes("preflight.blockers")&&page.includes("Stripe API mode")&&page.includes("Webhook signing")&&page.includes("HTTPS site origin")&&page.includes("Buyer accounts")&&page.includes("Checkout-ready listings")&&page.includes("Payout recovery")],
  ["Commerce operations must link to the E2E verifier",commerceAdminPage.includes('href="/admin/commerce/e2e"')&&commerceAdminPage.includes("E2E verifier")],
  ["System readiness must link directly to Commerce E2E",systemPage.includes('href="/admin/commerce/e2e"')&&systemPage.includes("Commerce E2E")],
  ["Canonical Stripe seller sync must persist complete payout readiness",sellerPaymentSync.includes("payouts_enabled:active")&&sellerPaymentSync.includes("transfers_enabled:active")],
@@ -44,6 +48,7 @@ const checks=[
  ["Seller onboarding and sync failures must be monitored",sellerPaymentActions.includes("seller_stripe_onboarding_start_failed")&&sellerPaymentActions.includes("seller_stripe_status_sync_failed")],
  ["Runbook must cover happy path and major failure paths",runbook.includes("Scenario A")&&runbook.includes("Scenario D")&&runbook.includes("Scenario E")&&runbook.includes("Scenario F")&&runbook.includes("Scenario G")],
  ["Runbook must prohibit manual state forcing",normalizedRunbook.includes("never manually forced")&&normalizedRunbook.includes("do not simulate readiness")],
+ ["Runbook must explicitly prohibit live-money QA",runbook.includes("must show Stripe test mode")&&runbook.includes("Do not run release QA with `sk_live_`")&&runbook.includes("never display or record the credential value")],
  ["Runbook must require provider transfer evidence",runbook.includes("provider_transfer_id")&&runbook.includes("seller_transfer_released")],
  ["Runbook must include webhook idempotency",runbook.includes("Webhook idempotency gate")],
 ];
