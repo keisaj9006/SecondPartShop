@@ -26,6 +26,7 @@ async function syncAccountRow(admin:ReturnType<typeof createSupabaseAdminClient>
   .update({
    onboarding_status:onboardingStatus,
    transfers_enabled:active,
+   payouts_enabled:active,
    details_submitted:active?true:row.details_submitted
   })
   .eq("seller_id",row.seller_id);
