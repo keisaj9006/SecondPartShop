@@ -98,13 +98,15 @@ jobs:
           keytool -list -keystore "$SECOND_PART_RELEASE_KEYSTORE" -storepass "$ANDROID_RELEASE_STORE_PASSWORD" -alias "$ANDROID_RELEASE_KEY_ALIAS" >/dev/null
           EXPECTED="$(keytool -list -v -keystore "$SECOND_PART_RELEASE_KEYSTORE" -storepass "$ANDROID_RELEASE_STORE_PASSWORD" -alias "$ANDROID_RELEASE_KEY_ALIAS" | sed -n 's/.*SHA256: //p' | head -n 1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
           if [ -z "$EXPECTED" ] || ! printf '%s' "$EXPECTED" | grep -Eq '^[0-9a-f]{64}$'; then
-            echo "::error::Could not derive the production signing certificate SHA-256."
+            echo "::error::Could not derive the production upload signing certificate SHA-256."
             exit 1
           fi
           echo "SECOND_PART_RELEASE_KEYSTORE=$SECOND_PART_RELEASE_KEYSTORE" >> "$GITHUB_ENV"
           echo "ANDROID_EXPECTED_SIGNER_SHA256=$EXPECTED" >> "$GITHUB_ENV"
 
       - name: Verify live production origin and Android App Links
+        env:
+          ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS: ${{ secrets.ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS }}
         run: node scripts/verify-production-origin.mjs
 
       - name: Generate and sync Android project
