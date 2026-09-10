@@ -3,6 +3,7 @@ import fs from "node:fs";
 const read=path=>fs.readFileSync(path,"utf8");
 const worker=read("src/lib/commerce-payouts.ts");
 const stripe=read("src/lib/stripe-payments.ts");
+const stripeConnect=read("src/lib/stripe-connect.ts");
 const migration=read("supabase/migrations/20260910082000_payout_transfer_recovery.sql");
 const mobileOnboarding=read("src/app/api/mobile/v1/seller/payments/onboarding/route.ts");
 
@@ -33,7 +34,8 @@ const checks=[
  ["Worker checks existing Stripe reversals before a retry",worker.includes("inspectTransferReversal")&&worker.includes("getSellerTransferReversals")],
  ["Partial reversals are deferred for manual reconciliation",worker.includes("partial_reversal_requires_review")&&worker.includes("requires manual reconciliation")],
  ["A recovered full reversal is persisted instead of releasing the payout",worker.includes('reason:"rollback_recovered"')&&worker.includes("finalizeRollback")],
- ["Mobile Stripe recipient creation is seller-idempotent",mobileOnboarding.includes('`secondpart-recipient-${seller.id}`')],
+ ["Stripe recipient adapter requires an explicit idempotency key",stripeConnect.includes("idempotencyKey:string")&&stripeConnect.includes('headers:{"Idempotency-Key":input.idempotencyKey.slice(0,255)}')],
+ ["Mobile Stripe recipient creation is seller-idempotent",mobileOnboarding.includes('idempotencyKey:`secondpart-recipient-${seller.id}`')],
 ];
 
 let failed=0;
