@@ -57,8 +57,10 @@ export type CommerceE2EDiagnostic={
 
 export type CommerceE2EPreflight={
  activeListings:number;
- sellersWithActiveListings:number;
+ checkoutReadyListings:number;
+ buyerProfiles:number;
  payoutReadySellers:number;
+ payoutRecoveryReady:boolean;
  existingOrders:number;
  readyForRealE2E:boolean;
  blockers:string[];
@@ -73,22 +75,31 @@ const check=(id:string,label:string,status:CommerceE2ECheckStatus,detail:string,
 
 export async function getCommerceE2EPreflight():Promise<CommerceE2EPreflight>{
  const admin=createSupabaseAdminClient();
- const [activeParts,payoutAccounts,orders]=await Promise.all([
-  admin.from("parts").select("seller_id",{count:"exact"}).eq("status","active"),
-  admin.from("seller_payment_accounts").select("seller_id,transfers_enabled,payouts_enabled,onboarding_status"),
-  admin.from("orders").select("id",{count:"exact",head:true})
+ const [listingReadiness,buyers,payoutAccounts,orders,recoveryProbe]=await Promise.all([
+  admin.rpc("admin_active_listing_checkout_readiness"),
+  admin.from("profiles").select("id",{count:"exact",head:true}).eq("role","buyer"),
+  admin.from("seller_payment_accounts").select("seller_id",{count:"exact",head:true}).eq("onboarding_status","complete").eq("transfers_enabled",true).eq("payouts_enabled",true).not("provider_account_id","is",null),
+  admin.from("orders").select("id",{count:"exact",head:true}),
+  admin.rpc("get_releasing_payout_order_items",{p_limit:1})
  ]);
- if(activeParts.error)throw activeParts.error;
+ if(listingReadiness.error)throw listingReadiness.error;
+ if(buyers.error)throw buyers.error;
  if(payoutAccounts.error)throw payoutAccounts.error;
  if(orders.error)throw orders.error;
- const sellersWithActiveListings=new Set((activeParts.data??[]).map(row=>row.seller_id)).size;
- const payoutReadySellers=(payoutAccounts.data??[]).filter(row=>row.onboarding_status==="complete"&&row.transfers_enabled&&row.payouts_enabled).length;
- const activeListings=activeParts.count??activeParts.data?.length??0;
+ const listingRow=listingReadiness.data?.[0];
+ const activeListings=Number(listingRow?.active_listings??0);
+ const checkoutReadyListings=Number(listingRow?.checkout_ready_listings??0);
+ const buyerProfiles=buyers.count??0;
+ const payoutReadySellers=payoutAccounts.count??0;
+ const payoutRecoveryReady=!recoveryProbe.error;
  const existingOrders=orders.count??0;
  const blockers:string[]=[];
+ if(buyerProfiles<1)blockers.push("No buyer account exists for the controlled checkout test.");
  if(activeListings<1)blockers.push("No active listing is available for a buyer checkout.");
  if(payoutReadySellers<1)blockers.push("No seller has completed Stripe Connect payout readiness yet.");
- return {activeListings,sellersWithActiveListings,payoutReadySellers,existingOrders,readyForRealE2E:blockers.length===0,blockers};
+ if(checkoutReadyListings<1)blockers.push("No active listing belongs to a payout-ready seller.");
+ if(!payoutRecoveryReady)blockers.push("Payout-transfer recovery RPCs are not available in the release database.");
+ return {activeListings,checkoutReadyListings,buyerProfiles,payoutReadySellers,payoutRecoveryReady,existingOrders,readyForRealE2E:blockers.length===0,blockers};
 }
 
 export async function getCommerceE2EDiagnostic(orderId:string):Promise<CommerceE2EDiagnostic|null>{
