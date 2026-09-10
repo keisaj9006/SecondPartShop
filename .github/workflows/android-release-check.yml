@@ -7,10 +7,12 @@ on:
     paths:
       - "mobile-shell/**"
       - "mobile-native-src/**"
+      - "assets/android-production/**"
       - "capacitor.config.json"
       - "scripts/prepare-android-production.mjs"
       - "scripts/patch-android-production.mjs"
       - "scripts/patch-android-app-links.mjs"
+      - "scripts/verify-android-brand-assets.mjs"
       - "scripts/write-ci-google-services.mjs"
       - ".github/workflows/android-production-aab.yml"
       - ".github/workflows/android-release-check.yml"
@@ -49,12 +51,13 @@ jobs:
       - name: Install web dependencies
         run: npm ci
 
-      - name: Install Capacitor 8 toolchain and native plugins
+      - name: Install Capacitor 8 toolchain, assets and native plugins
         run: |
           npm install --no-save --package-lock=false \
             @capacitor/core@8.5.1 \
             @capacitor/cli@8.5.1 \
             @capacitor/android@8.5.1 \
+            @capacitor/assets@3.0.5 \
             @capacitor/app@8.1.1 \
             @capacitor/browser@8.0.4 \
             @capacitor/camera@8.2.4 \
@@ -86,6 +89,17 @@ jobs:
         run: |
           npx cap add android
           npx cap sync android
+
+      - name: Generate SecondPart launcher and splash assets
+        run: |
+          npx capacitor-assets generate --android \
+            --assetPath assets/android-production \
+            --iconBackgroundColor '#173c31' \
+            --iconBackgroundColorDark '#173c31' \
+            --splashBackgroundColor '#173c31' \
+            --splashBackgroundColorDark '#173c31' \
+            --logoSplashScale 0.18
+          node scripts/verify-android-brand-assets.mjs
 
       - name: Create ephemeral CI signing key
         run: |
