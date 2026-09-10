@@ -4,12 +4,17 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
  createSellerTransfer,
  findSellerTransferForAttempt,
+ getSellerTransferReversals,
  isStripeCheckoutConfigured,
  reverseSellerTransfer,
  type StripeTransfer
 } from "@/lib/stripe-payments";
 
 const activeCaseStatuses=["open","seller_response","under_review","return_authorized","return_shipped","returned"];
+
+type AdminClient=ReturnType<typeof createSupabaseAdminClient>;
+type RpcError={message?:string}|null;
+type RecoveryBooleanRpc="finalize_order_item_payout_transfer_rollback"|"mark_order_item_payout_rollback_required"|"recover_order_item_payout_transfer"|"abandon_empty_order_item_payout_release_claim";
 
 type PayoutItem={
  id:string;
@@ -36,7 +41,19 @@ type PayoutSafety={
 const payoutAttemptTag=(item:Pick<PayoutItem,"provider_transfer_reversal_id">)=>item.provider_transfer_reversal_id??"initial";
 const firstReversalId=(transfer:StripeTransfer)=>transfer.reversals?.data?.[0]?.id??null;
 
-async function loadPayoutSafety(admin:ReturnType<typeof createSupabaseAdminClient>,item:PayoutItem):Promise<PayoutSafety>{
+const recoveryBooleanRpc=(admin:AdminClient,name:RecoveryBooleanRpc,args:Record<string,string>)=>
+ (admin.rpc as unknown as (
+  fn:RecoveryBooleanRpc,
+  values:Record<string,string>
+ )=>Promise<{data:boolean|null;error:RpcError}>)(name,args);
+
+const releasingPayoutRpc=(admin:AdminClient,limit:number)=>
+ (admin.rpc as unknown as (
+  fn:"get_releasing_payout_order_items",
+  values:{p_limit:number}
+ )=>Promise<{data:Array<{order_item_id:string}>|null;error:RpcError}>)("get_releasing_payout_order_items",{p_limit:limit});
+
+async function loadPayoutSafety(admin:AdminClient,item:PayoutItem):Promise<PayoutSafety>{
  const [orderResult,paymentResult,caseResult]=await Promise.all([
   admin.from("orders").select("payment_status,provider_charge_id").eq("id",item.order_id).maybeSingle(),
   admin.from("seller_payment_accounts").select("provider_account_id,transfers_enabled,onboarding_status").eq("seller_id",item.seller_id).maybeSingle(),
@@ -71,13 +88,26 @@ async function loadPayoutSafety(admin:ReturnType<typeof createSupabaseAdminClien
  };
 }
 
+async function inspectTransferReversal(transferId:string,expectedAmount:number){
+ const reversals=await getSellerTransferReversals(transferId);
+ const reversedAmount=reversals.data.reduce((sum,row)=>sum+Math.max(0,row.amount??0),0);
+ const fullReversal=reversedAmount>=expectedAmount&&reversals.data.length
+  ?reversals.data[reversals.data.length-1]?.id??null
+  :null;
+ return {
+  fullReversalId:fullReversal,
+  partialReversal:reversedAmount>0&&reversedAmount<expectedAmount,
+  reversedAmount
+ };
+}
+
 async function finalizeRollback(
- admin:ReturnType<typeof createSupabaseAdminClient>,
+ admin:AdminClient,
  item:PayoutItem,
  transferId:string,
  reversalId:string
 ){
- const {data,error}=await admin.rpc("finalize_order_item_payout_transfer_rollback",{
+ const {data,error}=await recoveryBooleanRpc(admin,"finalize_order_item_payout_transfer_rollback",{
   p_order_item_id:item.id,
   p_transfer_id:transferId,
   p_reversal_id:reversalId
@@ -88,18 +118,27 @@ async function finalizeRollback(
 }
 
 async function completePendingPayoutRollback(
- admin:ReturnType<typeof createSupabaseAdminClient>,
+ admin:AdminClient,
  item:PayoutItem,
  transferId=item.provider_transfer_id
 ){
  if(!transferId||item.seller_net_pence<=0)return false;
 
- const {data:marked,error:markError}=await admin.rpc("mark_order_item_payout_rollback_required",{
+ const {data:marked,error:markError}=await recoveryBooleanRpc(admin,"mark_order_item_payout_rollback_required",{
   p_order_item_id:item.id,
   p_transfer_id:transferId
  });
  if(markError)throw markError;
  if(!marked)return false;
+
+ const existing=await inspectTransferReversal(transferId,item.seller_net_pence);
+ if(existing.fullReversalId){
+  await finalizeRollback(admin,item,transferId,existing.fullReversalId);
+  return true;
+ }
+ if(existing.partialReversal){
+  throw new Error(`Payout transfer ${transferId} has a partial reversal (${existing.reversedAmount}p) and requires manual reconciliation.`);
+ }
 
  const reversal=await reverseSellerTransfer(
   transferId,
@@ -111,11 +150,11 @@ async function completePendingPayoutRollback(
 }
 
 async function persistRecoveredTransfer(
- admin:ReturnType<typeof createSupabaseAdminClient>,
+ admin:AdminClient,
  item:PayoutItem,
  transferId:string
 ){
- const {data,error}=await admin.rpc("recover_order_item_payout_transfer",{
+ const {data,error}=await recoveryBooleanRpc(admin,"recover_order_item_payout_transfer",{
   p_order_item_id:item.id,
   p_transfer_id:transferId
  });
@@ -124,13 +163,13 @@ async function persistRecoveredTransfer(
  item.provider_transfer_id=transferId;
 }
 
-async function abandonEmptyClaim(admin:ReturnType<typeof createSupabaseAdminClient>,item:PayoutItem){
- const {error}=await admin.rpc("abandon_empty_order_item_payout_release_claim",{p_order_item_id:item.id});
+async function abandonEmptyClaim(admin:AdminClient,item:PayoutItem){
+ const {error}=await recoveryBooleanRpc(admin,"abandon_empty_order_item_payout_release_claim",{p_order_item_id:item.id});
  if(error)throw error;
 }
 
 async function markReleased(
- admin:ReturnType<typeof createSupabaseAdminClient>,
+ admin:AdminClient,
  item:PayoutItem,
  transferId:string
 ){
@@ -166,18 +205,7 @@ async function markReleased(
   return {released:false,reason:"finalize_pending"} as const;
  }
 
- const rollbackItem:{
-  id:string;
-  order_id:string;
-  seller_id:string;
-  seller_net_pence:number;
-  payout_status:string;
-  release_eligible_at:string|null;
-  funds_released_at:string|null;
-  provider_transfer_id:string|null;
-  payout_rollback_required:boolean;
-  provider_transfer_reversal_id:string|null;
- }={
+ const rollbackItem:PayoutItem={
   ...item,
   payout_status:latest?.payout_status??item.payout_status,
   funds_released_at:latest?.funds_released_at??item.funds_released_at,
@@ -194,7 +222,7 @@ async function markReleased(
 }
 
 async function recoverOrCreateTransfer(
- admin:ReturnType<typeof createSupabaseAdminClient>,
+ admin:AdminClient,
  item:PayoutItem,
  safety:PayoutSafety
 ){
@@ -202,6 +230,14 @@ async function recoverOrCreateTransfer(
 
  let transfer:StripeTransfer|null=null;
  if(item.provider_transfer_id){
+  const reversalState=await inspectTransferReversal(item.provider_transfer_id,item.seller_net_pence);
+  if(reversalState.fullReversalId){
+   await finalizeRollback(admin,item,item.provider_transfer_id,reversalState.fullReversalId);
+   return {released:false,reason:"rollback_recovered"} as const;
+  }
+  if(reversalState.partialReversal){
+   return {released:false,reason:"partial_reversal_requires_review"} as const;
+  }
   transfer={
    id:item.provider_transfer_id,
    amount:item.seller_net_pence,
@@ -219,12 +255,17 @@ async function recoverOrCreateTransfer(
 
   if(transfer){
    const reversalId=firstReversalId(transfer);
-   if(transfer.reversed&&reversalId){
+   if((transfer.reversed||Number(transfer.amount_reversed??0)>0)&&reversalId){
     await finalizeRollback(admin,item,transfer.id,reversalId);
     return {released:false,reason:"rollback_recovered"} as const;
    }
-   if(transfer.reversed&&!reversalId){
-    return {released:false,reason:"reversal_evidence_missing"} as const;
+   if((transfer.reversed||Number(transfer.amount_reversed??0)>0)&&!reversalId){
+    const reversalState=await inspectTransferReversal(transfer.id,item.seller_net_pence);
+    if(reversalState.fullReversalId){
+     await finalizeRollback(admin,item,transfer.id,reversalState.fullReversalId);
+     return {released:false,reason:"rollback_recovered"} as const;
+    }
+    return {released:false,reason:reversalState.partialReversal?"partial_reversal_requires_review":"reversal_evidence_missing"} as const;
    }
    await persistRecoveredTransfer(admin,item,transfer.id);
   }
@@ -326,7 +367,7 @@ export async function releaseDuePayouts(limit=100){
   }
  }
 
- const {data:releasingRows,error:releasingError}=await admin.rpc("get_releasing_payout_order_items",{p_limit:safeLimit});
+ const {data:releasingRows,error:releasingError}=await releasingPayoutRpc(admin,safeLimit);
  if(releasingError)throw releasingError;
  let recoveredReleasing=0;
  let reconciliationDeferred=0;
