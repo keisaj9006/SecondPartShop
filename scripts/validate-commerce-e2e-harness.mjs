@@ -4,6 +4,7 @@ const read=(path)=>fs.readFileSync(path,"utf8");
 const diagnostic=read("src/lib/data/commerce-e2e.ts");
 const page=read("src/app/admin/commerce/e2e/page.tsx");
 const runbook=read("docs/commerce-e2e-runbook.md");
+const normalizedRunbook=runbook.toLowerCase();
 const sellerPaymentSync=read("src/lib/seller-payment-sync.ts");
 const sellerPaymentActions=read("src/app/dashboard/payments/actions.ts");
 const sellerPaymentPage=read("src/app/dashboard/payments/page.tsx");
@@ -34,7 +35,7 @@ const checks=[
  ["Seller onboarding must use a stable seller-scoped idempotency key",sellerPaymentActions.includes("secondpart-recipient-${seller.id}")],
  ["Seller onboarding and sync failures must be monitored",sellerPaymentActions.includes("seller_stripe_onboarding_start_failed")&&sellerPaymentActions.includes("seller_stripe_status_sync_failed")],
  ["Runbook must cover happy path and major failure paths",runbook.includes("Scenario A")&&runbook.includes("Scenario D")&&runbook.includes("Scenario E")&&runbook.includes("Scenario F")&&runbook.includes("Scenario G")],
- ["Runbook must prohibit manual state forcing",runbook.includes("never manually forced")&&runbook.includes("Do not simulate readiness")],
+ ["Runbook must prohibit manual state forcing",normalizedRunbook.includes("never manually forced")&&normalizedRunbook.includes("do not simulate readiness")],
  ["Runbook must require provider transfer evidence",runbook.includes("provider_transfer_id")&&runbook.includes("seller_transfer_released")],
  ["Runbook must include webhook idempotency",runbook.includes("Webhook idempotency gate")],
 ];
