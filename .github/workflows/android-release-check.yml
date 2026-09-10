@@ -14,6 +14,7 @@ on:
       - "scripts/patch-android-app-links.mjs"
       - "scripts/verify-android-brand-assets.mjs"
       - "scripts/verify-android-release-manifest.mjs"
+      - "scripts/create-android-release-evidence.mjs"
       - "scripts/write-ci-google-services.mjs"
       - ".github/workflows/android-production-aab.yml"
       - ".github/workflows/android-release-check.yml"
@@ -142,8 +143,29 @@ jobs:
       - name: Verify merged Release permissions
         run: node scripts/verify-android-release-manifest.mjs
 
-      - name: Verify CI AAB
+      - name: Verify CI AAB and capture signer
         run: |
           AAB="android/app/build/outputs/bundle/release/app-release.aab"
           test -s "$AAB"
           jarsigner -verify -verbose -certs "$AAB" >/dev/null
+          ACTUAL="$(keytool -printcert -jarfile "$AAB" | sed -n 's/.*SHA256: //p' | head -n 1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          if [ -z "$ACTUAL" ]; then
+            echo "::error::Could not read the CI AAB signing certificate SHA-256."
+            exit 1
+          fi
+          echo "ANDROID_AAB_SIGNER_SHA256=$ACTUAL" >> "$GITHUB_ENV"
+
+      - name: Verify release evidence generation
+        run: |
+          node scripts/create-android-release-evidence.mjs
+          test -s android-release-evidence.json
+          test -s android-release-evidence.txt
+          node - <<'NODE'
+          const fs=require("fs");
+          const evidence=JSON.parse(fs.readFileSync("android-release-evidence.json","utf8"));
+          if(evidence.packageName!=="com.secondpart.marketplace")throw new Error("Evidence package mismatch.");
+          if(evidence.versionName!=="1.0.0"||evidence.versionCode!=="1")throw new Error("Evidence version mismatch.");
+          if(!/^[0-9a-f]{64}$/.test(evidence.aabSha256))throw new Error("Evidence AAB SHA-256 is invalid.");
+          if(!/^[0-9a-f]{64}$/.test(evidence.signerCertificateSha256))throw new Error("Evidence signer SHA-256 is invalid.");
+          if(evidence.permissionAuditPassed!==true)throw new Error("Evidence permission audit is not passing.");
+          NODE
