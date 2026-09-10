@@ -21,7 +21,6 @@ export async function AccountDashboardContent({
  role,
  view
 }:{userId:string;role:string;view:"buying"|"selling"}){
- const sellingEnabled=(["seller","admin"] as string[]).includes(role);
  const [counts,recent,trust,conversationCount,seller,garagePartner]=await Promise.all([
   getBuyerAccountCounts(userId),
   getRecentlyViewedListings(userId,3),
