@@ -4,18 +4,18 @@ This runbook defines the launch baseline for production error and commerce-flow 
 
 ## What is monitored
 
-SecondPart emits structured `SECOND_PART_OPS` server logs for the failure classes that can materially affect marketplace operation:
+SecondPart emits structured `SECOND_PART_OPS` server logs for failure classes that can materially affect marketplace operation:
 
-- uncaught Next.js server/request errors
-- browser runtime errors and React error-boundary crashes
-- web and Android checkout setup failures
-- checkout reservation rollback failures
-- Stripe webhook processing failures
-- Stripe reconciliation failures
-- payout release and payout rollback failures
-- push-notification dispatch failures/retries
-- account-deletion processor failures/retries
-- commerce/privacy maintenance failures
+- uncaught Next.js server/request errors;
+- browser runtime errors and React error-boundary crashes;
+- web and Android checkout setup failures;
+- checkout reservation rollback failures;
+- Stripe webhook processing failures;
+- Stripe reconciliation failures;
+- payout release and payout rollback failures;
+- push-notification dispatch failures/retries;
+- account-deletion processor failures/retries;
+- commerce/privacy maintenance failures.
 
 Each event carries a stable `component` and `event` value so incidents can be grouped without depending on free-text exception messages.
 
@@ -25,26 +25,69 @@ Each event carries a stable `component` and `event` value so incidents can be gr
 - `error` — a failed operation that should be investigated but has a controlled fallback.
 - `critical` — payment, payout, webhook, reservation rollback, destructive privacy processing or uncaught server failures that can affect money, stock or account integrity.
 
-Critical events may also be forwarded to an external HTTPS webhook. Alert delivery is deliberately best-effort and must never block checkout, webhook acknowledgement or maintenance.
+Critical events can also be forwarded to an external HTTPS webhook. Runtime alert forwarding remains best-effort so a temporary alert-provider problem must never block checkout, webhook acknowledgement or maintenance.
 
-## Optional alert environment variables
+For release verification, however, SecondPart has a separate **verifiable smoke-test path** that reports whether the configured destination accepted the fixed test alert with HTTP 2xx.
+
+## Alert environment variables
 
 ```bash
-# Optional. Structured logs work without these values.
 OPS_ALERT_WEBHOOK_URL=
 # generic | slack | discord
 OPS_ALERT_WEBHOOK_KIND=generic
-# Optional Bearer token for a generic protected webhook.
+# Optional Bearer token for a protected generic webhook.
 OPS_ALERT_WEBHOOK_TOKEN=
 ```
 
-Never expose these values through `NEXT_PUBLIC_*` variables.
+Never expose these values through `NEXT_PUBLIC_*` variables and never copy the webhook URL/token into screenshots or release evidence.
+
+Only HTTPS webhook URLs are accepted by the sender.
+
+## Critical alert smoke test
+
+Admin route:
+
+```text
+/admin/system/alerts
+```
+
+The page is protected by `requireAdmin()` and does not display the webhook URL or bearer token.
+
+The **Send critical alert smoke test** action sends only a fixed privacy-safe payload:
+
+- severity: `critical`;
+- component: `commerce_maintenance`;
+- event: `manual_alert_smoke_test`;
+- fixed SecondPart smoke-test message;
+- no browser-supplied arbitrary alert body, webhook URL or token.
+
+Possible outcomes:
+
+- `Delivered` — configured HTTPS destination returned HTTP 2xx;
+- `Failed / http_error` — destination returned a non-2xx HTTP response;
+- `Failed / network_error` — request failed/timed out;
+- `Failed / invalid_url` — configured destination is malformed or not HTTPS;
+- `Failed / not_configured` — `OPS_ALERT_WEBHOOK_URL` is missing.
+
+A HTTP 2xx response proves the destination accepted the request, but the release P0 is not complete until the tester also confirms that the smoke-test message is visible in the real operations destination.
+
+### Evidence to retain
+
+Record only:
+
+- Production release/commit SHA;
+- test timestamp;
+- destination adapter type (`generic`, `slack` or `discord`);
+- smoke-test result and HTTP status when available;
+- confirmation that the alert appeared in the expected operations destination.
+
+Do not record the webhook URL, bearer token, secrets or unrelated alert contents.
 
 ## Privacy rules
 
 Monitoring must not become a second analytics/customer-data store.
 
-The logger therefore sanitises common email addresses, UUID-like identifiers, bearer/API tokens and URL query strings before emitting records. Browser error ingestion stores only a salted hash of the request fingerprint for abuse-rate limiting; raw IP addresses and user-agent strings are not persisted in the monitoring table.
+The logger sanitises common email addresses, UUID-like identifiers, bearer/API tokens and URL query strings before emitting records. Browser error ingestion stores only a salted hash of the request fingerprint for abuse-rate limiting; raw IP addresses and user-agent strings are not persisted in the monitoring table.
 
 The browser telemetry endpoint is same-origin only, payload-bounded and protected by a service-role-only PostgreSQL rate limiter. The limiter state is pruned automatically by commerce maintenance.
 
@@ -77,16 +120,18 @@ The release SHA is included when Vercel exposes `VERCEL_GIT_COMMIT_SHA`, which a
 3. **Availability:** uncaught API/server errors and repeated client crashes.
 4. **Delivery degradation:** push/reconciliation retry volume.
 
-Never manually force a payout or mutate an order to silence an alert. Reconcile the provider/database state first and use the existing controlled commerce RPCs.
+Never manually force a payout or mutate an order to silence an alert. Reconcile provider/database state first and use the existing controlled commerce paths.
 
 ## Release gate
 
-Production monitoring is considered code-ready when:
+Production monitoring is code-ready when:
 
-- normal QA (`lint`, `typecheck`, notification validation, mobile-performance validation, launch-baseline and build) is green;
+- normal QA is green;
 - the browser telemetry limiter migration is applied with RLS enabled;
 - `anon` and `authenticated` cannot read the limiter table or call its service-only RPCs;
 - checkout/webhook/payout/privacy critical paths emit structured events;
-- a production environment can optionally configure a webhook destination without changing application code.
+- non-2xx webhook responses are treated as failed delivery rather than silently accepted;
+- `/admin/system/alerts` is admin-only and sends a fixed smoke-test payload;
+- Production can configure a webhook destination without changing application code.
 
-External alert delivery should be smoke-tested once the final production Vercel environment and alert destination are configured.
+The **external monitoring P0** is complete only after Production `OPS_ALERT_WEBHOOK_URL` is configured and the admin smoke test returns HTTP 2xx **and** the alert is visibly confirmed in the intended operations destination.
