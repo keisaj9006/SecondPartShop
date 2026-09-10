@@ -1,28 +1,30 @@
 # Google Play Data Safety — SecondPart Draft
 
-Snapshot: 2026-09-09
+Snapshot: 2026-09-10
 Package: `com.secondpart.marketplace`
 
-This is a Play Console preparation draft based on the current SecondPart architecture. It is not a legal opinion and must be rechecked against the production build, final SDK list and provider agreements before submission.
+This is a Play Console preparation draft based on the current SecondPart architecture. It is not a legal opinion and must be rechecked against the exact production AAB, final SDK list, production provider configuration and provider agreements immediately before submission.
 
 ## High-level Play answers
 
 - App supports account creation: **Yes**
-- In-app account deletion/request path: **Yes** — Account > Security & account
-- External account deletion/request path: **Yes** — `/account-deletion`
+- In-app account deletion path: **Yes** — Account > Security & account
+- External account deletion web path: **Yes** — `/account-deletion`
 - Privacy policy: **Yes** — `/privacy`
-- Data encrypted in transit: **Yes for intended production traffic** — production frontend/API and provider traffic use HTTPS.
-- User can request deletion: **Yes**
-- Independent security review / MASA-style validation: **Not currently claimed**
-- Ads SDK / behavioural ad network: **None identified in current dependencies**
+- Data encrypted in transit: **Yes for intended production traffic** — production frontend/API and provider traffic are required to use HTTPS.
+- User can request account deletion and associated-data deletion: **Yes**
+- Independent security review / MASA-style validation: **Not claimed**
+- Ads SDK / behavioural ad network: **None identified in the current application dependencies**
 - Device GPS permission used for marketplace distance: **No** — current distance is postcode-based.
+- Dedicated third-party crash analytics SDK: **None identified** — SecondPart currently uses its own privacy-safe structured operations monitoring plus provider infrastructure logs.
 
 ## Data likely collected / processed off device
 
 ### Personal info
+
 - Name / display name
 - Email address
-- Phone number when provided
+- Phone number when voluntarily provided or required by a marketplace flow
 - User IDs / account identifiers
 - Seller/business identity and business profile information
 - Delivery / transaction contact information where required by order fulfilment
@@ -35,29 +37,33 @@ Purposes:
 - Fraud/security
 - Support
 
-### Approximate location / address-related data
-- Postcodes used for seller/garage location and distance
+### Location / address-related data
+
+- Postcodes/outcodes used for seller/garage location and distance
 - Delivery address information for transactions where applicable
-- Vehicle registration can indirectly relate to a user/vehicle and should be covered in privacy disclosures
+- Vehicle registration can indirectly relate to a user/vehicle and is treated as personal transaction/vehicle data in SecondPart retention rules
 
 Important:
-- Current marketplace distance does not require precise device location/GPS.
-- Re-check the Play Console location category against the exact production flows.
+- Current marketplace distance does not request device GPS or precise device location.
+- Google Play clarified location disclosures in 2026, so the final Data Safety location category must be checked against the exact production data flow and current Play definitions rather than inferred only from Android permissions.
 
 ### Financial / purchase data
-SecondPart does not intentionally store raw card numbers. Stripe handles card payment processing.
+
+SecondPart does not intentionally store raw payment-card numbers. Stripe handles card-payment collection and seller payment onboarding.
 
 SecondPart does process/store marketplace state such as:
 - Order and purchase history
 - Payment status
-- Payment-provider transaction/session references
+- Payment-provider checkout/payment/charge references
 - Refund/dispute state
 - Seller payout/onboarding state
 - Marketplace fees / seller net amounts
+- Seller transfer/reversal references
 
-Play Console classification must be checked carefully against the current Data Safety definitions for financial info and purchase history.
+Play Console classification must be checked carefully against the current Data Safety definitions for financial information and purchase history.
 
 ### Photos and files
+
 - Part listing photos
 - Transaction/case evidence uploaded by users where enabled
 
@@ -67,13 +73,17 @@ Purposes:
 - Returns/disputes/safety
 
 ### Messages / user-generated content
+
 - Listing questions
 - Transaction messages
 - Support requests
-- Part request notes
-- Seller/listing descriptions and user-generated marketplace content
+- Find My Part / part-request notes
+- Seller/listing descriptions and other marketplace UGC
+
+SecondPart also provides report/block/moderation controls and Terms-gates relevant UGC paths.
 
 ### App activity
+
 - Saved parts
 - Saved searches
 - Recently viewed listings
@@ -88,19 +98,21 @@ Purposes:
 - Product analytics / reliability
 
 ### Device or other identifiers
-- Android push notification token / device registration record
+
+- Android FCM push token / device registration record
 - Authentication/session-related identifiers handled by Supabase
-- Provider/session identifiers required for payment and security flows
+- Provider/session identifiers required for payment, fraud prevention and security flows
 
 ### Diagnostics / technical data
-The production stack may inherently create infrastructure request/error logs through hosting and service providers. A dedicated third-party crash analytics SDK is not currently identified in the repository.
 
-Before submission, verify exactly what Vercel, Supabase, Firebase/FCM and any newly added monitoring tooling record from the production Android/web sessions.
+SecondPart has privacy-safe structured operations monitoring for server/client failures and critical checkout, Stripe webhook, payout, reconciliation, push, deletion and maintenance paths. Hosting/database/push/payment providers may also create infrastructure request/error logs as part of service delivery.
 
-## Production service providers currently represented in the architecture
+Before submission, verify exactly what Vercel, Supabase, Firebase/FCM, Stripe and any subsequently added production tooling record from Android/web sessions and how those records map to the current Play Data Safety definitions.
+
+## Production service providers represented in the architecture
 
 - Supabase — authentication, database, storage
-- Stripe — card payment / marketplace payment state / seller payout onboarding
+- Stripe — card payment / marketplace payment state / seller payout onboarding and transfers
 - Firebase Cloud Messaging — Android push notifications
 - Vercel — web application hosting/delivery
 - Approved vehicle-data provider — only after final vehicle lookup approval/configuration
@@ -110,36 +122,54 @@ Before submission, verify exactly what Vercel, Supabase, Firebase/FCM and any ne
 Google Play uses policy-specific definitions. Do not mark a provider integration as "shared" or "not shared" solely from normal-language interpretation.
 
 Before final submission:
-1. Review each provider's current Google Play / privacy guidance.
+1. Review each provider's current Google Play / privacy guidance and the production agreement.
 2. Confirm whether the provider acts as a service provider processing data on SecondPart's behalf.
-3. Confirm whether any provider uses the data for its own purposes beyond providing the contracted service.
-4. Ensure the Data Safety answers and Privacy Policy match.
+3. Confirm whether any provider uses data for its own purposes beyond providing the contracted service.
+4. Ensure the Data Safety answers and Privacy Policy describe the same production behaviour.
 
-## Account deletion
+## Account deletion — current implementation
 
-Current UI:
+User-facing paths:
 - In app: `/account/security`
 - External web: `/account-deletion`
 
-Current backend:
-- creates an `account_deletion_requests` record
-- allows a pending request to be cancelled
+Current backend is no longer a request-only freeze. It has an operational deletion/anonymisation processor with:
+- a controlled deletion request and processing queue;
+- blockers for unresolved buyer/seller commerce, transaction cases, Buy + Fit workflows and moderation cases;
+- seller/listing freeze before destructive processing;
+- tracked listing-image storage cleanup;
+- PII cleanup and identity detachment from records that must remain for legitimate accounting, dispute, fraud-prevention or legal reasons;
+- hard Supabase Auth user deletion;
+- retry-safe processing and a non-identifying completion audit;
+- a documented retention matrix in `docs/account-data-retention.md`.
 
-P0 before public release:
-- define retention rules
-- implement operational deletion/anonymisation
-- ensure completion actually removes associated user data except records retained for a documented legitimate/legal reason
-- document retained data and retention reason in Privacy Policy
+Important release evidence still required:
+- run destructive account-deletion E2E on a disposable QA account;
+- confirm the external deletion URL works from the final production origin without login;
+- confirm the Privacy Policy clearly explains categories retained for legitimate/legal reasons and retention logic.
+
+Google Play requires apps that create accounts to provide both an in-app deletion path and an external web resource. Account freezing alone is not sufficient; associated user data must be deleted except where retention is legitimately required and disclosed.
+
+## Security practices — evidence before answering Play
+
+Do not claim security properties only because the code intends them. Before Play submission verify from the release candidate:
+- production uses HTTPS only;
+- production WebView debugging/logging are disabled;
+- secrets are server-side and absent from the AAB/web client;
+- RLS/service-role boundaries are applied to the production Supabase project;
+- payout/deletion/admin RPC grants match migrations;
+- production FCM and Stripe credentials are isolated from Preview/test configuration.
 
 ## Items to verify immediately before Play submission
 
-- Final production dependencies and Android plugins
-- Final Android permissions from the generated release manifest
+- Final production AAB dependencies, native plugins and merged Android manifest permissions
+- Final Android target API level
 - Production Firebase configuration
-- Whether a crash/error monitoring provider was added
+- Exact structured monitoring/logging destinations and retention
 - Stripe production flow and exact data sent/received
-- Production vehicle lookup provider and terms
-- Final retention schedule
-- Final privacy contact and contracting/developer identity
+- Production vehicle lookup provider and terms, if enabled
+- Final retention schedule and destructive deletion QA evidence
+- Final privacy/support contact and contracting/developer identity
 - Whether all transmitted data types are represented in this document
 - Whether any SDK performs collection unrelated to the user-facing feature
+- Current Play Data Safety definitions and policy changes effective on the submission date
