@@ -4,6 +4,7 @@ import { Header } from "@/components/header";
 import { requireSeller } from "@/lib/auth";
 import { getSellerForOwner } from "@/lib/data/marketplace";
 import { getSellerPaymentAccount } from "@/lib/data/seller-payments";
+import { syncSellerPaymentAccount } from "@/lib/seller-payment-sync";
 import { isStripeConnectConfigured } from "@/lib/stripe-connect";
 import { refreshStripePaymentStatus,startStripeOnboarding } from "./actions";
 
@@ -18,6 +19,8 @@ export default async function SellerPaymentsPage({searchParams}:{searchParams:Pr
  if(!seller)return <><Header/><main className="mx-auto max-w-3xl px-4 py-12"><h1 className="text-3xl font-black">Create your seller profile first</h1><Link href="/dashboard" className="mt-4 inline-block font-black underline">Back to dashboard</Link></main></>;
 
  const configured=isStripeConnectConfigured();
+ const returned=first(params.returned)==="1";
+ const returnSync=returned&&configured?await syncSellerPaymentAccount(seller.id).catch(()=>null):null;
  const payment=await getSellerPaymentAccount(seller.id).catch(()=>null);
  const active=Boolean(payment?.transfersEnabled&&payment.onboardingStatus==="complete");
  const error=first(params.error);
@@ -36,7 +39,7 @@ export default async function SellerPaymentsPage({searchParams}:{searchParams:Pr
    <p className="font-black">{error==="not-configured"?"Stripe test configuration is not connected yet.":error==="email-required"?"Your account needs an email address before payout onboarding.":error==="sync"?"We could not refresh the Stripe status right now.":"Stripe onboarding could not be started right now."}</p>
   </div>}
   {first(params.refreshed)==="1"&&<div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-900">Payment account status refreshed.</div>}
-  {first(params.returned)==="1"&&<div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900"><p className="font-black">You returned from Stripe onboarding.</p><p className="mt-1">Refresh the status below. Returning from the hosted form does not by itself prove that all verification requirements are complete.</p></div>}
+  {returned&&<div className={`mt-6 rounded-2xl border p-4 text-sm ${returnSync?.active?"border-emerald-200 bg-emerald-50 text-emerald-900":"border-blue-200 bg-blue-50 text-blue-900"}`}><p className="font-black">{returnSync?.active?"Stripe onboarding is complete.":"You returned from Stripe onboarding."}</p><p className="mt-1">{returnSync?.active?"SecondPart re-checked the account automatically and marketplace transfers are enabled.":"SecondPart re-checked the account automatically. If Stripe still has requirements outstanding, continue onboarding below."}</p></div>}
 
   <section className="mt-8 rounded-[30px] bg-[#173c31] p-6 text-white sm:p-8">
    <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-start">
