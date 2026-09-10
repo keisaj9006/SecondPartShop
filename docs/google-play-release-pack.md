@@ -52,7 +52,26 @@ Do not submit Preview/Vercel preview URLs as permanent Play policy URLs.
 
 Production must also configure a real monitored `NEXT_PUBLIC_SUPPORT_EMAIL`. The same validated address is rendered on `/contact` and `/privacy` without requiring sign-in. Do not put a placeholder mailbox into the Play listing.
 
-## 3. App content declarations
+The Production AAB workflow runs `scripts/verify-production-origin.mjs` before `bundleRelease`. The build is intentionally blocked unless the canonical Production origin serves the SecondPart homepage, Privacy Policy, public Contact page, external account-deletion resource and a valid Android App Links association.
+
+## 3. Android signing and App Links
+
+SecondPart uses two different signing identities and they must not be confused. See `docs/android-signing-app-links.md` for the full runbook.
+
+### Upload key
+The SecondPart upload key signs the `.aab` before upload to Google Play. The Production workflow derives its SHA-256 certificate fingerprint and later verifies that the generated AAB is signed by the same upload certificate.
+
+### Google Play App Signing certificate(s)
+When Play App Signing is enabled, Google Play signs the APKs installed on users' devices. The live `/.well-known/assetlinks.json` must therefore contain the Google Play app-signing SHA-256 certificate fingerprint(s), not merely the SecondPart upload-key fingerprint.
+
+Required release configuration:
+- Production web environment: `ANDROID_APP_LINK_SHA256_FINGERPRINTS` — every Google Play app-signing fingerprint required for domain/API association;
+- GitHub Actions secret: `ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS` — the matching expected set used by the live-origin verifier;
+- GitHub upload-key secrets remain separate and are used only for AAB signing/verification.
+
+The origin verifier accepts more than one Play app-signing fingerprint and requires every expected fingerprint to be present in the live Digital Asset Links statement.
+
+## 4. App content declarations
 
 ### Privacy policy
 Expected: **Yes / required**.
@@ -122,11 +141,11 @@ Expected: **No**.
 
 SecondPart's primary purpose is an automotive parts marketplace. A future editorial/product-updates section does not by itself make the app a news application. Revisit only if news becomes a primary app purpose.
 
-## 4. Data Safety
+## 5. Data Safety
 
 Use `docs/google-play-data-safety-draft.md` as the working inventory, then re-check it against:
 - exact production AAB/native plugins;
-- merged Android permissions;
+- `android-release-permissions.txt` generated from the merged Release manifest;
 - production Supabase configuration;
 - Stripe production behaviour;
 - Firebase/FCM;
@@ -135,7 +154,7 @@ Use `docs/google-play-data-safety-draft.md` as the working inventory, then re-ch
 
 Do not infer `Collected` versus `Shared` from ordinary language; use Google's current Data Safety definitions and each provider's actual contractual role.
 
-## 5. Reviewer instructions template
+## 6. Reviewer instructions template
 
 Copy this structure into Play Console only after production reviewer accounts exist:
 
@@ -161,7 +180,7 @@ Copy this structure into Play Console only after production reviewer accounts ex
 
 **Payments:** explain the exact safe reviewer path used by the production release. Never place Stripe secret/test card details in reviewer notes unless Play explicitly requires a supported test credential and the environment is intentionally configured for it.
 
-## 6. Store graphics
+## 7. Store graphics
 
 ### Native branding — complete
 - versioned source: `assets/android-production/logo.svg`;
@@ -177,21 +196,27 @@ Copy this structure into Play Console only after production reviewer accounts ex
 
 Store screenshots must come from the final release-candidate UI rather than old Preview screens.
 
-## 7. Release evidence checklist
+## 8. Release evidence checklist
 
 Before pressing Submit for review, retain evidence that:
 - production domain is stable and policy URLs work without login;
+- Production origin preflight passes before the real AAB build;
 - real `NEXT_PUBLIC_SUPPORT_EMAIL` is configured, monitored and visible on `/contact` and `/privacy`;
 - permanent upload key is configured and backed up securely;
+- Play App Signing is configured for `com.secondpart.marketplace`;
+- every Google Play app-signing SHA-256 fingerprint required for domain/API association is present in live `/.well-known/assetlinks.json`;
+- the Production web fingerprint set and GitHub expected Play-signing fingerprint set match;
 - production Firebase Android app matches `com.secondpart.marketplace`;
 - final production AAB workflow succeeds;
-- AAB package/version/signature are correct;
+- AAB package/version/upload signature are correct;
+- AAB SHA-256 and upload signer SHA-256 are recorded in `android-release-evidence.json` / `.txt`;
+- merged Release permissions are retained in `android-release-permissions.txt`;
 - test-track install succeeds on a physical Android device;
 - the complete P0 physical-device matrix in `docs/android-rc-test-matrix.md` passes;
 - sign-up/sign-in/logout/recovery works;
 - buyer and seller modes work;
 - camera/image upload works;
-- deep links/app links work;
+- App Links work from a Google Play test-track installation, not only a locally signed build;
 - network loss/recovery is acceptable;
 - FCM notification E2E passes;
 - real Stripe test-mode commerce E2E and edge cases have passed using `docs/commerce-e2e-runbook.md` before public commerce;
@@ -202,11 +227,13 @@ Before pressing Submit for review, retain evidence that:
 - legal/privacy/support identity and wording are final;
 - Data Safety/App content answers match the exact release.
 
-## 8. Current external blockers
+## 9. Current external blockers
 
 These cannot be represented as complete merely by committing code:
 - stable production domain/origin;
 - permanent Google Play upload key and production signing secrets;
+- Play Console app creation / Play App Signing configuration and its final app-signing SHA-256 fingerprint set;
+- Production `ANDROID_APP_LINK_SHA256_FINGERPRINTS` and GitHub `ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS` configuration;
 - production Firebase `google-services.json` secret;
 - final Vercel production environment access;
 - real monitored public support/privacy mailbox;
@@ -220,6 +247,7 @@ These cannot be represented as complete merely by committing code:
 
 ## Release protocols in this repository
 
+- `docs/android-signing-app-links.md` — upload-key versus Play App Signing roles, required fingerprint configuration and Production origin gate.
 - `docs/android-rc-test-matrix.md` — physical Android RC PASS/FAIL matrix and GO/NO-GO evidence.
 - `docs/commerce-e2e-runbook.md` — real Stripe test-mode happy path, protection, refund, dispute/reversal and stock-concurrency scenarios.
 - `docs/account-deletion-e2e-runbook.md` — destructive privacy/deletion test on disposable accounts only.
@@ -233,3 +261,4 @@ These cannot be represented as complete merely by committing code:
 - Account deletion requirements: https://support.google.com/googleplay/android-developer/answer/13327111
 - Target audience/content: https://support.google.com/googleplay/android-developer/answer/9867159
 - Content rating requirements: https://support.google.com/googleplay/android-developer/answer/9859655
+- Play App Signing: https://support.google.com/googleplay/android-developer/answer/9842756
