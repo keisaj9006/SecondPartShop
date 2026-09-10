@@ -32,7 +32,7 @@ export async function cancelAccountDeletion(){
 }
 
 export async function acceptCurrentMarketplaceTerms(){
- const user=await requireUser("/account/security");
+ await requireUser("/account/security");
  const supabase=await createSupabaseServerClient();
  const {error}=await supabase.rpc("accept_current_marketplace_terms");
  if(error)throw error;
