@@ -3,6 +3,8 @@ import fs from "node:fs";
 const read=(path)=>fs.readFileSync(path,"utf8");
 const diagnostic=read("src/lib/data/commerce-e2e.ts");
 const page=read("src/app/admin/commerce/e2e/page.tsx");
+const commerceAdminPage=read("src/app/admin/commerce/page.tsx");
+const systemPage=read("src/app/admin/system/page.tsx");
 const runbook=read("docs/commerce-e2e-runbook.md");
 const normalizedRunbook=runbook.toLowerCase();
 const sellerPaymentSync=read("src/lib/seller-payment-sync.ts");
@@ -32,6 +34,8 @@ const checks=[
  ["Unresolved payout rollback must fail verification",diagnostic.includes("payout_rollback_required")],
  ["Admin page must explicitly describe verifier as read-only",page.includes("Read-only verification")&&page.includes("never advances fulfilment")],
  ["Admin page must expose strict preflight readiness",page.includes("readyForRealE2E")&&page.includes("preflight.blockers")&&page.includes("Buyer accounts")&&page.includes("Checkout-ready listings")&&page.includes("Payout recovery")],
+ ["Commerce operations must link to the E2E verifier",commerceAdminPage.includes('href="/admin/commerce/e2e"')&&commerceAdminPage.includes("E2E verifier")],
+ ["System readiness must link directly to Commerce E2E",systemPage.includes('href="/admin/commerce/e2e"')&&systemPage.includes("Commerce E2E")],
  ["Canonical Stripe seller sync must persist complete payout readiness",sellerPaymentSync.includes("payouts_enabled:active")&&sellerPaymentSync.includes("transfers_enabled:active")],
  ["Manual Stripe refresh must persist the same payout readiness",sellerPaymentActions.includes("payouts_enabled:complete")&&sellerPaymentActions.includes("transfers_enabled:complete")],
  ["Stripe onboarding return must trigger an automatic status sync",sellerPaymentPage.includes("syncSellerPaymentAccount")&&sellerPaymentPage.includes("returned&&configured")],
