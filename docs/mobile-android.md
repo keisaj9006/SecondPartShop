@@ -1,131 +1,121 @@
 # SecondPart Android
 
-## Current architecture: bundled Capacitor application
+## Current architecture: Capacitor wrapper + full Next.js frontend
 
-The Android build packages the mobile application from `mobile-shell/` inside the APK/AAB and loads those local assets at runtime.
+SecondPart Android is a Capacitor wrapper around the full hosted Next.js application. Preview and Production builds deliberately configure Capacitor `server.url` to an HTTPS SecondPart origin, so the user-facing Android product loads the same Next.js frontend as the web product.
 
-Do **not** add Capacitor `server.url` to preview or production configuration. Capacitor documents that option as an external WebView URL for live-reload development and not for production.
+`mobile-shell/` remains the Capacitor `webDir` and contains bootstrap/native bridge assets required by the wrapper, but it is **not** the primary production UI surface.
 
-Current request flow:
+Current runtime flow:
 
+```text
+Android Capacitor wrapper
+  -> HTTPS SecondPart Next.js frontend
+  -> Next.js API / server actions
+  -> Supabase Auth / RLS / guarded RPCs
+  -> Stripe / Firebase / vehicle-data integrations where required
 ```
-Bundled Android UI
-  -> Supabase Auth (publishable client key only)
-  -> Authorization: Bearer <user access token>
-  -> https://<SecondPart backend>/api/mobile/v1/*
-  -> Supabase RLS / guarded RPCs
-  -> Stripe / Firebase / DVSA server-side integrations where required
-```
 
-The phone never receives `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CRON_SECRET`, Firebase service-account credentials or DVSA server credentials.
+The production wrapper must not point at localhost or a Preview hostname. Production WebView debugging and Capacitor debug logging are disabled.
 
-## Preview endpoint configuration
+The phone never receives privileged backend secrets such as `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CRON_SECRET`, Firebase service-account credentials or vehicle-data server credentials.
 
-`mobile-shell/config.js` contains the API and web callback origin used by the bundled UI.
+## Preview frontend configuration
 
-Preview currently points to:
+`scripts/prepare-android-preview.mjs` prepares the Preview wrapper and sets:
 
-`https://second-part-shop-preview.vercel.app`
+- package: `com.secondpart.marketplace.preview`
+- app name: `SecondPart`
+- HTTPS frontend: `https://second-part-shop-preview.vercel.app` by default
+- `server.cleartext=false`
+- WebView debugging: enabled for Preview
+- Capacitor logging: debug
 
-The Supabase URL and publishable key in that file are public client configuration, not privileged secrets.
+The Preview APK therefore exercises the full Next.js frontend rather than the old bundled marketplace UI.
 
-Before each real-device preview cycle, the preview alias must point at a deployment containing the current `rebuild-nextjs` backend. The mobile UI itself remains bundled locally; only data/API calls and hosted provider callbacks use the remote origin.
+Before a real-device Preview cycle, the Preview alias should point at a deployment containing the intended `rebuild-nextjs` backend/frontend state.
 
-Production release preparation rewrites these API/callback values to the canonical production HTTPS origin without introducing Capacitor `server.url`.
+## Production frontend configuration
 
-## Mobile API
+`scripts/prepare-android-production.mjs` requires `SECOND_PART_PRODUCTION_URL` and refuses to build if the URL is not HTTPS or if the hostname looks like Preview/localhost.
 
-The bundled application consumes versioned endpoints under:
+It sets:
 
-`/api/mobile/v1/*`
+- package: `com.secondpart.marketplace`
+- app name: `SecondPart`
+- `server.url=<canonical production HTTPS origin>`
+- `server.cleartext=false`
+- Android background: `#173c31`
+- WebView debugging: disabled
+- Capacitor logging: disabled
+- push presentation options: badge, sound and alert
 
-Implemented coverage includes:
+The full production frontend URL is verified again in the Android production workflow before `bundleRelease`.
 
-- API health/version check
-- account/session profile
-- public marketplace search and listing detail
-- categories
-- UK vehicle registration lookup adapter
-- DfT vehicle catalogue lookup
-- Garage read/save/remove
-- saved parts, saved searches and recently viewed
-- notifications/read state
-- push-device registration
-- purchases and order detail/timeline
-- buyer receipt/acceptance
-- checkout reservation cancellation
-- Stripe checkout creation
-- returns/disputes/cancellation cases and evidence
-- pre-purchase buyer/seller conversations
-- paid-order transaction chat
-- Find My Part / Wanted Parts
-- Buy + Fit garages, fitting requests, quote acceptance and fitting chat
-- seller profile / verification / readiness
-- seller payments refresh and Stripe Connect onboarding
-- seller sales/payout state and fulfilment
-- seller donor vehicles
-- seller listing create/edit/publish/photos
-- seller matched buyer requests
-- native CSV preview/import/report/review flow
+## Mobile/native integration
 
-Authentication is performed with Supabase access tokens. The API creates a Supabase client scoped to that token so Row Level Security remains a primary data-access boundary.
+The Next.js frontend can access native Android capabilities through the Capacitor wrapper and the bundled bridge generated from `mobile-native-src/native.ts`.
+
+Native capabilities currently include:
+
+- Android KeyStore-backed secure session storage
+- Android hardware Back handling
+- application lifecycle handling
+- Camera / Photo Picker integration
+- Capacitor Browser for Stripe and other hosted flows
+- push notification permission, token registration and notification taps
+- custom-scheme Preview fallback where applicable
+- verified HTTPS App Links for Production completion paths
+
+The native wrapper is intentionally thin. Business rules and transaction truth remain server-controlled.
 
 ## Checkout and hosted provider returns
 
-The mobile app requests Stripe Checkout through a server-side endpoint. Stripe credentials are never shipped in the application.
+Stripe checkout and seller onboarding are initiated through server-controlled SecondPart paths. Stripe secret keys are never shipped in the Android package.
 
-Payment truth remains server-controlled through Stripe webhook processing and reconciliation. The mobile client cannot mark an order paid.
+Payment truth remains server-controlled through Stripe webhooks, reconciliation and payout workers. The Android client cannot mark an order paid or force seller payout state.
 
-Implemented return paths:
+Relevant completion paths include:
 
 - `/checkout/mobile-complete`
 - `/seller/payments/mobile-complete`
 - `/auth/mobile-complete`
 
-Preview retains the `secondpart://...` custom-scheme fallback. Production Android supports verified HTTPS App Links for the completion paths above.
+Preview retains a `secondpart://...` fallback where required. Production supports verified HTTPS App Links patched into the generated Android manifest.
 
-The app never intercepts `/auth/callback` before Supabase completes its server-side PKCE/code exchange.
+The application must not intercept `/auth/callback` before Supabase completes its PKCE/code exchange.
 
 ## Push notifications
 
-Push foundation is implemented with Capacitor Push Notifications + FCM:
+Push foundation is implemented with Capacitor Push Notifications + Firebase Cloud Messaging:
 
 - explicit user opt-in from Account
-- Android permission request only when the user opts in
+- Android permission request only after opt-in
 - authenticated device-token registration
-- token detached before sign-out
-- private server-only device registry
+- token detachment before sign-out
+- private server-side device registry
 - notification-to-device outbox
 - retry-safe outbox claiming
-- FCM HTTP v1 server sender
+- FCM HTTP v1 sender
 - invalid-token deactivation
 - foreground notification refresh
-- push-tap native routing through the same route map as in-app notifications
+- push-tap routing through the same application route map
 
-Production delivery requires Firebase service-account credentials and the real Android `google-services.json` supplied as deployment / CI secrets.
+Production delivery still requires the permanent Firebase Android app for `com.secondpart.marketplace`, production `google-services.json`, server-side Firebase credentials and a successful physical-device FCM E2E test.
 
-Push outbox dispatch is protected by `PUSH_DISPATCH_SECRET` or `CRON_SECRET`. Scheduling is environment-dependent and must respect the hosting plan's cron limits.
+## Android branding
 
-## Native Android capabilities implemented
+The production Android pipeline now generates SecondPart-native launcher/adaptive icon and splash resources from version-controlled branding assets.
 
-- Android KeyStore-backed secure session storage
-- migration away from legacy native localStorage sessions
-- bundled local mobile UI
-- Capacitor Browser for Stripe Checkout / Stripe Connect
-- custom-scheme preview deep-link fallback
-- verified HTTPS App Link architecture
-- safe email-confirmation/password-reset completion return
-- Android hardware Back integration
-- app lifecycle refresh handling
-- Camera / Photo Picker integration
-- private transaction-case evidence uploads
-- seller inventory photo capture / gallery selection
-- seller donor-vehicle management
-- native seller listing create/edit/publish
-- native exact fitment evidence tools
-- native CSV inventory import
-- native Buy + Fit
-- push opt-in / registration / native routing
+The generation step is verified in the no-secret release pipeline before the AAB build. The current native palette is aligned with the application UI:
+
+- dark green `#173c31`
+- lime `#d4f44d`
+- white
+
+A production-style AAB with generated branding has already passed the no-secret Android Release Pipeline Check.
+
+Google Play store artwork remains a separate submission task: store icon, feature graphic and screenshots are not the same artifact as the native launcher resources.
 
 ## Android build pipelines
 
@@ -134,53 +124,95 @@ Push outbox dispatch is protected by `PUSH_DISPATCH_SECRET` or `CRON_SECRET`. Sc
 `.github/workflows/android-preview-apk.yml`
 
 - package: `com.secondpart.marketplace.preview`
-- debug APK
-- preview API/callback origin
-- stable preview debug signing
-- may use a CI Firebase placeholder when real preview Firebase configuration is not present
+- loads the full Preview Next.js frontend through HTTPS `server.url`
+- debug WebView/logging enabled
+- stable Preview signing key required
+- Firebase Preview configuration may fall back to a CI placeholder
+- produces a signed debug APK for device testing
 
 ### Production-style release validation
 
 `.github/workflows/android-release-check.yml`
 
 - package: `com.secondpart.marketplace`
-- WebView debugging disabled
-- local bundled UI
+- loads a non-Preview HTTPS production-style origin
+- production WebView debugging/logging disabled
+- generates and verifies SecondPart Android brand resources
 - verified App Links manifest patch
-- ephemeral CI signing key
-- CI-only Firebase placeholder
-- builds `bundleRelease`
-- proves the release pipeline without using production signing material
+- ephemeral CI signing key only
+- CI Firebase placeholder
+- target/compile SDK 36
+- builds and verifies a signed `bundleRelease`
+- proves the production release pipeline without using real production signing material
 
 ### Production AAB
 
 `.github/workflows/android-production-aab.yml`
 
-Manual only. It requires:
+Manual release workflow. It requires:
 
-- production HTTPS origin
-- `ANDROID_KEYSTORE_BASE64`
-- `ANDROID_KEYSTORE_PASSWORD`
-- `ANDROID_KEY_ALIAS`
-- `ANDROID_KEY_PASSWORD`
-- `GOOGLE_SERVICES_JSON_BASE64`
+- `production_url` workflow input (`SECOND_PART_PRODUCTION_URL`)
+- version name and monotonically increasing version code
+- `ANDROID_RELEASE_KEYSTORE_BASE64`
+- `ANDROID_RELEASE_STORE_PASSWORD`
+- `ANDROID_RELEASE_KEY_ALIAS`
+- `ANDROID_RELEASE_KEY_PASSWORD`
+- `GOOGLE_SERVICES_JSON_BASE64_PRODUCTION`
 
-It creates a signed AAB artifact but does **not** automatically publish to Google Play.
+The workflow:
+
+1. prepares the full Production Next.js frontend URL;
+2. generates the Android project;
+3. generates and verifies SecondPart launcher/adaptive icon and splash resources;
+4. patches API 36, signing and verified App Links;
+5. installs Production Firebase configuration;
+6. builds `bundleRelease`;
+7. verifies the AAB signer matches the permanent upload key;
+8. uploads the signed AAB as a GitHub Actions artifact.
+
+It does **not** automatically publish to Google Play.
+
+## Physical Release Candidate gate
+
+A production release is not approved solely because CI builds an AAB. The generated Release Candidate must be installed through a Google Play test track and tested on a physical Android device.
+
+The physical RC gate must cover at minimum:
+
+- fresh install and update-in-place
+- sign-up, email confirmation, sign-in, sign-out and password recovery
+- Buyer and Seller account modes
+- Home / Marketplace / Garage / Inbox / Account navigation
+- vehicle selection and compatibility filtering
+- listing detail and saved items/searches
+- seller profile, listing creation/edit/publish and image/camera upload
+- checkout launch/return path in Stripe test mode
+- purchases, seller sales, fulfilment and transaction messaging
+- Find My Part and Buy + Fit critical paths
+- push permission, token registration, foreground/background delivery and notification tap routing
+- custom/verified links relevant to the RC
+- offline/network-loss handling and recovery
+- Android hardware Back behaviour
+- app resume after backgrounding
+- launcher/adaptive icon and splash appearance
+
+Evidence should be recorded as PASS/FAIL with build version/code, device/Android version and defect/commit reference when a failure is fixed.
 
 ## Remaining production mobile gates
 
-The architecture is implemented. Remaining work is mainly environment, store and real-device validation:
+The code architecture is largely implemented. Remaining release work is mainly environment configuration and real-world verification:
 
-1. choose and configure the canonical production SecondPart HTTPS domain;
-2. configure Firebase Android project + production service-account secret;
-3. set production signing certificate SHA-256 in `ANDROID_APP_LINK_SHA256_FINGERPRINTS`;
-4. configure permanent release keystore / Google Play App Signing;
-5. choose an appropriate push-dispatch schedule for the hosting plan;
-6. Play Console Data Safety, privacy policy and store listing review;
-7. physical-device release/security/commerce QA;
-8. DVSA credentials when official access is granted.
+1. choose and configure the canonical Production SecondPart HTTPS domain;
+2. restore Supabase project access and deploy the pending payout-recovery migration before real commerce E2E;
+3. configure the permanent Firebase Android production app and secrets;
+4. create/store the permanent Google Play upload key and configure signing certificate fingerprints for App Links;
+5. run the real Production AAB workflow with the final domain, Firebase config and signing key;
+6. install that AAB through a Google Play test track;
+7. complete physical-device RC and FCM E2E testing;
+8. complete real Stripe test-mode commerce E2E and edge cases;
+9. complete destructive account-deletion QA on a disposable account;
+10. finish Play Console declarations, reviewer access, legal review and store artwork.
 
-DVSA is not a blocker for the rest of the app because manual catalogue vehicle selection remains a complete fallback.
+DVSA/vehicle registration lookup approval remains valuable, but it does not block the Android architecture or test release because manual vehicle selection remains the fallback.
 
 ## Package identity
 
@@ -188,4 +220,4 @@ Preview package ID: `com.secondpart.marketplace.preview`
 
 Production package ID: `com.secondpart.marketplace`
 
-Do not submit a debug APK to Google Play. Store release must use a signed release AAB.
+Never submit a debug Preview APK to Google Play. Store release must use the signed Production AAB generated by the production workflow.
