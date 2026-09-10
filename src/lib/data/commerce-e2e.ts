@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isUuid } from "@/lib/identifiers";
 
 export type CommerceE2ECheckStatus="pass"|"pending"|"fail"|"info";
+export type CommerceE2EStripeMode="test"|"live"|"missing"|"unknown";
 export type CommerceE2ECheck={
  id:string;
  label:string;
@@ -61,6 +62,9 @@ export type CommerceE2EPreflight={
  buyerProfiles:number;
  payoutReadySellers:number;
  payoutRecoveryReady:boolean;
+ stripeApiMode:CommerceE2EStripeMode;
+ stripeWebhookConfigured:boolean;
+ siteUrlConfigured:boolean;
  existingOrders:number;
  readyForRealE2E:boolean;
  blockers:string[];
@@ -72,6 +76,23 @@ const fulfilmentHasDispatch=(status:string)=>["dispatched","delivered","accepted
 const fulfilmentHasReceipt=(status:string)=>["delivered","accepted","completed","return_requested","return_approved","returned","refunded","dispute_open","dispute_resolved"].includes(status);
 
 const check=(id:string,label:string,status:CommerceE2ECheckStatus,detail:string,orderItemId?:string):CommerceE2ECheck=>({id,label,status,detail,orderItemId});
+const getStripeApiMode=(value:string|undefined):CommerceE2EStripeMode=>{
+ const key=(value??"").trim();
+ if(!key)return "missing";
+ if(key.startsWith("sk_test_")||key.startsWith("rk_test_"))return "test";
+ if(key.startsWith("sk_live_")||key.startsWith("rk_live_"))return "live";
+ return "unknown";
+};
+const isSafeHttpsUrl=(value:string|undefined)=>{
+ const raw=(value??"").trim();
+ if(!raw)return false;
+ try{
+  const url=new URL(raw);
+  return url.protocol==="https:"&&Boolean(url.hostname);
+ }catch{
+  return false;
+ }
+};
 
 export async function getCommerceE2EPreflight():Promise<CommerceE2EPreflight>{
  const admin=createSupabaseAdminClient();
@@ -92,14 +113,22 @@ export async function getCommerceE2EPreflight():Promise<CommerceE2EPreflight>{
  const buyerProfiles=buyers.count??0;
  const payoutReadySellers=payoutAccounts.count??0;
  const payoutRecoveryReady=!recoveryProbe.error;
+ const stripeApiMode=getStripeApiMode(process.env.STRIPE_SECRET_KEY);
+ const stripeWebhookConfigured=(process.env.STRIPE_WEBHOOK_SECRET??"").trim().startsWith("whsec_");
+ const siteUrlConfigured=isSafeHttpsUrl(process.env.NEXT_PUBLIC_SITE_URL??process.env.NEXT_PUBLIC_APP_URL);
  const existingOrders=orders.count??0;
  const blockers:string[]=[];
+ if(stripeApiMode==="missing")blockers.push("Stripe API credentials are not configured for the controlled test.");
+ if(stripeApiMode==="live")blockers.push("Stripe live credentials are active. Release QA is blocked until this environment uses Stripe test-mode credentials.");
+ if(stripeApiMode==="unknown")blockers.push("Stripe API credential mode could not be verified. Release QA requires an sk_test_ or rk_test_ credential.");
+ if(!stripeWebhookConfigured)blockers.push("Stripe webhook signing secret is missing or invalid for the controlled test.");
+ if(!siteUrlConfigured)blockers.push("Canonical SecondPart site URL is missing or is not a valid HTTPS origin.");
  if(buyerProfiles<1)blockers.push("No buyer account exists for the controlled checkout test.");
  if(activeListings<1)blockers.push("No active listing is available for a buyer checkout.");
  if(payoutReadySellers<1)blockers.push("No seller has completed Stripe Connect payout readiness yet.");
  if(checkoutReadyListings<1)blockers.push("No active listing belongs to a payout-ready seller.");
  if(!payoutRecoveryReady)blockers.push("Payout-transfer recovery RPCs are not available in the release database.");
- return {activeListings,checkoutReadyListings,buyerProfiles,payoutReadySellers,payoutRecoveryReady,existingOrders,readyForRealE2E:blockers.length===0,blockers};
+ return {activeListings,checkoutReadyListings,buyerProfiles,payoutReadySellers,payoutRecoveryReady,stripeApiMode,stripeWebhookConfigured,siteUrlConfigured,existingOrders,readyForRealE2E:blockers.length===0,blockers};
 }
 
 export async function getCommerceE2EDiagnostic(orderId:string):Promise<CommerceE2EDiagnostic|null>{
