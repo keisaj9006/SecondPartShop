@@ -19,6 +19,8 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [x] Native production launcher/adaptive icon and splash are generated from the versioned SecondPart vector mark and verified inside the production-style AAB pipeline.
 - [x] Release merged-manifest permission audit runs after `bundleRelease`; it blocks sensitive Android permissions that SecondPart does not require and writes `android-release-permissions.txt` for Data Safety evidence.
 - [x] Production AAB workflow generates a release evidence pack containing package/version, production origin, commit SHA, AAB SHA-256, signer certificate SHA-256 and merged permissions without exposing credentials.
+- [x] Production AAB workflow has a live-origin preflight that checks the canonical HTTPS site, public Privacy/Contact/Account Deletion routes and Android App Links before `bundleRelease`.
+- [x] App Links release logic distinguishes the SecondPart upload certificate from Google Play App Signing certificate(s); the live origin must publish every expected Play app-signing SHA-256 fingerprint. See `docs/android-signing-app-links.md`.
 - [x] Physical Android RC test protocol is defined in `docs/android-rc-test-matrix.md` and protected by `validate:android-rc`; physical execution is still pending.
 - [x] Marketplace keyset pagination for default browse and major sort modes.
 - [x] Keyset pagination for default catalogue compatibility.
@@ -54,9 +56,11 @@ This document is the canonical launch checklist for the Android / Google Play an
 
 - [ ] Choose and configure a stable production HTTPS domain/origin.
 - [ ] Create the permanent Google Play upload key; store release secrets securely.
+- [ ] Create/configure the Play Console app for `com.secondpart.marketplace`, enable Play App Signing, and capture every SHA-256 app-signing certificate fingerprint Google Play requires for API/domain association.
+- [ ] Configure the live Production site with `ANDROID_APP_LINK_SHA256_FINGERPRINTS` and GitHub Actions with the matching expected `ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS`; verify `/.well-known/assetlinks.json` publishes the complete Play signing set.
 - [ ] Register the Firebase Android production app for `com.secondpart.marketplace` and store its production `google-services.json` secret.
-- [ ] Run the real production AAB workflow using the production URL, signing key and Firebase config; retain its AAB, permission report and release evidence files together.
-- [ ] Confirm release package/version/signature/hash from the generated evidence pack and install/test the generated release candidate through a Google Play test track.
+- [ ] Run the real production AAB workflow using the production URL, upload signing key, Play App Signing fingerprint set and Firebase config; retain its AAB, permission report and release evidence files together.
+- [ ] Confirm release package/version/upload signature/hash from the generated evidence pack and install/test the generated release candidate through a Google Play test track.
 - [x] Finish native launcher/adaptive icon and production splash/brand assets. Verified by Android Release Pipeline Check on 2026-09-10, including generated assets, production-style `bundleRelease` and AAB verification.
 - [ ] Complete physical-device RC smoke testing using `docs/android-rc-test-matrix.md`: auth, Home/Garage/navigation, seller mode, image/camera upload, deep links/app links, Stripe return, hardware Back and network loss/recovery.
 - [ ] Complete physical FCM end-to-end notification testing.
@@ -96,7 +100,7 @@ This policy is intentionally conservative for launch: it prevents both indefinit
 
 - [ ] Confirm Play Console account type and verification status.
 - [ ] Complete developer identity/contact verification.
-- [ ] Create the app with production package `com.secondpart.marketplace`.
+- [ ] Create the app with production package `com.secondpart.marketplace` and configure Play App Signing.
 - [ ] Complete App content declarations: Data safety, account deletion URL, ads declaration, app access, target audience, content rating and privacy policy.
 - [ ] Provide reusable reviewer/demo access and review instructions covering buyer and seller functionality. Draft instructions exist in `docs/google-play-release-pack.md`; credentials must never be committed.
 - [ ] Upload store assets: 512x512 PNG app icon, 1024x500 feature graphic and required phone screenshots.
