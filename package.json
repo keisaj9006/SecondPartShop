@@ -17,7 +17,8 @@
     "validate:android-rc": "node scripts/validate-android-rc-gate.mjs",
     "validate:public-contact": "node scripts/validate-public-contact.mjs",
     "validate:account-deletion-e2e": "node scripts/validate-account-deletion-e2e.mjs",
-    "validate:production-origin": "node scripts/validate-production-origin-preflight.mjs"
+    "validate:production-origin": "node scripts/validate-production-origin-preflight.mjs",
+    "validate:production-env": "node scripts/validate-production-environment.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.5",
