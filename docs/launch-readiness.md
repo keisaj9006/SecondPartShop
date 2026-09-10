@@ -1,6 +1,6 @@
 # SecondPart Launch Readiness
 
-Snapshot: 2026-09-09
+Snapshot: 2026-09-10
 Branch: `rebuild-nextjs`
 
 This document is the canonical launch checklist for the Android / Google Play and public marketplace release. It deliberately separates code readiness from marketplace liquidity.
@@ -39,6 +39,8 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [x] Seller listing/profile/photo UGC, bulk inventory imports, reviews/fit feedback and Find My Part requests are Terms-gated across relevant web/mobile paths.
 - [x] Review / verified-fit Terms enforcement also exists at the database boundary.
 - [x] Silent-buyer payout fallback is explicit: no payout is released from buyer inactivity alone; stale unverified shipments enter admin evidence review before the normal Buyer Protection window can start.
+- [x] Operational account-deletion processor is implemented with hard Auth deletion, identity detachment, PII cleanup, storage cleanup, blockers and retry-safe maintenance processing.
+- [x] Structured production monitoring covers uncaught server/client failures plus checkout, Stripe webhook, payout, reconciliation, push, deletion and maintenance critical paths.
 
 ## P0 — before the first real Google Play release candidate
 
@@ -50,6 +52,7 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [ ] Finish native launcher/adaptive icon and production splash/brand assets.
 - [ ] Complete physical-device RC smoke testing: sign-up/sign-in/logout/recovery, Home/Garage/navigation, seller mode, image/camera upload, deep links, app links, network loss/recovery.
 - [ ] Complete physical FCM end-to-end notification testing.
+- [ ] Configure and smoke-test the final production critical-alert destination after the production Vercel environment is fixed.
 
 ## P0 — before public commerce
 
@@ -58,10 +61,11 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [ ] Test concurrency/stock reservation with competing checkout attempts.
 - [x] Decide and document the payout policy when a buyer never marks an item as received and no trusted carrier delivery event exists.
 - [x] Define the account-data retention matrix for transactions, disputes, fraud prevention and legal records.
-- [ ] Implement and test the operational account deletion/anonymisation processor; a request must not merely freeze an account. See `docs/account-data-retention.md` for the approved engineering matrix.
+- [x] Implement the operational account deletion/anonymisation processor; a request no longer merely freezes an account. See `docs/account-data-retention.md`.
+- [ ] Run destructive account-deletion E2E on a disposable QA account: request -> claim -> storage/PII cleanup -> hard Auth delete -> completed audit record.
 - [ ] Final legal review of Privacy Policy and Terms with real contracting/developer identity, contact details, consumer-rights wording, seller obligations, returns/refunds, fees and retention.
 - [ ] Add a public privacy/support contact suitable for the Play listing.
-- [ ] Add production error/crash monitoring and alerting for web/API/checkout failures.
+- [x] Add production error/crash monitoring for web/API/checkout/commerce failures with structured logs and privacy-safe browser telemetry. See `docs/operations-monitoring.md`.
 
 ## Buyer Protection — silent buyer / unverified delivery policy
 
