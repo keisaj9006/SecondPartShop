@@ -8,7 +8,9 @@ const runbook=read("docs/account-deletion-e2e-runbook.md");
 const storage=worker.indexOf("await purgePartImages(requestId)");
 const prepare=worker.indexOf('admin.rpc("prepare_claimed_account_deletion"');
 const authDelete=worker.indexOf("admin.auth.admin.deleteUser(profileId,false)");
-const complete=worker.indexOf('admin.rpc("complete_account_deletion_request"');
+const complete=authDelete>=0
+ ?worker.indexOf('admin.rpc("complete_account_deletion_request"',authDelete)
+ :-1;
 
 const checks=[
  ["Deletion worker must purge tracked part images before identity transformation",storage>=0&&prepare>storage],
