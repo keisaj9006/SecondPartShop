@@ -15,8 +15,21 @@ This is a Play Console preparation draft based on the current SecondPart archite
 - User can request account deletion and associated-data deletion: **Yes**
 - Independent security review / MASA-style validation: **Not claimed**
 - Ads SDK / behavioural ad network: **None identified in the current application dependencies**
-- Device GPS permission used for marketplace distance: **No** — current distance is postcode-based.
+- Device GPS permission used for marketplace distance: **No** — current distance is postcode-based and location permissions are release-blocked.
 - Dedicated third-party crash analytics SDK: **None identified** — SecondPart currently uses its own privacy-safe structured operations monitoring plus provider infrastructure logs.
+
+## Release-manifest permission evidence
+
+Google Play Data Safety answers must be checked against the **merged Release AndroidManifest generated for the exact AAB**, not only against source code or expected plugin behaviour.
+
+SecondPart now enforces this in both Android release pipelines:
+
+- `scripts/verify-android-release-manifest.mjs` inspects Gradle's generated Release manifest after `bundleRelease`;
+- `docs/android-permission-policy.md` defines sensitive permission families that are blocked for the current product;
+- the verifier requires the hosted application network permission and fails on unexpected sensitive permissions such as GPS/location, microphone, SMS, contacts, call history, body sensors, broad package inventory or unrestricted external-storage management;
+- the real Production workflow stores `android-release-permissions.txt` beside the signed AAB artifact.
+
+Before completing Play Data Safety, review that permission report from the **same Production workflow run** as the submitted AAB. A green permission audit is evidence about Android permissions; it does not by itself answer whether data is collected/shared by server-side services.
 
 ## Data likely collected / processed off device
 
@@ -45,7 +58,8 @@ Purposes:
 
 Important:
 - Current marketplace distance does not request device GPS or precise device location.
-- Google Play clarified location disclosures in 2026, so the final Data Safety location category must be checked against the exact production data flow and current Play definitions rather than inferred only from Android permissions.
+- Android Release blocks fine/coarse/background location permissions unless the product policy is deliberately changed.
+- Google Play location disclosures must still be checked against the exact production data flow and current Play definitions rather than inferred only from Android permissions.
 
 ### Financial / purchase data
 
@@ -144,7 +158,7 @@ Current backend is no longer a request-only freeze. It has an operational deleti
 - a documented retention matrix in `docs/account-data-retention.md`.
 
 Important release evidence still required:
-- run destructive account-deletion E2E on a disposable QA account;
+- run destructive account-deletion E2E on a disposable QA account using `docs/account-deletion-e2e-runbook.md`;
 - confirm the external deletion URL works from the final production origin without login;
 - confirm the Privacy Policy clearly explains categories retained for legitimate/legal reasons and retention logic.
 
@@ -158,11 +172,13 @@ Do not claim security properties only because the code intends them. Before Play
 - secrets are server-side and absent from the AAB/web client;
 - RLS/service-role boundaries are applied to the production Supabase project;
 - payout/deletion/admin RPC grants match migrations;
-- production FCM and Stripe credentials are isolated from Preview/test configuration.
+- production FCM and Stripe credentials are isolated from Preview/test configuration;
+- the exact submitted AAB's `android-release-permissions.txt` contains no release-blocked sensitive permission.
 
 ## Items to verify immediately before Play submission
 
-- Final production AAB dependencies, native plugins and merged Android manifest permissions
+- Final production AAB dependencies and native plugins
+- `android-release-permissions.txt` from the exact submitted Production AAB workflow
 - Final Android target API level
 - Production Firebase configuration
 - Exact structured monitoring/logging destinations and retention
