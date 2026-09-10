@@ -4,6 +4,9 @@ const read=(path)=>fs.readFileSync(path,"utf8");
 const diagnostic=read("src/lib/data/commerce-e2e.ts");
 const page=read("src/app/admin/commerce/e2e/page.tsx");
 const runbook=read("docs/commerce-e2e-runbook.md");
+const sellerPaymentSync=read("src/lib/seller-payment-sync.ts");
+const sellerPaymentActions=read("src/app/dashboard/payments/actions.ts");
+const sellerPaymentPage=read("src/app/dashboard/payments/page.tsx");
 
 const forbiddenMutations=[".insert(",".update(",".upsert(",".delete(","auth.admin.deleteUser","cancel_checkout_order","claim_order_item_payout_release","mark_order_item_payout_released"];
 const isReadOnly=forbiddenMutations.every(token=>!diagnostic.includes(token));
@@ -23,6 +26,9 @@ const checks=[
  ["Unresolved payout rollback must fail verification",diagnostic.includes("payout_rollback_required")],
  ["Admin page must explicitly describe verifier as read-only",page.includes("Read-only verification")&&page.includes("never advances fulfilment")],
  ["Admin page must expose preflight blockers",page.includes("readyForRealE2E")&&page.includes("preflight.blockers")],
+ ["Canonical Stripe seller sync must persist complete payout readiness",sellerPaymentSync.includes("payouts_enabled:active")&&sellerPaymentSync.includes("transfers_enabled:active")],
+ ["Manual Stripe refresh must persist the same payout readiness",sellerPaymentActions.includes("payouts_enabled:complete")&&sellerPaymentActions.includes("transfers_enabled:complete")],
+ ["Stripe onboarding return must trigger an automatic status sync",sellerPaymentPage.includes("syncSellerPaymentAccount")&&sellerPaymentPage.includes("returned&&configured")],
  ["Runbook must cover happy path and major failure paths",runbook.includes("Scenario A")&&runbook.includes("Scenario D")&&runbook.includes("Scenario E")&&runbook.includes("Scenario F")&&runbook.includes("Scenario G")],
  ["Runbook must prohibit manual state forcing",runbook.includes("never manually forced")&&runbook.includes("Do not simulate readiness")],
  ["Runbook must require provider transfer evidence",runbook.includes("provider_transfer_id")&&runbook.includes("seller_transfer_released")],
