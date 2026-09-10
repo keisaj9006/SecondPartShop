@@ -180,18 +180,29 @@ jobs:
             echo "::error::AAB signer does not match the production upload key."
             exit 1
           fi
+          echo "ANDROID_AAB_SIGNER_SHA256=$ACTUAL" >> "$GITHUB_ENV"
 
       - name: Prepare production artifacts
         run: |
           cp android/app/build/outputs/bundle/release/app-release.aab "SecondPart-${{ inputs.version_name }}-${{ inputs.version_code }}.aab"
           test -s android-release-permissions.txt
 
-      - name: Upload signed AAB and permission report
+      - name: Generate release evidence
+        env:
+          ANDROID_AAB_PATH: SecondPart-${{ inputs.version_name }}-${{ inputs.version_code }}.aab
+        run: |
+          node scripts/create-android-release-evidence.mjs
+          test -s android-release-evidence.json
+          test -s android-release-evidence.txt
+
+      - name: Upload signed AAB and release evidence
         uses: actions/upload-artifact@v4
         with:
           name: SecondPart-Production-AAB-${{ inputs.version_name }}-${{ inputs.version_code }}
           path: |
             SecondPart-${{ inputs.version_name }}-${{ inputs.version_code }}.aab
             android-release-permissions.txt
+            android-release-evidence.json
+            android-release-evidence.txt
           if-no-files-found: error
           retention-days: 30
