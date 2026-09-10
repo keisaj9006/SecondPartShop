@@ -6,6 +6,7 @@ const page=read("src/app/admin/commerce/e2e/page.tsx");
 const commerceAdminPage=read("src/app/admin/commerce/page.tsx");
 const systemPage=read("src/app/admin/system/page.tsx");
 const runbook=read("docs/commerce-e2e-runbook.md");
+const evidenceTemplate=read("docs/test-runs/commerce-e2e-template.md");
 const normalizedRunbook=runbook.toLowerCase();
 const sellerPaymentSync=read("src/lib/seller-payment-sync.ts");
 const sellerPaymentActions=read("src/app/dashboard/payments/actions.ts");
@@ -51,6 +52,10 @@ const checks=[
  ["Runbook must explicitly prohibit live-money QA",runbook.includes("must show Stripe test mode")&&runbook.includes("Do not run release QA with `sk_live_`")&&runbook.includes("never display or record the credential value")],
  ["Runbook must require provider transfer evidence",runbook.includes("provider_transfer_id")&&runbook.includes("seller_transfer_released")],
  ["Runbook must include webhook idempotency",runbook.includes("Webhook idempotency gate")],
+ ["Commerce evidence template alone must never count as a PASS",evidenceTemplate.includes("This template by itself is not release evidence and is not a PASS")],
+ ["Commerce evidence template must prohibit live-money and manual state forcing",evidenceTemplate.includes("Never use `sk_live_` / `rk_live_`")&&evidenceTemplate.includes("Do not manually edit order/payment/payout/stock states")],
+ ["Commerce evidence template must cover scenarios A-G",["### A —","### B —","### C —","### D —","### E —","### F —","### G —"].every(marker=>evidenceTemplate.includes(marker))],
+ ["Commerce evidence template must exclude sensitive QA evidence",evidenceTemplate.includes("webhook secrets")&&evidenceTemplate.includes("test card numbers/CVCs")&&evidenceTemplate.includes("full personal addresses")],
 ];
 
 let failed=0;
