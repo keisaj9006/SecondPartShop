@@ -3,6 +3,7 @@ import "server-only";
 import { isStripeConnectConfigured } from "@/lib/stripe-connect";
 import { isStripeCheckoutConfigured } from "@/lib/stripe-payments";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { getPublicSupportEmail } from "@/lib/public-contact";
 
 export type ReadinessCheck={
  key:string;
@@ -90,6 +91,18 @@ export function getPlatformReadiness(){
    label:"Production mobile HTTPS origin",
    ready:Boolean(siteUrl?.startsWith("https://")&&!siteUrl.includes("preview")),
    detail:"Release AAB must point to the canonical production SecondPart domain, not a preview deployment."
+  },
+  {
+   key:"public-support-contact",
+   label:"Public support / privacy contact",
+   ready:Boolean(getPublicSupportEmail()),
+   detail:"A monitored public email must be configured for the Play listing, public contact page and Privacy Policy."
+  },
+  {
+   key:"critical-alert-destination",
+   label:"Critical operations alert destination",
+   ready:present(process.env.OPS_ALERT_WEBHOOK_URL),
+   detail:"Production checkout, webhook, payout, deletion and maintenance failures must have a real alert destination."
   }
  ];
 
