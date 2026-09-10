@@ -6,14 +6,19 @@ This runbook is the release gate for real Stripe test-mode commerce on `rebuild-
 
 Open `/admin/commerce/e2e` as an administrator. The preflight must show all launch-test prerequisites as ready:
 
+- **Stripe API mode must show Stripe test mode**; `STRIPE_SECRET_KEY` must resolve to a test credential (`sk_test_` or `rk_test_`);
+- Stripe webhook signing must be configured with the intended test-mode endpoint secret;
+- the canonical SecondPart site origin must be a configured HTTPS URL;
 - at least one dedicated buyer profile created through the normal account flow;
 - at least one active listing;
 - at least one **checkout-ready** active listing belonging to a payout-ready seller;
-- at least one Stripe Connect seller with a real provider account and `onboarding_status=complete`, `transfers_enabled=true` and `payouts_enabled=true`;
+- at least one Stripe Connect seller with a real test provider account and `onboarding_status=complete`, `transfers_enabled=true` and `payouts_enabled=true`;
 - payout-transfer recovery schema available in the release database;
 - no environment/configuration blocker preventing test checkout.
 
 `Existing orders` is informational only and may correctly be zero before the first genuine E2E transaction.
+
+**Live-money safety rule:** Do not run release QA with `sk_live_` or `rk_live_` credentials. If the preflight reports live or unverified Stripe API mode, stop and fix the environment first. The verifier may report only the credential mode/configuration state; it must never display or record the credential value, webhook secret, card data or other provider secrets.
 
 If buyer profiles, checkout-ready listings or payout-ready sellers are zero, do not simulate readiness by editing database rows. Create the QA buyer through the normal sign-up flow and complete a real Stripe **test-mode** seller onboarding. A listing becomes acceptable for this gate only through the same seller/payment readiness rules used by production commerce.
 
