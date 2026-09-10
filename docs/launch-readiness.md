@@ -22,6 +22,7 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [x] Production AAB workflow has a live-origin preflight that checks the canonical HTTPS site, public Privacy/Contact/Account Deletion routes and Android App Links before `bundleRelease`.
 - [x] App Links release logic distinguishes the SecondPart upload certificate from Google Play App Signing certificate(s); the live origin must publish every expected Play app-signing SHA-256 fingerprint. See `docs/android-signing-app-links.md`.
 - [x] Physical Android RC test protocol is defined in `docs/android-rc-test-matrix.md` and protected by `validate:android-rc`; physical execution is still pending.
+- [x] Native FCM foreground refresh and safe same-origin notification tap-routing are implemented; the admin smoke tool uses the normal notification trigger/outbox/dispatcher path. Physical execution remains pending under `docs/fcm-e2e-runbook.md`.
 - [x] Marketplace keyset pagination for default browse and major sort modes.
 - [x] Keyset pagination for default catalogue compatibility.
 - [x] Seller inventory keyset pagination.
@@ -63,7 +64,7 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [ ] Confirm release package/version/upload signature/hash from the generated evidence pack and install/test the generated release candidate through a Google Play test track.
 - [x] Finish native launcher/adaptive icon and production splash/brand assets. Verified by Android Release Pipeline Check on 2026-09-10, including generated assets, production-style `bundleRelease` and AAB verification.
 - [ ] Complete physical-device RC smoke testing using `docs/android-rc-test-matrix.md`: auth, Home/Garage/navigation, seller mode, image/camera upload, deep links/app links, Stripe return, hardware Back and network loss/recovery.
-- [ ] Complete physical FCM end-to-end notification testing.
+- [ ] Complete physical FCM end-to-end notification testing using `docs/fcm-e2e-runbook.md`; server-side FCM acceptance alone is not a PASS.
 - [ ] Configure and smoke-test the final production critical-alert destination after the production Vercel environment is fixed.
 - [ ] Configure a real monitored `NEXT_PUBLIC_SUPPORT_EMAIL` in Production and verify it is visible on `/contact` and `/privacy` without authentication.
 
