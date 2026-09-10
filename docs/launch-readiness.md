@@ -17,6 +17,8 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [x] Production WebView debugging and debug logging disabled.
 - [x] Verified HTTPS deep-link/app-link patch path.
 - [x] Native production launcher/adaptive icon and splash are generated from the versioned SecondPart vector mark and verified inside the production-style AAB pipeline.
+- [x] Release merged-manifest permission audit runs after `bundleRelease`; it blocks sensitive Android permissions that SecondPart does not require and writes `android-release-permissions.txt` for Data Safety evidence.
+- [x] Production AAB workflow generates a release evidence pack containing package/version, production origin, commit SHA, AAB SHA-256, signer certificate SHA-256 and merged permissions without exposing credentials.
 - [x] Physical Android RC test protocol is defined in `docs/android-rc-test-matrix.md` and protected by `validate:android-rc`; physical execution is still pending.
 - [x] Marketplace keyset pagination for default browse and major sort modes.
 - [x] Keyset pagination for default catalogue compatibility.
@@ -53,8 +55,8 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [ ] Choose and configure a stable production HTTPS domain/origin.
 - [ ] Create the permanent Google Play upload key; store release secrets securely.
 - [ ] Register the Firebase Android production app for `com.secondpart.marketplace` and store its production `google-services.json` secret.
-- [ ] Run the real production AAB workflow using the production URL, signing key and Firebase config.
-- [ ] Confirm release package/version/signature and install/test the generated release candidate through a Google Play test track.
+- [ ] Run the real production AAB workflow using the production URL, signing key and Firebase config; retain its AAB, permission report and release evidence files together.
+- [ ] Confirm release package/version/signature/hash from the generated evidence pack and install/test the generated release candidate through a Google Play test track.
 - [x] Finish native launcher/adaptive icon and production splash/brand assets. Verified by Android Release Pipeline Check on 2026-09-10, including generated assets, production-style `bundleRelease` and AAB verification.
 - [ ] Complete physical-device RC smoke testing using `docs/android-rc-test-matrix.md`: auth, Home/Garage/navigation, seller mode, image/camera upload, deep links/app links, Stripe return, hardware Back and network loss/recovery.
 - [ ] Complete physical FCM end-to-end notification testing.
