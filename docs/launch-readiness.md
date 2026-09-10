@@ -8,6 +8,7 @@ This document is the canonical launch checklist for the Android / Google Play an
 ## Current verified engineering baseline
 
 - [x] Full Next.js frontend is the Android product surface; production must not use the legacy bundled mobile shell.
+- [x] Android architecture documentation is aligned with the current Capacitor wrapper + hosted Next.js frontend model.
 - [x] Stable Preview signing and update-in-place path.
 - [x] Dedicated production package: `com.secondpart.marketplace`.
 - [x] Dedicated production AAB workflow with isolated release signing secrets.
@@ -16,6 +17,7 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [x] Production WebView debugging and debug logging disabled.
 - [x] Verified HTTPS deep-link/app-link patch path.
 - [x] Native production launcher/adaptive icon and splash are generated from the versioned SecondPart vector mark and verified inside the production-style AAB pipeline.
+- [x] Physical Android RC test protocol is defined in `docs/android-rc-test-matrix.md` and protected by `validate:android-rc`; physical execution is still pending.
 - [x] Marketplace keyset pagination for default browse and major sort modes.
 - [x] Keyset pagination for default catalogue compatibility.
 - [x] Seller inventory keyset pagination.
@@ -40,8 +42,11 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [x] Seller listing/profile/photo UGC, bulk inventory imports, reviews/fit feedback and Find My Part requests are Terms-gated across relevant web/mobile paths.
 - [x] Review / verified-fit Terms enforcement also exists at the database boundary.
 - [x] Silent-buyer payout fallback is explicit: no payout is released from buyer inactivity alone; stale unverified shipments enter admin evidence review before the normal Buyer Protection window can start.
+- [x] Payout transfer recovery code is guarded by a dedicated CI invariant suite; deployment of its pending migration still requires restored Supabase project access.
 - [x] Operational account-deletion processor is implemented with hard Auth deletion, identity detachment, PII cleanup, storage cleanup, blockers and retry-safe maintenance processing.
 - [x] Structured production monitoring covers uncaught server/client failures plus checkout, Stripe webhook, payout, reconciliation, push, deletion and maintenance critical paths.
+- [x] Public support/privacy contact code is ready: a validated `NEXT_PUBLIC_SUPPORT_EMAIL` is rendered on `/contact` and `/privacy`, while account-linked support remains authenticated. The real Production mailbox still must be configured.
+- [x] Admin System readiness surfaces Production support-contact and critical-alert configuration without displaying secret values.
 
 ## P0 — before the first real Google Play release candidate
 
@@ -51,12 +56,14 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [ ] Run the real production AAB workflow using the production URL, signing key and Firebase config.
 - [ ] Confirm release package/version/signature and install/test the generated release candidate through a Google Play test track.
 - [x] Finish native launcher/adaptive icon and production splash/brand assets. Verified by Android Release Pipeline Check on 2026-09-10, including generated assets, production-style `bundleRelease` and AAB verification.
-- [ ] Complete physical-device RC smoke testing: sign-up/sign-in/logout/recovery, Home/Garage/navigation, seller mode, image/camera upload, deep links, app links, network loss/recovery.
+- [ ] Complete physical-device RC smoke testing using `docs/android-rc-test-matrix.md`: auth, Home/Garage/navigation, seller mode, image/camera upload, deep links/app links, Stripe return, hardware Back and network loss/recovery.
 - [ ] Complete physical FCM end-to-end notification testing.
 - [ ] Configure and smoke-test the final production critical-alert destination after the production Vercel environment is fixed.
+- [ ] Configure a real monitored `NEXT_PUBLIC_SUPPORT_EMAIL` in Production and verify it is visible on `/contact` and `/privacy` without authentication.
 
 ## P0 — before public commerce
 
+- [ ] Restore Supabase project access and deploy/verify the pending payout-transfer recovery migration before running the final money-flow E2E.
 - [ ] Complete a real Stripe test-mode E2E transaction: buyer checkout -> webhook confirmation -> seller fulfilment -> buyer receipt/acceptance -> payout eligibility.
 - [ ] Test cancellation, refund, return/case, payment-dispute and payout-reversal paths end to end.
 - [ ] Test concurrency/stock reservation with competing checkout attempts.
@@ -65,7 +72,7 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [x] Implement the operational account deletion/anonymisation processor; a request no longer merely freezes an account. See `docs/account-data-retention.md`.
 - [ ] Run destructive account-deletion E2E on a disposable QA account: request -> claim -> storage/PII cleanup -> hard Auth delete -> completed audit record.
 - [ ] Final legal review of Privacy Policy and Terms with real contracting/developer identity, contact details, consumer-rights wording, seller obligations, returns/refunds, fees and retention.
-- [ ] Add a public privacy/support contact suitable for the Play listing.
+- [ ] Add/configure the real public privacy/support contact suitable for the Play listing. The code path is implemented; Production mailbox configuration is still required.
 - [x] Add production error/crash monitoring for web/API/checkout/commerce failures with structured logs and privacy-safe browser telemetry. See `docs/operations-monitoring.md`.
 
 ## Buyer Protection — silent buyer / unverified delivery policy
@@ -89,9 +96,9 @@ This policy is intentionally conservative for launch: it prevents both indefinit
 - [ ] Complete developer identity/contact verification.
 - [ ] Create the app with production package `com.secondpart.marketplace`.
 - [ ] Complete App content declarations: Data safety, account deletion URL, ads declaration, app access, target audience, content rating and privacy policy.
-- [ ] Provide a reusable reviewer/demo account and review instructions covering buyer and seller functionality.
+- [ ] Provide reusable reviewer/demo access and review instructions covering buyer and seller functionality. Draft instructions exist in `docs/google-play-release-pack.md`; credentials must never be committed.
 - [ ] Upload store assets: 512x512 PNG app icon, 1024x500 feature graphic and required phone screenshots.
-- [ ] Write/finalise title, short description and full store description.
+- [ ] Finalise the proposed title, short description and full store description from `docs/google-play-release-pack.md` against the final RC.
 - [ ] Run Internal testing.
 - [ ] If the Play developer account is a personal account created after 2023-11-13: run Closed testing with at least 12 continuously opted-in testers for 14 days before applying for Production access.
 - [ ] Submit production release and resolve any Play review findings.
