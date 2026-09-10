@@ -5,6 +5,7 @@ const env=read(".env.example");
 const helper=read("src/lib/public-contact.ts");
 const contact=read("src/app/contact/page.tsx");
 const privacy=read("src/app/privacy/page.tsx");
+const readiness=read("src/lib/platform-readiness.ts");
 
 const checks=[
  ["Public support email must be an explicit production environment input",env.includes("NEXT_PUBLIC_SUPPORT_EMAIL=")],
@@ -14,6 +15,8 @@ const checks=[
  ["Privacy policy must expose the same configured public contact",privacy.includes("getPublicSupportEmail")&&privacy.includes("Public privacy/support email")&&privacy.includes("mailto:${supportEmail}")],
  ["Privacy policy must fail visibly when production contact is not configured",privacy.includes("must be configured in the Production environment before publication")],
  ["Public contact copy must warn against sending secrets",contact.includes("Do not send passwords, payment card details or API keys")],
+ ["Admin release readiness must surface missing public support contact",readiness.includes('key:"public-support-contact"')&&readiness.includes("getPublicSupportEmail()")],
+ ["Admin release readiness must surface missing critical alert destination",readiness.includes('key:"critical-alert-destination"')&&readiness.includes("OPS_ALERT_WEBHOOK_URL")],
 ];
 
 let failed=0;
