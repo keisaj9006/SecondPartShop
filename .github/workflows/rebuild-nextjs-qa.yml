@@ -32,4 +32,5 @@ jobs:
       - run: npm run validate:notifications
       - run: npm run validate:mobile-performance
       - run: npm run validate:launch-baseline
+      - run: npm run validate:monitoring
       - run: npm run build
