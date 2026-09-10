@@ -82,7 +82,7 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Restore production upload key
+      - name: Restore production upload key and fingerprint
         env:
           ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
           ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
@@ -96,7 +96,16 @@ jobs:
           export SECOND_PART_RELEASE_KEYSTORE="$RUNNER_TEMP/secondpart-release.jks"
           echo "$ANDROID_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$SECOND_PART_RELEASE_KEYSTORE"
           keytool -list -keystore "$SECOND_PART_RELEASE_KEYSTORE" -storepass "$ANDROID_RELEASE_STORE_PASSWORD" -alias "$ANDROID_RELEASE_KEY_ALIAS" >/dev/null
+          EXPECTED="$(keytool -list -v -keystore "$SECOND_PART_RELEASE_KEYSTORE" -storepass "$ANDROID_RELEASE_STORE_PASSWORD" -alias "$ANDROID_RELEASE_KEY_ALIAS" | sed -n 's/.*SHA256: //p' | head -n 1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          if [ -z "$EXPECTED" ] || ! printf '%s' "$EXPECTED" | grep -Eq '^[0-9a-f]{64}$'; then
+            echo "::error::Could not derive the production signing certificate SHA-256."
+            exit 1
+          fi
           echo "SECOND_PART_RELEASE_KEYSTORE=$SECOND_PART_RELEASE_KEYSTORE" >> "$GITHUB_ENV"
+          echo "ANDROID_EXPECTED_SIGNER_SHA256=$EXPECTED" >> "$GITHUB_ENV"
+
+      - name: Verify live production origin and Android App Links
+        run: node scripts/verify-production-origin.mjs
 
       - name: Generate and sync Android project
         run: |
@@ -172,7 +181,7 @@ jobs:
           AAB="android/app/build/outputs/bundle/release/app-release.aab"
           test -f "$AAB"
           jarsigner -verify -verbose -certs "$AAB" >/dev/null
-          EXPECTED="$(keytool -list -v -keystore "$SECOND_PART_RELEASE_KEYSTORE" -storepass "$ANDROID_RELEASE_STORE_PASSWORD" -alias "$ANDROID_RELEASE_KEY_ALIAS" | sed -n 's/.*SHA256: //p' | head -n 1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          EXPECTED="$ANDROID_EXPECTED_SIGNER_SHA256"
           ACTUAL="$(keytool -printcert -jarfile "$AAB" | sed -n 's/.*SHA256: //p' | head -n 1 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
           echo "Expected upload signer SHA-256: $EXPECTED"
           echo "AAB signer SHA-256:             $ACTUAL"
