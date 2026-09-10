@@ -161,6 +161,9 @@ jobs:
           chmod +x gradlew
           ./gradlew bundleRelease --no-daemon
 
+      - name: Verify merged Release permissions
+        run: node scripts/verify-android-release-manifest.mjs
+
       - name: Verify AAB signature
         env:
           ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
@@ -178,13 +181,17 @@ jobs:
             exit 1
           fi
 
-      - name: Prepare production artifact
-        run: cp android/app/build/outputs/bundle/release/app-release.aab "SecondPart-${{ inputs.version_name }}-${{ inputs.version_code }}.aab"
+      - name: Prepare production artifacts
+        run: |
+          cp android/app/build/outputs/bundle/release/app-release.aab "SecondPart-${{ inputs.version_name }}-${{ inputs.version_code }}.aab"
+          test -s android-release-permissions.txt
 
-      - name: Upload signed AAB
+      - name: Upload signed AAB and permission report
         uses: actions/upload-artifact@v4
         with:
           name: SecondPart-Production-AAB-${{ inputs.version_name }}-${{ inputs.version_code }}
-          path: SecondPart-${{ inputs.version_name }}-${{ inputs.version_code }}.aab
+          path: |
+            SecondPart-${{ inputs.version_name }}-${{ inputs.version_code }}.aab
+            android-release-permissions.txt
           if-no-files-found: error
           retention-days: 30
