@@ -6,6 +6,7 @@ import { requireSeller } from "@/lib/auth";
 import { getSellerForOwner } from "@/lib/data/marketplace";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { reportOperationalError } from "@/lib/ops-monitoring";
 import {
  createStripeOnboardingLink,
  createStripeRecipientAccount,
@@ -33,7 +34,11 @@ export async function startStripeOnboarding(){
  try{
   let accountId=existing?.provider_account_id??null;
   if(!accountId){
-   const account=await createStripeRecipientAccount({email:user.email,displayName:seller.businessName});
+   const account=await createStripeRecipientAccount({
+    email:user.email,
+    displayName:seller.businessName,
+    idempotencyKey:`secondpart-recipient-${seller.id}`
+   });
    accountId=account.id;
    const admin=createSupabaseAdminClient();
    const {error}=await admin.from("seller_payment_accounts").upsert({
@@ -48,7 +53,8 @@ export async function startStripeOnboarding(){
    if(error)throw error;
   }
   onboardingUrl=await createStripeOnboardingLink(accountId);
- }catch{
+ }catch(error){
+  await reportOperationalError({component:"payout",event:"seller_stripe_onboarding_start_failed",error});
   redirect("/dashboard/payments?error=stripe");
  }
  redirect(onboardingUrl);
@@ -85,7 +91,8 @@ export async function refreshStripePaymentStatus(){
   if(error)throw error;
   synced=true;
   revalidatePath("/dashboard/payments");
- }catch{
+ }catch(error){
+  await reportOperationalError({component:"payout",event:"seller_stripe_status_sync_failed",error});
   synced=false;
  }
 
