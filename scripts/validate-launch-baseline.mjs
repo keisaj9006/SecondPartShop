@@ -7,6 +7,8 @@ const productionPrep=read("scripts/prepare-android-production.mjs");
 const productionPatch=read("scripts/patch-android-production.mjs");
 const productionWorkflow=read(".github/workflows/android-production-aab.yml");
 const releaseCheck=read(".github/workflows/android-release-check.yml");
+const androidBrandSource=read("assets/android-production/logo.svg");
+const androidBrandVerifier=read("scripts/verify-android-brand-assets.mjs");
 const privacy=read("src/app/privacy/page.tsx");
 const terms=read("src/app/terms/page.tsx");
 const accountDeletion=read("src/app/account-deletion/page.tsx");
@@ -49,6 +51,10 @@ const checks=[
  ["Production signing must be isolated from Preview signing",productionWorkflow.includes("ANDROID_RELEASE_KEYSTORE_BASE64")&&!productionWorkflow.includes("ANDROID_PREVIEW_KEYSTORE_BASE64")],
  ["Production Firebase must be isolated from Preview Firebase",productionWorkflow.includes("GOOGLE_SERVICES_JSON_BASE64_PRODUCTION")],
  ["Release pipeline must have a no-secret dry-run",releaseCheck.includes("Create ephemeral CI signing key")&&releaseCheck.includes("Build production-style Android App Bundle")],
+ ["Production Android brand source must be deterministic vector artwork",exists("assets/android-production/logo.svg")&&androidBrandSource.includes("#173c31")===false&&androidBrandSource.includes("#d4f44d")&&androidBrandSource.includes("#ffffff")&&!androidBrandSource.includes("<text")],
+ ["Production AAB workflow must generate and verify native brand assets",productionWorkflow.includes("@capacitor/assets@3.0.5")&&productionWorkflow.includes("--assetPath assets/android-production")&&productionWorkflow.includes("--iconBackgroundColor '#173c31'")&&productionWorkflow.includes("verify-android-brand-assets.mjs")],
+ ["No-secret Android release check must exercise the same brand generation",releaseCheck.includes("@capacitor/assets@3.0.5")&&releaseCheck.includes("--assetPath assets/android-production")&&releaseCheck.includes("verify-android-brand-assets.mjs")],
+ ["Android brand verifier must require adaptive launcher and splash resources",androidBrandVerifier.includes("mipmap-anydpi-v26")&&androidBrandVerifier.includes("Generated Android branding is missing splash resources")&&androidBrandVerifier.includes("foreground")&&androidBrandVerifier.includes("background")],
  ["Public privacy policy route must exist",exists("src/app/privacy/page.tsx")&&privacy.includes("SecondPart Privacy Policy")],
  ["Privacy policy must describe deletion",privacy.includes("/account-deletion")&&privacy.includes("Retention and deletion")],
  ["Public external account-deletion route must exist",exists("src/app/account-deletion/page.tsx")&&accountDeletion.includes("Delete your SecondPart account")],
@@ -81,8 +87,6 @@ const checks=[
  ["Admin payout-review RPCs must not be executable by anon",sensitiveRpcHardening.includes("admin_start_unverified_delivery_release_window(uuid) from public,anon,authenticated,service_role")&&sensitiveRpcHardening.includes("get_unverified_delivery_payout_reviews(integer) from public,anon,authenticated,service_role")],
  ["Deletion cancellation must stop once destructive processing starts",accountDeletionPrivacyFinal.includes("attempt_count=0")&&accountDeletionPrivacyFinal.includes("status in ('requested','blocked')")],
  ["Deletion must erase terminal fulfilment and fitting PII",accountDeletionPrivacyFinal.includes("shipping_name=null")&&accountDeletionPrivacyFinal.includes("shipping_address=null")&&accountDeletionPrivacyFinal.includes("vehicle_registration=null")&&accountDeletionPrivacyFinal.includes("buyer_notes=null")],
-
-
 ];
 
 const unresolved=[
