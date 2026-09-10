@@ -13,7 +13,6 @@ export const onRequestError:Instrumentation.onRequestError=async(error,request,c
    routeType:context.routeType,
    routerKind:context.routerKind,
    renderSource:context.renderSource,
-   renderType:context.renderType,
    revalidateReason:context.revalidateReason
   }
  });
