@@ -48,6 +48,7 @@ export type StripeTransfer={
 export type StripeTransferList={data:StripeTransfer[];has_more:boolean};
 export type StripeRefund={id:string;status:string|null;amount:number};
 export type StripeTransferReversal={id:string;amount:number};
+export type StripeTransferReversalList={data:StripeTransferReversal[];has_more:boolean};
 
 const secret=()=>{
  const value=process.env.STRIPE_SECRET_KEY?.trim();
@@ -152,6 +153,14 @@ export async function findSellerTransferForAttempt(input:{
   transfer.metadata?.order_item_id===input.orderItemId&&
   transfer.metadata?.payout_attempt===attemptTag
  )??null;
+}
+
+export async function getSellerTransferReversals(transferId:string){
+ const params=new URLSearchParams({limit:"100"});
+ return stripeV1<StripeTransferReversalList>(
+  `/v1/transfers/${encodeURIComponent(transferId)}/reversals?${params.toString()}`,
+  {method:"GET"}
+ );
 }
 
 export async function createSellerTransfer(input:{
