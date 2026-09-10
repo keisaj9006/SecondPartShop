@@ -50,9 +50,11 @@ async function stripeV2<T>(path:string,init:RequestInit={}):Promise<T>{
  return payload as T;
 }
 
-export async function createStripeRecipientAccount(input:{email:string;displayName:string}){
+export async function createStripeRecipientAccount(input:{email:string;displayName:string;idempotencyKey:string}){
+ if(!input.idempotencyKey.trim())throw new Error("Stripe recipient idempotency key is required.");
  return stripeV2<StripeRecipientAccount>("/v2/core/accounts",{
   method:"POST",
+  headers:{"Idempotency-Key":input.idempotencyKey.slice(0,255)},
   body:JSON.stringify({
    contact_email:input.email,
    display_name:input.displayName,
