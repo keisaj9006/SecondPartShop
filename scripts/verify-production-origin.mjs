@@ -9,8 +9,16 @@ const required=(name)=>{
 };
 
 const normalizeFingerprint=(value)=>String(value??"").replace(/:/g,"").trim().toLowerCase();
-const expectedFingerprint=normalizeFingerprint(required("ANDROID_EXPECTED_SIGNER_SHA256"));
-if(!/^[0-9a-f]{64}$/.test(expectedFingerprint))throw new Error("ANDROID_EXPECTED_SIGNER_SHA256 must be a SHA-256 certificate fingerprint.");
+const expectedPlayFingerprints=required("ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS")
+ .split(/[\n,]+/)
+ .map(normalizeFingerprint)
+ .filter(Boolean);
+if(!expectedPlayFingerprints.length||expectedPlayFingerprints.some(value=>!/^[0-9a-f]{64}$/.test(value))){
+ throw new Error("ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS must contain one or more valid SHA-256 certificate fingerprints.");
+}
+if(new Set(expectedPlayFingerprints).size!==expectedPlayFingerprints.length){
+ throw new Error("ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS contains duplicate fingerprints.");
+}
 
 const base=new URL(required("SECOND_PART_PRODUCTION_URL"));
 if(base.protocol!=="https:")throw new Error("Production origin must use HTTPS.");
@@ -83,10 +91,14 @@ const link=assetlinks.find(item=>
  item.relation.includes(APP_LINK_RELATION)&&
  item?.target?.namespace==="android_app"&&
  item?.target?.package_name===PACKAGE_NAME&&
- Array.isArray(item?.target?.sha256_cert_fingerprints)&&
- item.target.sha256_cert_fingerprints.some(value=>normalizeFingerprint(value)===expectedFingerprint)
+ Array.isArray(item?.target?.sha256_cert_fingerprints)
 );
-if(!link)throw new Error(`assetlinks.json does not authorize ${PACKAGE_NAME} with the production signing certificate.`);
-console.log("PASS: Android App Links authorize the production package and signing certificate.");
+if(!link)throw new Error(`assetlinks.json does not contain the required Android App Links statement for ${PACKAGE_NAME}.`);
+const publishedFingerprints=new Set(link.target.sha256_cert_fingerprints.map(normalizeFingerprint));
+const missingPlayFingerprints=expectedPlayFingerprints.filter(value=>!publishedFingerprints.has(value));
+if(missingPlayFingerprints.length){
+ throw new Error(`assetlinks.json is missing ${missingPlayFingerprints.length} expected Google Play app-signing certificate fingerprint(s).`);
+}
+console.log(`PASS: Android App Links authorize ${PACKAGE_NAME} with all ${expectedPlayFingerprints.length} expected Play app-signing certificate fingerprint(s).`);
 
 console.log(`\nSecondPart production origin preflight passed for ${base.origin}.`);
