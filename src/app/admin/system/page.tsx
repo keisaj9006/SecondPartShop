@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Banknote,BellRing,CheckCircle2,CircleAlert,RotateCcw,Settings2 } from "lucide-react";
+import { Banknote,BellRing,CheckCircle2,CircleAlert,FlaskConical,RotateCcw,Settings2 } from "lucide-react";
 import { Header } from "@/components/header";
 import { requireAdmin } from "@/lib/auth";
 import { getPlatformReadiness } from "@/lib/platform-readiness";
@@ -76,6 +76,7 @@ export default async function SystemReadinessPage({searchParams}:{searchParams:P
     <Link href="/admin/privacy" className="rounded-full border border-black/15 px-4 py-2.5 text-sm font-black">Privacy</Link>
     <Link href="/admin/moderation" className="rounded-full border border-black/15 px-4 py-2.5 text-sm font-black">Moderation</Link>
     <Link href="/admin/commerce" className="rounded-full border border-black/15 px-4 py-2.5 text-sm font-black">Commerce</Link>
+    <Link href="/admin/commerce/e2e" className="inline-flex items-center gap-2 rounded-full border border-[#173c31] bg-[#eef8f3] px-4 py-2.5 text-sm font-black text-[#173c31]"><FlaskConical size={15}/>Commerce E2E</Link>
    </div>
   </div>
 
