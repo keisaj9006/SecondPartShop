@@ -34,4 +34,5 @@ jobs:
       - run: npm run validate:launch-baseline
       - run: npm run validate:monitoring
       - run: npm run validate:commerce-e2e
+      - run: npm run validate:payout-recovery
       - run: npm run build
