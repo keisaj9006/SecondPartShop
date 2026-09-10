@@ -36,8 +36,9 @@ export async function POST(request:Request){
   if(!accountId){
    const account=await createStripeRecipientAccount({
     email:user.email,
-    displayName:seller.business_name
-   },`secondpart-recipient-${seller.id}`);
+    displayName:seller.business_name,
+    idempotencyKey:`secondpart-recipient-${seller.id}`
+   });
    accountId=account.id;
    const admin=createSupabaseAdminClient();
    const {error}=await admin.from("seller_payment_accounts").upsert({
