@@ -56,6 +56,7 @@ const checks=[
  ["Evidence template must require a disposable QA identity",evidenceTemplate.includes("disposable QA account")&&evidenceTemplate.includes("founder/admin account")],
  ["Evidence template must prohibit sensitive evidence",evidenceTemplate.includes("Do not record passwords")&&evidenceTemplate.includes("service-role keys")&&evidenceTemplate.includes("full personal addresses")],
  ["Evidence template must require Auth/Profile/Storage/idempotency assertions",evidenceTemplate.includes("Auth identity absent")&&evidenceTemplate.includes("Profile identity removed/detached")&&evidenceTemplate.includes("Storage objects removed")&&evidenceTemplate.includes("idempotent")],
+ ["Evidence template must verify retained case-evidence ownership/path safety",evidenceTemplate.includes("Retained case-evidence path no longer contains deleted profile UUID")&&evidenceTemplate.includes("does not block hard Auth deletion")],
  ["Evidence template alone must never count as a PASS",evidenceTemplate.includes("This template by itself is not release evidence and is not a PASS")],
  ["Runbook must require a disposable QA account",runbook.includes("disposable QA account")&&runbook.includes("Do not use a founder/admin account")],
  ["Runbook must prohibit manual deletion-state forcing",runbook.includes("Never set `account_deletion_requests.status` manually")&&runbook.includes("Never call `claim_account_deletion_request`")],
