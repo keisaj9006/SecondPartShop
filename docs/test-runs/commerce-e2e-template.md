@@ -29,7 +29,7 @@ Commerce preflight overall: READY / BLOCKED
 ## Scenario result
 
 ```text
-Scenario: A / B / C / D / E / F / G
+Scenario: A / B / C / D / E / F / G / H
 Result: PASS / FAIL / BLOCKED / NOT RUN
 
 Order ID:
@@ -59,6 +59,7 @@ Buyer Protection release time correct: YES / NO / N/A
 Active case blocks payout: YES / NO / N/A
 Released payout has provider transfer evidence: YES / NO / N/A
 Stock restored exactly once when expected: YES / NO / N/A
+Retryable payment failure kept stock reserved: YES / NO / N/A
 Duplicate webhook remains idempotent: YES / NO / N/A
 
 Evidence references:
@@ -125,6 +126,17 @@ Retest result:
 - Losing attempt received a controlled stock/reservation conflict.
 - Stock never became negative.
 - Expiry/cancellation restored availability at most once.
+- A database-only timeout did not cancel a reservation that already had a Stripe Checkout Session.
+
+### H — Declined payment attempt / successful retry
+
+- A fresh stock-`1` order entered normal Stripe Checkout.
+- The first payment attempt failed using Stripe test-mode behaviour.
+- `payment_intent.payment_failed` did not cancel the order or return stock to inventory.
+- The same Checkout flow remained authoritative while still open.
+- A subsequent successful payment completed the order exactly once.
+- If the Checkout Session genuinely expired instead, the reservation was restored exactly once through provider-confirmed expiry/reconciliation.
+- No `paid at Stripe / cancelled in SecondPart` split-brain state occurred.
 
 ## Release sign-off
 
@@ -136,6 +148,7 @@ Scenario D PASS: YES / NO
 Scenario E PASS: YES / NO
 Scenario F PASS: YES / NO
 Scenario G PASS: YES / NO
+Scenario H PASS: YES / NO
 
 No live-money credentials used: YES / NO
 No manual database state forcing used: YES / NO
