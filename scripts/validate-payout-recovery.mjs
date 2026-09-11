@@ -35,6 +35,7 @@ const checks=[
  ["Partial reversals are deferred for manual reconciliation",worker.includes("partial_reversal_requires_review")&&worker.includes("requires manual reconciliation")],
  ["A recovered full reversal is persisted instead of releasing the payout",worker.includes('reason:"rollback_recovered"')&&worker.includes("finalizeRollback")],
  ["Stripe recipient adapter requires an explicit idempotency key",stripeConnect.includes("idempotencyKey:string")&&stripeConnect.includes('headers:{"Idempotency-Key":input.idempotencyKey.slice(0,255)}')],
+ ["Stripe V2 account retrieval uses indexed include parameters",stripeConnect.includes('include.set("include[0]","configuration.recipient")')&&stripeConnect.includes('include.set("include[1]","requirements")')&&!stripeConnect.includes('include.append("include[]"')],
  ["Stripe sandbox onboarding repairs the recipient test phone before creating a link",stripeConnect.includes('const STRIPE_TEST_CONTACT_PHONE="+447400123456"')&&stripeConnect.includes("prepareStripeRecipientForOnboarding")&&stripeConnect.indexOf("await prepareStripeRecipientForOnboarding(accountId)")<stripeConnect.indexOf('stripeV2<StripeAccountLink>("/v2/core/account_links"')&&stripeConnect.includes("contact_phone:STRIPE_TEST_CONTACT_PHONE")],
  ["Mobile Stripe recipient creation is seller-idempotent",mobileOnboarding.includes('idempotencyKey:`secondpart-recipient-${seller.id}`')],
 ];
