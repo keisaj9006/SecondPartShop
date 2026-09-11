@@ -47,14 +47,15 @@ const checks=[
  ["Stripe recipient creation must require an idempotency key",stripeConnect.includes("idempotencyKey:string")&&stripeConnect.includes('"Idempotency-Key"')],
  ["Seller onboarding must use a stable seller-scoped idempotency key",sellerPaymentActions.includes("secondpart-recipient-${seller.id}")],
  ["Seller onboarding and sync failures must be monitored",sellerPaymentActions.includes("seller_stripe_onboarding_start_failed")&&sellerPaymentActions.includes("seller_stripe_status_sync_failed")],
- ["Runbook must cover happy path and major failure paths",runbook.includes("Scenario A")&&runbook.includes("Scenario D")&&runbook.includes("Scenario E")&&runbook.includes("Scenario F")&&runbook.includes("Scenario G")],
+ ["Runbook must cover happy path and major failure paths",runbook.includes("Scenario A")&&runbook.includes("Scenario D")&&runbook.includes("Scenario E")&&runbook.includes("Scenario F")&&runbook.includes("Scenario G")&&runbook.includes("Scenario H")],
  ["Runbook must prohibit manual state forcing",normalizedRunbook.includes("never manually forced")&&normalizedRunbook.includes("do not simulate readiness")],
  ["Runbook must explicitly prohibit live-money QA",runbook.includes("must show Stripe test mode")&&runbook.includes("Do not run release QA with `sk_live_`")&&runbook.includes("never display or record the credential value")],
  ["Runbook must require provider transfer evidence",runbook.includes("provider_transfer_id")&&runbook.includes("seller_transfer_released")],
  ["Runbook must include webhook idempotency",runbook.includes("Webhook idempotency gate")],
+ ["Runbook must cover retryable failed-payment inventory safety",runbook.includes("Scenario H")&&runbook.includes("payment_intent.payment_failed")&&runbook.includes("paid at Stripe / cancelled in SecondPart")],
  ["Commerce evidence template alone must never count as a PASS",evidenceTemplate.includes("This template by itself is not release evidence and is not a PASS")],
  ["Commerce evidence template must prohibit live-money and manual state forcing",evidenceTemplate.includes("Never use `sk_live_` / `rk_live_`")&&evidenceTemplate.includes("Do not manually edit order/payment/payout/stock states")],
- ["Commerce evidence template must cover scenarios A-G",["### A —","### B —","### C —","### D —","### E —","### F —","### G —"].every(marker=>evidenceTemplate.includes(marker))],
+ ["Commerce evidence template must cover scenarios A-H",["### A —","### B —","### C —","### D —","### E —","### F —","### G —","### H —"].every(marker=>evidenceTemplate.includes(marker))],
  ["Commerce evidence template must exclude sensitive QA evidence",evidenceTemplate.includes("webhook secrets")&&evidenceTemplate.includes("test card numbers/CVCs")&&evidenceTemplate.includes("full personal addresses")],
 ];
 
