@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getPaymentIntent,verifyStripeWebhookSignature } from "@/lib/stripe-payments";
 import { closeProviderPaymentDispute } from "@/lib/commerce-provider-disputes";
+import { reconcileStripeOrder } from "@/lib/commerce-reconciliation";
 import { isUuid } from "@/lib/identifiers";
 import { schedulePushDispatch } from "@/lib/push/schedule";
-import { reportOperationalError } from "@/lib/ops-monitoring";
+import { reportOperationalError,reportOperationalWarning } from "@/lib/ops-monitoring";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -20,7 +21,6 @@ const idValue=(value:unknown)=>{
  if(value&&typeof value==="object"&&"id" in value&&typeof (value as {id?:unknown}).id==="string")return (value as {id:string}).id;
  return null;
 };
-
 
 const shippingSnapshot=(object:Record<string,unknown>)=>{
  const collected=object.collected_information;
@@ -61,6 +61,31 @@ const metadataOrderId=(object:Record<string,unknown>)=>{
  const reference=object.client_reference_id;
  return typeof reference==="string"&&isUuid(reference)?reference:null;
 };
+
+async function checkoutSessionMatchesOrder(
+ admin:ReturnType<typeof createSupabaseAdminClient>,
+ orderId:string,
+ sessionId:string
+){
+ const {data,error}=await admin
+  .from("orders")
+  .select("provider_checkout_session_id,payment_status")
+  .eq("id",orderId)
+  .maybeSingle();
+ if(error)throw error;
+ if(!data)return false;
+ if(data.provider_checkout_session_id!==sessionId){
+  reportOperationalWarning({
+   component:"stripe_webhook",
+   event:"checkout_session_order_mismatch",
+   message:"Ignored a Stripe Checkout event whose session did not match the reserved order.",
+   route:"/api/stripe/webhook",
+   context:{stripeSessionId:sessionId,orderId}
+  });
+  return false;
+ }
+ return true;
+}
 
 export async function POST(request:Request){
  const payload=await request.text();
@@ -130,7 +155,8 @@ export async function POST(request:Request){
 
   if(event.type==="checkout.session.expired"||event.type==="checkout.session.async_payment_failed"){
    const orderId=metadataOrderId(object);
-   if(orderId){
+   const sessionId=typeof object.id==="string"?object.id:"";
+   if(orderId&&sessionId&&await checkoutSessionMatchesOrder(admin,orderId,sessionId)){
     const {error}=await admin.rpc("cancel_checkout_order",{
      p_order_id:orderId,
      p_event_id:event.id,
@@ -143,12 +169,10 @@ export async function POST(request:Request){
   if(event.type==="payment_intent.payment_failed"){
    const orderId=metadataOrderId(object);
    if(orderId){
-    const {error}=await admin.rpc("cancel_checkout_order",{
-     p_order_id:orderId,
-     p_event_id:event.id,
-     p_event_type:event.type
-    });
-    if(error)throw error;
+    // A failed PaymentIntent can be one attempt inside an otherwise-open
+    // Checkout Session. Never release inventory from this event alone. Ask
+    // Stripe for the authoritative Checkout Session state instead.
+    await reconcileStripeOrder(orderId);
    }
   }
 
