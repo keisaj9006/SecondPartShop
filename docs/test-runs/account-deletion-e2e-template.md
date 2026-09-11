@@ -53,6 +53,9 @@ Listing-image Storage objects removed: YES / NO / N/A
 Tracked listing-image rows removed: YES / NO / N/A
 Public seller/listing identity hidden or detached: YES / NO / N/A
 Retained commerce/audit records detached correctly: YES / NO / N/A
+Retained case-evidence path no longer contains deleted profile UUID: YES / NO / N/A
+Retained case evidence remains readable to authorised transaction participants/admin: YES / NO / N/A
+Retained case evidence does not block hard Auth deletion: YES / NO / N/A
 Second maintenance pass is idempotent: YES / NO / N/A
 ```
 
