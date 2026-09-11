@@ -20,7 +20,8 @@
     "validate:account-deletion-e2e": "node scripts/validate-account-deletion-e2e.mjs",
     "validate:production-origin": "node scripts/validate-production-origin-preflight.mjs",
     "validate:production-env": "node scripts/validate-production-environment.mjs",
-    "validate:beta-feedback": "node scripts/validate-beta-feedback.mjs"
+    "validate:beta-feedback": "node scripts/validate-beta-feedback.mjs",
+    "validate:seller-read-policy": "node scripts/validate-seller-read-policy.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.5",
