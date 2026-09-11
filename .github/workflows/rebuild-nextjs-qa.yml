@@ -42,4 +42,5 @@ jobs:
       - run: npm run validate:production-origin
       - run: npm run validate:production-env
       - run: npm run validate:beta-feedback
+      - run: npm run validate:seller-read-policy
       - run: npm run build
