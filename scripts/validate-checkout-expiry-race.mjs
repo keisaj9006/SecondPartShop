@@ -4,6 +4,7 @@ const read=(path)=>fs.readFileSync(path,"utf8");
 
 const guard=read("supabase/migrations/20260911080000_checkout_expiry_provider_guard.sql");
 const terminalNotification=read("supabase/migrations/20260911084500_checkout_terminal_buyer_notification.sql");
+const paidGuard=read("supabase/migrations/20260911093000_confirm_checkout_paid_provider_guard.sql");
 const reconciliation=read("src/lib/commerce-reconciliation.ts");
 const webhook=read("src/app/api/stripe/webhook/route.ts");
 const webCancel=read("src/app/checkout/cancel/route.ts");
@@ -60,6 +61,23 @@ const checks=[
   terminalNotification.includes("'/account/orders/'||p_order_id::text")&&
   !terminalNotification.toLowerCase().includes("card_number")&&
   !terminalNotification.toLowerCase().includes("client_secret")
+ ],
+ [
+  "Paid confirmation must lock the order before mutation and reject cancelled orders",
+  paidGuard.indexOf("for update")>=0&&
+  paidGuard.indexOf("for update")<paidGuard.indexOf("insert into public.payment_events")&&
+  paidGuard.includes("if old_payment='cancelled' then raise exception 'Cannot mark a cancelled order paid.'")
+ ],
+ [
+  "Paid confirmation must verify the stored Stripe Checkout Session at the database boundary",
+  paidGuard.includes("stored_checkout_session is null or stored_checkout_session<>p_checkout_session_id")&&
+  paidGuard.includes("Stripe Checkout Session does not match the reserved order")
+ ],
+ [
+  "Paid confirmation must remain service-role only",
+  paidGuard.includes("revoke all on function public.confirm_checkout_paid")&&
+  paidGuard.includes("from public,anon,authenticated")&&
+  paidGuard.includes("to service_role")
  ],
  [
   "Web checkout cancellation must verify buyer ownership before service-role cancellation",
