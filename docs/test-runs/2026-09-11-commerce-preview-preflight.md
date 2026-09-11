@@ -1,6 +1,6 @@
-# Commerce Preview E2E — blocked preflight, 11 September 2026
+# Commerce Preview E2E — Scenario A evidence, 11 September 2026
 
-This is not a completed provider E2E or launch sign-off.
+Scenario A (test purchase, fulfilment, explicit buyer acceptance and Connect transfer) passed. This is not an overall commerce or launch sign-off. Earlier sections preserve the chronological preflight and resolved blockers; the final section records the completed transaction.
 
 ## Verified environment
 
@@ -83,3 +83,31 @@ Root cause is the invalid V1 version constant in `stripe-payments.ts`, not Conne
 - Buyer UI displayed payment confirmation but omitted the purchased item. Root cause: sold part is correctly hidden by public parts RLS; buyer-order mapper discarded items when embedded part was null.
 - Fix retains RLS and buyer_id filtering. Only after the authorized order query, missing part identities are retrieved server-side using IDs from its readable order items, selecting only id/title/slug. Both purchase list and detail paths are covered. Inaccessible orders trigger no privileged lookup.
 - Regression tests reproduced two missing-item failures before the fix; all 15 tests passed after it. Full fulfilment/acceptance/transfer remains pending.
+
+Follow-up verification: Charge API confirmed amount/amount_captured 1250, currency gbp, paid true, succeeded, livemode false and matching order metadata/transfer_group. A Stripe API list filtered to this order's transfer_group returned data [] and has_more false before fulfilment. Purchase-display fix committed/pushed as `316dbaa67d224912832ed6165d762644ed3de3cd`; local lint/typecheck/build and targeted validators passed; CI `34642419154` succeeded. Preview `dpl_BHitjzpiFV58aKaDFJAhy8qcHRbC` READY, URL `second-part-shop-41gwdd7gb-joannakwapis11-5369.vercel.app`; stable alias updated to it. Browser reload now shows the paid item, correct seller, Preparing status and cancellation/problem controls. Seller login handoff opened on the branch Preview alias while preserving Buyer on the stable alias for later receipt/acceptance.
+
+## Scenario A: fulfilment, explicit acceptance and transfer — PASS
+
+Executed on code commit `316dbaa67d224912832ed6165d762644ed3de3cd`, READY Preview `dpl_BHitjzpiFV58aKaDFJAhy8qcHRbC`. Stable and branch aliases were verified against that deployment before execution. QA Seller used the branch alias and the distinct QA Buyer used the stable alias. Moira was not edited.
+
+| Event (UTC, 11 September) | Database/provider evidence |
+| --- | --- |
+| 20:16:53 seller dispatch | Normal seller form, synthetic carrier/reference. Item dispatched; payout not_ready; transfer null. Stripe order-group list empty. |
+| 20:17:41 buyer receipt | Normal buyer button. Item delivered; payout scheduled; accepted_at null; eligibility 13 September 20:17:41 UTC (48 hours); no transfer. |
+| 20:19:16 explicit acceptance | Buyer selected Accept item & complete and confirmed Yes, accept & complete. Stripe Dashboard context immediately before this flow reported livemode false. |
+| 20:19:18 transfer finalized | Order completed/paid; item completed/released. `tr_3UEaav2RWsyIBCbK1ZxP18jl` recorded with funds_released_at. |
+| 20:21:50 paid webhook resend | Official Stripe Shell resent `evt_1UEaax2RWsyIBCbK5imexkww` to `we_1UEa0q2RWsyIBCbKwy45jivt`. Dashboard delivery was Delivered, HTTP 200. Original delivery at 19:58:49 was also HTTP 200. |
+
+Stripe API retrieved the actual transfer: amount 1250, currency gbp, livemode false, destination `acct_1UEUQn2RWspvWMnK`, reversed false; metadata order_id `d53fc4eb-9830-4956-8e6f-2ced3ea37a72`, order_item_id `24fcf358-dba3-4278-9740-79eaa89f0681`, payout_attempt initial, transfer_group `order_d53fc4eb-9830-4956-8e6f-2ced3ea37a72`. The order's fee snapshot was 0 and seller net 1250; no fee was overridden for the test.
+
+After webhook resend and refresh of both Buyer and Seller pages, the API list for this transfer_group contained exactly one element (the same transfer), has_more false. Supabase retained exactly one payment event and one seller_transfer_released event. Buyer UI showed Paid / Completed and its purchased item; Seller UI showed Completed / Paid / Released and the correct net amount. No duplicate action button remains in completed UI.
+
+The repeated release-function invocation and lost-provider-response retry were additionally exercised by executable isolated tests of the real payout worker, with database/provider boundaries replaced by fixtures. They prove that already-released items avoid another provider call and a retry recovers the existing transfer. These are not a second authenticated HTTP submission or an induced provider outage in Preview. The real webhook resend and page refreshes were tested in Preview.
+
+The listing remains a retained, clearly marked QA fixture: part `421960b0-613d-41fd-9bf3-a5e0e65a3044`, status sold, stock 0. It is no longer active/available for checkout. No SQL writes, fabricated fulfilment timestamps, readiness overrides, Live payments, onboarding reruns or Moira-profile changes were used. Shipment, receipt and acceptance are synthetic QA actions, not claims of physical delivery. No review or Verified Fit was granted.
+
+A further small UI defect from listing creation was reproduced: native form reset cleared selected files but left the ready-photo message. An executable regression test failed before the fix; the image input now clears feedback on form reset without weakening upload validation. Four payout-worker tests cover repeat invocation, future eligibility, lost response recovery and active-case blocking. These tests are included in branch CI.
+
+Remaining release batches: cancellation/return/refund/dispute/reversal, stock-one competing checkout, declined-payment retry, provider outage/recovery and authenticated duplicate submission beyond the UI's completed-state guard, Android/device QA, release configuration, legal and liquidity gates. The absence of Preview CRON_SECRET remains relevant to scheduled maintenance QA; explicit acceptance used the normal immediate payout worker successfully.
+
+Final local verification for the follow-up patch: 20 executable tests passed; all 14 static validators passed; git diff --check, lint (0 errors, 3 pre-existing legacy warnings), typecheck and production build passed. Build used non-secret CI placeholder public configuration. Public Buyer navigation to the sold fixture returned 404 with no checkout button; its authorized purchase detail remained available.

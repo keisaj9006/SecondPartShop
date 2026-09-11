@@ -2,7 +2,7 @@
 
 This is a high-level gate. Use `docs/launch-readiness.md` for canonical detail.
 
-2026-09-11 commerce QA: Connect readiness and test webhook delivery/replay verified; application checkout API-version defect fixed with regression coverage. Full transaction and transfer gates remain unsigned pending the continuing Preview E2E. Evidence: `docs/test-runs/2026-09-11-commerce-preview-preflight.md`.
+2026-09-11 commerce QA: Connect readiness and test webhook delivery/replay verified; application checkout API-version defect fixed with regression coverage. Scenario A passed through explicit buyer acceptance and one test Connect transfer, including paid-webhook replay; reversal/recovery and other provider scenarios remain unsigned. Evidence: `docs/test-runs/2026-09-11-commerce-preview-preflight.md`.
 
 ## A. Code baseline
 
@@ -42,8 +42,8 @@ This is a high-level gate. Use `docs/launch-readiness.md` for canonical detail.
 ## D. Commerce
 
 - [ ] seller Stripe test onboarding proven
-- [ ] buyer checkout proven
-- [ ] webhook payment confirmation proven
+- [x] buyer checkout proven
+- [x] webhook payment confirmation proven
 - [ ] stock reservation proven
 - [ ] competing checkout race proven
 - [ ] declined -> retry -> success proven
@@ -51,10 +51,10 @@ This is a high-level gate. Use `docs/launch-readiness.md` for canonical detail.
 - [ ] refund proven
 - [ ] return/case proven
 - [ ] payment dispute proven
-- [ ] payout eligibility proven
+- [x] payout eligibility proven
 - [ ] payout transfer/reversal/recovery proven
 - [ ] silent-buyer policy proven
-- [ ] transaction audit/event state verified
+- [x] transaction audit/event state verified
 
 ## E. Account / security / operations
 
