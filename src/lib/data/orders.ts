@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { BuyerOrder,OrderTimelineEvent,SellerSale } from "@/lib/types";
 
 type BuyerOrderRow={
@@ -12,6 +13,7 @@ type BuyerOrderRow={
  created_at:string;
  order_items:Array<{
   id:string;
+  part_id:string;
   quantity:number;
   unit_price_pence:number;
   shipping_pence:number;
@@ -49,6 +51,18 @@ type SellerSaleRow={
 
 const one=<T>(value:T|T[]|null)=>Array.isArray(value)?value[0]??null:value;
 
+// Call only after the buyer-scoped, RLS-protected order query. Sold listings
+// disappear from public reads; their identity still belongs in the purchase.
+async function getPurchasedPartIdentities(orders:BuyerOrderRow[]){
+ const ids=[...new Set(orders.flatMap(order=>(order.order_items??[])
+  .filter(item=>!one(item.parts)).map(item=>item.part_id)))];
+ if(!ids.length)return new Map<string,{title:string;slug:string}>();
+ const {data,error}=await createSupabaseAdminClient().from("parts")
+  .select("id,title,slug").in("id",ids);
+ if(error)throw new Error("Purchased part details are temporarily unavailable.");
+ return new Map((data??[]).map(part=>[part.id,{title:part.title,slug:part.slug}]));
+}
+
 const shippingAddress=(value:unknown)=>{
  if(!value||typeof value!=="object"||Array.isArray(value))return null;
  const row=value as Record<string,unknown>;
@@ -70,7 +84,7 @@ export async function getBuyerOrdersPage(profileId:string,options:{offset?:numbe
  const supabase=await createSupabaseServerClient();
  const {data,error}=await supabase
   .from("orders")
-  .select("id,status,payment_status,total_pence,currency,created_at,order_items(id,quantity,unit_price_pence,shipping_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,buyer_received_at,release_eligible_at,funds_released_at,parts(title,slug),sellers(business_name,slug))")
+  .select("id,status,payment_status,total_pence,currency,created_at,order_items(id,part_id,quantity,unit_price_pence,shipping_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,buyer_received_at,release_eligible_at,funds_released_at,parts(title,slug),sellers(business_name,slug))")
   .eq("buyer_id",profileId)
   .order("created_at",{ascending:false})
   .order("id",{ascending:false})
@@ -78,6 +92,7 @@ export async function getBuyerOrdersPage(profileId:string,options:{offset?:numbe
  if(error)throw new Error("Purchases are temporarily unavailable.");
  const rawRows=data??[];
  const hasMore=rawRows.length>limit;
+ const purchasedParts=await getPurchasedPartIdentities(rawRows.slice(0,limit) as unknown as BuyerOrderRow[]);
  const items=rawRows.slice(0,limit).map(row=>{
   const raw=row as unknown as BuyerOrderRow;
   return {
@@ -88,7 +103,7 @@ export async function getBuyerOrdersPage(profileId:string,options:{offset?:numbe
    currency:raw.currency,
    createdAt:raw.created_at,
    items:(raw.order_items??[]).flatMap(item=>{
-    const part=one(item.parts);
+    const part=one(item.parts)??purchasedParts.get(item.part_id);
     const seller=one(item.sellers);
     if(!part||!seller)return [];
     return [{
@@ -123,13 +138,14 @@ export async function getBuyerOrderById(profileId:string,orderId:string):Promise
  const supabase=await createSupabaseServerClient();
  const {data,error}=await supabase
   .from("orders")
-  .select("id,status,payment_status,total_pence,currency,created_at,order_items(id,quantity,unit_price_pence,shipping_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,buyer_received_at,release_eligible_at,funds_released_at,parts(title,slug),sellers(business_name,slug))")
+  .select("id,status,payment_status,total_pence,currency,created_at,order_items(id,part_id,quantity,unit_price_pence,shipping_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,buyer_received_at,release_eligible_at,funds_released_at,parts(title,slug),sellers(business_name,slug))")
   .eq("id",orderId)
   .eq("buyer_id",profileId)
   .maybeSingle();
  if(error)throw new Error("Purchase details are temporarily unavailable.");
  if(!data)return null;
  const raw=data as unknown as BuyerOrderRow;
+ const purchasedParts=await getPurchasedPartIdentities([raw]);
  return {
   id:raw.id,
   status:raw.status,
@@ -138,7 +154,7 @@ export async function getBuyerOrderById(profileId:string,orderId:string):Promise
   currency:raw.currency,
   createdAt:raw.created_at,
   items:(raw.order_items??[]).flatMap(item=>{
-   const part=one(item.parts);
+   const part=one(item.parts)??purchasedParts.get(item.part_id);
    const seller=one(item.sellers);
    if(!part||!seller)return [];
    return [{

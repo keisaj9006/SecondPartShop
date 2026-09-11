@@ -7,6 +7,8 @@ This document is the canonical launch checklist for the Android / Google Play an
 
 ## Current verified engineering baseline
 
+Continuing commerce QA has now produced a real test-mode paid order. It exposed a purchase-display bug when sold listings become hidden by RLS; buyer-scoped order reads now retain purchased item identity without changing RLS. Buyer acceptance and seller-transfer release still require E2E verification.
+
 Commerce QA update (2026-09-11): QA Seller Connect and Preview webhook delivery/replay are verified in test mode. The first application checkout exposed an invalid V1 API version (`2026-08-26.clover`); the adapter now uses the sandbox's supported `2026-08-26.dahlia`, with regression coverage. Full purchase/fulfilment/transfer evidence remains pending. See `docs/test-runs/2026-09-11-commerce-preview-preflight.md`.
 
 - [x] Full Next.js frontend is the Android product surface; production must not use the legacy bundled mobile shell.

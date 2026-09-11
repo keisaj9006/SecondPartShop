@@ -71,3 +71,15 @@ No actual SecondPart purchase, fulfilment, seller transfer or payout was perform
 QA Buyer signed in correctly and used Buy now on the fixture. Order `07ca58ad-06b1-4f3f-80db-9624f9af8b5e` has buyer `3bc91c3f-4a15-4813-83c5-54bc94b9e36f`, total 1250 GBP minor units. Stripe rejected setup before returning a session: `Invalid Stripe API version: 2026-08-26.clover` (Preview runtime log, 19:48:15 UTC). Application cancellation marked order/payment cancelled with no provider session and released reserved stock.
 
 Root cause is the invalid V1 version constant in `stripe-payments.ts`, not Connect readiness or buyer/seller roles. Updated the default to the sandbox's current stable `2026-08-26.dahlia`; environment override remains supported. Regression test reproduced the old header failure before the change, then all 11 adapter tests passed. Tests also verify amount/currency/order metadata/idempotency headers and propagation of provider errors. No payment or transfer was fabricated.
+
+## Paid application order and purchase-display regression
+
+- API-version fix committed as `26fc9eab808e042f1cb9dd0c4372d4f3b0bddf80`; CI `34641229688` successful; Preview `dpl_A1jKnXS9jycQNeB1qn2XxHfMPbRi` READY and stable alias updated after verifying SHA.
+- Retried through Buy now as QA Buyer. New order `d53fc4eb-9830-4956-8e6f-2ced3ea37a72`; item `24fcf358-dba3-4278-9740-79eaa89f0681`; session `cs_test_a1JHj8F4OWCvzDoPalO6DMQRK7l3ji3HugixfSFAseSgE2tik0C7RrVzsb`.
+- Stripe Shell API retrieval before payment confirmed open/unpaid session, `livemode: false`, amount 1250 GBP minor units and matching order reference/metadata. Used only official Stripe test card and synthetic shipping data; did not save payment details.
+- PaymentIntent `pi_3UEaav2RWsyIBCbK1Z4TppDc`, Charge `ch_3UEaav2RWsyIBCbK1FKEaP7I`; webhook `evt_1UEaax2RWsyIBCbK5imexkww` persisted as `checkout_paid`.
+- Supabase at 19:58:48 UTC: order/payment paid, item preparing, payout not_ready, no transfer. Fee snapshot 0; seller net 1250. Part sold, stock 0.
+- PaymentIntent API retrieval confirmed succeeded, amount_received 1250, currency gbp, livemode false and matching order metadata/transfer_group.
+- Buyer UI displayed payment confirmation but omitted the purchased item. Root cause: sold part is correctly hidden by public parts RLS; buyer-order mapper discarded items when embedded part was null.
+- Fix retains RLS and buyer_id filtering. Only after the authorized order query, missing part identities are retrieved server-side using IDs from its readable order items, selecting only id/title/slug. Both purchase list and detail paths are covered. Inaccessible orders trigger no privileged lookup.
+- Regression tests reproduced two missing-item failures before the fix; all 15 tests passed after it. Full fulfilment/acceptance/transfer remains pending.
