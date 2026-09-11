@@ -130,6 +130,21 @@ async function authIdentityStillExists(profileId:string){
  throw error;
 }
 
+async function ensureAuthIdentityDeleted(profileId:string){
+ const existsBefore=await authIdentityStillExists(profileId);
+ if(!existsBefore)return;
+
+ const admin=createSupabaseAdminClient();
+ const {error:deleteError}=await admin.auth.admin.deleteUser(profileId,false);
+ if(deleteError){
+  const stillExists=await authIdentityStillExists(profileId).catch(()=>true);
+  if(stillExists)throw deleteError;
+ }
+
+ const stillExists=await authIdentityStillExists(profileId).catch(()=>true);
+ if(stillExists)throw new Error("Auth identity still exists after account deletion request.");
+}
+
 export async function processAccountDeletionRequest(requestId:string):Promise<RequestResult>{
  const admin=createSupabaseAdminClient();
  const {data:request,error:requestError}=await admin
@@ -147,8 +162,15 @@ export async function processAccountDeletionRequest(requestId:string):Promise<Re
  if(!profileId)return {requestId,status:"deferred",reason:"identity_missing"};
 
  if(request.profile_id===null&&request.status==="processing"){
-  const authStillExists=await authIdentityStillExists(profileId).catch(()=>true);
-  if(authStillExists)return {requestId,status:"failed",reason:"auth_identity_still_present_after_profile_detach"};
+  // A previous attempt may have removed the profile row before the Auth call
+  // was conclusively observed. Re-check Auth directly and finish/retry the
+  // hard deletion instead of assuming profile detachment means Auth deletion.
+  try{
+   await ensureAuthIdentityDeleted(profileId);
+  }catch(error){
+   return {requestId,status:"deferred",reason:"auth_deletion_retry_pending:"+errorMessage(error)};
+  }
+
   const {data:completed,error}=await admin.rpc("complete_account_deletion_request",{p_request_id:requestId});
   if(error)throw error;
   return {requestId,status:completed?"completed":"deferred",reason:completed?"identity_already_deleted":"completion_not_claimed"};
@@ -178,14 +200,7 @@ export async function processAccountDeletionRequest(requestId:string):Promise<Re
   if(prepareError)throw prepareError;
   if(!prepared)return {requestId,status:"blocked",reason:"blocker_detected_during_final_preflight"};
 
-  const {error:deleteError}=await admin.auth.admin.deleteUser(profileId,false);
-  if(deleteError){
-   const stillExists=await authIdentityStillExists(profileId).catch(()=>true);
-   if(stillExists)throw deleteError;
-  }
-
-  const authStillExists=await authIdentityStillExists(profileId).catch(()=>true);
-  if(authStillExists)throw new Error("Auth identity still exists after account deletion request.");
+  await ensureAuthIdentityDeleted(profileId);
 
   const {data:completed,error:completeError}=await admin.rpc("complete_account_deletion_request",{p_request_id:requestId});
   if(completeError)throw completeError;
