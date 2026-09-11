@@ -9,7 +9,7 @@ const evidenceTemplate=read("docs/test-runs/account-deletion-e2e-template.md");
 
 const storage=worker.indexOf("await purgePartImages(requestId)");
 const prepare=worker.indexOf('admin.rpc("prepare_claimed_account_deletion"');
-const authDelete=worker.indexOf("admin.auth.admin.deleteUser(profileId,false)");
+const authDelete=worker.indexOf("await ensureAuthIdentityDeleted(profileId)",prepare);
 const complete=authDelete>=0
  ?worker.indexOf('admin.rpc("complete_account_deletion_request"',authDelete)
  :-1;
@@ -27,11 +27,22 @@ const preflightIsReadOnly=preflightBody.length>0
  &&!preflightBody.includes(".upsert(")
  &&!preflightBody.includes(".rpc(")
  &&!preflightBody.includes("deleteUser(");
+const detachedRecoveryStart=worker.indexOf('if(request.profile_id===null&&request.status==="processing")');
+const detachedRecoveryEnd=detachedRecoveryStart>=0
+ ?worker.indexOf('if(request.status!=="processing")',detachedRecoveryStart)
+ :-1;
+const detachedRecoveryBody=detachedRecoveryStart>=0&&detachedRecoveryEnd>detachedRecoveryStart
+ ?worker.slice(detachedRecoveryStart,detachedRecoveryEnd)
+ :"";
 
 const checks=[
  ["Deletion worker must purge tracked part images before identity transformation",storage>=0&&prepare>storage],
  ["Deletion worker must prepare DB privacy transformation before hard Auth deletion",prepare>=0&&authDelete>prepare],
  ["Deletion worker must hard-delete Auth before final audit completion",authDelete>=0&&complete>authDelete],
+ ["Deletion worker must verify Auth state against Supabase Auth directly",worker.includes("admin.auth.admin.getUserById(profileId)")&&worker.includes("authUserMissing")&&worker.includes("authIdentityStillExists")],
+ ["Deletion worker must fail closed when Auth deletion state cannot be verified",worker.includes("authIdentityStillExists(profileId).catch(()=>true)")],
+ ["Detached processing recovery must retry Auth deletion before completing the audit",detachedRecoveryBody.includes("ensureAuthIdentityDeleted(profileId)")&&detachedRecoveryBody.indexOf("ensureAuthIdentityDeleted(profileId)")<detachedRecoveryBody.indexOf('complete_account_deletion_request')],
+ ["Detached processing recovery must remain retryable when Auth deletion is inconclusive",detachedRecoveryBody.includes("auth_deletion_retry_pending")&&detachedRecoveryBody.includes('status:"deferred"')],
  ["Deletion worker must remain retry-aware after Auth identity disappears",worker.includes("identity_deleted_audit_finalize_pending")&&worker.includes("identity_already_deleted")],
  ["Maintenance route must process the account deletion queue",maintenance.includes("processAccountDeletionQueue")&&maintenance.includes("deletions")],
  ["Admin Privacy must expose the request-UUID QA preflight",adminPrivacy.includes('data-account-deletion-qa-preflight="read-only"')&&adminPrivacy.includes('name="requestId"')&&adminPrivacy.includes("getAccountDeletionQaPreflight")],
