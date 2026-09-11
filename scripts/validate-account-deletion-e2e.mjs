@@ -8,6 +8,7 @@ const runbook=read("docs/account-deletion-e2e-runbook.md");
 const evidenceTemplate=read("docs/test-runs/account-deletion-e2e-template.md");
 
 const storage=worker.indexOf("await purgePartImages(requestId)");
+const retainedEvidence=worker.indexOf("await detachRetainedCaseEvidence(profileId)");
 const prepare=worker.indexOf('admin.rpc("prepare_claimed_account_deletion"');
 const authDelete=worker.indexOf("await ensureAuthIdentityDeleted(profileId)",prepare);
 const complete=authDelete>=0
@@ -37,6 +38,10 @@ const detachedRecoveryBody=detachedRecoveryStart>=0&&detachedRecoveryEnd>detache
 
 const checks=[
  ["Deletion worker must purge tracked part images before identity transformation",storage>=0&&prepare>storage],
+ ["Deletion worker must detach retained case-evidence Storage ownership before identity transformation",retainedEvidence>storage&&prepare>retainedEvidence],
+ ["Retained case evidence must move through Storage API rather than mutate storage schema",worker.includes('.storage.from("case-evidence").move(')&&!worker.includes('.schema("storage")')&&!worker.includes('from("objects")')],
+ ["Retained evidence path must remove member UUID and use deterministic retained identity",worker.includes('`${row.case_id}/retained/${row.id}${extension}`')&&worker.includes('original_name:`retained-evidence${extension}`')],
+ ["Retained evidence move must recover when Storage moved before DB path update",worker.includes('storageObjectExists("case-evidence",targetPath)')&&worker.includes("if(!targetExists)throw moveError")],
  ["Deletion worker must prepare DB privacy transformation before hard Auth deletion",prepare>=0&&authDelete>prepare],
  ["Deletion worker must hard-delete Auth before final audit completion",authDelete>=0&&complete>authDelete],
  ["Deletion worker must verify Auth state against Supabase Auth directly",worker.includes("admin.auth.admin.getUserById(profileId)")&&worker.includes("authUserMissing")&&worker.includes("authIdentityStillExists")],
