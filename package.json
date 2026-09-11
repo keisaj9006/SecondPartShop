@@ -11,6 +11,8 @@
     "test:stripe-connect": "node --test scripts/test-stripe-connect.mjs",
     "test:stripe-payments": "node --test scripts/test-stripe-payments.mjs",
     "test:buyer-orders": "node --test scripts/test-buyer-orders.mjs",
+    "test:image-input": "node --test scripts/test-image-input.mjs",
+    "test:payout-retries": "node --test scripts/test-payout-retries.mjs",
     "validate:notifications": "node scripts/validate-notification-delivery.mjs",
     "validate:mobile-performance": "node scripts/validate-mobile-performance.mjs",
     "validate:launch-baseline": "node scripts/validate-launch-baseline.mjs",

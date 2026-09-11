@@ -32,6 +32,8 @@ jobs:
       - run: npm run test:stripe-connect
       - run: npm run test:stripe-payments
       - run: npm run test:buyer-orders
+      - run: npm run test:image-input
+      - run: npm run test:payout-retries
       - run: npm run validate:notifications
       - run: npm run validate:mobile-performance
       - run: npm run validate:launch-baseline

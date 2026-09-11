@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef,useState } from "react";
+import { useEffect,useRef,useState } from "react";
 
 type Props={
  name:string;
@@ -70,6 +70,14 @@ export function OptimizedImageInput({name,existingCount=0,className,onProcessing
  const [processing,setProcessing]=useState(false);
  const [message,setMessage]=useState<string|null>(null);
  const [error,setError]=useState<string|null>(null);
+
+ useEffect(()=>{
+  const form=ref.current?.form;
+  if(!form)return;
+  const resetFeedback=()=>{setMessage(null);setError(null);};
+  form.addEventListener("reset",resetFeedback);
+  return ()=>form.removeEventListener("reset",resetFeedback);
+ },[]);
 
  const handleChange=async()=>{
   const input=ref.current;
