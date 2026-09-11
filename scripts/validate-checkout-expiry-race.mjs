@@ -6,6 +6,12 @@ const guard=read("supabase/migrations/20260911080000_checkout_expiry_provider_gu
 const reconciliation=read("src/lib/commerce-reconciliation.ts");
 const webhook=read("src/app/api/stripe/webhook/route.ts");
 
+const paymentFailureStart=webhook.indexOf('if(event.type==="payment_intent.payment_failed")');
+const disputeStart=webhook.indexOf('if(event.type==="charge.dispute.created")');
+const paymentFailureBlock=paymentFailureStart>=0&&disputeStart>paymentFailureStart
+ ?webhook.slice(paymentFailureStart,disputeStart)
+ :"";
+
 const checks=[
  [
   "Database expiry must ignore orders that already have a Stripe Checkout Session",
@@ -25,9 +31,15 @@ const checks=[
   reconciliation.includes('p_event_type:"reconciliation_checkout_expired"')
  ],
  [
-  "Stripe expiry/failure webhooks must use the controlled cancellation RPC",
-  webhook.includes('event.type==="checkout.session.expired"')&&
+  "Stripe expiry/final async failure events must match the reserved Checkout Session before cancellation",
+  webhook.includes("checkoutSessionMatchesOrder")&&
+  webhook.includes('event.type==="checkout.session.expired"||event.type==="checkout.session.async_payment_failed"')&&
   webhook.includes('admin.rpc("cancel_checkout_order"')
+ ],
+ [
+  "A retryable PaymentIntent failure must reconcile provider state instead of releasing inventory",
+  paymentFailureBlock.includes("reconcileStripeOrder(orderId)")&&
+  !paymentFailureBlock.includes('cancel_checkout_order')
  ],
  [
   "Paid Stripe sessions must still flow through confirm_checkout_paid",
