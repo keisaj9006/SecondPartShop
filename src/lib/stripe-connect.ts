@@ -2,7 +2,7 @@ import "server-only";
 
 const STRIPE_API="https://api.stripe.com";
 const DEFAULT_V2_VERSION="2026-08-26.preview";
-const STRIPE_TEST_CONTACT_PHONE="+440000000000";
+const STRIPE_TEST_CONTACT_PHONE="+447400123456";
 
 type StripeRecipientAccount={
  id:string;
