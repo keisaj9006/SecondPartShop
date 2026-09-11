@@ -2,6 +2,7 @@ import "server-only";
 
 const STRIPE_API="https://api.stripe.com";
 const DEFAULT_V2_VERSION="2026-08-26.preview";
+const STRIPE_TEST_CONTACT_PHONE="+440000000000";
 
 type StripeRecipientAccount={
  id:string;
@@ -87,6 +88,15 @@ export async function getStripeRecipientAccount(accountId:string){
  return stripeV2<StripeRecipientAccount>(`/v2/core/accounts/${encodeURIComponent(accountId)}?${include.toString()}`);
 }
 
+async function prepareStripeRecipientForOnboarding(accountId:string){
+ const key=secret();
+ if(!key.startsWith("sk_test_")&&!key.startsWith("rk_test_"))return;
+ await stripeV2<StripeRecipientAccount>(`/v2/core/accounts/${encodeURIComponent(accountId)}`,{
+  method:"POST",
+  body:JSON.stringify({contact_phone:STRIPE_TEST_CONTACT_PHONE})
+ });
+}
+
 export async function createStripeOnboardingLink(accountId:string,urls?:{refreshUrl?:string;returnUrl?:string}){
  const appUrl=getAppUrl();
  const safeUrl=(value:string|undefined,fallback:string)=>{
@@ -97,6 +107,7 @@ export async function createStripeOnboardingLink(accountId:string,urls?:{refresh
  };
  const refreshUrl=safeUrl(urls?.refreshUrl,`${appUrl}/dashboard/payments?refresh=1`);
  const returnUrl=safeUrl(urls?.returnUrl,`${appUrl}/dashboard/payments?returned=1`);
+ await prepareStripeRecipientForOnboarding(accountId);
  const result=await stripeV2<StripeAccountLink>("/v2/core/account_links",{
   method:"POST",
   body:JSON.stringify({
