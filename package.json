@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "test": "node --test scripts/test-*.mjs",
+    "test:verified-fit": "node --test scripts/test-verified-fit-sources.mjs",
     "test:stripe-connect": "node --test scripts/test-stripe-connect.mjs",
     "test:stripe-payments": "node --test scripts/test-stripe-payments.mjs",
     "test:buyer-orders": "node --test scripts/test-buyer-orders.mjs",

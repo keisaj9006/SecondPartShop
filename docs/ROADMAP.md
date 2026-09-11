@@ -4,6 +4,14 @@ This roadmap is intended for Codex sequencing.
 
 It is not a replacement for `docs/launch-readiness.md`; that document remains the detailed launch gate.
 
+## Active development sequence — 11 September 2026
+
+The Stripe purchase-to-transfer happy path is verified at `72f9fdc`, including duplicate-transfer protection. It is not the next uncompleted happy-path test. Provider refund, dispute and reversal scenarios remain separate release gates.
+
+The current evidence-based backlog and implementation sequence are in [the marketplace development audit](marketplace-development-audit-2026-09-11.md). Start with catalogue Verified Fit source consistency and photo/reservation integrity, then repair search/navigation/vehicle context, auth-to-Find-My-Part continuity and seller form resilience. Each batch must pass its regression tests, web checks, CI and the appropriate Preview checks. Do not repeat Stripe purchases for unrelated changes.
+
+Physical-device work is grouped in [the marketplace RC checklist](manual-qa-marketplace-rc.md). DVSA activation, production release and business supply decisions remain external gates.
+
 ## Phase 0 — protect the baseline
 
 Before feature expansion:

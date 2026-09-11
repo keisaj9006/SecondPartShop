@@ -4,6 +4,12 @@ Snapshot basis: `rebuild-nextjs`, 11 September 2026.
 
 This file is a high-level navigation document. The repository's current canonical runbooks and launch documents are more authoritative for subsystem details.
 
+## Current checkpoint and active work
+
+The Preview Stripe happy path is verified at `72f9fdc`: test payment, webhook, fulfilment, buyer acceptance and a single seller transfer. See [the provider evidence](test-runs/2026-09-11-commerce-preview-preflight.md). This does not sign off refund/dispute/reversal or physical-device release gates.
+
+Development has moved to the [comprehensive marketplace audit and prioritized backlog](marketplace-development-audit-2026-09-11.md). The initial audit confirmed current CI/Preview alignment, identified two newer catalogue RPCs bypassing the canonical transaction-backed Verified Fit view, and found photo integrity and navigation defects. Batch verification is recorded in the linked audit; an unchecked task is not a completed release gate. [Manual RC QA](manual-qa-marketplace-rc.md) is grouped for later execution.
+
 ## Repository / branch
 
 - Repo: `keisaj9006/SecondPartShop`
