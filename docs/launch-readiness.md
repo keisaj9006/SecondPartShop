@@ -52,6 +52,7 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [x] Stripe checkout expiry race protection is deployed and privilege-verified live: generic database timeout cannot cancel a reservation after a Stripe Checkout Session exists, and provider-backed expiry is decided by Stripe webhook/reconciliation. `validate:checkout-expiry-race` is enforced in CI.
 - [x] Retryable Stripe `payment_intent.payment_failed` no longer releases stock by itself; provider state is reconciled and only provider-confirmed expiry/final async failure can release the reservation.
 - [x] Terminal Stripe Checkout expiry / async payment failure now restores inventory and creates a deduplicated buyer notification atomically in `cancel_checkout_order`; the notification links back to the affected order without exposing payment secrets.
+- [x] Stripe paid confirmation now serialises against terminal cancellation on the authoritative order row and rejects a mismatched Checkout Session at the database boundary. Migration `20260911093000_confirm_checkout_paid_provider_guard.sql` was deployed and privilege-verified against the live `secondpart` Supabase project on 2026-09-11; only `service_role` can execute the function.
 - [x] Commerce release QA includes Scenario H: declined payment attempt -> retry -> successful payment, specifically guarding against `paid at Stripe / cancelled in SecondPart` split-brain state.
 - [x] Operational account-deletion processor is implemented with hard Auth deletion, identity detachment, PII cleanup, storage cleanup, blockers and retry-safe maintenance processing.
 - [x] Account-deletion completion verifies identity state directly against Supabase Auth and fails closed when Auth deletion cannot be confirmed; partially completed deletions can retry the hard-delete safely.
@@ -61,6 +62,7 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [x] Admin System readiness surfaces Production support-contact and critical-alert configuration without displaying secret values.
 - [x] Seller SELECT RLS policies are consolidated without changing access semantics: anonymous users see only active/non-deleted sellers, while authenticated admins retain deleted-record audit access. Supabase Performance Advisor no longer reports `multiple_permissive_policies` for `sellers`.
 - [x] Full branch QA at commit `95fb124183ea22e7875262d81206120b0b974dbb` passed on 2026-09-11, including lint, TypeScript, checkout-race, payout-recovery, seller-read-policy and production Next.js build.
+- [x] Full local branch QA at commit `79f9eca5c4b287d2fcc8b33a779e148e0109fd20` passed on 2026-09-11 after the live paid-confirmation guard deployment, including lint, TypeScript, launch baseline, Commerce E2E harness, checkout-race, payout-recovery, seller-read-policy and production Next.js build.
 
 ## P0 — before the first real Google Play release candidate
 
@@ -82,6 +84,7 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [x] Restore Supabase project access and deploy/verify the payout-transfer recovery migration before running the final money-flow E2E. Verified on 2026-09-10: all recovery RPCs exist as `SECURITY DEFINER`; `anon` and `authenticated` cannot execute them; `service_role` can.
 - [x] Deploy and privilege-verify `20260911080000_checkout_expiry_provider_guard.sql` on the live `secondpart` Supabase project. Verified on 2026-09-11: provider-backed reservations cannot be cancelled by generic DB expiry; `anon`/`authenticated` cannot execute `cancel_checkout_order`; `service_role` can.
 - [x] Deploy `20260911084500_checkout_terminal_buyer_notification.sql`. Verified on 2026-09-11: terminal Checkout expiry/final async failure cancellation and buyer notification are atomic and deduplicated; the cancel RPC remains service-role only.
+- [x] Deploy `20260911093000_confirm_checkout_paid_provider_guard.sql`. Verified on 2026-09-11: paid confirmation locks the order row, rejects cancelled orders and mismatched Checkout Sessions, and remains executable only by `service_role`.
 - [ ] Complete a real Stripe test-mode E2E transaction: buyer checkout -> webhook confirmation -> seller fulfilment -> buyer receipt/acceptance -> payout eligibility.
 - [ ] Test cancellation, refund, return/case, payment-dispute and payout-reversal paths end to end.
 - [ ] Test Scenario G concurrency/stock reservation with stock `1` and competing checkout attempts; exactly one reservation must win and cancellation/expiry must restore stock at most once.
