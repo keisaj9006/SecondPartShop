@@ -103,7 +103,22 @@ Expected result:
 - the second attempt receives a controlled stock/reservation conflict;
 - no negative stock is possible;
 - an expired/cancelled winning reservation restores availability once;
-- repeated cancel/expiry/webhook delivery remains idempotent.
+- repeated cancel/expiry/webhook delivery remains idempotent;
+- a database-only timeout must never release a reservation that already has a Stripe Checkout Session; provider-backed expiry must come from Stripe webhook/reconciliation.
+
+## Scenario H — declined card followed by retry
+
+Use a fresh QA listing with stock `1` and one buyer. Start a normal Stripe Checkout Session and deliberately make the first payment attempt fail using Stripe test-mode tooling. Then retry payment in the same Checkout flow with a successful test payment method.
+
+Expected result:
+
+- `payment_intent.payment_failed` alone does **not** cancel the SecondPart order;
+- the listing remains reserved while the Stripe Checkout Session is still open;
+- stock remains `0`/reserved and is not returned to another buyer between payment attempts;
+- the successful retry is accepted by the normal paid webhook/reconciliation path;
+- the order becomes paid exactly once and the listing becomes sold exactly once;
+- if the Checkout Session genuinely expires instead, `checkout.session.expired` releases the reservation exactly once;
+- the release candidate must show no `paid at Stripe / cancelled in SecondPart` split-brain state.
 
 ## Webhook idempotency gate
 
