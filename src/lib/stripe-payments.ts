@@ -4,7 +4,7 @@ import { createHmac,timingSafeEqual } from "node:crypto";
 import { getAppUrl } from "@/lib/stripe-connect";
 
 const STRIPE_API="https://api.stripe.com";
-const STRIPE_V1_VERSION="2026-08-26.clover";
+const STRIPE_V1_VERSION="2026-08-26.dahlia";
 
 type StripeErrorPayload={error?:{message?:string}};
 

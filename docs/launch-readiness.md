@@ -7,6 +7,8 @@ This document is the canonical launch checklist for the Android / Google Play an
 
 ## Current verified engineering baseline
 
+Commerce QA update (2026-09-11): QA Seller Connect and Preview webhook delivery/replay are verified in test mode. The first application checkout exposed an invalid V1 API version (`2026-08-26.clover`); the adapter now uses the sandbox's supported `2026-08-26.dahlia`, with regression coverage. Full purchase/fulfilment/transfer evidence remains pending. See `docs/test-runs/2026-09-11-commerce-preview-preflight.md`.
+
 - [x] Full Next.js frontend is the Android product surface; production must not use the legacy bundled mobile shell.
 - [x] Android architecture documentation is aligned with the current Capacitor wrapper + hosted Next.js frontend model.
 - [x] Stable Preview signing and update-in-place path.

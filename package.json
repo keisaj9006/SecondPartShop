@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test:stripe-connect": "node --test scripts/test-stripe-connect.mjs",
+    "test:stripe-payments": "node --test scripts/test-stripe-payments.mjs",
     "validate:notifications": "node scripts/validate-notification-delivery.mjs",
     "validate:mobile-performance": "node scripts/validate-mobile-performance.mjs",
     "validate:launch-baseline": "node scripts/validate-launch-baseline.mjs",

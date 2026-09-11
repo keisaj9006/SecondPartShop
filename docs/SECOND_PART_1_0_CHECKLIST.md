@@ -2,6 +2,8 @@
 
 This is a high-level gate. Use `docs/launch-readiness.md` for canonical detail.
 
+2026-09-11 commerce QA: Connect readiness and test webhook delivery/replay verified; application checkout API-version defect fixed with regression coverage. Full transaction and transfer gates remain unsigned pending the continuing Preview E2E. Evidence: `docs/test-runs/2026-09-11-commerce-preview-preflight.md`.
+
 ## A. Code baseline
 
 - [ ] `git diff --check`
