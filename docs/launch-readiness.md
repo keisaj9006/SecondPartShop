@@ -63,6 +63,7 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [x] Seller SELECT RLS policies are consolidated without changing access semantics: anonymous users see only active/non-deleted sellers, while authenticated admins retain deleted-record audit access. Supabase Performance Advisor no longer reports `multiple_permissive_policies` for `sellers`.
 - [x] Full branch QA at commit `95fb124183ea22e7875262d81206120b0b974dbb` passed on 2026-09-11, including lint, TypeScript, checkout-race, payout-recovery, seller-read-policy and production Next.js build.
 - [x] Full local branch QA at commit `79f9eca5c4b287d2fcc8b33a779e148e0109fd20` passed on 2026-09-11 after the live paid-confirmation guard deployment, including lint, TypeScript, launch baseline, Commerce E2E harness, checkout-race, payout-recovery, seller-read-policy and production Next.js build.
+- [x] Public branch Preview smoke QA at commit `328eb18b9d5ce0d85517498bd0bc23a825320f44` passed on 2026-09-11 across clean vehicle selection, marketplace browse, product detail, sellers, garages, seller entry, account entry and trust/policy routes. The current branch Preview is `https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app`; the convenience alias `second-part-shop-preview.vercel.app` still points to an older deployment and must be repointed before it is used for RC review.
 
 ## P0 — before the first real Google Play release candidate
 
@@ -86,6 +87,7 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [x] Deploy `20260911084500_checkout_terminal_buyer_notification.sql`. Verified on 2026-09-11: terminal Checkout expiry/final async failure cancellation and buyer notification are atomic and deduplicated; the cancel RPC remains service-role only.
 - [x] Deploy `20260911093000_confirm_checkout_paid_provider_guard.sql`. Verified on 2026-09-11: paid confirmation locks the order row, rejects cancelled orders and mismatched Checkout Sessions, and remains executable only by `service_role`.
 - [ ] Complete a real Stripe test-mode E2E transaction: buyer checkout -> webhook confirmation -> seller fulfilment -> buyer receipt/acceptance -> payout eligibility.
+  - Blocked as of 2026-09-11 on test-data prerequisites, not application code: the live project has no dedicated buyer QA account, no Stripe test-mode payout-ready seller and no checkout-ready active listing. Create these through the normal signup, listing and Stripe Connect onboarding flows; do not fabricate payment-provider state in the database.
 - [ ] Test cancellation, refund, return/case, payment-dispute and payout-reversal paths end to end.
 - [ ] Test Scenario G concurrency/stock reservation with stock `1` and competing checkout attempts; exactly one reservation must win and cancellation/expiry must restore stock at most once.
 - [ ] Test Scenario H with a declined Stripe test payment followed by a successful retry in the same Checkout flow; stock must remain reserved after the failed attempt and the order must finish paid exactly once.
