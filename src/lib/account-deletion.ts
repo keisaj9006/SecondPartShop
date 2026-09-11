@@ -31,6 +31,8 @@ export type AccountDeletionQaPreflight=
   };
 
 const errorMessage=(error:unknown)=>error instanceof Error?error.message:String(error??"unknown_error");
+const authUserMissing=(error:{status?:number;message?:string})=>
+ error.status===404||/user.*not found|not found.*user/i.test(error.message??"");
 
 async function markFailed(requestId:string,error:unknown){
  const admin=createSupabaseAdminClient();
@@ -70,7 +72,7 @@ export async function getAccountDeletionQaPreflight(requestId:string):Promise<Ac
   const {data:authData,error:authError}=await admin.auth.admin.getUserById(profileId);
   if(!authError){
    authIdentity=authData.user?"present":"missing";
-  }else if(("status" in authError&&authError.status===404)||/user.*not found|not found.*user/i.test(authError.message)){
+  }else if(authUserMissing(authError)){
    authIdentity="missing";
   }
  }
@@ -120,11 +122,12 @@ async function purgePartImages(requestId:string){
  return deleted;
 }
 
-async function identityStillExists(profileId:string){
+async function authIdentityStillExists(profileId:string){
  const admin=createSupabaseAdminClient();
- const {data,error}=await admin.from("profiles").select("id").eq("id",profileId).maybeSingle();
- if(error)throw error;
- return Boolean(data);
+ const {data,error}=await admin.auth.admin.getUserById(profileId);
+ if(!error)return Boolean(data.user);
+ if(authUserMissing(error))return false;
+ throw error;
 }
 
 export async function processAccountDeletionRequest(requestId:string):Promise<RequestResult>{
@@ -144,6 +147,8 @@ export async function processAccountDeletionRequest(requestId:string):Promise<Re
  if(!profileId)return {requestId,status:"deferred",reason:"identity_missing"};
 
  if(request.profile_id===null&&request.status==="processing"){
+  const authStillExists=await authIdentityStillExists(profileId).catch(()=>true);
+  if(authStillExists)return {requestId,status:"failed",reason:"auth_identity_still_present_after_profile_detach"};
   const {data:completed,error}=await admin.rpc("complete_account_deletion_request",{p_request_id:requestId});
   if(error)throw error;
   return {requestId,status:completed?"completed":"deferred",reason:completed?"identity_already_deleted":"completion_not_claimed"};
@@ -175,9 +180,12 @@ export async function processAccountDeletionRequest(requestId:string):Promise<Re
 
   const {error:deleteError}=await admin.auth.admin.deleteUser(profileId,false);
   if(deleteError){
-   const stillExists=await identityStillExists(profileId);
+   const stillExists=await authIdentityStillExists(profileId).catch(()=>true);
    if(stillExists)throw deleteError;
   }
+
+  const authStillExists=await authIdentityStillExists(profileId).catch(()=>true);
+  if(authStillExists)throw new Error("Auth identity still exists after account deletion request.");
 
   const {data:completed,error:completeError}=await admin.rpc("complete_account_deletion_request",{p_request_id:requestId});
   if(completeError)throw completeError;
@@ -185,13 +193,13 @@ export async function processAccountDeletionRequest(requestId:string):Promise<Re
 
   return {requestId,status:"completed"};
  }catch(error){
-  const stillExists=await identityStillExists(profileId).catch(()=>true);
+  const stillExists=await authIdentityStillExists(profileId).catch(()=>true);
   if(stillExists){
    await markFailed(requestId,error);
    return {requestId,status:"failed",reason:errorMessage(error)};
   }
 
-  // Auth/profile is already gone. Keep the request in processing so the next
+  // Auth identity is already gone. Keep the request in processing so the next
   // pass can safely finish the audit row instead of falsely recreating identity.
   return {requestId,status:"deferred",reason:"identity_deleted_audit_finalize_pending"};
  }
