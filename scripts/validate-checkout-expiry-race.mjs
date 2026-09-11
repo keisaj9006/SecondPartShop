@@ -69,7 +69,7 @@ const checks=[
  ],
  [
   "Mobile checkout cancellation must verify buyer ownership before service-role cancellation",
-  mobileCancel.includes('.eq("buyer_id",auth.user.id)')&&
+  mobileCancel.includes('.eq("buyer_id",user.id)')&&
   mobileCancel.includes("createSupabaseAdminClient()")&&
   mobileCancel.includes('admin.rpc("cancel_checkout_order"')
  ],
