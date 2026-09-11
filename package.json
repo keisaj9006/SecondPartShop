@@ -13,6 +13,7 @@
     "validate:launch-baseline": "node scripts/validate-launch-baseline.mjs",
     "validate:monitoring": "node scripts/validate-operations-monitoring.mjs",
     "validate:commerce-e2e": "node scripts/validate-commerce-e2e-harness.mjs",
+    "validate:checkout-expiry-race": "node scripts/validate-checkout-expiry-race.mjs",
     "validate:payout-recovery": "node scripts/validate-payout-recovery.mjs",
     "validate:android-rc": "node scripts/validate-android-rc-gate.mjs",
     "validate:public-contact": "node scripts/validate-public-contact.mjs",
