@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { attemptPartImageCleanup,cleanupFailedPartImageUpload,requirePartImageCleanupReady } from "@/lib/part-image-cleanup";
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileMarketplaceTermsAccepted,mobileOptions,requireMobileSeller } from "@/lib/mobile-api";
 import { mobileThumbnailUrl } from "@/lib/mobile-image";
@@ -53,12 +54,13 @@ export async function POST(request:Request,{params}:{params:Promise<{partId:stri
 
  const {data:part}=await supabase
   .from("parts")
-  .select("id,title")
+  .select("id,title,status")
   .eq("id",partId)
   .eq("seller_id",auth.seller.id)
   .maybeSingle();
  if(!part)return mobileJson(request,{ok:false,error:"not_found"},404);
 
+ if(part.status==="reserved")return mobileJson(request,{ok:false,error:"listing_reserved",message:"This listing is temporarily reserved in an active checkout."},409);
  let form:FormData;
  try{form=await request.formData();}catch{return mobileJson(request,{ok:false,error:"invalid_form"},400);}
  const file=form.get("file");
@@ -83,6 +85,7 @@ export async function POST(request:Request,{params}:{params:Promise<{partId:stri
  const position=(last?.[0]?.position??-1)+1;
  const storagePath=`${user.id}/${partId}/${randomUUID()}.${validated.extension}`;
  const bytes=new Uint8Array(await file.arrayBuffer());
+ try{await requirePartImageCleanupReady();}catch{return mobileJson(request,{ok:false,error:"photo_editing_unavailable"},503);}
 
  const {error:uploadError}=await supabase.storage.from("part-images").upload(storagePath,bytes,{
   contentType:validated.mimeType,
@@ -97,7 +100,7 @@ export async function POST(request:Request,{params}:{params:Promise<{partId:stri
   .select("id")
   .single();
  if(recordError||!image){
-  await supabase.storage.from("part-images").remove([storagePath]);
+  await cleanupFailedPartImageUpload(user.id,partId,storagePath);
   return mobileJson(request,{ok:false,error:"photo_attach_failed"},503);
  }
 
@@ -122,6 +125,8 @@ export async function DELETE(request:Request,{params}:{params:Promise<{partId:st
   .maybeSingle();
  if(!part)return mobileJson(request,{ok:false,error:"not_found"},404);
 
+ if(part.status==="reserved")return mobileJson(request,{ok:false,error:"listing_reserved",message:"This listing is temporarily reserved in an active checkout."},409);
+
  const {data:image}=await supabase
   .from("part_images")
   .select("id,storage_path")
@@ -135,10 +140,11 @@ export async function DELETE(request:Request,{params}:{params:Promise<{partId:st
   if((count??0)<=1)return mobileJson(request,{ok:false,error:"active_listing_requires_photo"},409);
  }
 
- const {error:storageError}=await supabase.storage.from("part-images").remove([image.storage_path]);
- if(storageError)return mobileJson(request,{ok:false,error:"photo_delete_failed"},503);
- const {error}=await supabase.from("part_images").delete().eq("id",imageId).eq("part_id",partId);
+ try{await requirePartImageCleanupReady();}catch{return mobileJson(request,{ok:false,error:"photo_editing_unavailable"},503);}
+ const {data:deleted,error}=await supabase.from("part_images").delete().eq("id",imageId).eq("part_id",partId).select("id,storage_path").maybeSingle();
  if(error)return mobileJson(request,{ok:false,error:"photo_delete_failed"},503);
+ if(!deleted)return mobileJson(request,{ok:false,error:"image_not_found"},404);
+ const cleaned=await attemptPartImageCleanup(deleted.storage_path);
 
- return mobileJson(request,{ok:true,deleted:true});
+ return mobileJson(request,{ok:true,deleted:true,cleanupPending:!cleaned});
 }

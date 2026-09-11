@@ -1,4 +1,5 @@
 "use server";
+import { attemptPartImageCleanup,cleanupFailedPartImageUpload,requirePartImageCleanupReady } from "@/lib/part-image-cleanup";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireSeller } from "@/lib/auth";
@@ -59,7 +60,7 @@ async function replaceCatalogueFitments(partId:string,rows:CatalogueFitmentRow[]
  const {error}=await supabase.rpc("replace_part_catalogue_fitments",{p_part_id:partId,p_fitments:rows});
  if(error)throw error;
 }
-async function uploadImage(partId:string,userId:string,title:string,file:File,position:number){if(!file.size)return null;const validated=await validateImageUpload(file);const path=`${userId}/${partId}/${crypto.randomUUID()}.${validated.extension}`;const supabase=await createSupabaseServerClient();const {error:uploadError}=await supabase.storage.from("part-images").upload(path,file,{contentType:validated.mimeType,cacheControl:"31536000",upsert:false});if(uploadError)throw uploadError;const {error:recordError}=await supabase.from("part_images").insert({part_id:partId,storage_path:path,alt_text:title,position});if(recordError){await supabase.storage.from("part-images").remove([path]);throw recordError;}return path;}
+async function uploadImage(partId:string,userId:string,title:string,file:File,position:number){if(!file.size)return null;const validated=await validateImageUpload(file);await requirePartImageCleanupReady();const path=`${userId}/${partId}/${crypto.randomUUID()}.${validated.extension}`;const supabase=await createSupabaseServerClient();const {error:uploadError}=await supabase.storage.from("part-images").upload(path,file,{contentType:validated.mimeType,cacheControl:"31536000",upsert:false});if(uploadError)throw uploadError;const {error:recordError}=await supabase.from("part_images").insert({part_id:partId,storage_path:path,alt_text:title,position});if(recordError){await cleanupFailedPartImageUpload(userId,partId,path);throw recordError;}return path;}
 const imageFiles=(formData:FormData)=>formData.getAll("images").filter((value):value is File=>value instanceof File&&value.size>0);
 const imageLimitError=(files:File[],existingCount=0)=>files.length+existingCount>6?"A listing can have at most 6 product photos.":null;
 async function uploadImages(partId:string,userId:string,title:string,files:File[],startPosition=0){for(let index=0;index<files.length;index+=1)await uploadImage(partId,userId,title,files[index],startPosition+index);}
@@ -110,16 +111,18 @@ export async function deleteListingImage(formData:FormData){
  const supabase=await createSupabaseServerClient();
  const {data:part}=await supabase.from("parts").select("id,slug,status").eq("id",partId).eq("seller_id",seller.id).maybeSingle();
  if(!part)return;
+ if(part.status==="reserved")throw new Error("This listing is temporarily reserved in an active checkout and its photos cannot be edited.");
  const {data:image}=await supabase.from("part_images").select("id,storage_path").eq("id",imageId).eq("part_id",partId).maybeSingle();
  if(!image)return;
  if(part.status==="active"){
   const {count}=await supabase.from("part_images").select("id",{count:"exact",head:true}).eq("part_id",partId);
   if((count??0)<=1)return;
  }
- const {error:storageError}=await supabase.storage.from("part-images").remove([image.storage_path]);
- if(storageError)throw storageError;
- const {error}=await supabase.from("part_images").delete().eq("id",imageId).eq("part_id",partId);
+ await requirePartImageCleanupReady();
+ const {data:deleted,error}=await supabase.from("part_images").delete().eq("id",imageId).eq("part_id",partId).select("id,storage_path").maybeSingle();
  if(error)throw error;
+ if(!deleted)throw new Error("The photo could not be removed. Refresh the listing and try again.");
+ await attemptPartImageCleanup(deleted.storage_path);
  revalidatePath("/dashboard");
  revalidatePath("/dashboard/listings/"+partId+"/edit");
  revalidatePath("/parts/"+part.slug);

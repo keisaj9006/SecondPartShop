@@ -2975,6 +2975,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_part_image_cleanup_queue: {
+        Args: { p_limit?: number; p_storage_path?: string }
+        Returns: { storage_path: string }[]
+      }
+      complete_part_image_cleanup: {
+        Args: { p_storage_path: string }
+        Returns: boolean
+      }
+      fail_part_image_cleanup: {
+        Args: { p_storage_path: string }
+        Returns: undefined
+      }
+      queue_orphan_part_image_cleanup: {
+        Args: { p_owner_id: string; p_part_id: string; p_storage_path: string }
+        Returns: boolean
+      }
       accept_current_marketplace_terms: { Args: never; Returns: boolean }
       admin_active_listing_checkout_readiness: {
         Args: never

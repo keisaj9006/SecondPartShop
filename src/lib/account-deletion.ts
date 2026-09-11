@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { attemptPartImageCleanup,requirePartImageCleanupReady } from "@/lib/part-image-cleanup";
 
 const BATCH_SIZE=500;
 const UUID_PATTERN=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -96,6 +97,7 @@ export async function getAccountDeletionQaPreflight(requestId:string):Promise<Ac
 }
 
 async function purgePartImages(requestId:string){
+ await requirePartImageCleanupReady();
  const admin=createSupabaseAdminClient();
  let deleted=0;
 
@@ -109,17 +111,56 @@ async function purgePartImages(requestId:string){
   const paths=(data??[]).map(row=>row.storage_path).filter(Boolean);
   if(!paths.length)break;
 
-  const {error:storageError}=await admin.storage.from("part-images").remove(paths);
-  if(storageError)throw storageError;
-
+  // Metadata removal atomically records authorization. Already detached paths
+  // also arrive here from the private outbox via the discovery RPC.
   const {error:rowError}=await admin.from("part_images").delete().in("storage_path",paths);
   if(rowError)throw rowError;
+  for(const path of paths){
+   if(!await attemptPartImageCleanup(path))throw new Error("Part image cleanup remains pending.");
+  }
 
   deleted+=paths.length;
   if(paths.length<BATCH_SIZE)break;
  }
 
  return deleted;
+}
+
+// The claimed deletion request is the durable authority for this owner-prefix
+// purge. It also catches uploads whose attachment AND orphan-queue RPC failed.
+// Never accept a caller-provided prefix: profileId comes from the saved request.
+async function purgeUntrackedPartImages(profileId:string){
+ if(!UUID_PATTERN.test(profileId))throw new Error("Invalid image cleanup owner.");
+ const admin=createSupabaseAdminClient();
+ const root=profileId.toLowerCase();
+ let removed=0;
+ let reads=0;
+ async function drain(folder:string,depth:number):Promise<void>{
+  if(depth>16||!(folder===root||folder.startsWith(root+"/")))throw new Error("Invalid image cleanup folder.");
+  for(;;){
+   if(++reads>1000)throw new Error("Image cleanup traversal requires retry.");
+   // Deletion changes pagination. Always drain page zero to avoid skipped keys.
+   const {data,error}=await admin.storage.from("part-images").list(folder,{limit:100,offset:0,sortBy:{column:"name",order:"asc"}});
+   if(error)throw new Error("Image cleanup listing failed.");
+   if(!data?.length)return;
+   const files:string[]=[];
+   const folders:string[]=[];
+   for(const item of data){
+    if(!item.name||item.name==="."||item.name===".."||/[\\/\u0000-\u001f]/.test(item.name))throw new Error("Invalid image cleanup object name.");
+    const path=folder+"/"+item.name;
+    if(item.id)files.push(path);else folders.push(path);
+   }
+   if(removed+files.length>500)throw new Error("Image cleanup batch requires retry.");
+   if(files.length){
+    const {error:removeError}=await admin.storage.from("part-images").remove(files);
+    if(removeError)throw new Error("Untracked image cleanup remains pending.");
+    removed+=files.length;
+   }
+   for(const child of folders)await drain(child,depth+1);
+  }
+ }
+ await drain(root,0);
+ return removed;
 }
 
 const safeEvidenceExtension=(path:string)=>{
@@ -229,6 +270,8 @@ export async function processAccountDeletionRequest(requestId:string):Promise<Re
   // was conclusively observed. Re-check Auth directly and finish/retry the
   // hard deletion instead of assuming profile detachment means Auth deletion.
   try{
+   await purgePartImages(requestId);
+   await purgeUntrackedPartImages(profileId);
    await ensureAuthIdentityDeleted(profileId);
   }catch(error){
    return {requestId,status:"deferred",reason:"auth_deletion_retry_pending:"+errorMessage(error)};
@@ -264,6 +307,10 @@ export async function processAccountDeletionRequest(requestId:string):Promise<Re
   if(prepareError)throw prepareError;
   if(!prepared)return {requestId,status:"blocked",reason:"blocker_detected_during_final_preflight"};
 
+  // Preparation may remove residual metadata through the same durable trigger.
+  // Drain that intent before deleting identity, including on resumed attempts.
+  await purgePartImages(requestId);
+  await purgeUntrackedPartImages(profileId);
   await ensureAuthIdentityDeleted(profileId);
 
   const {data:completed,error:completeError}=await admin.rpc("complete_account_deletion_request",{p_request_id:requestId});

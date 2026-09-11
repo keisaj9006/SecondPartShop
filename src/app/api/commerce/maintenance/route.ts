@@ -4,6 +4,7 @@ import { releaseDuePayouts } from "@/lib/commerce-payouts";
 import { syncPendingSellerPaymentAccounts } from "@/lib/seller-payment-sync";
 import { dispatchPushOutbox } from "@/lib/push/dispatch";
 import { processAccountDeletionQueue } from "@/lib/account-deletion";
+import { processPartImageCleanup } from "@/lib/part-image-cleanup";
 import { reportOperationalError,reportOperationalWarning } from "@/lib/ops-monitoring";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -83,7 +84,8 @@ export async function GET(request:Request){
     route:"/api/commerce/maintenance"
    });
   }
-  return NextResponse.json({ok:true,orders,payouts,sellers,deletions,push});
+  const imageCleanup=await processPartImageCleanup(50);
+  return NextResponse.json({ok:true,orders,payouts,sellers,deletions,push,imageCleanup});
  }catch(error){
   await reportOperationalError({severity:"critical",component:"commerce_maintenance",event:"commerce_maintenance_failed",error,route:"/api/commerce/maintenance"});
   return NextResponse.json({ok:false},{status:500});
