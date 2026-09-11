@@ -184,12 +184,12 @@ GitHub Actions runs the rebuild QA workflow for `rebuild-nextjs`.
 
 ## Current roadmap
 
-The marketplace foundation and Trust Layer are implemented. Commerce Core is now in progress. The next sequence is:
+The marketplace foundation, Trust Layer and Commerce Core are implemented. The Preview purchase-to-transfer happy path is verified at `72f9fdc`; the next sequence is:
 
-1. fresh Vercel/mobile QA of the Trust + Vehicle Visual changes
-2. connect Stripe **test-mode** credentials and validate seller onboarding
-3. implement checkout + webhook-driven payment state
-4. implement protected transfer release, delivery/acceptance, refunds/returns/disputes
-5. end-to-end buyer/seller transaction QA before any live payments
+1. repair the confirmed marketplace integrity, discovery and seller-input defects in the active audit
+2. verify each small batch with regression tests, web checks, CI and exact-commit Preview evidence
+3. complete remaining **test-mode** refund/return/dispute/reversal and failed-payment/retry provider scenarios
+4. complete grouped Android/device QA and outstanding configuration, legal/support and marketplace-supply gates
+5. make a separate release decision only when the launch checklist is satisfied; do not repeat completed onboarding or enable live payments in this phase
 
-See `docs/pre-payments-roadmap.md` and `docs/product-decisions.md` for the current product decisions and deferred commerce work.
+See `docs/product-decisions.md` for current decisions, `docs/ROADMAP.md` and `docs/marketplace-development-audit-2026-09-11.md` for active work, and `docs/pre-payments-roadmap.md` for historical foundation progress. The Preview purchase-to-transfer happy path is verified; the remaining provider and release gates are tracked separately.

@@ -1,8 +1,20 @@
 # SecondPart — Product Decisions
 
-## Payment protection / escrow-style buyer protection
+## Current payment and Buyer Protection decisions
 
-**Status:** Product decision recorded; implementation intentionally deferred until the end of the marketplace build.
+Status: implemented and happy-path verified in Preview at `72f9fdc` on 11 September 2026. See [the provider evidence](test-runs/2026-09-11-commerce-preview-preflight.md) and [current release rules](launch-readiness.md#buyer-protection--silent-buyer--unverified-delivery-policy).
+
+Stripe is authoritative for payment state. Checkout reservations and paid-confirmation guards remain in force. Seller transfers are separate from the buyer charge and require the approved Buyer Protection release conditions. Explicit buyer acceptance may make a paid, case-free item eligible; confirmed receipt starts the configured protection window. Without confirmed receipt or trusted delivery evidence, silence alone never releases funds. Reviewed unverified-delivery escalation and local-collection restrictions follow the canonical commerce runbooks.
+
+Refund, return, dispute, reversal and failed-payment/retry E2E evidence remains a separate release gate. The successful test purchase does not authorize Stripe Live, Production release, repeat onboarding or a payment architecture redesign.
+
+The project does not operate a user wallet and must not describe the current flow as legally regulated escrow. Preserve provider authority, transaction history and idempotency.
+
+## Historical pre-implementation payment proposal — superseded
+
+The following records the earlier proposal for provenance. Its deferred-build timing and unspecified automatic-release rule are not current implementation instructions; the decisions above and the canonical runbooks supersede them.
+
+**Historical status:** Product decision recorded before commerce implementation.
 
 SecondPart should use a buyer-protection payment flow similar in principle to marketplace escrow-style models:
 
@@ -26,7 +38,7 @@ Payments, payouts, disputes, refunds, and settlement are a **final commerce laye
 
 ## Vehicle identification strategy
 
-**Status:** Canonical pre-payments strategy.
+**Status:** Provider-gated vehicle identification strategy. DVSA activation remains explicitly blocked pending official access; manual selection stays available.
 
 SecondPart should not depend on a paid VRM lookup for its core buyer flow while the marketplace is pre-revenue.
 

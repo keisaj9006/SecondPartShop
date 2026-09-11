@@ -1,6 +1,6 @@
 # SecondPart — Pre-payments roadmap
 
-Status: **marketplace foundation and backend/static QA are passing on `rebuild-nextjs`. Trust/reputation, Vehicle Visual and Commerce Core foundations are now implemented. Fresh Preview/mobile QA and Stripe test-mode integration are the next gates before real payment capture.**
+Status: **historical foundation roadmap, reconciled on 11 September 2026.** Checkout, webhook authority, fulfilment, Buyer Protection acceptance and a single test-mode seller transfer are implemented and verified at `72f9fdc`. Use [the current roadmap](ROADMAP.md), [marketplace audit](marketplace-development-audit-2026-09-11.md) and [launch checklist](launch-readiness.md) for active work; the historical foundation entries below do not supersede them.
 
 ## Completed before payments
 
@@ -92,9 +92,9 @@ Validated against the real Supabase project and current `rebuild-nextjs` source:
 
 ### Fresh Preview visual/browser acceptance — PENDING
 
-A fresh Vercel Preview must still be tested on desktop and mobile for buyer, seller and admin interaction/visual behaviour before commerce starts. The currently connected Vercel plugin is enabled but returns zero teams and 403 for the previous Preview URL, so browser-level Preview QA requires re-authorizing the Vercel connection to the original project team scope.
+Current GitHub, Vercel Preview, Supabase and browser access were verified in the September 11 audit. The earlier Vercel 403 is resolved. Buyer/seller purchase-to-transfer browser/provider evidence is recorded; comprehensive physical-device and admin edge-case QA remains open in the RC checklists.
 
-Trust and commerce foundations have now been added by explicit product direction. Do not enable **live payment capture or live seller payouts** until a fresh Preview/mobile acceptance pass and Stripe test-mode end-to-end QA are complete.
+Do not enable **live payment capture or live seller payouts** on the strength of the happy-path result alone. All outstanding provider, device, configuration and policy release gates still apply.
 
 ### Remaining launch hardening
 
@@ -117,17 +117,17 @@ Trust and commerce foundations have now been added by explicit product direction
 - Stripe Connect Accounts v2 recipient onboarding scaffold
 - Vehicle Visual colour persistence and representative Garage cards
 
+### Implemented since this historical foundation snapshot
+
+- QA Seller Connect readiness and test-mode buyer checkout/payment.
+- Webhook-driven payment authority, seller fulfilment, buyer receipt/acceptance and separate-charge/transfer release with replay protection.
+- Conservative receipt/evidence-based payout eligibility, case handling, reconciliation and transaction-notification implementations.
+
 ### Still required before live commerce
 
-- Stripe test credentials and seller onboarding end-to-end QA
-- buyer checkout and payment creation
-- webhook-driven payment state
-- delivery / collection confirmation
-- buyer acceptance / automatic release window
-- real separate-charge/transfer release logic
-- refunds, returns and disputes
-- payout/transfer reconciliation
-- transaction notifications and final mobile QA
+- Provider E2E for outstanding refund/return/dispute/reversal and declined-payment/retry scenarios.
+- Final mobile/Android physical-device QA, operational/provider configuration and policy sign-off.
+- Resolve the current marketplace integrity/discovery defects in the active audit. Do not treat the presence of case/reconciliation code as completed provider QA.
 
 ## Deliberately later / optional
 
