@@ -122,6 +122,69 @@ async function purgePartImages(requestId:string){
  return deleted;
 }
 
+const safeEvidenceExtension=(path:string)=>{
+ const fileName=path.split("/").pop()??"";
+ const match=fileName.match(/(\.[a-z0-9]{1,10})$/i);
+ return match?.[1]?.toLowerCase()??"";
+};
+
+async function storageObjectExists(bucket:string,path:string){
+ const admin=createSupabaseAdminClient();
+ const slash=path.lastIndexOf("/");
+ const folder=slash>=0?path.slice(0,slash):"";
+ const fileName=slash>=0?path.slice(slash+1):path;
+ const {data,error}=await admin.storage.from(bucket).list(folder,{limit:10,search:fileName});
+ if(error)throw error;
+ return (data??[]).some(object=>object.name===fileName);
+}
+
+async function detachRetainedCaseEvidence(profileId:string){
+ const admin=createSupabaseAdminClient();
+ let offset=0;
+ let moved=0;
+
+ for(;;){
+  const {data,error}=await admin
+   .from("transaction_case_evidence")
+   .select("id,case_id,storage_path")
+   .eq("uploader_profile_id",profileId)
+   .order("id")
+   .range(offset,offset+BATCH_SIZE-1);
+  if(error)throw error;
+
+  const rows=data??[];
+  for(const row of rows){
+   const extension=safeEvidenceExtension(row.storage_path);
+   const targetPath=`${row.case_id}/retained/${row.id}${extension}`;
+
+   if(row.storage_path!==targetPath){
+    const {error:moveError}=await admin.storage.from("case-evidence").move(row.storage_path,targetPath);
+    if(moveError){
+     const targetExists=await storageObjectExists("case-evidence",targetPath).catch(()=>false);
+     if(!targetExists)throw moveError;
+    }else{
+     moved+=1;
+    }
+   }
+
+   const {error:updateError}=await admin
+    .from("transaction_case_evidence")
+    .update({
+     storage_path:targetPath,
+     original_name:`retained-evidence${extension}`
+    })
+    .eq("id",row.id)
+    .eq("uploader_profile_id",profileId);
+   if(updateError)throw updateError;
+  }
+
+  if(rows.length<BATCH_SIZE)break;
+  offset+=rows.length;
+ }
+
+ return moved;
+}
+
 async function authIdentityStillExists(profileId:string){
  const admin=createSupabaseAdminClient();
  const {data,error}=await admin.auth.admin.getUserById(profileId);
@@ -192,6 +255,7 @@ export async function processAccountDeletionRequest(requestId:string):Promise<Re
 
  try{
   await purgePartImages(requestId);
+  await detachRetainedCaseEvidence(profileId);
 
   const {data:prepared,error:prepareError}=await admin.rpc("prepare_claimed_account_deletion",{
    p_request_id:requestId,
