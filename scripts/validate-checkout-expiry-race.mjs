@@ -3,8 +3,12 @@ import fs from "node:fs";
 const read=(path)=>fs.readFileSync(path,"utf8");
 
 const guard=read("supabase/migrations/20260911080000_checkout_expiry_provider_guard.sql");
+const terminalNotification=read("supabase/migrations/20260911084500_checkout_terminal_buyer_notification.sql");
 const reconciliation=read("src/lib/commerce-reconciliation.ts");
 const webhook=read("src/app/api/stripe/webhook/route.ts");
+const webCancel=read("src/app/checkout/cancel/route.ts");
+const mobileCancel=read("src/app/api/mobile/v1/orders/[orderId]/checkout/route.ts");
+const checkoutActions=read("src/app/checkout/actions.ts");
 
 const paymentFailureStart=webhook.indexOf('if(event.type==="payment_intent.payment_failed")');
 const disputeStart=webhook.indexOf('if(event.type==="charge.dispute.created")');
@@ -19,7 +23,8 @@ const checks=[
  ],
  [
   "Generic local expiry must refuse to cancel a provider-backed checkout",
-  guard.includes("p_event_type='checkout_reservation_expired' and provider_session is not null")
+  guard.includes("p_event_type='checkout_reservation_expired' and provider_session is not null")&&
+  terminalNotification.includes("p_event_type='checkout_reservation_expired' and provider_session is not null")
  ],
  [
   "Provider-backed reconciliation must retrieve the Stripe Checkout Session before deciding",
@@ -40,6 +45,39 @@ const checks=[
   "A retryable PaymentIntent failure must reconcile provider state instead of releasing inventory",
   paymentFailureBlock.includes("reconcileStripeOrder(orderId)")&&
   !paymentFailureBlock.includes('cancel_checkout_order')
+ ],
+ [
+  "Terminal Checkout failure and expiry must notify the buyer atomically with cancellation",
+  terminalNotification.includes("p_event_type='checkout.session.async_payment_failed'")&&
+  terminalNotification.includes("Payment could not be completed")&&
+  terminalNotification.includes("p_event_type in ('checkout.session.expired','reconciliation_checkout_expired')")&&
+  terminalNotification.includes("Checkout expired")&&
+  terminalNotification.includes("on conflict do nothing")&&
+  terminalNotification.includes("'checkout-terminal:'||p_order_id::text")
+ ],
+ [
+  "Terminal buyer notifications must use an account order route and avoid card/provider secrets",
+  terminalNotification.includes("'/account/orders/'||p_order_id::text")&&
+  !terminalNotification.toLowerCase().includes("card_number")&&
+  !terminalNotification.toLowerCase().includes("client_secret")
+ ],
+ [
+  "Web checkout cancellation must verify buyer ownership before service-role cancellation",
+  webCancel.includes('.eq("buyer_id",user.id)')&&
+  webCancel.includes("createSupabaseAdminClient()")&&
+  webCancel.includes('admin.rpc("cancel_checkout_order"')
+ ],
+ [
+  "Mobile checkout cancellation must verify buyer ownership before service-role cancellation",
+  mobileCancel.includes('.eq("buyer_id",auth.user.id)')&&
+  mobileCancel.includes("createSupabaseAdminClient()")&&
+  mobileCancel.includes('admin.rpc("cancel_checkout_order"')
+ ],
+ [
+  "Checkout setup failure rollback must remain server-side",
+  checkoutActions.includes("createSupabaseAdminClient()")&&
+  checkoutActions.includes('admin.rpc("cancel_checkout_order"')&&
+  checkoutActions.includes('p_event_type:"checkout_setup_failed"')
  ],
  [
   "Paid Stripe sessions must still flow through confirm_checkout_paid",
