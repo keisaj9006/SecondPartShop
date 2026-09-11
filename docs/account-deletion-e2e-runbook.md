@@ -1,6 +1,6 @@
 # SecondPart Account Deletion E2E Runbook
 
-Snapshot: 2026-09-10
+Snapshot: 2026-09-11
 Branch: `rebuild-nextjs`
 
 This is the destructive QA protocol for the Google Play / privacy release gate. It must be run only against a **disposable QA account** created specifically for this test.
@@ -14,10 +14,11 @@ A passing run proves that the normal SecondPart deletion flow can:
 1. accept a user deletion request;
 2. claim the request only when privacy/commerce blockers permit it;
 3. delete tracked listing images from private Storage;
-4. perform the database privacy transformation and identity detachment;
-5. hard-delete the Supabase Auth identity;
-6. finish the deletion audit row without recreating identity;
-7. remain retry-safe if the worker is executed again.
+4. move retained transaction-case evidence through the Storage API to a non-member retained path before Auth deletion;
+5. perform the database privacy transformation and identity detachment;
+6. verify and hard-delete the Supabase Auth identity;
+7. finish the deletion audit row without recreating identity;
+8. remain retry-safe if the worker is executed again.
 
 This test does **not** override the retention matrix. Transaction, dispute, fraud, tax/accounting or legal records that have a valid retention basis must be preserved only in the anonymised/detached form defined by `docs/account-data-retention.md`.
 
@@ -29,6 +30,7 @@ This test does **not** override the retention matrix. Transaction, dispute, frau
 - Never call `claim_account_deletion_request`, `prepare_claimed_account_deletion`, `complete_account_deletion_request` or other deletion-state RPCs manually to make the test pass.
 - Never delete the Supabase Auth user manually from the dashboard during the happy-path scenario.
 - Never remove database rows manually before verification.
+- Never mutate `storage.objects` directly to manufacture ownership cleanup; retained evidence must use the supported Storage API path.
 - Do not capture passwords, access tokens, `CRON_SECRET`, service-role keys or full personal addresses in QA evidence.
 
 ## Required release evidence
@@ -43,9 +45,11 @@ Record:
 - maintenance run timestamp;
 - final request status;
 - confirmation that Auth sign-in fails after deletion;
+- confirmation that Auth lookup reports the deleted identity absent;
 - confirmation that public/private profile identity no longer exists;
 - confirmation that disposable personal artefacts are gone;
 - confirmation that retained audit/commerce records, if deliberately included in a blocker/anonymisation scenario, are detached rather than pointing at the deleted profile;
+- for retained case evidence, confirmation that the stored path no longer contains the deleted profile UUID and the retained object remains available only through the authorised case-evidence access model;
 - evidence reference and defect/fix commit for any failure.
 
 Do not retain the disposable account password in the release report after the test is complete.
@@ -106,6 +110,7 @@ After the worker completes, verify:
 
 - deletion request reaches `completed`;
 - original Auth identity can no longer sign in;
+- direct Auth lookup confirms the identity is absent rather than inferring deletion only from the profile table;
 - profile identity is gone/detached as defined by the deletion schema;
 - Garage/saved/recent/push and other immediate-personal artefacts for the QA account are gone;
 - disposable listing images owned by the deletion context are removed from Storage and their tracked image rows are removed;
@@ -187,10 +192,35 @@ This scenario must not be simulated by corrupting production data.
 The intended worker behaviour is:
 
 - if processing fails while identity still exists, request becomes retryable/failed with bounded error audit;
-- if Auth/profile identity is already gone but final audit completion failed, the request remains recoverable so a later pass can finish the audit without recreating identity;
+- if the profile was already detached but Auth identity still exists, the next worker pass re-checks Supabase Auth directly and retries the hard delete rather than assuming identity is gone;
+- if Auth identity is already gone but final audit completion failed, the request remains recoverable so a later pass can finish the audit without recreating identity;
 - completed requests remain idempotent.
 
 If a safe QA fault-injection environment is not available, retain this as code/invariant evidence and do not manufacture a production failure merely to tick the box.
+
+---
+
+## Scenario F — Retained transaction-case evidence
+
+Priority: P0 before public commerce
+
+This scenario proves that evidence with a legitimate retention basis does not prevent hard account deletion. Use a disposable QA transaction/case only; do not use a real customer's dispute evidence.
+
+1. Create a controlled QA transaction case through the normal product flow and upload one harmless evidence file as the disposable user.
+2. Resolve the case through the normal workflow so no active-case blocker remains and the account is otherwise eligible for deletion.
+3. Record the evidence row ID and its pre-deletion path. Do not retain the evidence content in release notes.
+4. Request deletion normally and execute the normal maintenance worker.
+
+PASS when:
+- the evidence row required by the retention model remains present but `uploader_profile_id` is detached after profile deletion;
+- before Auth hard deletion, the Storage object is moved through the `case-evidence` Storage API to the deterministic retained path `caseId/retained/evidenceId.ext`;
+- the retained Storage path no longer contains the deleted profile UUID;
+- `original_name` no longer retains the user's uploaded filename and uses the neutral retained-evidence name;
+- the retained object remains accessible to authorised transaction participants/admin according to the existing case-evidence access model;
+- hard Supabase Auth deletion succeeds despite the retained file;
+- a second maintenance pass remains idempotent and does not duplicate, lose or orphan the retained object.
+
+FAIL if the Auth deletion is blocked because the original user still owns retained Storage evidence, or if the test succeeds only after manually editing `storage.objects`.
 
 ---
 
@@ -204,7 +234,7 @@ Deletion request ID:
 Requested at:
 Maintenance run at:
 
-Scenario: A / B / C / D / E
+Scenario: A / B / C / D / E / F
 Result: PASS / FAIL / BLOCKED
 
 Request final status:
@@ -212,6 +242,8 @@ Auth identity removed as expected: YES / NO / N/A
 Profile identity removed/detached as expected: YES / NO / N/A
 Immediate personal data removed: YES / NO / N/A
 Listing images removed from Storage: YES / NO / N/A
+Retained case-evidence path detached from profile UUID: YES / NO / N/A
+Retained case evidence still authorised/readable: YES / NO / N/A
 Retained records anonymised/detached correctly: YES / NO / N/A
 Second maintenance pass idempotent: YES / NO / N/A
 
@@ -230,6 +262,7 @@ The account-deletion P0 can be marked complete only after at least:
 - retry-safety in A6 passes;
 - an active blocker path is proven in Scenario B before public commerce;
 - seller cleanup in Scenario D passes before onboarding real marketplace sellers at scale;
+- retained transaction-case evidence in Scenario F is proven not to block hard Auth deletion before public commerce;
 - evidence is retained without secrets or unnecessary personal data.
 
 Until then, `docs/launch-readiness.md` must keep destructive account-deletion E2E unchecked.
