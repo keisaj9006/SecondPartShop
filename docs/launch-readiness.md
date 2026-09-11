@@ -1,9 +1,9 @@
 # SecondPart Launch Readiness
 
-Snapshot: 2026-09-10
+Snapshot: 2026-09-11
 Branch: `rebuild-nextjs`
 
-This document is the canonical launch checklist for the Android / Google Play and public marketplace release. It deliberately separates code readiness from marketplace liquidity.
+This document is the canonical launch checklist for the Android / Google Play and public marketplace release. It deliberately separates code readiness from marketplace liquidity, and it distinguishes code-level safeguards from real provider/device E2E evidence.
 
 ## Current verified engineering baseline
 
@@ -48,10 +48,17 @@ This document is the canonical launch checklist for the Android / Google Play an
 - [x] Review / verified-fit Terms enforcement also exists at the database boundary.
 - [x] Silent-buyer payout fallback is explicit: no payout is released from buyer inactivity alone; stale unverified shipments enter admin evidence review before the normal Buyer Protection window can start.
 - [x] Payout transfer recovery code is guarded by a dedicated CI invariant suite, and the recovery migration was deployed and privilege-verified against the live `secondpart` Supabase project on 2026-09-10.
+- [x] Checkout reservation code serialises last-stock acquisition at the database row level; the active checkout path inherits the `FOR UPDATE` protection through `prepare_checkout_order_v2`.
+- [x] Code-level Stripe checkout expiry race protection prevents generic database timeout from cancelling a reservation after a Stripe Checkout Session exists; `validate:checkout-expiry-race` is enforced in CI. Deployment of the new guard migration is tracked separately below.
+- [x] Retryable Stripe `payment_intent.payment_failed` no longer releases stock by itself; provider state is reconciled and only provider-confirmed expiry/final async failure can release the reservation.
+- [x] Commerce release QA now includes Scenario H: declined payment attempt -> retry -> successful payment, specifically guarding against `paid at Stripe / cancelled in SecondPart` split-brain state.
 - [x] Operational account-deletion processor is implemented with hard Auth deletion, identity detachment, PII cleanup, storage cleanup, blockers and retry-safe maintenance processing.
+- [x] Account-deletion completion verifies identity state directly against Supabase Auth and fails closed when Auth deletion cannot be confirmed; partially completed deletions can retry the hard-delete safely.
+- [x] Retained transaction-case evidence is moved through the Storage API to a deterministic service-role retained path before Auth deletion; the deleted profile UUID/original filename is removed while required evidence remains retained.
 - [x] Structured production monitoring covers uncaught server/client failures plus checkout, Stripe webhook, payout, reconciliation, push, deletion and maintenance critical paths.
 - [x] Public support/privacy contact code is ready: a validated `NEXT_PUBLIC_SUPPORT_EMAIL` is rendered on `/contact` and `/privacy`, while account-linked support remains authenticated. The real Production mailbox still must be configured.
 - [x] Admin System readiness surfaces Production support-contact and critical-alert configuration without displaying secret values.
+- [x] Full branch QA at commit `526261637860401378c6576a156cd3fd9bf7c00f` passed on 2026-09-11, including lint, TypeScript, commerce/deletion safety validators and production Next.js build.
 
 ## P0 — before the first real Google Play release candidate
 
@@ -71,13 +78,15 @@ This document is the canonical launch checklist for the Android / Google Play an
 ## P0 — before public commerce
 
 - [x] Restore Supabase project access and deploy/verify the payout-transfer recovery migration before running the final money-flow E2E. Verified on 2026-09-10: all recovery RPCs exist as `SECURITY DEFINER`; `anon` and `authenticated` cannot execute them; `service_role` can.
+- [ ] Deploy and privilege-verify `20260911080000_checkout_expiry_provider_guard.sql` on the live `secondpart` Supabase project. Repository code/CI is green; connector read/write attempts on 2026-09-11 were rejected for insufficient Supabase permissions, so live deployment is **not yet confirmed**.
 - [ ] Complete a real Stripe test-mode E2E transaction: buyer checkout -> webhook confirmation -> seller fulfilment -> buyer receipt/acceptance -> payout eligibility.
 - [ ] Test cancellation, refund, return/case, payment-dispute and payout-reversal paths end to end.
-- [ ] Test concurrency/stock reservation with competing checkout attempts.
+- [ ] Test Scenario G concurrency/stock reservation with stock `1` and competing checkout attempts; exactly one reservation must win and cancellation/expiry must restore stock at most once.
+- [ ] Test Scenario H with a declined Stripe test payment followed by a successful retry in the same Checkout flow; stock must remain reserved after the failed attempt and the order must finish paid exactly once.
 - [x] Decide and document the payout policy when a buyer never marks an item as received and no trusted carrier delivery event exists.
 - [x] Define the account-data retention matrix for transactions, disputes, fraud prevention and legal records.
 - [x] Implement the operational account deletion/anonymisation processor; a request no longer merely freezes an account. See `docs/account-data-retention.md`.
-- [ ] Run destructive account-deletion E2E on a disposable QA account: request -> claim -> storage/PII cleanup -> hard Auth delete -> completed audit record.
+- [ ] Run destructive account-deletion E2E on a disposable QA account: request -> claim -> listing-image cleanup -> retained case-evidence ownership/path detach -> PII transformation -> hard Auth delete -> completed audit record -> idempotent second pass.
 - [ ] Final legal review of Privacy Policy and Terms with real contracting/developer identity, contact details, consumer-rights wording, seller obligations, returns/refunds, fees and retention.
 - [ ] Add/configure the real public privacy/support contact suitable for the Play listing. The code path is implemented; Production mailbox configuration is still required.
 - [x] Add production error/crash monitoring for web/API/checkout/commerce failures with structured logs and privacy-safe browser telemetry. See `docs/operations-monitoring.md`.
