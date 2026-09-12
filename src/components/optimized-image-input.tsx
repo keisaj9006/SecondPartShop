@@ -67,21 +67,39 @@ async function optimizeImage(file:File):Promise<File>{
 
 export function OptimizedImageInput({name,existingCount=0,className,onProcessingChange}:Props){
  const ref=useRef<HTMLInputElement>(null);
+ const optimizationGeneration=useRef(0);
+ const pendingResetCompletion=useRef<Promise<void>|null>(null);
  const [processing,setProcessing]=useState(false);
  const [message,setMessage]=useState<string|null>(null);
  const [error,setError]=useState<string|null>(null);
 
  useEffect(()=>{
-  const form=ref.current?.form;
-  if(!form)return;
-  const resetFeedback=()=>{setMessage(null);setError(null);};
+ const form=ref.current?.form;
+ if(!form)return;
+  const resetFeedback=(event:Event)=>{
+   let completeReset:()=>void=()=>{};
+   const completion=new Promise<void>(resolve=>{completeReset=resolve;});
+   pendingResetCompletion.current=completion;
+   queueMicrotask(()=>{
+    if(!event.defaultPrevented){
+     optimizationGeneration.current+=1;
+     setProcessing(false);
+     onProcessingChange?.(false);
+     setMessage(null);
+     setError(null);
+    }
+    if(pendingResetCompletion.current===completion)pendingResetCompletion.current=null;
+    completeReset();
+   });
+  };
   form.addEventListener("reset",resetFeedback);
   return ()=>form.removeEventListener("reset",resetFeedback);
- },[]);
+ },[onProcessingChange]);
 
  const handleChange=async()=>{
   const input=ref.current;
   if(!input)return;
+  const generation=++optimizationGeneration.current;
   const files=Array.from(input.files??[]);
   setError(null);
   setMessage(null);
@@ -98,7 +116,12 @@ export function OptimizedImageInput({name,existingCount=0,className,onProcessing
   try{
    const originalBytes=files.reduce((sum,file)=>sum+file.size,0);
    const optimized:File[]=[];
-   for(const file of files)optimized.push(await optimizeImage(file));
+   for(const file of files){
+    optimized.push(await optimizeImage(file));
+    const resetCompletion=pendingResetCompletion.current;
+    if(resetCompletion)await resetCompletion;
+    if(generation!==optimizationGeneration.current)return;
+   }
 
    const transfer=new DataTransfer();
    for(const file of optimized)transfer.items.add(file);
@@ -112,11 +135,16 @@ export function OptimizedImageInput({name,existingCount=0,className,onProcessing
      :optimized.length+" photo"+(optimized.length===1?"":"s")+" ready to upload."
    );
   }catch(caught){
+   const resetCompletion=pendingResetCompletion.current;
+   if(resetCompletion)await resetCompletion;
+   if(generation!==optimizationGeneration.current)return;
    input.value="";
    setError(caught instanceof Error?caught.message:"The selected photos could not be prepared.");
   }finally{
-   setProcessing(false);
-   onProcessingChange?.(false);
+   if(generation===optimizationGeneration.current){
+    setProcessing(false);
+    onProcessingChange?.(false);
+   }
   }
  };
 

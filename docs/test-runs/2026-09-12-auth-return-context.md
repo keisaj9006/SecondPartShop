@@ -1,6 +1,6 @@
 # Authentication return context QA — 12 September 2026
 
-Status: baseline defect verified; correction and post-fix checks pending.
+Status: PASS for Task 5 synthetic auth boundaries and public Preview link/redirect acceptance. Real email delivery remains a separate RC gate.
 
 Anonymous GET on exact-HEAD Preview `d243fdb` for `/?q=qa-missing-alternator-20260912&cv=0fe12974-0cc5-4244-b2aa-aa96b80e7c6a&cy=2017&cf=PETROL&ce=1400&fit=1` returned HTTP 200. Its Sign in to find this part link was `/account?returnTo=%2F%23marketplace`, losing query and vehicle context.
 
@@ -19,3 +19,13 @@ Independent review found an additional P1 in the reused safeInternalPath helper:
 Review round 1 repaired the shared helper by rejecting normalized protocol-relative destinations and validating the normalized origin. Regression coverage includes literal/encoded dot segments, backslash normalization and the dummy validation-domain collision. The direct helper, actual immediate signup and successful callback all reject those values while safe query/hash destinations remain intact. Independent scoped rereview approved specification compliance and quality. Fresh focused auth tests: 13/13; lint/typecheck passed with only the three existing mobile-shell lint warnings.
 Final post-review full suite: 97/97 passed; production build passed. This includes the repaired normalized-destination guard. Preview acceptance remains pending until the exact release below is verified.
 All 14 repository validators were rerun after the final security fix and passed; git diff --check passed.
+
+
+## Verified Preview acceptance
+
+- Code commit `48f2d17f076503836e88924459b91dc52cd1359b`; CI `34687931334` succeeded. READY deployment `dpl_7s6eqG7EpS5x8hGbpCDAMA26VMS1`, `second-part-shop-gc2iozg5w-joannakwapis11-5369.vercel.app`. Both stable and branch aliases read back at this exact deployment.
+- Actual anonymous browser: a zero-result query with category, catalogue vehicle, year 2017, PETROL, engine 1400, fit=0 and page=4 exposes Find My Part with the complete normalized context. Following it opens Account with the same destination; Resend confirmation opens verify-email; Back to sign in retains it again.
+- Public HTTP assertion confirmed each query/category/cv/cy/cf/ce/fit/page value and the hidden returnTo in ResendVerificationForm.
+- Public callback GETs without any auth code: a synthetic failure preserves the safe retry destination. Literal/encoded dot-segment and same-dummy-host unsafe destinations all redirect internally to Account, without carrying an external returnTo. Successful code exchange and immediate-session paths are tested synthetically, not by creating an account or delivering an email.
+- No signup, email, payment, profile change or Stripe operation occurred. The second post-signup resend link is covered by its rendered-component success-state test, since inducing that state on a real provider would send an email.
+- Additional public HTTP check passed: the exact nextCursor returned by the mobile catalogue is retained unchanged inside the Find My Part authentication destination.

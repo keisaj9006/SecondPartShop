@@ -22,6 +22,7 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
  const [state,action,pending]=useActionState(handler,initial);
  const [optimizingImages,setOptimizingImages]=useState(false);
  const formRef=useRef<HTMLFormElement>(null);
+ const actionResetPending=useRef(false);
  const [title,setTitle]=useState(listing?.title??defaultTitle??"");
  const [description,setDescription]=useState(listing?.description??"");
  const initialDonorId=listing?.donorVehicleId??defaultDonorId??"";
@@ -78,7 +79,17 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
   }
  };
 
- return <form ref={formRef} action={action} className="mt-8 grid gap-5 rounded-3xl border border-black/10 bg-white p-5 sm:p-7 lg:grid-cols-2">
+ return <form
+  ref={formRef}
+  action={action}
+  onSubmitCapture={()=>{actionResetPending.current=true;}}
+  onReset={event=>{
+   if(!actionResetPending.current)return;
+   actionResetPending.current=false;
+   event.preventDefault();
+  }}
+  className="mt-8 grid gap-5 rounded-3xl border border-black/10 bg-white p-5 sm:p-7 lg:grid-cols-2"
+ >
   {listing&&<input type="hidden" name="partId" value={listing.id}/>} {!listing&&defaultRequestId&&<input type="hidden" name="sourceRequestId" value={defaultRequestId}/>}
   <input type="hidden" name="categoryId" value={categoryId}/>
 
