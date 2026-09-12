@@ -135,3 +135,9 @@ Production monitoring is code-ready when:
 - Production can configure a webhook destination without changing application code.
 
 The **external monitoring P0** is complete only after Production `OPS_ALERT_WEBHOOK_URL` is configured and the admin smoke test returns HTTP 2xx **and** the alert is visibly confirmed in the intended operations destination.
+
+## Credential redaction regression checks
+
+`node --test scripts/test-monitoring-redaction.mjs` exercises the actual reporting and marketplace-analytics boundaries with synthetic credentials, captured console output and mocked alert transport. It does not send a real alert. Coverage includes signing secrets, Supabase secret keys, standalone JWT claim fragments at truncation boundaries and Stripe intent client secrets, together with the existing URL/email/API-key/Bearer redaction. Context keys and values are sanitized. Safe provider object IDs, status and error codes remain useful for correlation.
+
+Do not test this by pasting a real credential into a failing request or log. New provider credential formats require a synthetic regression case; these tests do not replace separately authorized alert-delivery verification.

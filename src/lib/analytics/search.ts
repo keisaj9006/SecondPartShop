@@ -2,6 +2,7 @@ import "server-only";
 
 import {createSupabaseAdminClient} from "@/lib/supabase/admin";
 import {isUuid} from "@/lib/identifiers";
+import {sanitizeMonitoringText} from "@/lib/ops-monitoring";
 
 type SearchSource="web"|"mobile";
 
@@ -28,8 +29,8 @@ export async function recordMarketplaceSearch(input:{
    compatible_only:Boolean(input.vehicleContext&&input.compatibleOnly),
    category_id:categoryId
   });
-  if(error)console.warn("[SecondPart] Search analytics insert failed",error.code);
+  if(error)console.warn("[SecondPart] Search analytics insert failed",sanitizeMonitoringText(error.code,120));
  }catch(error){
-  console.warn("[SecondPart] Search analytics unavailable",error instanceof Error?error.message:"unknown_error");
+  console.warn("[SecondPart] Search analytics unavailable",sanitizeMonitoringText(error instanceof Error?error.message:"unknown_error",240));
  }
 }

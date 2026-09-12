@@ -36,6 +36,9 @@ export function sanitizeMonitoringText(value:unknown,max=MAX_MESSAGE){
   })
   .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,"[redacted-email]")
   .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi,"[redacted-id]")
+  .replace(/(?:pi|seti)_[A-Za-z0-9]{1,255}_secret_[A-Za-z0-9_-]{1,3600}(?![A-Za-z0-9_-])/g,"[redacted-token]")
+  .replace(/(?:whsec_|sb_secret_)[A-Za-z0-9_-]{1,3600}(?![A-Za-z0-9_-])/g,"[redacted-token]")
+  .replace(/(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{5,3600}(?:\.[A-Za-z0-9_-]{1,3600}){1,2}(?![A-Za-z0-9_-])/g,"[redacted-token]")
   .replace(/\b(?:sk|pk|rk)_(?:live|test)_[A-Za-z0-9_-]+\b/g,"[redacted-token]")
   .replace(/Bearer\s+[A-Za-z0-9._~+\/-]+=*/gi,"Bearer [redacted-token]")
   .slice(0,max);
@@ -63,8 +66,9 @@ const cleanContext=(context:OpsContext|undefined)=>{
  const result:Record<string,string|number|boolean|null>={};
  for(const [key,value] of Object.entries(context??{})){
   if(value===undefined)continue;
-  if(typeof value==="string")result[key.slice(0,60)]=sanitizeMonitoringText(value,MAX_CONTEXT_VALUE);
-  else if(typeof value==="number"||typeof value==="boolean"||value===null)result[key.slice(0,60)]=value;
+  const cleanKey=sanitizeMonitoringText(key,60);
+  if(typeof value==="string")result[cleanKey]=sanitizeMonitoringText(value,MAX_CONTEXT_VALUE);
+  else if(typeof value==="number"||typeof value==="boolean"||value===null)result[cleanKey]=value;
  }
  return result;
 };
