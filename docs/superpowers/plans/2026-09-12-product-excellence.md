@@ -72,10 +72,10 @@ Preview HTTP observation: public product response has the generic title, no JSON
 
 **Files:** vehicle-selector.tsx, Garage page, compatibility-badge.tsx and part-request-card.tsx only as warranted by the focused audit.
 
-- [ ] Inspect fresh selection, saved Garage selection, enabled/disabled fit filter, removal/reload and no-compatible-offer fallback on Preview; record existing correct behavior without reimplementing it.
-- [ ] Replace confirmed technical-only user copy with actionable availability/manual-selection explanation. Preserve confirmed/family/unknown evidence labels and request context. Add render regressions for changed copy/error states.
-- [ ] For one resolved variant with multiple unmatched engines, expose the missing engine/fuel choice and explain it; keep apply disabled until selected. Tests must prove no inferred engine and unchanged automatic single-engine resolution.
-- [ ] Verify no checkout/server compatibility changes, focused tests/lint/typecheck and review.
+- [x] Inspect fresh selection, saved Garage selection, enabled/disabled fit filter, removal/reload and no-compatible-offer fallback on Preview; record existing correct behavior without reimplementing it.
+- [x] Replace confirmed technical-only user copy with actionable availability/manual-selection explanation. Preserve confirmed/family/unknown evidence labels and request context. Add render regressions for changed copy/error states.
+- [x] For one resolved variant with multiple unmatched engines, expose the missing engine/fuel choice and explain it; keep apply disabled until selected. Tests must prove no inferred engine and unchanged automatic single-engine resolution.
+- [x] Verify no checkout/server compatibility changes, focused tests/lint/typecheck and review.
 
 ## Task 4: Buyer feedback
 

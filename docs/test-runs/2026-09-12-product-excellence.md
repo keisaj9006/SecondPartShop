@@ -123,3 +123,17 @@ Additional buyer read-only acceptance on ca61133: public Gearbox Lab UK profile 
 Task3 independent review required a further correction: multi-engine fuel-only evidence with null capacity could choose the first capacity. A minimal exact-evidence guard and two regression controls are in progress. Earlier local255/build success is not final acceptance of the corrected code.
 
 Batch3 correction accepted by scoped independent rereview: multiple-engine automatic matching now requires non-null exact capacity and matching fuel. The null-capacity regression witnessed RED then GREEN; the exact-capacity positive control and single-engine automation remain passing. Final root12focused/257full tests pass with no skips/failures; post-fix lint0errors/3legacywarnings, typecheck0, build0, diff-check0, mobile-performance0 and launch-baseline0. Ready for code commit and exact-SHA Preview acceptance; no provider E2E is inferred.
+
+### Batch3 acceptance: PASS (scoped engineering and Preview)
+
+Commit612f9bbd1dccfd362b9044f79fa702482865ac94, CI34707231526 success, READY Previewdpl_FMvDqW5Kby5YBLm1mR5gxy1QdqT8 at second-part-shop-n7o5pgsoy-joannakwapis11-5369.vercel.app. Vercel API confirmed both stable and branch aliases point to that deployment after exact-SHA/CI verification.
+
+Actual QA Buyer browser on this code: Home shows the new actionable UK-registration/manual guidance. Keyboard Make→Vauxhall and Model→Astra plus Year2017/Version ASTRA GTC SPORT S/S expose actual catalogue options Gas1400 and Petrol1400. Selection remains blank, Use this vehicle disabled, generic exact-engine-unconfirmed guidance visible. Deliberately selecting Petrol1400 enables Use this vehicle. The button was NOT submitted; reload discarded the in-memory selection. No Garage record/provider request was created or changed. Registration-result ambiguity and partial capacity remain synthetic component boundary evidence, not real provider E2E. Final12focused/257full, lint/typecheck/build/diff-check/mobile-performance/launch-baseline passed; independent rereview no open findings. Batch4 work continues.
+
+## Batch4 implementation and local acceptance
+
+SaveButton now uses only successful server results for saved state, synchronizes mounted copies in the current tab, handles false/thrown failures with bounded feedback, guards repeat activation, and preserves the exact safe internal login-return path. No module-global user cache or automatic post-login mutation was introduced. Later changed server props rebase state; unchanged stale props do not undo a successful event. Detail empty-fitments copy no longer exposes legacy-QA terminology or denies catalogue evidence.
+
+Independent review required two additional regressions: touch-visible compact save failure and context-aware copy when the compatibility panel is already present. Both witnessed RED/GREEN and passed scoped rereview. Compact failure displays Save failed. Try again. within the card image, retains live feedback and does not intercept product links. Detail guidance distinguishes selection needed from evidence already shown.
+
+Final root focused7/7, full264/264 (no failures/skips); lint0errors/3existinglegacywarnings, typecheck0, build0, diff-check0; all14repo validators exit0. Exact code commit, CI and reversible Preview save/removal acceptance follow. Failure cases remain synthetic component evidence; no real provider failure was forced.
