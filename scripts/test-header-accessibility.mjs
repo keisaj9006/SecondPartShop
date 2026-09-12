@@ -22,7 +22,7 @@ function hookRunner(){
  const source=fs.readFileSync(path.join(root,"src/components/header-shell.tsx"),"utf8");
  const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
  const exports={};
- vm.runInNewContext(compiled,{exports,require(name){if(name==="react/jsx-runtime")return jsxRuntime;if(name==="react")return react;if(name==="next/link")return "a";if(name==="next/navigation")return {useRouter:()=>({push(){}})};if(name==="lucide-react")return new Proxy({},{get:()=>icon});if(name==="@/app/auth/actions")return {signOut(){}};if(name==="@/components/category-browser")return {CategoryBrowser:()=>null};if(name==="@/lib/marketplace-navigation")return {resetMarketplacePagination(){}};throw new Error(`Unexpected dependency ${name}`);},URLSearchParams,window:{location:{pathname:"/",search:""}},document,console});
+ vm.runInNewContext(compiled,{exports,require(name){if(name==="react/jsx-runtime")return jsxRuntime;if(name==="react")return react;if(name==="next/link")return {default:"a"};if(name==="next/navigation")return {useRouter:()=>({push(){}})};if(name==="lucide-react")return new Proxy({},{get:()=>icon});if(name==="@/app/auth/actions")return {signOut(){}};if(name==="@/components/category-browser")return {CategoryBrowser:()=>null};if(name==="@/lib/marketplace-navigation")return {resetMarketplacePagination(){}};throw new Error(`Unexpected dependency ${name}`);},URLSearchParams,window:{location:{pathname:"/",search:""}},document,console});
  return {HeaderShell:exports.HeaderShell,document,listeners,render(props={categories:[],user:false,displayName:null,seller:false}){hookIndex=0;effects=[];return exports.HeaderShell(props);},flushEffects(){const queued=effects;effects=[];queued.forEach(effect=>effect());}};
 }
 
@@ -31,6 +31,18 @@ function textContent(value){if(value===null||value===undefined||typeof value==="
 const button=(tree,label)=>nodes(tree).find(node=>node.type==="button"&&textContent(node)===label);
 const ariaButton=(tree,label)=>nodes(tree).find(node=>node.type==="button"&&node.props["aria-label"]===label);
 const nativeKey=(key,target)=>{const event=new Event("keydown",{cancelable:true});Object.defineProperties(event,{key:{value:key},target:{value:target}});return event;};
+const classTokens=node=>String(node.props?.className??"").split(/\s+/).filter(Boolean);
+function visibleAt(node,width){
+ let display=classTokens(node).includes("hidden")?"none":"visible";
+ for(const [minimum,prefix] of [[768,"md"],[1024,"lg"],[1280,"xl"]]){
+  if(width<minimum)continue;
+  for(const token of classTokens(node)){
+   if(token===`${prefix}:hidden`)display="none";
+   if([`${prefix}:block`,`${prefix}:flex`,`${prefix}:grid`,`${prefix}:inline-flex`].includes(token))display="visible";
+  }
+ }
+ return display!=="none";
+}
 
 test("desktop and mobile header navigation landmarks have distinct accessible names",()=>{
  const runner=hookRunner();
@@ -105,4 +117,61 @@ test("Escape from mobile navigation closes it and returns focus without trapping
  tree=runner.render();
  assert.equal(ariaButton(tree,"Open navigation").props["aria-expanded"],false);
  assert.equal(focused,1);
+});
+
+test("tablet widths keep the complete mobile menu until the proven desktop boundary",()=>{
+ const runner=hookRunner();
+ let tree=runner.render();
+ const primary=nodes(tree).find(node=>node.type==="nav"&&node.props["aria-label"]==="Primary navigation");
+ const menu=ariaButton(tree,"Open navigation");
+ for(const width of [768,1024,1279]){
+  assert.equal(visibleAt(primary,width),false,`primary navigation must stay hidden at ${width}px`);
+  assert.equal(visibleAt(menu,width),true,`mobile menu trigger must stay visible at ${width}px`);
+ }
+ assert.equal(visibleAt(primary,1280),true);
+ assert.equal(visibleAt(menu,1280),false);
+
+ menu.props.onClick();
+ tree=runner.render();
+ const mobilePanel=nodes(tree).find(node=>node.props?.id===menu.props["aria-controls"]);
+ assert.equal(visibleAt(mobilePanel,1279),true);
+ assert.equal(visibleAt(mobilePanel,1280),false);
+
+ const desktopRunner=hookRunner();
+ let desktopTree=desktopRunner.render();
+ const categories=button(desktopTree,"Car parts");
+ categories.props.onClick();
+ desktopTree=desktopRunner.render();
+ const desktopPanel=nodes(desktopTree).find(node=>node.props?.id===categories.props["aria-controls"]);
+ assert.equal(visibleAt(desktopPanel,1279),false);
+ assert.equal(visibleAt(desktopPanel,1280),true);
+});
+
+test("authenticated narrow headers remove redundant Garage and Seller actions but keep both destinations in the menu",()=>{
+ const runner=hookRunner();
+ let tree=runner.render({categories:[],user:true,displayName:"QA Buyer",seller:true});
+ const garageAction=nodes(tree).find(node=>node.type==="a"&&node.props["aria-label"]==="SecondPart Garage");
+ const sellerAction=nodes(tree).find(node=>node.type==="a"&&node.props["aria-label"]==="Seller dashboard");
+ for(const action of [garageAction,sellerAction]){
+  assert.equal(visibleAt(action,390),false);
+  assert.equal(visibleAt(action,1279),false);
+  assert.equal(visibleAt(action,1280),true);
+ }
+
+ ariaButton(tree,"Open navigation").props.onClick();
+ tree=runner.render({categories:[],user:true,displayName:"QA Buyer",seller:true});
+ const mobileMenu=nodes(tree).find(node=>node.type==="nav"&&node.props["aria-label"]==="Mobile menu");
+ const destinations=nodes(mobileMenu).filter(node=>node.type==="a").map(node=>node.props.href);
+ assert.ok(destinations.includes("/garage"));
+ assert.ok(destinations.includes("/dashboard"));
+});
+
+test("brand badge keeps its square while the wordmark yields when enlarged text reduces available space",()=>{
+ const tree=hookRunner().render();
+ const brand=nodes(tree).find(node=>node.type==="a"&&node.props.href==="/");
+ const badge=nodes(brand).find(node=>node.type==="span"&&textContent(node)==="S");
+ const wordmark=nodes(brand).find(node=>node.type==="span"&&textContent(node)==="SecondPart");
+ assert.ok(classTokens(badge).includes("shrink-0"));
+ assert.ok(classTokens(wordmark).includes("truncate"));
+ assert.equal(brand.props["aria-label"],"SecondPart home");
 });

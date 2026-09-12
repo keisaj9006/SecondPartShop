@@ -89,12 +89,12 @@ Preview HTTP observation: public product response has the generic title, no JSON
 
 **Files:** bulk-inventory-import.tsx, existing import actions/data validation and listing form only for demonstrated additional issues; focused import/form regressions.
 
-- [ ] Read import preview/draft creation, seller-reference uniqueness and report limits; distinguish replay-safe existing references from rows without references. Do not claim universal idempotency.
-- [ ] Require a nonempty stable seller_reference for each importable CSV row and explain reuse for retries; reject missing references before writes. Existing casefold uniqueness remains authoritative; reject duplicates without overwriting existing stock. Tests prove repeated missing-reference file writes zero and a referenced partial retry creates only remaining rows.
+- [x] Read import preview/draft creation, seller-reference uniqueness and report limits; distinguish replay-safe existing references from rows without references. Do not claim universal idempotency.
+- [x] Require a nonempty stable seller_reference for each importable CSV row and explain reuse for retries; reject missing references before writes. Existing casefold uniqueness remains authoritative; reject duplicates without overwriting existing stock. Tests prove repeated missing-reference file writes zero and a referenced partial retry creates only remaining rows.
 - [ ] Reproduce preview file reset; retain selection only where no rows were written and keep deliberate success reset. Accurate valid/created/rejected counts and actionable report guidance; do not allow replay after partial writes or invent upload atomicity.
-- [ ] Check final batch update errors explicitly; expose incomplete-report recovery/batch link instead of success. Synchronize UI and importer limit constants at existing5000rows/20MiB without increasing limits. Test failed finalization and exact size/row boundaries synthetically.
+- [x] Check final batch update errors explicitly; expose incomplete-report recovery/batch link instead of success. Synchronize UI and importer limit constants at existing5000rows/20MiB without increasing limits. Test failed finalization and exact size/row boundaries synthetically.
 - [ ] Inspect errors, correction of rejected rows and existing inventory/report UI. Run only synthetic import action tests and safe Preview validation on QA Seller; no new public fixture or bulk mutation.
-- [ ] Verify existing partial-save recovery/publication rules remain, run focused checks/review.
+- [x] Verify existing partial-save recovery/publication rules remain, run focused checks/review.
 
 ## Task 6: Responsive consistency
 
