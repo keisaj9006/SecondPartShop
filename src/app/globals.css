@@ -23,8 +23,11 @@ input[type="checkbox"]:active,input[type="radio"]:active {
   outline-offset:2px;
 }
 @media (prefers-reduced-motion:reduce) {
+  html { scroll-behavior:auto; }
+  *,*::before,*::after { transition-duration:.01ms !important; transition-delay:0ms !important; }
   button,a,[role="button"] { transition:none; }
   button:not(:disabled):active,a[href]:active,[role="button"]:active { transform:none; }
+  .animate-in { animation:none !important; }
 }
 .dot-grid { background-image:radial-gradient(rgba(212,244,77,.2) 1px,transparent 1px); background-size:24px 24px; }
 .part-visual { background:radial-gradient(circle at 68% 30%,rgba(212,244,77,.24),transparent 28%),linear-gradient(135deg,#e8ebe5 0%,#cfd7d1 52%,#f4f2eb 100%); }

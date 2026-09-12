@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect,useState,useTransition } from "react";
+import { useEffect,useId,useRef,useState,useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CarFront,ChevronDown,Search,X } from "lucide-react";
 import { VehicleVisual } from "@/components/vehicle-visual";
@@ -54,23 +54,52 @@ async function getItems<T>(url:string,signal?:AbortSignal):Promise<T[]>{
  }
 }
 
-function SearchableVehicleSelect({value,options,placeholder,disabled,onChange}:{value:string;options:{value:string;label:string}[];placeholder:string;disabled?:boolean;onChange:(value:string)=>void}){
+export function SearchableVehicleSelect({value,options,placeholder,label,disabled,onChange}:{value:string;options:{value:string;label:string}[];placeholder:string;label:string;disabled?:boolean;onChange:(value:string)=>void}){
+ const instanceId=useId();
+ const listboxRef=useRef<HTMLDivElement>(null);
  const [open,setOpen]=useState(false);
  const [term,setTerm]=useState("");
- const [active,setActive]=useState(0);
+ const [activeValue,setActiveValue]=useState<string|null>(null);
  const selectedLabel=options.find(option=>option.value===value)?.label??"";
- const listboxId=`vehicle-select-${placeholder.toLowerCase().replace(/[^a-z0-9]+/g,"-")}`;
+ const listboxId=`vehicle-select-${instanceId}`;
+ const optionId=(optionValue:string)=>`${listboxId}-option-${Array.from(optionValue).map(character=>character.codePointAt(0)?.toString(16)).join("-")||"empty"}`;
  const normalized=term.trim().toLowerCase();
  const filtered=(normalized?options.filter(option=>option.label.toLowerCase().includes(normalized)):options).slice(0,80);
- const choose=(next:string)=>{onChange(next);setOpen(false);setTerm("");setActive(0);};
- return <div className="relative min-w-0" onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget as Node)){setOpen(false);setTerm("");setActive(0);}}}>
-  <input role="combobox" aria-controls={listboxId} aria-expanded={open} aria-autocomplete="list" disabled={disabled} value={open?term:selectedLabel} onFocus={()=>{setOpen(true);setTerm("");setActive(0);}} onChange={event=>{setTerm(event.target.value);setOpen(true);setActive(0);}} onKeyDown={event=>{
-   if(event.key==="ArrowDown"){event.preventDefault();setOpen(true);setActive(index=>Math.min(index+1,Math.max(0,filtered.length-1)));}
-   else if(event.key==="ArrowUp"){event.preventDefault();setActive(index=>Math.max(index-1,0));}
-   else if(event.key==="Enter"&&open&&filtered[active]){event.preventDefault();choose(filtered[active].value);}
-   else if(event.key==="Escape"){setOpen(false);setTerm("");}
+ // Discard intent when an option becomes unavailable; a later reload must not revive it.
+ if(activeValue!==null&&(disabled||!filtered.some(option=>option.value===activeValue)))setActiveValue(null);
+ const activeOption=!disabled&&open?filtered.find(option=>option.value===activeValue):undefined;
+ const activeId=activeOption?optionId(activeOption.value):undefined;
+ const close=()=>{setOpen(false);setTerm("");setActiveValue(null);};
+ const choose=(next:string)=>{if(!disabled&&filtered.some(option=>option.value===next)){onChange(next);close();}};
+ const moveActive=(direction:1|-1)=>{
+  setOpen(true);
+  setActiveValue(current=>{
+   if(!filtered.length)return null;
+   const currentIndex=filtered.findIndex(option=>option.value===current);
+   if(currentIndex<0)return filtered[direction===1?0:filtered.length-1].value;
+   return filtered[Math.max(0,Math.min(filtered.length-1,currentIndex+direction))].value;
+  });
+ };
+
+ useEffect(()=>{
+  if(!activeId)return;
+  const listbox=listboxRef.current;
+  const option=document.getElementById(activeId);
+  if(!listbox||!option)return;
+  const listboxBounds=listbox.getBoundingClientRect();
+  const optionBounds=option.getBoundingClientRect();
+  if(optionBounds.top<listboxBounds.top||optionBounds.bottom>listboxBounds.bottom)option.scrollIntoView({block:"nearest",behavior:"auto"});
+ },[activeId]);
+
+ return <div className="relative min-w-0" onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget as Node))close();}}>
+  <input role="combobox" aria-label={label} aria-controls={listboxId} aria-expanded={open&&!disabled} aria-activedescendant={activeId} aria-autocomplete="list" disabled={disabled} value={open&&!disabled?term:selectedLabel} onFocus={()=>{if(!disabled){setOpen(true);setTerm("");setActiveValue(null);}}} onChange={event=>{setTerm(event.target.value);setOpen(true);setActiveValue(null);}} onKeyDown={event=>{
+   if(event.key==="ArrowDown"&&!disabled){event.preventDefault();moveActive(1);}
+   else if(event.key==="ArrowUp"&&!disabled){event.preventDefault();moveActive(-1);}
+   else if(event.key==="Enter"&&open&&!disabled){event.preventDefault();if(activeOption)choose(activeOption.value);}
+   else if(event.key==="Escape"&&open){event.preventDefault();close();}
+   else if(event.key==="Tab"&&open)close();
   }} className="w-full rounded-xl border border-black/12 bg-white px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-[#173c31] disabled:bg-black/5" placeholder={placeholder}/>
-  {open&&!disabled&&<div id={listboxId} role="listbox" className="absolute z-30 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-black/10 bg-white p-1 shadow-xl">{filtered.length?filtered.map((option,index)=><button key={option.value} type="button" role="option" aria-selected={option.value===value} onMouseDown={event=>event.preventDefault()} onClick={()=>choose(option.value)} className={`block w-full rounded-lg px-3 py-2 text-left text-sm ${index===active?"bg-[#eef1eb]":"hover:bg-[#eef1eb]"}`}>{option.label}</button>):<p className="px-3 py-3 text-sm text-[#63706a]">No matching options</p>}</div>}
+  {open&&!disabled&&<div ref={listboxRef} id={listboxId} role="listbox" aria-label={label} className="absolute z-30 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-black/10 bg-white p-1 shadow-xl">{filtered.length?filtered.map(option=><button key={option.value} id={optionId(option.value)} type="button" role="option" tabIndex={-1} aria-selected={option.value===value} onMouseDown={event=>event.preventDefault()} onClick={()=>choose(option.value)} className={`block w-full rounded-lg px-3 py-2 text-left text-sm ${option.value===activeOption?.value?"bg-[#eef1eb]":"hover:bg-[#eef1eb]"}`}>{option.label}</button>):<p role="status" className="px-3 py-3 text-sm text-[#63706a]">No matching options</p>}</div>}
  </div>;
 }
 
@@ -266,8 +295,8 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
 
   {manualOpen&&<div className="mt-4 rounded-2xl border border-black/10 bg-white/60 p-4">
    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-    <SearchableVehicleSelect value={make} options={makes.map(value=>({value,label:nameLabel(value)}))} placeholder={loadingMakes?"Loading makes…":"Search make"} disabled={loadingMakes} onChange={resetAfterMake}/>
-    <SearchableVehicleSelect value={model} options={models.map(value=>({value,label:nameLabel(value)}))} placeholder={loadingModels?"Loading models…":"Search model"} disabled={!make||loadingModels} onChange={resetAfterModel}/>
+    <SearchableVehicleSelect value={make} options={makes.map(value=>({value,label:nameLabel(value)}))} placeholder={loadingMakes?"Loading makes…":"Search make"} label="Make" disabled={loadingMakes} onChange={resetAfterMake}/>
+    <SearchableVehicleSelect value={model} options={models.map(value=>({value,label:nameLabel(value)}))} placeholder={loadingModels?"Loading models…":"Search model"} label="Model" disabled={!make||loadingModels} onChange={resetAfterModel}/>
     <select aria-label="Year" className={control} value={year} disabled={!model||loadingYears} onChange={event=>resetAfterYear(event.target.value)}><option value="">{loadingYears?"Loading years…":"Year"}</option>{years.map(value=><option key={value} value={value}>{value}</option>)}</select>
     <select aria-label="Version" className={control} value={variantId} disabled={!year||loadingVariants} onChange={event=>resetAfterVariant(event.target.value)}><option value="">{loadingVariants?"Loading versions…":"Version / derivative"}</option>{selectedVariant&&!variants.some(item=>item.id===selectedVariant.id)&&<option value={selectedVariant.id}>{selectedVariant.variant}</option>}{variants.map(item=><option key={item.id} value={item.id}>{item.variant}</option>)}</select>
     <select aria-label="Engine and fuel" className={`${control} col-span-2 sm:col-span-2`} value={catalogueEngine} disabled={!variantId||loadingEngines||engines.length===0} onChange={event=>setCatalogueEngine(event.target.value)}><option value="">{loadingEngines?"Loading engine…":engines.length?"Engine / fuel":"Engine data unavailable"}</option>{engines.map(item=><option key={engineKey(item)} value={engineKey(item)}>{item.engineSizeSimple?`${item.engineSizeSimple}cc · ${fuelLabel(item.fuelType)}`:fuelLabel(item.fuelType)}</option>)}</select>
