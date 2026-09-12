@@ -98,6 +98,33 @@ function fakeSupabase({parts=[],batches=[],failReferences=new Set(),finalization
  };
 }
 
+test("reference lookup failure retains the CSV, exposes no provider payload and writes nothing before a safe preview retry",async()=>{
+ for(const mode of ["preview","import"]){
+  const harness=fakeSupabase();
+  const lookup=harness.client.rpc;
+  const file=csvFile([row("Stock-Retry")]);
+  harness.client.rpc=async()=>({data:null,error:{code:"SYNTHETIC",message:"synthetic-private-provider-payload"}});
+  const failed=await processSellerInventoryCsv({file,sellerId,supabase:harness.client,mode});
+  assert.equal(failed.status,"error");
+  assert.equal(failed.fileReset,"retain");
+  assert.equal(failed.rowsReceived,1);
+  assert.equal(failed.message,"Existing seller references could not be checked.");
+  assert.equal(failed.batchId,undefined);
+  assert.equal(failed.createdRows,undefined);
+  assert.ok(!JSON.stringify(failed).includes("synthetic-private-provider-payload"));
+  assert.equal(harness.state.parts.length,0);
+  assert.equal(harness.state.batches.length,0);
+  harness.client.rpc=lookup;
+  const retried=await processSellerInventoryCsv({file,sellerId,supabase:harness.client,mode:"preview"});
+  assert.equal(retried.status,"preview");
+  assert.equal(retried.validRows,1);
+  assert.equal(retried.rejectedRows,0);
+  assert.equal(retried.fileReset,"retain");
+  assert.equal(harness.state.parts.length,0);
+  assert.equal(harness.state.batches.length,0);
+ }
+});
+
 test("repeating an import whose rows lack seller references performs zero writes",async()=>{
  const harness=fakeSupabase();
  const file=csvFile([row("")]);
