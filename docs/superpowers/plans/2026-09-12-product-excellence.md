@@ -57,7 +57,7 @@ Preview HTTP observation: public product response has the generic title, no JSON
 - [x] Implement input-focused combobox: arrows open/navigate available options without accidental selection; Escape clears draft/closes; Tab closes without preventing natural focus movement; empty results have no active descendant; disabling or failed/empty data cannot leave an actionable stale option. Scroll the active option with `block:'nearest', behavior:'instant'` (or equivalent nonanimated behavior) only when needed.
 - [x] Preserve visible focus and mouse selection. Add status semantics to empty/error catalogue feedback and accurate header disclosure expanded/controls without introducing a modal trap for in-flow menus.
 - [x] Reduced motion: `html{scroll-behavior:auto}` under reduce; `.animate-in` no fade/translation; suppress nonessential transitions/press movement. Do not remove static rotation that conveys open/closed state. Keep loading text and necessary loading indicators perceivable.
-- [ ] Run red/green focused tests, lint, typecheck, mobile-performance and launch-baseline validators. Independent review; root full verification and actual Preview keyboard acceptance before PASS/commit evidence.
+- [x] Run red/green focused tests, lint, typecheck, mobile-performance and launch-baseline validators. Independent review and actual Preview keyboard/axe acceptance passed; see evidence report for commits and limitations.
 
 ## Task 2: Measured mobile navigation
 
