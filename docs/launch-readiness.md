@@ -7,6 +7,8 @@ This document is the canonical launch checklist for the Android / Google Play an
 
 ## Current verified engineering baseline
 
+Product Excellence update (2026-09-12): accessibility, mobile navigation, vehicle-selection clarity, saved-state viewer boundaries, CSV retry/report handling, responsive navigation and safe Preview metadata have passed scoped engineering checks and independent review. Corrected `1a34457` passed301 tests, lint/typecheck/build,14 validators and CI; representative Preview checks passed. Actual QA Seller CSV/reset and seller-form viewport checks remain pending login. See [full evidence/checkpoint](test-runs/2026-09-12-product-excellence.md). This does not close provider, physical-device, production-domain or marketplace-liquidity gates.
+
 Continuing commerce QA has now produced a real test-mode paid order. It exposed a purchase-display bug when sold listings become hidden by RLS; buyer-scoped order reads now retain purchased item identity without changing RLS. Buyer receipt, explicit acceptance, seller transfer and paid-webhook replay have now passed Scenario A in Preview; other provider scenarios remain separate gates.
 
 Commerce QA update (2026-09-11): QA Seller Connect and Preview webhook delivery/replay are verified in test mode. The first application checkout exposed an invalid V1 API version (`2026-08-26.clover`); the adapter now uses the sandbox's supported `2026-08-26.dahlia`, with regression coverage. The test purchase, fulfilment, explicit acceptance and £12.50 Connect transfer passed, with one transfer after webhook replay and page refreshes. See `docs/test-runs/2026-09-11-commerce-preview-preflight.md`.

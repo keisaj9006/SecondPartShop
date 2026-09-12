@@ -176,3 +176,51 @@ Batch7 final full291/291 PASS; post-harness lint0errors/3legacywarnings and type
 Batch7 review follow-up supersedes its initial PASS: actual helper accepted link-local/reserved IP literals as Production canonical origins. This is a P2 domain-validation correctness gap (metadata only, no server fetch/SSRF). Reviewer requires DNS-only canonical origin with exact IPv4/IPv6 rejection regressions; correction in progress before commit. Existing291/build evidence predates this correction.
 DNS-only correction: canonical-origin validation now rejects URL-normalized IPv4 and bracketed IPv6 literals; metadata image filtering is unchanged. Metadata15/15, affected64/64 and rootfull292/292 PASS. Post-correction lint0errors/3legacywarnings, typecheck0 and origin/env/launch validators0. Fresh production build and scoped P2 rereview running.
 Batch7 corrected engineering acceptance: fresh build exit0; independent scoped P2 rereview PASS with no open findings. Final15metadata/64affected/292full tests pass, lint/typecheck/diff-check pass, all14validators plus freshorigin/env/launch pass. Ready for code commit/CI/Preview; no Production configuration approved.
+
+### Batch7 scoped engineering and Preview acceptance: PASS
+
+Commit4c53a04b2da8f88145d416b3aec0b9d485732b4d, CI34712294753 success, READY Previewdpl_wiK9VcoVxbRZmCxaKAi9JHeXodx6 at second-part-shop-hyxipn3pt-joannakwapis11-5369.vercel.app. Stable alias assigned only after exact-SHA/READY/CI confirmation.
+
+Actual public HTTP (Googlebot user agent): Home, DSG detail, Gearbox Lab UK seller and anonymous Account return200 with noindex,nofollow and no canonical. Home/Part/Seller titles and OG descriptions are route-specific; Account has generic private title and no inherited Home OG. DSG JSON-LD contains Product/Offer price189.00, GBP, NewCondition, InStock from existing stock, without ratings or URL claims. Real browser after reload independently confirms DSG title, noindex,nofollow, no canonical, matching h1 and one JSON-LD script. No payment/account action occurred. Production-domain canonical/Breadcrumb observation, sitemap and inventory-derived landing publication remain blocked, not PASS.
+
+Final metadata15/affected64/full292, lint/typecheck/build/diff and14validators PASS; P2 origin rereview resolved. Whole-phase integration review is active, including the recorded remaining authenticated-desktop and saved-card propagation issues.
+
+## Whole-phase integration correction
+
+Final independent review of 77b42dc..4c53a04 found three P2 issues: authenticated desktop header density; missing initial saved state on Account/recent/seller cards; and no explicit viewer identity reset for saved feedback/state. These are a narrow follow-up to Batches4/6, not a reopened Marketplace Integrity or Stripe audit.
+
+The correction bounds the Account label and navigation spacing, resolves saved IDs only for the current viewer and visible listings, and keys saved controls by server viewer identity. Events carry viewer identity and obsolete unmounted action completions are ignored. Server toggle authority, anonymous browsing and same-viewer updates remain. Regression checks include different viewer identity with unchanged initialSaved, feedback/pending reset, stale events and late completion. Root full301/301 and all14 static validators pass on this working tree. Final build, independent scoped rereview and exact-SHA Preview acceptance are still pending; this paragraph does not mark those gates PASS.
+
+Correction verification: frozen code passed root23 focused tests, full301/301 (no skips/failures), lint0errors/3 unchanged legacy warnings, typecheck0, build0 and all14 validators0. Independent scoped F1–F3 specification/quality rereview PASS with no further code findings. Staged diff-check included the new regression file and passed. Logical commits db65e96 (authenticated header) and 1a344573a0685c5299dcdcbfb5205c96d59abde1 (viewer-scoped saved state) were pushed only to origin/rebuild-nextjs. Actual corrected Preview acceptance follows.
+
+Final local client-reference footprint (unique route client chunks; bytes raw/local gzip, not full network/first-load size): Home4/105038/33733; Garage3/46166/14688; Purchases3/50013/15783; Inbox3/46166/14688; Account4/71187/23675. Compared with the recorded pre-phase baseline these are modest increases, not a bundle reduction. No new heavy dependency was added. The earlier mobile timing comparison remains inconclusive because viewport/cache conditions differed; no quantitative speed improvement is claimed.
+
+## Resume checkpoint — corrected code verified on Preview
+
+Code HEAD1a344573a0685c5299dcdcbfb5205c96d59abde1 passed CI34713885196. READY Previewdpl_GgmrV5FYT8wyRmrNaxf6zShBKZXS at second-part-shop-7srh4l079-joannakwapis11-5369.vercel.app matches this exact SHA. Both stable and branch aliases were independently confirmed on that deployment. A subsequent documentation-only commit can advance HEAD without changing these tested application bytes; its own CI/deployment/alias confirmation is required separately.
+
+Actual corrected browser evidence:
+
+- QA Buyer Account and Recently viewed: DQ200 saved=true, DSG=false. Public Gearbox Lab UK seller cards show the same viewer state. No saved-state mutation occurred; existing DQ200 save retained.
+- QA Buyer seller-enabled header at actual1281x800/client1269: full wordmark width/scrollWidth125, all six primary entries height19.99px (one line), document scrollWidth1269. Screenshot confirms no overlap. Anonymous desktop at the same dimensions also fits.
+- Actual389x844/client378: brand right165.33px precedes Search left200.06px; document scrollWidth378. Menu retains Garage/Seller destinations. Tab enters Car parts; Escape restores Open navigation with expanded=false. An initial test selector incorrectly requested a link instead of the Car parts button; corrected from the actual accessibility tree, not an application defect.
+- Normal UI sign-out returns Home with all five rendered saved controls false and no stale success feedback. The timing-dependent pending-action identity race remains synthetic regression evidence, not a claimed browser race reproduction.
+- Fresh public HTTP Home/DSG/Seller/Account:200, correct titles, noindex,nofollow, no canonical; exact DSG189.00GBP Product/Offer preserved. No false rating or fitment data.
+
+Temporary viewport override reset. QA Buyer was signed out through normal UI after read-only acceptance. The current account form is prefilled for the distinct QA Seller; manual password entry is pending. Do not use the Buyer/Moira seller profile. The next browser steps are safe CSV Preview validation/file-retention (valid and missing-reference fixture) and read-only seller-form responsive inspection; never click Import valid rows or change the sold Stripe fixture. This is the first unfinished gate, not a reason to repeat any audit or completed batch.
+
+## Phase status and remaining release gates
+
+| Batch | Verified result | Remaining boundary |
+| --- | --- | --- |
+| 1 Accessibility | PASS: combobox keyboard/ARIA, empty state, reduced motion and scoped Preview checks | Physical screen reader/device and incomplete gradient contrast assessment remain RC |
+| 2 Mobile navigation | PASS: navigation, pending state, Back/scroll and loading semantics | Matched performance/LCP/network benchmark and physical Android remain unproven |
+| 3 Home/Garage | PASS: explicit fresh/manual selection, engine ambiguity guard and truthful fitment context | Real registration-provider/device variants remain RC |
+| 4 Buyer journey | PASS: authority-based saved feedback, viewer-safe state and actual cross-route consistency | Provider/action failures and auth-transition race verified synthetically only |
+| 5 Seller/CSV | Engineering PASS: stable references, retry/report recovery, limits and file-state regressions | Actual read-only CSV browser reset ordering remains NOT PASS pending QA Seller login |
+| 6 Responsive quality | Confirmed header defects fixed and representative public/Buyer viewports PASS | Seller-form viewport matrix pending login; not every page/viewport combination or native text zoom tested |
+| 7 SEO preparation | PASS for safe domain-independent metadata/schema and Preview noindex | Approved production domain, canonical/Breadcrumb deployment, sitemap and selected inventory-backed landing publication blocked |
+
+No new payment, onboarding, refund/dispute/reversal, concurrent checkout, declined-card retry, real email/alert/provider outage, destructive deletion, physical Android/FCM, Production/Live configuration, external two-session PostgreSQL or shared100k load test was performed. These gates remain open exactly as deferred. Synthetic validators do not sign them off. No Supabase migration, RLS change, fabricated fitment, new review or new public listing was introduced by this phase.
+
+Next best step: finish the two QA Seller browser gates after login, then schedule the already documented consolidated RC/provider/device matrix and resolve the production-origin/legal/support and professional-seller inventory readiness decisions. Engineering is close to a restricted web beta; a credible calendar estimate for closed beta cannot be inferred from green code checks while these external gates are unsigned. This phase does not claim SecondPart1.0 or Android launch readiness.

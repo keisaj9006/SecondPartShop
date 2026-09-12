@@ -1,10 +1,12 @@
 # SecondPart — Current State
 
-Snapshot basis: `rebuild-nextjs`, 11 September 2026.
+Snapshot basis: `rebuild-nextjs`, 12 September 2026.
 
 This file is a high-level navigation document. The repository's current canonical runbooks and launch documents are more authoritative for subsystem details.
 
 ## Current checkpoint and active work
+
+The [Product Excellence phase](superpowers/plans/2026-09-12-product-excellence.md) has implemented its seven engineering batches. Corrected code `1a34457` passed 301 tests, lint/typecheck/build, all14 static validators, independent review and exact-SHA CI/Preview checks. Accessibility, mobile navigation, vehicle choice, viewer-correct saved state, CSV retry/report handling, responsive header and safe metadata are covered in the [evidence and precise resume checkpoint](test-runs/2026-09-12-product-excellence.md). The actual read-only CSV file-reset and seller-form viewport checks still require the separate QA Seller login; they are not PASS. Provider/device/external RC gates and production-domain decisions remain open. Resume these gates without repeating Marketplace Integrity or Stripe happy-path tests.
 
 The Preview Stripe happy path is verified at `72f9fdc`: test payment, webhook, fulfilment, buyer acceptance and a single seller transfer. See [the provider evidence](test-runs/2026-09-11-commerce-preview-preflight.md). This does not sign off refund/dispute/reversal or physical-device release gates.
 
