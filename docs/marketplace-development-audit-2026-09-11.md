@@ -75,7 +75,7 @@ FIT-01 implemented and applied to Preview: both newer catalogue RPCs now read th
 
 Published FIT-01 checkpoint: commit `085d9b9381ebd2da6c68298d100b3ceba122a385`; GitHub Actions run `34650136088` succeeded; Preview deployment `dpl_831zFhpHrQCJQ8e6GnhGbKHBper5` (`second-part-shop-dq5cwur8b-joannakwapis11-5369.vercel.app`) is READY. Both stable and branch Preview aliases were read back and point to that deployment. No Production/main/Stripe Live changes.
 
-SEC-01 is in implementation, with red action tests reproducing unsafe Storage calls on reserved/failed/zero-row metadata deletions. No photo policy migration has been applied yet.
+SEC-01 deployed at `254d5a2`, CI `34652531245` succeeded. The private cleanup queue, parent/retired-path guards and restrictive Storage policies are applied as migration `20260911221033`. All 61 tests pass; actual Preview upload/delete and guarded PostgreSQL rollback assertions passed. Independent concurrent sessions and provider failure/retry scenarios remain open, not inferred from unit tests. See `test-runs/2026-09-11-photo-integrity-preview.md` for complete evidence and limits.
 
 Two navigation defects were reproduced in the browser on baseline Preview: changing `q=alternator&page=4` to `DSG` retained page 4 despite three matches, and clearing the vehicle chip followed by reload restored the removed vehicle from localStorage. These are next-batch regression scenarios. No launch completion is claimed.
 

@@ -9,6 +9,7 @@ Run in one scheduled RC batch on a documented commit/deployment. Automated and P
 - [ ] Zero-results Find My Part including sign-in interruption.
 - [ ] Seller mode plus purchases; own-listing purchase prohibited.
 - [ ] Camera/photo picker, low-memory compression, interrupted upload, validation retry.
+- [ ] Photo security provider batch: two independent DB sessions, authenticated Storage mutation rejection, controlled Storage outage/retry and disposable identity deletion. See the photo cleanup runbook; no automatic Vercel Preview cron is assumed.
 - [ ] Long inventory/CSV review on phone and desktop; no duplicate publication.
 - [ ] Keyboard/screen reader/focus, 200% zoom, contrast and reduced motion.
 - [ ] Narrow/landscape layouts, safe areas, touch targets and hardware Back.
