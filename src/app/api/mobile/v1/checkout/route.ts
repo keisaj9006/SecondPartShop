@@ -1,6 +1,6 @@
-import { createCheckoutSession,isStripeCheckoutConfigured } from "@/lib/stripe-payments";
+import { createCheckoutSession,getCreatedCheckoutSessionId,isStripeCheckoutConfigured,type StripeCheckoutSession } from "@/lib/stripe-payments";
 import { getAppUrl } from "@/lib/stripe-connect";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { attachCheckoutSession,cancelCheckoutOrder } from "@/lib/checkout-lifecycle";
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
 import { getPartCompatibility } from "@/lib/data/compatibility";
@@ -92,9 +92,11 @@ export async function POST(request:Request){
  const reservation=data?.[0];
  if(error||!reservation)return mobileJson(request,{ok:false,error:knownError(error?.message??"")},409);
 
+ let session:StripeCheckoutSession|null=null;
+ let operation="session_create";
  try{
   const appUrl=getAppUrl();
-  const session=await createCheckoutSession({
+  session=await createCheckoutSession({
    orderId:reservation.order_id,
    partTitle:reservation.part_title,
    partSlug:part.slug,
@@ -108,44 +110,28 @@ export async function POST(request:Request){
    cancelUrl:appUrl+"/checkout/mobile-complete?state=cancelled&order="+encodeURIComponent(reservation.order_id)
   });
 
-  const admin=createSupabaseAdminClient();
-  const {error:updateError}=await admin
-   .from("orders")
-   .update({provider_checkout_session_id:session.id})
-   .eq("id",reservation.order_id)
-   .eq("buyer_id",user.id)
-   .eq("payment_status","unpaid");
-  if(updateError)throw updateError;
-  if(!session.url)throw new Error("Stripe checkout URL missing.");
+  operation="session_attach";
+  const checkoutUrl=await attachCheckoutSession({orderId:reservation.order_id,buyerId:user.id,session});
 
   return mobileJson(request,{
    ok:true,
    orderId:reservation.order_id,
-   checkoutUrl:session.url,
+   checkoutUrl,
    expiresAt:reservation.checkout_expires_at
   },201);
- }catch(error){
-  const admin=createSupabaseAdminClient();
-  const {error:rollbackError}=await admin.rpc("cancel_checkout_order",{
-   p_order_id:reservation.order_id,
-   p_event_type:"mobile_checkout_setup_failed"
-  });
-  if(rollbackError){
-   await reportOperationalError({
-    severity:"critical",
-    component:"checkout",
-    event:"mobile_checkout_reservation_rollback_failed",
-    error:rollbackError,
-    route:"/api/mobile/v1/checkout"
-   });
-  }
+ }catch{
+  const setupSessionId=getCreatedCheckoutSessionId(session);
+  const cancellation=setupSessionId?await cancelCheckoutOrder({
+   orderId:reservation.order_id,buyerId:user.id,setupSessionId,eventType:"mobile_checkout_setup_failed"
+  }):"unavailable";
   await reportOperationalError({
    severity:"critical",
    component:"checkout",
    event:"mobile_checkout_setup_failed",
-   error,
+   error:new Error("Checkout setup could not be completed."),
+   context:{operation,cancellation,orderId:reservation.order_id},
    route:"/api/mobile/v1/checkout"
   });
-  return mobileJson(request,{ok:false,error:"checkout_provider_unavailable"},503);
+  return mobileJson(request,{ok:false,error:"checkout_provider_unavailable",reservationReleased:cancellation==="cancelled"},503);
  }
 }

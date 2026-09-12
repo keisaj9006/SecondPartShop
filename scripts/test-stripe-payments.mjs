@@ -58,3 +58,22 @@ test("provider failure propagates instead of inventing a successful checkout",as
  const api=adapter(async()=>({ok:false,json:async()=>({error:{message:"Invalid Stripe API version"}})}));
  await assert.rejects(api.createCheckoutSession(input),/Invalid Stripe API version/);
 });
+
+test("session expiration posts with a stable session-specific retry key",async()=>{
+ const api=adapter(async(url,init)=>{
+  assert.equal(url,"https://api.stripe.com/v1/checkout/sessions/cs_test_unit/expire");
+  assert.equal(init.method,"POST");
+  assert.equal(init.headers.get("Idempotency-Key"),"secondpart-checkout-expire-cs_test_unit");
+  return {ok:true,json:async()=>({id:"cs_test_unit",status:"expired",payment_status:"unpaid"})};
+ });
+ assert.equal((await api.expireCheckoutSession("cs_test_unit")).status,"expired");
+});
+
+test("successful response with unreadable JSON cannot become a confirmed checkout creation",async()=>{
+ const api=adapter(async()=>({ok:true,json:async()=>{throw new SyntaxError('unreadable provider body');}}));
+ await assert.rejects(api.createCheckoutSession(input),/Checkout Session response/);
+});
+for(const payload of [{},{id:''},{id:123},null])test("malformed successful creation response is rejected: "+JSON.stringify(payload),async()=>{
+ const api=adapter(async()=>({ok:true,json:async()=>payload}));
+ await assert.rejects(api.createCheckoutSession(input),/Checkout Session response/);
+});

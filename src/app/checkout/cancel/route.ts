@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getAppUrl } from "@/lib/stripe-connect";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { cancelCheckoutOrder } from "@/lib/checkout-lifecycle";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/identifiers";
 
@@ -45,12 +45,9 @@ export async function GET(request:Request){
   .maybeSingle();
  const slug=listingSlug(item?.parts);
 
- if(["unpaid","requires_action"].includes(order.payment_status)){
-  const admin=createSupabaseAdminClient();
-  await admin.rpc("cancel_checkout_order",{
-   p_order_id:orderId,
-   p_event_type:"buyer_cancelled_checkout"
-  });
+ const cancellation=await cancelCheckoutOrder({orderId,buyerId:user.id,eventType:"buyer_cancelled_checkout"});
+ if(cancellation!=="cancelled"){
+  return NextResponse.redirect(new URL("/account/orders/"+orderId+"?checkout="+(cancellation==="unavailable"?"cancel_pending":"not_cancellable"),appUrl));
  }
 
  let targetUrl:URL;

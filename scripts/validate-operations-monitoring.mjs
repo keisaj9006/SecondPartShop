@@ -9,6 +9,7 @@ const clientInstrumentation=read("src/instrumentation-client.ts");
 const clientEndpoint=read("src/app/api/ops/client-error/route.ts");
 const checkout=read("src/app/checkout/actions.ts");
 const mobileCheckout=read("src/app/api/mobile/v1/checkout/route.ts");
+const checkoutLifecycle=read("src/lib/checkout-lifecycle.ts");
 const stripeWebhook=read("src/app/api/stripe/webhook/route.ts");
 const maintenance=read("src/app/api/commerce/maintenance/route.ts");
 const payoutCron=read("src/app/api/commerce/release-due/route.ts");
@@ -36,8 +37,8 @@ const checks=[
  ["Client error endpoint must use the database rate limiter",clientEndpoint.includes("consume_ops_client_error_rate_limit")&&clientEndpoint.includes("sha256")],
  ["Browser limiter table must have RLS and no client table grants",limiter.includes("enable row level security")&&limiter.includes("revoke all on public.ops_client_error_rate_limits from anon,authenticated")],
  ["Browser limiter RPC must be service-role only",limiter.includes("consume_ops_client_error_rate_limit(text,integer,integer) from public,anon,authenticated,service_role")&&limiter.includes("to service_role")],
- ["Web checkout setup failure must rollback reservation and alert",checkout.includes("checkout_reservation_rollback_failed")&&checkout.includes("checkout_setup_failed")&&checkout.includes("cancel_checkout_order")],
- ["Mobile checkout setup failure must rollback reservation and alert",mobileCheckout.includes("mobile_checkout_reservation_rollback_failed")&&mobileCheckout.includes("mobile_checkout_setup_failed")],
+ ["Web checkout setup failure must request guarded rollback and alert with operation context",checkout.includes("cancelCheckoutOrder")&&checkout.includes("checkout_setup_failed")&&checkout.includes("context:{operation,cancellation")&&checkoutLifecycle.includes("checkout_cancellation_unavailable")],
+ ["Mobile checkout setup failure must request guarded rollback and alert with operation context",mobileCheckout.includes("cancelCheckoutOrder")&&mobileCheckout.includes("mobile_checkout_setup_failed")&&mobileCheckout.includes("context:{operation,cancellation")],
  ["Stripe webhook failures must be critical monitoring events",stripeWebhook.includes("stripe_webhook_processing_failed")&&stripeWebhook.includes('severity:"critical"')],
  ["Commerce maintenance must surface payout/deletion/push failures",maintenance.includes("payout_rollback_deferred")&&maintenance.includes("account_deletion_retry_required")&&maintenance.includes("push_delivery_retries")],
  ["Payout release cron failures must be monitored",payoutCron.includes("payout_release_batch_failed")],

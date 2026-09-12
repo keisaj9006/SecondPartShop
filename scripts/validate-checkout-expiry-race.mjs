@@ -10,6 +10,8 @@ const webhook=read("src/app/api/stripe/webhook/route.ts");
 const webCancel=read("src/app/checkout/cancel/route.ts");
 const mobileCancel=read("src/app/api/mobile/v1/orders/[orderId]/checkout/route.ts");
 const checkoutActions=read("src/app/checkout/actions.ts");
+const lifecycle=read("src/lib/checkout-lifecycle.ts");
+const sessionGuard=read("supabase/migrations/20260912215018_checkout_cancellation_session_guard.sql");
 
 const paymentFailureStart=webhook.indexOf('if(event.type==="payment_intent.payment_failed")');
 const disputeStart=webhook.indexOf('if(event.type==="charge.dispute.created")');
@@ -40,7 +42,8 @@ const checks=[
   "Stripe expiry/final async failure events must match the reserved Checkout Session before cancellation",
   webhook.includes("checkoutSessionMatchesOrder")&&
   webhook.includes('event.type==="checkout.session.expired"||event.type==="checkout.session.async_payment_failed"')&&
-  webhook.includes('admin.rpc("cancel_checkout_order"')
+  webhook.includes('admin.rpc("cancel_checkout_order_if_session_matches"')&&
+  webhook.includes('p_expected_session_id:sessionId')
  ],
  [
   "A retryable PaymentIntent failure must reconcile provider state instead of releasing inventory",
@@ -82,20 +85,32 @@ const checks=[
  [
   "Web checkout cancellation must verify buyer ownership before service-role cancellation",
   webCancel.includes('.eq("buyer_id",user.id)')&&
-  webCancel.includes("createSupabaseAdminClient()")&&
-  webCancel.includes('admin.rpc("cancel_checkout_order"')
+  webCancel.includes('cancelCheckoutOrder({orderId,buyerId:user.id')&&
+  lifecycle.includes('admin.rpc("cancel_checkout_order_if_session_matches"')
  ],
  [
   "Mobile checkout cancellation must verify buyer ownership before service-role cancellation",
   mobileCancel.includes('.eq("buyer_id",user.id)')&&
-  mobileCancel.includes("createSupabaseAdminClient()")&&
-  mobileCancel.includes('admin.rpc("cancel_checkout_order"')
+  mobileCancel.includes('cancelCheckoutOrder({orderId,buyerId:user.id')&&
+  lifecycle.includes('admin.rpc("cancel_checkout_order_if_session_matches"')
  ],
  [
   "Checkout setup failure rollback must remain server-side",
-  checkoutActions.includes("createSupabaseAdminClient()")&&
-  checkoutActions.includes('admin.rpc("cancel_checkout_order"')&&
-  checkoutActions.includes('p_event_type:"checkout_setup_failed"')
+  lifecycle.includes("createSupabaseAdminClient()")&&
+  checkoutActions.includes('cancelCheckoutOrder({')&&
+  checkoutActions.includes('eventType:"checkout_setup_failed"')
+ ],
+ [
+  "Cancellation must verify exact session and buyer under a lock before the stock mutation",
+  sessionGuard.indexOf("for update")<sessionGuard.indexOf("return public.cancel_checkout_order")&&
+  sessionGuard.includes("stored_session is distinct from p_expected_session_id")&&
+  sessionGuard.includes("stored_buyer is distinct from p_buyer_id")&&
+  sessionGuard.includes("from public,anon,authenticated")
+ ],
+ [
+  "Checkout URL attachment must require a returned row and preserve an existing session",
+  lifecycle.includes('.is("provider_checkout_session_id",null)')&&
+  lifecycle.includes('if(error||!data)throw')
  ],
  [
   "Paid Stripe sessions must still flow through confirm_checkout_paid",

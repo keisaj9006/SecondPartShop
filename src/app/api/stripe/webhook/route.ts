@@ -157,8 +157,9 @@ export async function POST(request:Request){
    const orderId=metadataOrderId(object);
    const sessionId=typeof object.id==="string"?object.id:"";
    if(orderId&&sessionId&&await checkoutSessionMatchesOrder(admin,orderId,sessionId)){
-    const {error}=await admin.rpc("cancel_checkout_order",{
+    const {error}=await admin.rpc("cancel_checkout_order_if_session_matches",{
      p_order_id:orderId,
+     p_expected_session_id:sessionId,
      p_event_id:event.id,
      p_event_type:event.type
     });

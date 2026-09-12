@@ -24,10 +24,8 @@ export async function resumeCheckout(formData:FormData){
   .maybeSingle();
 
  if(!order)redirect("/account/orders?checkout=invalid");
- if(order.payment_status==="paid"||order.payment_status==="partially_refunded"||order.payment_status==="refunded"){
-  redirect("/account/orders/"+orderId);
- }
  if(order.payment_status==="processing")redirect("/account/orders/"+orderId+"?checkout=pending");
+ if(!["unpaid","requires_action"].includes(order.payment_status))redirect("/account/orders/"+orderId);
 
  const sessionId=order.provider_checkout_session_id;
  if(!sessionId)redirect("/account/orders/"+orderId+"?checkout=unavailable");
@@ -39,16 +37,27 @@ export async function resumeCheckout(formData:FormData){
   if(session.payment_status==="paid"){
    await reconcileStripeOrder(orderId,sessionId);
    target="/account/orders/"+orderId+"?checkout=success";
-  }else if(session.status==="open"&&session.url){
-   target=session.url;
+  }else if(session.status==="open"&&session.payment_status==="unpaid"&&session.url){
+   // The provider lookup can overlap cancellation or a replacement session.
+   // A stale form/snapshot must not make a terminal local order payable again.
+   const {data:current,error}=await supabase.from("orders")
+    .select("id,payment_status,provider_checkout_session_id")
+    .eq("id",orderId).eq("buyer_id",user.id).maybeSingle();
+   if(error)throw new Error("Checkout order could not be rechecked.");
+   if(current&&["unpaid","requires_action"].includes(current.payment_status)&&current.provider_checkout_session_id===sessionId){
+    target=session.url;
+   }else target="/account/orders/"+orderId+"?checkout=not_cancellable";
   }else if(session.status==="expired"){
    const admin=createSupabaseAdminClient();
-   await admin.rpc("cancel_checkout_order",{
+   const {data:cancelled,error}=await admin.rpc("cancel_checkout_order_if_session_matches",{
     p_order_id:orderId,
+    p_buyer_id:user.id,
+    p_expected_session_id:sessionId,
     p_event_id:"resume-expired:"+sessionId,
     p_event_type:"resume_checkout_expired"
    });
-   target="/account/orders/"+orderId+"?checkout=expired";
+   if(error)throw new Error("Checkout cancellation write failed.");
+   if(cancelled===true)target="/account/orders/"+orderId+"?checkout=expired";
   }
  }catch(error){
   await reportOperationalError({component:"checkout",event:"resume_checkout_failed",error});

@@ -2,9 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { attachCheckoutSession,cancelCheckoutOrder } from "@/lib/checkout-lifecycle";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createCheckoutSession,isStripeCheckoutConfigured } from "@/lib/stripe-payments";
+import { createCheckoutSession,getCreatedCheckoutSessionId,isStripeCheckoutConfigured,type StripeCheckoutSession } from "@/lib/stripe-payments";
 import { isUuid } from "@/lib/identifiers";
 import type { ActionState,MarketplaceFilters } from "@/lib/types";
 import { getPartCompatibility } from "@/lib/data/compatibility";
@@ -88,8 +88,10 @@ export async function startCheckout(_previous:ActionState,formData:FormData):Pro
  if(error||!reservation)return {status:"error",message:knownMessage(error?.message??"")};
 
  let checkoutUrl:string|null=null;
+ let session:StripeCheckoutSession|null=null;
+ let operation="session_create";
  try{
-  const session=await createCheckoutSession({
+  session=await createCheckoutSession({
    orderId:reservation.order_id,
    partTitle:reservation.part_title,
    partSlug:part.slug,
@@ -102,36 +104,23 @@ export async function startCheckout(_previous:ActionState,formData:FormData):Pro
    cancelUrl:getAppUrl()+"/checkout/cancel?order="+encodeURIComponent(reservation.order_id)+"&returnTo="+encodeURIComponent(returnTo)
   });
 
-  const admin=createSupabaseAdminClient();
-  const {error:updateError}=await admin
-   .from("orders")
-   .update({provider_checkout_session_id:session.id})
-   .eq("id",reservation.order_id)
-   .eq("payment_status","unpaid");
-  if(updateError)throw updateError;
-  if(!session.url)throw new Error("Stripe checkout URL missing.");
-  checkoutUrl=session.url;
- }catch(error){
-  const admin=createSupabaseAdminClient();
-  const {error:rollbackError}=await admin.rpc("cancel_checkout_order",{
-   p_order_id:reservation.order_id,
-   p_event_type:"checkout_setup_failed"
-  });
-  if(rollbackError){
-   await reportOperationalError({
-    severity:"critical",
-    component:"checkout",
-    event:"checkout_reservation_rollback_failed",
-    error:rollbackError
-   });
-  }
+  operation="session_attach";
+  checkoutUrl=await attachCheckoutSession({orderId:reservation.order_id,buyerId:user.id,session});
+ }catch{
+  // A create timeout may hide provider success. Preserve the reservation when
+  // no session ID is available to establish that payment is no longer possible.
+  const setupSessionId=getCreatedCheckoutSessionId(session);
+  const cancellation=setupSessionId?await cancelCheckoutOrder({
+   orderId:reservation.order_id,buyerId:user.id,setupSessionId,eventType:"checkout_setup_failed"
+  }):"unavailable";
   await reportOperationalError({
    severity:"critical",
    component:"checkout",
    event:"checkout_setup_failed",
-   error
+   error:new Error("Checkout setup could not be completed."),
+   context:{operation,cancellation,orderId:reservation.order_id}
   });
-  return {status:"error",message:"Checkout is temporarily unavailable. Your reserved stock has been released."};
+  return {status:"error",message:cancellation==="cancelled"?"Checkout is temporarily unavailable. Your reserved stock has been released.":"Checkout is temporarily unavailable. We could not confirm cancellation. Check Purchases before trying again."};
  }
 
  if(!checkoutUrl)return {status:"error",message:"Checkout is temporarily unavailable."};

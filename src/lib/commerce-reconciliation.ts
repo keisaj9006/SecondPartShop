@@ -74,13 +74,14 @@ async function reconcileOrderRow(admin:ReturnType<typeof createSupabaseAdminClie
  }
 
  if(session.status==="expired"){
-  const {error}=await admin.rpc("cancel_checkout_order",{
+  const {data:cancelled,error}=await admin.rpc("cancel_checkout_order_if_session_matches",{
    p_order_id:order.id,
+   p_expected_session_id:session.id,
    p_event_id:"reconcile-expired:"+session.id,
    p_event_type:"reconciliation_checkout_expired"
   });
   if(error)throw error;
-  return {state:"expired" as const,sessionId};
+  return {state:cancelled===true?"expired" as const:"deferred" as const,sessionId};
  }
 
  return {state:"deferred" as const,sessionId};

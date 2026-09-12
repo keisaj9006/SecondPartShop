@@ -3115,6 +3115,10 @@ export type Database = {
         Args: { p_event_id?: string; p_event_type?: string; p_order_id: string }
         Returns: boolean
       }
+      cancel_checkout_order_if_session_matches: {
+        Args: { p_order_id: string; p_expected_session_id: string | null; p_buyer_id?: string; p_event_id?: string; p_event_type?: string }
+        Returns: boolean
+      }
       category_descendant_ids: {
         Args: { p_category_id: string }
         Returns: {

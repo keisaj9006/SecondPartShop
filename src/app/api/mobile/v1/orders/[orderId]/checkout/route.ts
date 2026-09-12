@@ -1,7 +1,6 @@
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { cancelCheckoutOrder } from "@/lib/checkout-lifecycle";
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
-import { reportOperationalError } from "@/lib/ops-monitoring";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -24,19 +23,11 @@ export async function DELETE(request:Request,{params}:{params:Promise<{orderId:s
   .maybeSingle();
  if(error)return mobileJson(request,{ok:false,error:"order_unavailable"},503);
  if(!order)return mobileJson(request,{ok:false,error:"not_found"},404);
- if(!["unpaid","requires_action"].includes(order.payment_status)){
-  return mobileJson(request,{ok:false,error:"checkout_not_cancellable"},409);
- }
-
- const admin=createSupabaseAdminClient();
- const {error:cancelError}=await admin.rpc("cancel_checkout_order",{
-  p_order_id:orderId,
-  p_event_type:"mobile_buyer_cancelled_checkout"
- });
- if(cancelError){
-  await reportOperationalError({component:"checkout",event:"mobile_checkout_cancel_failed",error:cancelError,route:"/api/mobile/v1/orders/[orderId]/checkout"});
+ const cancellation=await cancelCheckoutOrder({orderId,buyerId:user.id,eventType:"mobile_buyer_cancelled_checkout"});
+ if(cancellation==="unavailable"){
   return mobileJson(request,{ok:false,error:"cancel_failed"},503);
  }
+ if(cancellation!=="cancelled")return mobileJson(request,{ok:false,error:"checkout_not_cancellable"},409);
 
  return mobileJson(request,{ok:true,cancelled:true});
 }

@@ -21,10 +21,25 @@ export default async function BuyerOrderDetailPage({params,searchParams}:{params
  const order=await getBuyerOrderById(user.id,orderId).catch(()=>null);
  if(!order)notFound();
  const timeline=await getOrderTimeline(order.id).catch(()=>[]);
+ const checkout=first(query.checkout);
+ const checkoutNotice=(()=>{
+  if(!checkout||!["success","pending","expired","unavailable","cancel_pending","not_cancellable"].includes(checkout))return null;
+  // Redirect/query flags describe an attempted action, never payment authority.
+  if(order.paymentStatus==="paid")return checkout==="success"
+   ?"Payment confirmed. Your order is now in the SecondPart transaction flow."
+   :"Your payment is already confirmed. Review your order below.";
+  if(order.paymentStatus==="cancelled")return "This checkout is cancelled and its stock reservation was released.";
+  if(!["unpaid","requires_action","processing"].includes(order.paymentStatus))return "This checkout cannot be resumed. Review the current payment status below.";
+  if(checkout==="cancel_pending")return "We could not confirm cancellation. Check this order before trying again; your stock reservation has not been confirmed as released.";
+  if(checkout==="not_cancellable")return "We could not cancel this checkout. Review the current payment status below before trying again.";
+  if(checkout==="success"||checkout==="pending")return "Payment has not been confirmed yet. Check this order before trying again.";
+  if(checkout==="expired")return "Checkout expiry has not been confirmed. Check this order before trying again.";
+  return "This checkout session is not available to resume.";
+ })();
 
  return <><Header/><main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
   <Link href="/account/orders" className="inline-flex items-center gap-2 text-sm font-black"><ArrowLeft size={16}/>Back to purchases</Link>
-  {first(query.checkout)==="success"&&<div className="mt-5 rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-900">Payment confirmed. Your order is now in the SecondPart transaction flow.</div>}{first(query.checkout)==="pending"&&<div className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-900">Stripe is still confirming this payment. The order will update automatically.</div>}{first(query.checkout)==="expired"&&<div className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-900">This checkout session expired and its stock reservation was released.</div>}{first(query.checkout)==="unavailable"&&<div className="mt-5 rounded-2xl bg-red-50 p-4 text-sm font-bold text-red-800">This checkout session is not available to resume.</div>}
+  {checkoutNotice&&<div role="status" className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-900">{checkoutNotice}</div>}
   <div className="mt-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
    <div><p className="text-xs font-black uppercase tracking-[.16em] text-[#287154]">Order {order.id.slice(0,8).toUpperCase()}</p><h1 className="mt-2 text-3xl font-black tracking-[-.04em]">Purchase details</h1><p className="mt-2 text-sm text-[#63706a]">{new Intl.DateTimeFormat("en-GB",{dateStyle:"long"}).format(new Date(order.createdAt))}</p></div>
    <div className="flex flex-wrap gap-2"><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-800">{label(order.paymentStatus)}</span><span className="rounded-full bg-[#173c31] px-3 py-1 text-xs font-black text-white">{label(order.status)}</span></div>

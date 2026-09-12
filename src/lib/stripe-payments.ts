@@ -83,6 +83,12 @@ const append=(body:URLSearchParams,key:string,value:string|number|undefined|null
 const destinationId=(value:StripeTransfer["destination"])=>typeof value==="string"?value:value.id;
 const cleanAttemptTag=(value:string)=>value.trim().replace(/[^A-Za-z0-9_-]/g,"-").slice(0,120)||"initial";
 
+export function getCreatedCheckoutSessionId(session:unknown):string|null{
+ if(!session||typeof session!=="object"||!("id" in session))return null;
+ const id=session.id;
+ return typeof id==="string"&&/^cs_[A-Za-z0-9_]{1,200}$/.test(id)?id:null;
+}
+
 export async function createCheckoutSession(input:{
  orderId:string;
  partTitle:string;
@@ -123,11 +129,20 @@ export async function createCheckoutSession(input:{
   append(body,"line_items[1][quantity]",1);
  }
 
- return stripeV1<StripeCheckoutSession>("/v1/checkout/sessions",{method:"POST",body,headers:{"Idempotency-Key":`secondpart-checkout-${input.orderId}`}});
+ const session=await stripeV1<StripeCheckoutSession>("/v1/checkout/sessions",{method:"POST",body,headers:{"Idempotency-Key":`secondpart-checkout-${input.orderId}`}});
+ if(!getCreatedCheckoutSessionId(session))throw new Error("Invalid Stripe Checkout Session response.");
+ return session;
 }
 
 export async function getCheckoutSession(sessionId:string){
  return stripeV1<StripeCheckoutSession>(`/v1/checkout/sessions/${encodeURIComponent(sessionId)}`,{method:"GET"});
+}
+
+export async function expireCheckoutSession(sessionId:string){
+ return stripeV1<StripeCheckoutSession>(`/v1/checkout/sessions/${encodeURIComponent(sessionId)}/expire`,{
+  method:"POST",
+  headers:{"Idempotency-Key":`secondpart-checkout-expire-${sessionId}`}
+ });
 }
 
 export async function getPaymentIntent(paymentIntentId:string){
