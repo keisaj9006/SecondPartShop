@@ -1,41 +1,47 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState,useEffect,useRef } from "react";
 import Link from "next/link";
 import { AlertTriangle,CheckCircle2,FileSpreadsheet,Upload } from "lucide-react";
 import { bulkImportCsv,type BulkImportState } from "@/app/dashboard/import/actions";
+import {BULK_IMPORT_MAX_FILE_BYTES,BULK_IMPORT_MAX_ROWS} from "@/lib/inventory-import-constants";
 
 const initial:BulkImportState={status:"idle"};
 
 export function BulkInventoryImport(){
  const [state,action,pending]=useActionState(bulkImportCsv,initial);
+ const fileInputRef=useRef<HTMLInputElement>(null);
+ const actionResetPending=useRef(false);
+ useEffect(()=>{
+  if(state.fileReset==="clear"&&fileInputRef.current)fileInputRef.current.value="";
+ },[state]);
 
  return <div className="mt-8 grid gap-6 lg:grid-cols-[1.05fr_.95fr]">
-  <form action={action} className="rounded-3xl border border-black/10 bg-white p-5 sm:p-6">
+  <form action={action} onSubmitCapture={()=>{actionResetPending.current=true;}} onReset={event=>{if(!actionResetPending.current)return;actionResetPending.current=false;event.preventDefault();}} className="rounded-3xl border border-black/10 bg-white p-5 sm:p-6">
    <div className="flex items-start gap-3">
     <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#173c31] text-[#d4f44d]"><Upload size={20}/></span>
-    <div><h2 className="text-xl font-black">Upload inventory CSV</h2><p className="mt-1 text-sm leading-6 text-[#63706a]">Up to 2,000 rows per file. Every imported part is created as a draft — CSV can never publish directly to the marketplace.</p></div>
+    <div><h2 className="text-xl font-black">Upload inventory CSV</h2><p className="mt-1 text-sm leading-6 text-[#63706a]">Up to {BULK_IMPORT_MAX_ROWS.toLocaleString("en-GB")} rows per file. Every imported part is created as a draft — CSV can never publish directly to the marketplace.</p></div>
    </div>
 
    <label className="mt-5 block text-sm font-black">CSV file
-    <input required type="file" name="file" accept=".csv,text/csv" className="mt-2 block w-full rounded-xl border border-black/15 bg-[#f8f7f2] p-3 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[#173c31] file:px-4 file:py-2 file:font-black file:text-white"/>
+    <input ref={fileInputRef} required type="file" name="file" accept=".csv,text/csv" className="mt-2 block w-full rounded-xl border border-black/15 bg-[#f8f7f2] p-3 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[#173c31] file:px-4 file:py-2 file:font-black file:text-white"/>
    </label>
-   <p className="mt-2 text-xs leading-5 text-[#63706a]">Maximum 8 MB. Preview is recommended before importing. If the browser clears the selected file after preview, choose the same file again before importing.</p>
+   <p className="mt-2 text-xs leading-5 text-[#63706a]">Maximum {BULK_IMPORT_MAX_FILE_BYTES/(1024*1024)} MiB. Preview is recommended before importing. Each row needs a stable seller_reference; reuse it when retrying a corrected row so existing stock is never overwritten.</p>
 
    <div className="mt-5 grid gap-2 sm:grid-cols-2">
     <button name="mode" value="preview" disabled={pending} className="min-h-12 rounded-xl border border-[#173c31] bg-white px-5 py-3 text-sm font-black text-[#173c31] disabled:opacity-50">{pending?"Checking…":"Preview CSV"}</button>
     <button name="mode" value="import" disabled={pending} className="min-h-12 rounded-xl bg-[#173c31] px-5 py-3 text-sm font-black text-white disabled:opacity-50">{pending?"Working…":"Import valid rows as drafts"}</button>
    </div>
 
-   {state.message&&<div role="status" className={"mt-5 rounded-2xl p-4 text-sm font-bold "+(state.status==="success"?"bg-emerald-50 text-emerald-900":state.status==="error"?"bg-red-50 text-red-900":"bg-cyan-50 text-cyan-950")}>{state.message}</div>}
+   {state.message&&<div role="status" className={"mt-5 rounded-2xl p-4 text-sm font-bold "+(state.status==="success"?"bg-emerald-50 text-emerald-900":state.status==="error"||state.status==="recovery"?"bg-red-50 text-red-900":"bg-cyan-50 text-cyan-950")}>{state.message}</div>}
 
    {state.rowsReceived!==undefined&&<div className="mt-4 grid grid-cols-3 gap-2">
     <div className="rounded-xl bg-[#f8f7f2] p-3"><p className="text-xs text-[#63706a]">Rows</p><p className="mt-1 text-xl font-black">{state.rowsReceived}</p></div>
-    <div className="rounded-xl bg-emerald-50 p-3"><p className="text-xs text-emerald-800">Valid / created</p><p className="mt-1 text-xl font-black text-emerald-900">{state.validRows??0}</p></div>
-    <div className="rounded-xl bg-red-50 p-3"><p className="text-xs text-red-800">Rejected</p><p className="mt-1 text-xl font-black text-red-900">{state.rejectedRows??0}</p></div>
+    <div className="rounded-xl bg-emerald-50 p-3"><p className="text-xs text-emerald-800">{state.createdRows!==undefined?"Created":"Valid"}</p><p className="mt-1 text-xl font-black text-emerald-900">{state.createdRows??state.validRows??"—"}</p></div>
+    <div className="rounded-xl bg-red-50 p-3"><p className="text-xs text-red-800">Rejected</p><p className="mt-1 text-xl font-black text-red-900">{state.rejectedRows??"—"}</p></div>
    </div>}
 
-   {state.status==="success"&&<div className="mt-4 flex flex-wrap gap-2"><Link href={state.batchId?"/dashboard?inventoryStatus=draft&importBatch="+encodeURIComponent(state.batchId):"/dashboard?inventoryStatus=draft"} className="inline-flex min-h-11 items-center rounded-full bg-[#d4f44d] px-5 py-2.5 text-sm font-black text-[#173c31]">Review imported drafts</Link>{state.batchId&&<Link href={"/dashboard/import/"+encodeURIComponent(state.batchId)} className="inline-flex min-h-11 items-center rounded-full border border-black/15 bg-white px-5 py-2.5 text-sm font-black text-[#173c31]">View import report</Link>}</div>}
+   {(state.status==="success"||state.status==="recovery"||Boolean(state.batchId))&&state.batchId&&<div className="mt-4 flex flex-wrap gap-2"><Link href={"/dashboard?inventoryStatus=draft&importBatch="+encodeURIComponent(state.batchId)} className="inline-flex min-h-11 items-center rounded-full bg-[#d4f44d] px-5 py-2.5 text-sm font-black text-[#173c31]">Review imported drafts</Link><Link href={"/dashboard/import/"+encodeURIComponent(state.batchId)} className="inline-flex min-h-11 items-center rounded-full border border-black/15 bg-white px-5 py-2.5 text-sm font-black text-[#173c31]">View import report</Link></div>}
   </form>
 
   <aside className="rounded-3xl border border-black/10 bg-[#f4f7f2] p-5 sm:p-6">

@@ -137,3 +137,19 @@ SaveButton now uses only successful server results for saved state, synchronizes
 Independent review required two additional regressions: touch-visible compact save failure and context-aware copy when the compatibility panel is already present. Both witnessed RED/GREEN and passed scoped rereview. Compact failure displays Save failed. Try again. within the card image, retains live feedback and does not intercept product links. Detail guidance distinguishes selection needed from evidence already shown.
 
 Final root focused7/7, full264/264 (no failures/skips); lint0errors/3existinglegacywarnings, typecheck0, build0, diff-check0; all14repo validators exit0. Exact code commit, CI and reversible Preview save/removal acceptance follow. Failure cases remain synthetic component evidence; no real provider failure was forced.
+
+### Batch4 acceptance: PASS (scoped engineering and Preview)
+
+Commit346f872629d1c3f97b2eb8cc160e2b1f4ceb7ec6, CI34708517749 success, READY Previewdpl_EmBWhXZrvYjxxb6MgDiptgzbE3gH at second-part-shop-cl4pqr10j-joannakwapis11-5369.vercel.app. Both aliases confirmed through Vercel API on this exact deployment.
+
+Actual QA Buyer: DSG main and Recently viewed copies start false; main Save changes both to true with Part saved. Both remain true after reload (server state). Remove from Recently viewed changes both false; reload preserves false. Previously saved DQ200 remains true in both copies. Original saved state restored. Public detail shows the new no-selection compatibility guidance. Selected-panel and failure/error branches are synthetic render/component evidence; no real failure was induced.
+
+Actual isolated anonymous browser: Save from /?sort=best&fit=0#marketplace leads to /account?returnTo=%2F%3Fsort%3Dbest%26fit%3D0%23marketplace, decoded returnTo exactly /?sort=best&fit=0#marketplace. No auth form submitted or email sent. The anonymous browser was closed. QA Buyer session was then signed out through normal UI after all reversible tests; the QA Seller login is open for the next readonly CSV check, with manual credentials entry pending. No profile, order or sold fixture changed.
+
+Final7focused/264full, lint/typecheck/build/diff-check and14validators PASS; independent scoped rereview has no open findings. Batch5 importer implementation continues; manual login does not block independent code/tests.
+
+## Batch5 local engineering acceptance
+
+CSV imports now require stable seller references, preserving existing seller-scoped case-insensitive uniqueness on retry. Preview/pre-write rejection retains the selected file; confirmed batch writes clear it. Final report update errors or zero affected rows produce explicit recovery with working batch-filtered draft links, without claiming successful final counts. Shared limits consistently enforce 5,000 rows and 20 MiB. No real import, provider failure or database mutation was executed.
+
+Independent semantic review: spec PASS, quality PASS with documented browser reset-order limitation; no actionable code findings. Root focused10/10 and full274/274 pass, no failures/skips; lint0errors/3existing warnings, typecheck and build exit0, diff-check and mobile-performance/launch-baseline/seller-read-policy validators PASS. Synthetic tests cover partial retry, missing references, exact size/row boundaries and finalization recovery. Real React/browser file-reset ordering and readonly seller Preview remain pending QA Seller login, not PASS. Existing RC/external gates remain unchanged.

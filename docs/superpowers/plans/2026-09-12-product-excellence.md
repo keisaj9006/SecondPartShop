@@ -81,9 +81,9 @@ Preview HTTP observation: public product response has the generic title, no JSON
 
 **Files:** save-button.tsx and focused `scripts/test-save-button-feedback.mjs`; additional concrete journey findings separately scoped before changes.
 
-- [ ] Test success, ok=false, thrown action, authRequired, pending and repeated activation using actual component handlers.
-- [ ] Expose pressed/busy and compact accessible pending/success/error status; preserve original selected state on failure and successful action authority. Signed-out save returns to the exact safe originating page to retry, rather than an empty /saved destination. No invented optimistic persistence or post-auth automatic write.
-- [ ] Walk search→card→detail→seller/fit→saved/recent→Find My Part→account→existing purchases without checkout. Verify reversible QA actions and meaningful empty/error states, then focused checks/review.
+- [x] Test success, ok=false, thrown action, authRequired, pending and repeated activation using actual component handlers.
+- [x] Expose pressed/busy and compact accessible pending/success/error status; preserve original selected state on failure and successful action authority. Signed-out save returns to the exact safe originating page to retry, rather than an empty /saved destination. No invented optimistic persistence or post-auth automatic write.
+- [x] Walk search→card→detail→seller/fit→saved/recent→Find My Part→account→existing purchases without checkout. Verify reversible QA actions and meaningful empty/error states, then focused checks/review.
 
 ## Task 5: Seller preparation
 

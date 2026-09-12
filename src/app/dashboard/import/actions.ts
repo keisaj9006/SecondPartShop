@@ -21,7 +21,7 @@ export async function bulkImportCsv(_previous:BulkImportState,formData:FormData)
  const mode=String(formData.get("mode")??"preview");
  const supabase=await createSupabaseServerClient();
  const result=await processSellerInventoryCsv({file,sellerId:seller.id,supabase,mode});
- if(result.status==="success"){
+ if(result.fileReset==="clear"){
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/import");
  }

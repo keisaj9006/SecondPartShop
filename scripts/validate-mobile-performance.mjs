@@ -26,6 +26,7 @@ const cursorIndexAlignment=read("supabase/migrations/20260909194000_align_cursor
 const compatibilityCursorMigration=read("supabase/migrations/20260909202000_catalogue_compatibility_cursor.sql");
 const distanceV2Migration=read("supabase/migrations/20260909203500_distance_page_v2.sql");
 const importScale=read("src/lib/inventory-csv-import.ts");
+const importLimits=read("src/lib/inventory-import-constants.ts");
 const savedSearchQueueScale=read("supabase/migrations/20260909111000_saved_search_queue_throughput.sql");
 const garageLoading=read("src/app/garage/loading.tsx");
 const purchasesLoading=read("src/app/account/orders/loading.tsx");
@@ -88,7 +89,7 @@ const checks=[
  ["Cursor UI must avoid deep OFFSET page links",marketplaceHome.includes('pagination.mode==="cursor"')&&marketplaceHome.includes("Next 24 parts")],
  ["Large seller inventory must use keyset pagination by default",marketplaceData.includes("seller_inventory_cursor_page")&&marketplaceData.includes("encodeSellerInventoryCursor")],
  ["Seller cursor must match seller updated-at index order",sellerCursorMigration.includes("(p.updated_at,p.id)<(p_after_updated_at,p_after_id)")&&sellerCursorMigration.includes("order by p.updated_at desc,p.id desc")],
- ["Bulk CSV import must remain chunked for large inventories",importScale.includes("const MAX_ROWS=5000;")&&importScale.includes("const INSERT_CHUNK_SIZE=250;")&&importScale.includes("for(let start=0;start<payload.length;start+=INSERT_CHUNK_SIZE)")],
+ ["Bulk CSV import must remain chunked with shared large-inventory limits",importLimits.includes("BULK_IMPORT_MAX_ROWS=5000")&&importLimits.includes("BULK_IMPORT_MAX_FILE_BYTES=20*1024*1024")&&importScale.includes("BULK_IMPORT_MAX_ROWS")&&importScale.includes("BULK_IMPORT_MAX_FILE_BYTES")&&importScale.includes("const INSERT_CHUNK_SIZE=250;")&&importScale.includes("for(let start=0;start<payload.length;start+=INSERT_CHUNK_SIZE)")],
  ["Saved-search backlog must be indexed and processed asynchronously in batches",savedSearchQueueScale.includes("saved_search_match_queue_enqueued_idx")&&savedSearchQueueScale.includes("process_saved_search_match_queue(250)")&&savedSearchQueueScale.includes("saved_search_match_queue_stats")],
  ["Android Preview must keep loading the full Next.js frontend",previewPrep.includes("second-part-shop-preview.vercel.app")&&previewPrep.includes("config.server=")],
  ["Production Android must use the full HTTPS frontend",productionAndroidPrep.includes('config.server={url:productionUrl.origin,cleartext:false}')&&productionAndroidPrep.includes('com.secondpart.marketplace')&&!productionAndroidPrep.includes('marketplace.preview')],

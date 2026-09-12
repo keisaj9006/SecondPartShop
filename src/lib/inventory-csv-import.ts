@@ -4,6 +4,7 @@ import type {SupabaseClient} from "@supabase/supabase-js";
 import type {Database} from "@/lib/supabase/database.types";
 import {normalizeRegistration} from "@/lib/vehicle-registration";
 import {csvBoolean,parseCsv} from "@/lib/csv";
+import {BULK_IMPORT_MAX_FILE_BYTES,BULK_IMPORT_MAX_ROWS} from "@/lib/inventory-import-constants";
 
 export type BulkImportIssue={row:number;message:string};
 export type BulkImportPreviewRow={
@@ -15,21 +16,21 @@ export type BulkImportPreviewRow={
  donorRegistration:string|null;
 };
 export type BulkImportState={
- status:"idle"|"preview"|"success"|"error";
+ status:"idle"|"preview"|"success"|"error"|"recovery";
  message?:string;
  rowsReceived?:number;
  validRows?:number;
+ createdRows?:number;
  rejectedRows?:number;
  issues?:BulkImportIssue[];
  sample?:BulkImportPreviewRow[];
  batchId?:string;
+ fileReset?:"retain"|"clear";
 };
 
-const MAX_FILE_BYTES=20*1024*1024;
-const MAX_ROWS=5000;
 const LOOKUP_CHUNK_SIZE=500;
 const INSERT_CHUNK_SIZE=250;
-const REQUIRED_HEADERS=["title","description","category","price_gbp"] as const;
+const REQUIRED_HEADERS=["title","description","category","price_gbp","seller_reference"] as const;
 const CONDITIONS=new Set(["used","new","reconditioned"]);
 const TESTING=new Set(["tested_working","removed_from_running_vehicle","visually_inspected","untested","not_specified"]);
 
@@ -68,14 +69,14 @@ type ValidatedRow={
 
 async function validateCsv(file:File,sellerId:string,supabase:SupabaseClient<Database>){
  if(!file.size)return {fatal:"Choose a CSV file.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:0};
- if(file.size>MAX_FILE_BYTES)return {fatal:"CSV files can be up to 8 MB.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:0};
+ if(file.size>BULK_IMPORT_MAX_FILE_BYTES)return {fatal:"CSV files can be up to 20 MiB.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:0};
  if(!file.name.toLowerCase().endsWith(".csv"))return {fatal:"Choose a .csv file.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:0};
 
  const parsed=parseCsv(await file.text());
  if(parsed.error)return {fatal:parsed.error,rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:0};
  const missing=REQUIRED_HEADERS.filter(header=>!parsed.headers.includes(header));
  if(missing.length)return {fatal:"Missing required columns: "+missing.join(", ")+".",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:parsed.rows.length};
- if(parsed.rows.length>MAX_ROWS)return {fatal:"This CSV contains "+parsed.rows.length+" rows. Import up to "+MAX_ROWS+" rows per file.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:parsed.rows.length};
+ if(parsed.rows.length>BULK_IMPORT_MAX_ROWS)return {fatal:"This CSV contains "+parsed.rows.length.toLocaleString("en-GB")+" rows. Import up to "+BULK_IMPORT_MAX_ROWS.toLocaleString("en-GB")+" rows per file.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:parsed.rows.length};
  if(!parsed.rows.length)return {fatal:"The CSV does not contain any inventory rows.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:0};
 
  const {data:categories,error:categoryError}=await supabase.from("categories").select("id,name,slug,is_selectable,is_transmission_related").eq("is_selectable",true);
@@ -159,6 +160,7 @@ async function validateCsv(file:File,sellerId:string,supabase:SupabaseClient<Dat
   if(deliveryDaysMin!==null&&deliveryDaysMax!==null&&(deliveryDaysMin<0||deliveryDaysMax>30||deliveryDaysMin>deliveryDaysMax))rowIssues.push("Delivery range must be between 0 and 30 days.");
   if(donorRegistration&&!donorByReg.has(normalizedDonor!))rowIssues.push("Donor registration is not saved in this seller account.");
   if(category?.is_transmission_related&&(!text(row.gearbox_family,80)||!text(row.gearbox_code,80)))rowIssues.push("Transmission-related categories require gearbox_family and gearbox_code.");
+  if(!sellerReference)rowIssues.push("seller_reference is required. Use a stable stock or SKU reference and reuse it for corrected retries.");
   if(sellerReference){
    const key=sellerReference.toLowerCase();
    if(existingReferences.has(key))rowIssues.push("seller_reference already exists in a previous CSV import.");
@@ -198,7 +200,7 @@ export async function processSellerInventoryCsv({
  mode:"preview"|"import"|string;
 }):Promise<BulkImportState>{
  const validation=await validateCsv(file,sellerId,supabase);
- if(validation.fatal)return {status:"error",message:validation.fatal,rowsReceived:validation.received};
+ if(validation.fatal)return {status:"error",message:validation.fatal,rowsReceived:validation.received,fileReset:"retain"};
 
  const validRows=validation.rows.length;
  const rejectedRows=validation.received-validRows;
@@ -207,13 +209,13 @@ export async function processSellerInventoryCsv({
    status:"preview",
    message:validRows+" rows are ready to import as drafts. "+rejectedRows+" rows need attention.",
    rowsReceived:validation.received,validRows,rejectedRows,
-   issues:validation.issues.slice(0,60),sample:validation.sample
+   issues:validation.issues.slice(0,60),sample:validation.sample,fileReset:"retain"
   };
  }
  if(!validRows)return {
   status:"error",message:"There are no valid rows to import.",
   rowsReceived:validation.received,validRows:0,rejectedRows,
-  issues:validation.issues.slice(0,60),sample:validation.sample
+  issues:validation.issues.slice(0,60),sample:validation.sample,fileReset:"retain"
  };
 
  const {data:batch,error:batchError}=await supabase.from("seller_inventory_imports").insert({
@@ -221,7 +223,7 @@ export async function processSellerInventoryCsv({
   rows_received:validation.received,rows_created:0,rows_rejected:rejectedRows,
   error_summary:validation.issues.slice(0,100)
  }).select("id").single();
- if(batchError||!batch)return {status:"error",message:"The import batch could not be created."};
+ if(batchError||!batch)return {status:"error",message:"The import batch could not be created.",fileReset:"retain"};
 
  let created=0;
  const runtimeIssues=[...validation.issues];
@@ -257,14 +259,20 @@ export async function processSellerInventoryCsv({
 
  const finalRejected=validation.received-created;
  const finalStatus=created===0?"failed":finalRejected>0?"partial":"completed";
- await supabase.from("seller_inventory_imports").update({
+ const {data:finalizedBatch,error:finalizationError}=await supabase.from("seller_inventory_imports").update({
   status:finalStatus,rows_created:created,rows_rejected:finalRejected,error_summary:runtimeIssues.slice(0,100)
- }).eq("id",batch.id).eq("seller_id",sellerId);
+ }).eq("id",batch.id).eq("seller_id",sellerId).select("id").maybeSingle();
+
+ if(finalizationError||!finalizedBatch)return {
+  status:"recovery",
+  message:"The import report could not be completed. Some drafts may have been created. Do not upload this file again. Open the batch report and imported drafts below, then contact support with the batch ID if the counts do not recover.",
+  rowsReceived:validation.received,batchId:batch.id,fileReset:"clear"
+ };
 
  return {
   status:created>0?"success":"error",
-  message:created+" draft"+(created===1?"":"s")+" imported. "+finalRejected+" row"+(finalRejected===1?"":"s")+" rejected. Nothing was published automatically.",
-  rowsReceived:validation.received,validRows:created,rejectedRows:finalRejected,
-  issues:runtimeIssues.slice(0,60),sample:validation.sample,batchId:batch.id
+  message:created+" draft"+(created===1?"":"s")+" imported. "+finalRejected+" row"+(finalRejected===1?"":"s")+" rejected. Nothing was published automatically. Reuse each seller_reference when retrying corrected rows.",
+  rowsReceived:validation.received,createdRows:created,rejectedRows:finalRejected,
+  issues:runtimeIssues.slice(0,60),sample:validation.sample,batchId:batch.id,fileReset:"clear"
  };
 }

@@ -48,14 +48,14 @@ export default async function BulkImportPage({searchParams}:{searchParams:Promis
 
   <section className="mt-8 rounded-3xl border border-black/10 bg-white p-5 sm:p-6">
    <h2 className="text-xl font-black">CSV columns</h2>
-   <p className="mt-2 text-sm leading-6 text-[#63706a]">Required columns are marked below. For categories, use the SecondPart category slug where possible. Seller reference is optional but strongly recommended for inventory systems.</p>
+   <p className="mt-2 text-sm leading-6 text-[#63706a]">Required columns are marked below. For categories, use the SecondPart category slug where possible. Give every row a stable seller reference from your stock or inventory system, and reuse that reference when retrying a corrected row.</p>
    <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
     {[
      ["title","Required · minimum 5 characters"],
      ["description","Required · minimum 20 characters"],
      ["category","Required · category slug, UUID or unique name"],
      ["price_gbp","Required · e.g. 49.95"],
-     ["seller_reference","Recommended · your stock/SKU reference"],
+     ["seller_reference","Required · stable stock/SKU reference used for safe retries"],
      ["donor_registration","Optional · must already exist in Donor Vehicles"],
      ["condition","used / new / reconditioned"],
      ["testing_status","tested_working / removed_from_running_vehicle / visually_inspected / untested / not_specified"],
