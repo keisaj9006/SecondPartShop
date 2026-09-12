@@ -34,7 +34,7 @@ const nativeKey=(key,target)=>{const event=new Event("keydown",{cancelable:true}
 const classTokens=node=>String(node.props?.className??"").split(/\s+/).filter(Boolean);
 function visibleAt(node,width){
  let display=classTokens(node).includes("hidden")?"none":"visible";
- for(const [minimum,prefix] of [[768,"md"],[1024,"lg"],[1280,"xl"]]){
+ for(const [minimum,prefix] of [[640,"sm"],[768,"md"],[1024,"lg"],[1280,"xl"]]){
   if(width<minimum)continue;
   for(const token of classTokens(node)){
    if(token===`${prefix}:hidden`)display="none";
@@ -174,4 +174,24 @@ test("brand badge keeps its square while the wordmark yields when enlarged text 
  assert.ok(classTokens(badge).includes("shrink-0"));
  assert.ok(classTokens(wordmark).includes("truncate"));
  assert.equal(brand.props["aria-label"],"SecondPart home");
+});
+
+test("authenticated desktop header bounds a long profile name without dropping destinations",()=>{
+ const longDisplayName="A very long authenticated marketplace account name that must never consume the desktop navigation width";
+ const tree=hookRunner().render({categories:[],user:true,displayName:longDisplayName,seller:true});
+ const primary=nodes(tree).find(node=>node.type==="nav"&&node.props["aria-label"]==="Primary navigation");
+ const account=nodes(tree).find(node=>node.type==="a"&&node.props.href==="/account"&&visibleAt(node,1280));
+ const destinations=nodes(primary).filter(node=>node.type==="a").map(node=>node.props.href);
+
+ assert.equal(textContent(account),"Account");
+ assert.equal(account.props.title,longDisplayName);
+ assert.doesNotMatch(textContent(tree),new RegExp(longDisplayName));
+ assert.deepEqual(destinations,["/#marketplace","/sellers","/garages","/sell","/about"]);
+ assert.ok(button(primary,"Car parts"));
+ assert.ok(nodes(tree).some(node=>node.type==="a"&&node.props["aria-label"]==="Search"));
+ assert.ok(nodes(tree).some(node=>node.type==="a"&&node.props["aria-label"]==="Saved parts"));
+ assert.ok(nodes(tree).some(node=>node.type==="a"&&node.props["aria-label"]==="Notifications"));
+ assert.ok(nodes(tree).some(node=>node.type==="a"&&node.props["aria-label"]==="SecondPart Garage"));
+ assert.ok(nodes(tree).some(node=>node.type==="a"&&node.props["aria-label"]==="Seller dashboard"));
+ assert.ok(button(tree,"Sign out"));
 });
