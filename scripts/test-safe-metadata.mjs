@@ -263,6 +263,7 @@ test("seller route metadata uses the cached public seller and bounded public cop
   "next/link":component,"next/navigation":{notFound(){throw new Error("not found");}},"lucide-react":icons,
   "@/components/header":{Header:component},"@/components/product-card":{ProductCard:component},
   "@/components/reputation-summary":{ReputationSummary:component},"@/components/review-list":{ReviewList:component},
+  "@/lib/auth":{getCurrentUser:async()=>null},
   "@/lib/data/marketplace":{getPublicSellerInventorySummary:async()=>({}),getPublicSellerListingsPage:async()=>({data:[],hasMore:false})},
   "@/lib/data/public-metadata":{getPublicSellerBySlug:async()=>({...seller,description:"<script>sensitive-script-copy</script><strong>"+"recycled parts ".repeat(100)+"</strong>"})},
   "@/lib/data/reputation":{getPublicMemberProfileById:async()=>null,getPublicMemberReviews:async()=>[]},

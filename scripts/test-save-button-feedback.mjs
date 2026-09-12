@@ -258,6 +258,50 @@ test("pending state is exposed and repeated activation is guarded until completi
  assert.equal(findButton(tree).props["aria-pressed"],true);
 });
 
+test("viewer identity resets mounted local saved state while the same viewer keeps it",async()=>{
+ const browserWindow=new BrowserWindow("/");
+ const subject=loadSaveButton({browserWindow,action:async()=>({ok:true,authRequired:false,saved:true})});
+ let tree=subject.runner.render(subject.SaveButton,{partId:"part-1",initialSaved:false,viewerId:"viewer-a"});
+ subject.runner.flushEffects();
+ findButton(tree).props.onClick();
+ await subject.runner.flushTransitions();
+
+ tree=subject.runner.render(subject.SaveButton,{partId:"part-1",initialSaved:false,viewerId:"viewer-a"});
+ assert.equal(findButton(tree).props["aria-pressed"],true,"same-viewer refresh must preserve the action result while the server prop is stale");
+ assert.equal(statusText(tree),"Part saved.");
+
+ tree=subject.runner.render(subject.SaveButton,{partId:"part-1",initialSaved:false,viewerId:"viewer-b"});
+ assert.equal(findButton(tree).props["aria-pressed"],false,"a different viewer must receive that viewer's authoritative initial state");
+ assert.equal(findButton(tree).props.disabled,false);
+ assert.equal(statusText(tree),"");
+});
+
+test("a save completing after its viewer boundary unmounts cannot update the next viewer",async()=>{
+ let resolveOldAction;
+ const held=new Promise(resolve=>{resolveOldAction=resolve;});
+ const browserWindow=new BrowserWindow("/");
+ const oldViewer=loadSaveButton({browserWindow,action:async()=>held});
+ const nextViewer=loadSaveButton({browserWindow,action:async()=>({ok:true,authRequired:false,saved:true})});
+ let oldTree=oldViewer.runner.render(oldViewer.SaveButton,{partId:"part-1",initialSaved:false,viewerId:"viewer-a"});
+ oldViewer.runner.flushEffects();
+ findButton(oldTree).props.onClick();
+ await new Promise(resolve=>setImmediate(resolve));
+ oldViewer.runner.unmount();
+
+ let nextTree=nextViewer.runner.render(nextViewer.SaveButton,{partId:"part-1",initialSaved:false,viewerId:"viewer-b"});
+ nextViewer.runner.flushEffects();
+ assert.equal(findButton(nextTree).props.disabled,false);
+ assert.equal(findButton(nextTree).props["aria-busy"],false);
+ resolveOldAction({ok:true,authRequired:false,saved:true});
+ await oldViewer.runner.flushTransitions();
+ nextTree=nextViewer.runner.render(nextViewer.SaveButton,{partId:"part-1",initialSaved:false,viewerId:"viewer-b"});
+
+ assert.equal(findButton(nextTree).props["aria-pressed"],false);
+ assert.equal(statusText(nextTree),"");
+ assert.equal(oldViewer.runner.router.refreshes,0);
+ assert.equal(nextViewer.runner.router.refreshes,0);
+});
+
 test("fresh server props rebase state, stale unchanged props do not resurrect old state, and subscriptions clean up",async()=>{
  const browserWindow=new BrowserWindow("/");
  const subject=loadSaveButton({browserWindow,action:async()=>({ok:true,authRequired:false,saved:true})});

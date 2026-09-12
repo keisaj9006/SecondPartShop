@@ -21,7 +21,7 @@ export default async function SavedPage({searchParams}:{searchParams:Promise<Rec
   <p className="mt-2 text-[#63706a]">These listings are stored in your account and remain saved between sessions.</p>
   {result.error&&<p className="mt-6 rounded-xl bg-red-50 p-4 text-red-800">{result.error}</p>}
 
-  {result.data.length?<><div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{result.data.map(item=><ProductCard key={item.id} item={item} saved/>)}</div>
+  {result.data.length?<><div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{result.data.map(item=><ProductCard key={item.id} item={item} viewerId={user.id} saved/>)}</div>
    {(page>1||result.pagination.hasMore)&&<nav aria-label="Saved part pages" className="mt-10 flex items-center justify-center gap-3">
     {page>1&&<Link href={page===2?"/saved":"/saved?page="+(page-1)} className="rounded-full border border-black/15 bg-white px-5 py-3 text-sm font-black">Previous</Link>}
     <span className="text-sm font-bold text-[#63706a]">Page {page}</span>

@@ -62,6 +62,6 @@ export default async function ComparePage({searchParams}:{searchParams:Promise<R
   </div>
 
   {result.error&&<div className="mt-6 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900">{result.error}</div>}
-  {listings.length?<div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{listings.map(item=><ProductCard key={item.id} item={item} saved={savedIds.includes(item.id)} contextQuery={contextQuery}/>)}</div>:!result.error&&<div className="mt-8 rounded-3xl border border-dashed border-black/20 bg-white p-12 text-center"><h2 className="text-xl font-black">No exact offers available</h2><p className="mt-2 text-[#63706a]">The grouped result changed or no longer matches this exact number and vehicle context.</p></div>}
+  {listings.length?<div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{listings.map(item=><ProductCard key={item.id} item={item} viewerId={user?.id??null} saved={savedIds.includes(item.id)} contextQuery={contextQuery}/>)}</div>:!result.error&&<div className="mt-8 rounded-3xl border border-dashed border-black/20 bg-white p-12 text-center"><h2 className="text-xl font-black">No exact offers available</h2><p className="mt-2 text-[#63706a]">The grouped result changed or no longer matches this exact number and vehicle context.</p></div>}
  </main></>;
 }

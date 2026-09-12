@@ -6,10 +6,10 @@ import { conditionLabel,testingStatusLabel,warrantyLabel } from "@/lib/listing-t
 import { ProductImage } from "./product-image";
 import { SaveButton } from "./save-button";
 
-export function ProductCard({item,saved=false,contextQuery=""}:{item:Listing;saved?:boolean;contextQuery?:string}){
+export function ProductCard({item,viewerId,saved=false,contextQuery=""}:{item:Listing;viewerId:string|null;saved?:boolean;contextQuery?:string}){
  const href=`/parts/${item.slug}${contextQuery?`?${contextQuery}`:""}`;
  return <article className="group overflow-hidden rounded-[22px] border border-black/10 bg-white transition hover:-translate-y-1 hover:shadow-[0_18px_50px_rgba(18,34,29,.12)]">
-  <div className="relative h-44 sm:h-52"><ProductImage url={item.images[0]?.url} alt={item.images[0]?.alt??item.title}/><div className="absolute right-3 top-3"><SaveButton partId={item.id} initialSaved={saved} compact/></div></div>
+  <div className="relative h-44 sm:h-52"><ProductImage url={item.images[0]?.url} alt={item.images[0]?.alt??item.title}/><div className="absolute right-3 top-3"><SaveButton key={viewerId??"anonymous"} partId={item.id} viewerId={viewerId} initialSaved={saved} compact/></div></div>
   <div className="p-4 sm:p-5">
    <div className="mb-3 flex flex-wrap items-center gap-2"><span className="rounded-full bg-[#eef1eb] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide">{conditionLabel(item.condition)}</span>{item.testingStatus!=="not_specified"&&<span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-black text-blue-800">{testingStatusLabel(item.testingStatus)}</span>}{item.warrantyDays>0&&<span className="rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-black text-violet-800">{warrantyLabel(item.warrantyDays)}</span>}{item.compatibility&&<CompatibilityBadge info={item.compatibility} compact/>}</div>
    <Link href={href}><h3 className="text-lg font-bold tracking-tight group-hover:underline">{item.title}</h3></Link>

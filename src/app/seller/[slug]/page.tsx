@@ -6,9 +6,10 @@ import { Header } from "@/components/header";
 import { ProductCard } from "@/components/product-card";
 import { ReputationSummary } from "@/components/reputation-summary";
 import { ReviewList } from "@/components/review-list";
-import { getPublicSellerInventorySummary,getPublicSellerListingsPage } from "@/lib/data/marketplace";
+import { getSavedPartIdsForParts,getPublicSellerInventorySummary,getPublicSellerListingsPage } from "@/lib/data/marketplace";
 import { getPublicSellerBySlug } from "@/lib/data/public-metadata";
 import { getPublicMemberProfileById,getPublicMemberReviews } from "@/lib/data/reputation";
+import { getCurrentUser } from "@/lib/auth";
 import { sellerBusinessKindLabel } from "@/lib/seller-business";
 import { buildSellerMetadata } from "@/lib/metadata";
 
@@ -23,7 +24,7 @@ export async function generateMetadata({params}:{params:Promise<{slug:string}>})
 }
 
 export default async function SellerPage({params,searchParams}:{params:Promise<{slug:string}>;searchParams:Promise<Record<string,string|string[]|undefined>>}){
- const [{slug},query]=await Promise.all([params,searchParams]);
+ const [{slug},query,user]=await Promise.all([params,searchParams,getCurrentUser()]);
  const page=pageNumber(first(query.page));
  const pageSize=24;
  const seller=await getPublicSellerBySlug(slug);
@@ -35,7 +36,10 @@ export default async function SellerPage({params,searchParams}:{params:Promise<{
   seller.ownerId?getPublicMemberProfileById(seller.ownerId).catch(()=>null):Promise.resolve(null)
  ]);
  const listings=listingPage.data;
- const reviews=trust?await getPublicMemberReviews(trust.id,12).catch(()=>[]):[];
+ const [reviews,savedIds]=await Promise.all([
+  trust?getPublicMemberReviews(trust.id,12).catch(()=>[]):Promise.resolve([]),
+  user&&listings.length?getSavedPartIdsForParts(user.id,listings.map(item=>item.id)):Promise.resolve([])
+ ]);
 
  const pageHref=(target:number)=>target<=1?"/seller/"+seller.slug:"/seller/"+seller.slug+"?page="+target;
 
@@ -80,7 +84,7 @@ export default async function SellerPage({params,searchParams}:{params:Promise<{
     {summary.categoryNames.length>0&&<div className="flex max-w-2xl flex-wrap gap-2">{summary.categoryNames.map(category=><span key={category} className="rounded-full bg-[#eef1eb] px-3 py-1.5 text-xs font-black">{category}</span>)}</div>}
    </div>
 
-   {listings.length?<><div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{listings.map(item=><ProductCard key={item.id} item={item}/>)}</div>
+   {listings.length?<><div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{listings.map(item=><ProductCard key={item.id} item={item} viewerId={user?.id??null} saved={savedIds.includes(item.id)}/>)}</div>
     {(page>1||listingPage.hasMore)&&<nav aria-label="Seller inventory pages" className="mt-10 flex items-center justify-center gap-3">
      {page>1&&<Link href={pageHref(page-1)} className="rounded-full border border-black/15 bg-white px-5 py-3 text-sm font-black">Previous</Link>}
      <span className="text-sm font-bold text-[#63706a]">Page {page}</span>

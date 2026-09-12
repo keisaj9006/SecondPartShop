@@ -5,7 +5,7 @@ import {ProductCard} from "@/components/product-card";
 import {getBuyerAccountCounts,getRecentlyViewedListings} from "@/lib/data/buyer-account";
 import {getPublicMemberProfileById} from "@/lib/data/reputation";
 import {getListingConversationCount} from "@/lib/data/listing-conversations";
-import {getSellerForOwner} from "@/lib/data/marketplace";
+import {getSavedPartIdsForParts,getSellerForOwner} from "@/lib/data/marketplace";
 import {getGaragePartnerForOwner} from "@/lib/data/fitting";
 
 const card=(href:string,label:string,count:number,description:string,icon:ReactNode)=>({href,label,count,description,icon});
@@ -29,6 +29,7 @@ export async function AccountDashboardContent({
   getSellerForOwner(userId).catch(()=>null),
   getGaragePartnerForOwner(userId).catch(()=>null)
  ]);
+ const savedIds=recent.length?await getSavedPartIdsForParts(userId,recent.map(item=>item.id)):[];
 
  const buyingItems=[
   card("/account/profile","Profile & username",0,"Edit your public name, username, bio and private phone number.",<UserRound size={22}/>),
@@ -69,7 +70,7 @@ export async function AccountDashboardContent({
    {role==="admin"&&<Link href="/admin/moderation" className="group rounded-3xl border border-[#173c31]/20 bg-[#f5f2ea] p-5 transition hover:-translate-y-0.5"><div className="flex items-start justify-between"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#173c31] text-[#d4f44d]"><ShieldCheck size={22}/></span></div><h2 className="mt-5 text-lg font-black">Moderation</h2><p className="mt-1 text-sm leading-6 text-[#63706a]">Review seller verification requests and marketplace reports.</p><span className="mt-4 inline-flex items-center gap-1 text-sm font-black text-[#287154]">Open <ArrowRight size={15}/></span></Link>}
   </section>
 
-  {recent.length>0&&<section className="mt-12"><div className="flex items-end justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[.2em] text-[#287154]">Continue browsing</p><h2 className="mt-2 text-3xl font-black tracking-[-.04em]">Recently viewed</h2></div><Link href="/recently-viewed" className="text-sm font-black underline">View all</Link></div><div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{recent.map(item=><ProductCard key={item.id} item={item}/>)}</div></section>}
+  {recent.length>0&&<section className="mt-12"><div className="flex items-end justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[.2em] text-[#287154]">Continue browsing</p><h2 className="mt-2 text-3xl font-black tracking-[-.04em]">Recently viewed</h2></div><Link href="/recently-viewed" className="text-sm font-black underline">View all</Link></div><div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{recent.map(item=><ProductCard key={item.id} item={item} viewerId={userId} saved={savedIds.includes(item.id)}/>)}</div></section>}
  </>;
 }
 
