@@ -95,6 +95,7 @@ The deletion processor handles the user's account request. A separate scheduled 
 ## Legal review items before public commerce
 
 - contracting entity and accounting-year implementation;
+- whether and for how long a registered seller or garage legal business name must remain with retained commerce records after account deletion; the current finalizer tombstones private-seller names and all public slugs/locations but preserves registered business names pending that ruling;
 - jurisdiction-specific legal-claim limitation/prescription periods across the UK;
 - Stripe/card dispute and chargeback evidence windows;
 - consumer-return / cancellation evidence requirements;
