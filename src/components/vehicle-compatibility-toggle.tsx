@@ -3,6 +3,7 @@
 import { usePathname,useRouter,useSearchParams } from "next/navigation";
 import { useState,useTransition } from "react";
 import { Check,CheckCircle2,Layers3 } from "lucide-react";
+import { resetMarketplacePagination } from "@/lib/marketplace-navigation";
 
 export function VehicleCompatibilityToggle({vehicleLabel,checked}:{vehicleLabel:string;checked:boolean}){
  const router=useRouter();
@@ -17,7 +18,7 @@ export function VehicleCompatibilityToggle({vehicleLabel,checked}:{vehicleLabel:
   setOptimisticChecked(next);
   const params=new URLSearchParams(searchParams.toString());
   params.set("fit",next?"1":"0");
-  params.delete("page");
+  resetMarketplacePagination(params);
   startTransition(()=>router.push(`${pathname}?${params.toString()}#marketplace`,{scroll:false}));
  };
 
@@ -37,7 +38,7 @@ export function VehicleCompatibilityToggle({vehicleLabel,checked}:{vehicleLabel:
     Show only parts that fit this vehicle
    </span>
    <span className="mt-1 block text-xs leading-5 text-[#63706a]">
-    {optimisticChecked
+    {visualChecked
      ?`Only confirmed or same-family matches for ${vehicleLabel} are shown.`
      :`Showing the full marketplace, including unverified parts that may not fit ${vehicleLabel}. Compatibility labels stay visible.`}
    </span>

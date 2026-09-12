@@ -59,11 +59,12 @@ export async function GET(request:Request){
 
  const limit=Math.max(1,Math.min(integer(url.searchParams.get("limit"))??40,100));
  const offset=Math.max(0,integer(url.searchParams.get("offset"))??0);
+ const cursor=url.searchParams.get("cursor")?.trim().slice(0,2048)||undefined;
 
- const result=await getMarketplacePage(filters,{offset,limit});
+ const result=await getMarketplacePage(filters,{offset,limit,...(cursor?{cursor}:{})});
  if(result.error)return mobileJson(request,{ok:false,error:"marketplace_unavailable",message:result.error},503);
 
- if(offset===0&&filters.query?.trim()){
+ if(offset===0&&!cursor&&filters.query?.trim()){
   const count=result.pagination.total??(result.pagination.returned+(result.pagination.hasMore?1:0));
   after(()=>recordMarketplaceSearch({
    source:"mobile",

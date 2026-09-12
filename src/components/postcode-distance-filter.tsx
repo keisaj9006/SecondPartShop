@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MapPin,X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { resetMarketplacePagination } from "@/lib/marketplace-navigation";
 
 export function PostcodeDistanceFilter({initialPostcode}:{initialPostcode?:string}){
  const router=useRouter();
@@ -25,6 +26,7 @@ export function PostcodeDistanceFilter({initialPostcode}:{initialPostcode?:strin
    const params=new URLSearchParams(window.location.search);
    params.set("pc",confirmed);
    params.set("sort","distance");
+   resetMarketplacePagination(params);
    router.push(`/?${params.toString()}#marketplace`);
   }catch{
    setMessage("Postcode lookup is temporarily unavailable.");
@@ -37,6 +39,7 @@ export function PostcodeDistanceFilter({initialPostcode}:{initialPostcode?:strin
   const params=new URLSearchParams(window.location.search);
   params.delete("pc");
   if(params.get("sort")==="distance")params.delete("sort");
+  resetMarketplacePagination(params);
   router.push(`/?${params.toString()}#marketplace`);
  };
  return <div className="mt-4 flex flex-col gap-2 rounded-2xl border border-black/10 bg-white p-4 sm:flex-row sm:items-center">

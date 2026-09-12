@@ -1,11 +1,10 @@
 "use client";
 
-const VEHICLE_CONTEXT_KEY="secondpart.web.vehicle-context.v1";
-
 import { useEffect,useState,useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CarFront,ChevronDown,Search,X } from "lucide-react";
 import { VehicleVisual } from "@/components/vehicle-visual";
+import { clearStoredVehicleContext } from "@/lib/vehicle-context";
 import type { Vehicle,VehicleCatalogueSelection } from "@/lib/types";
 
 type LookupState={kind:"idle"|"loading"|"error"|"info";message?:string};
@@ -165,7 +164,7 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
  };
 
  const clearVehicle=()=>{
-  try{window.localStorage.removeItem(VEHICLE_CONTEXT_KEY);}catch{}
+  clearStoredVehicleContext();
   const params=new URLSearchParams(baseParams);
   pushVehicleParams(params);
  };

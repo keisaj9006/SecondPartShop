@@ -48,7 +48,7 @@ const savedVehicleHref=(vehicle:GarageVehicle,baseParams:Record<string,string>)=
  return `/?${params.toString()}#marketplace`;
 };
 
-export function MarketplaceHome({listings,categories,vehicles,garageVehicles,recentlyViewed,signedIn,filters,selectedCatalogue,savedIds,error,configured,pagination,currentPage,freshVehicleSelection=false}:{listings:Listing[];categories:Category[];vehicles:Vehicle[];garageVehicles:GarageVehicle[];recentlyViewed:Listing[];signedIn:boolean;filters:MarketplaceFilters;selectedCatalogue:VehicleCatalogueSelection|null;savedIds:string[];error:string|null;configured:boolean;pagination:{offset:number;limit:number;returned:number;total:number|null;hasMore:boolean;mode:"offset"|"cursor";nextCursor:string|null};currentPage:number;freshVehicleSelection?:boolean}){
+export function MarketplaceHome({listings,categories,vehicles,garageVehicles,recentlyViewed,signedIn,filters,selectedCatalogue,savedIds,error,configured,pagination,currentPage,currentCursor,freshVehicleSelection=false}:{listings:Listing[];categories:Category[];vehicles:Vehicle[];garageVehicles:GarageVehicle[];recentlyViewed:Listing[];signedIn:boolean;filters:MarketplaceFilters;selectedCatalogue:VehicleCatalogueSelection|null;savedIds:string[];error:string|null;configured:boolean;pagination:{offset:number;limit:number;returned:number;total:number|null;hasMore:boolean;mode:"offset"|"cursor";nextCursor:string|null};currentPage:number;currentCursor?:string;freshVehicleSelection?:boolean}){
  const selectedLegacy=vehicles.find(v=>v.id===filters.vehicle);
  const selectedCategory=categories.find(category=>category.id===filters.category);
  const hasActiveVehicle=Boolean(selectedCatalogue||selectedLegacy);
@@ -58,6 +58,7 @@ export function MarketplaceHome({listings,categories,vehicles,garageVehicles,rec
   :selectedLegacy?`${selectedLegacy.make} ${selectedLegacy.model} ${selectedLegacy.year}`:undefined;
  const contextParams=vehicleParams(filters);
  if(currentPage>1)contextParams.set("page",String(currentPage));
+ if(currentCursor)contextParams.set("cursor",currentCursor);
  const contextQuery=contextParams.toString();
  const pageHref=(page:number)=>{
   const params=vehicleParams(filters);
@@ -101,7 +102,7 @@ export function MarketplaceHome({listings,categories,vehicles,garageVehicles,rec
       <div className="mt-2 flex gap-2 overflow-x-auto pb-1">{garageVehicles.slice(0,4).map(vehicle=><Link key={vehicle.id} href={savedVehicleHref(vehicle,baseParams)} className="min-w-fit rounded-xl border border-black/10 bg-[#f8f7f2] px-3 py-2 text-xs font-bold hover:bg-[#eef1eb]">{vehicle.registration?<span className="mr-2 font-mono text-[#287154]">{vehicle.registration}</span>:null}{vehicle.make} {vehicle.modelFamily} · {vehicle.year}</Link>)}</div>
      </div>}
 
-     <VehicleSelector key={`${freshVehicleSelection?"fresh":selectedCatalogue?.variantId??filters.vehicle??"none"}-${selectedCatalogue?.year??"none"}-${hasActiveVehicle&&filters.compatibleOnly===false?"all":"fit"}`} vehicles={vehicles} selectedId={freshVehicleSelection?undefined:filters.vehicle} selectedCatalogue={freshVehicleSelection?null:selectedCatalogue} baseParams={baseParams} compatibleOnly={hasActiveVehicle?filters.compatibleOnly!==false:true} freshSelection={freshVehicleSelection}/>
+     <VehicleSelector key={`${freshVehicleSelection?"fresh":selectedCatalogue?.variantId??filters.vehicle??"none"}-${selectedCatalogue?.year??"none"}-${selectedCatalogue?.fuelType??"none"}-${selectedCatalogue?.engineSizeSimple??"none"}-${hasActiveVehicle&&filters.compatibleOnly===false?"all":"fit"}`} vehicles={vehicles} selectedId={freshVehicleSelection?undefined:filters.vehicle} selectedCatalogue={freshVehicleSelection?null:selectedCatalogue} baseParams={baseParams} compatibleOnly={hasActiveVehicle?filters.compatibleOnly!==false:true} freshSelection={freshVehicleSelection}/>
 
      {selectedCatalogue&&<div className="mt-4 grid gap-3">
       <VehicleVisual make={selectedCatalogue.make} model={selectedCatalogue.modelFamily} year={selectedCatalogue.year} colour={filters.vehicleColour} variant={selectedCatalogue.variant} registration={filters.vehicleRegistration} engine={selectedCatalogue.engineSizeSimple?selectedCatalogue.engineSizeSimple+"cc":null} fuel={selectedCatalogue.fuelType}/>

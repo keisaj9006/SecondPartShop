@@ -6,6 +6,8 @@ import { ChevronDown,LoaderCircle,Search,X } from "lucide-react";
 import { CategoryBrowser } from "@/components/category-browser";
 import { PartCodeScanner } from "@/components/part-code-scanner";
 import { getCategoryPath } from "@/lib/category-tree";
+import { resetMarketplacePagination } from "@/lib/marketplace-navigation";
+import { clearStoredVehicleContext } from "@/lib/vehicle-context";
 import type { Category,MarketplaceFilters,MarketplaceSuggestion,SearchSuggestionGroups } from "@/lib/types";
 
 const emptyGroups:SearchSuggestionGroups={categories:[],listings:[],numbers:[],brands:[]};
@@ -13,7 +15,11 @@ const emptyGroups:SearchSuggestionGroups={categories:[],listings:[],numbers:[],b
 export function MarketplaceSearch({categories,filters,activeVehicleLabel}:{categories:Category[];filters:MarketplaceFilters;activeVehicleLabel?:string}){
  const router=useRouter();
  const rootRef=useRef<HTMLDivElement>(null);
- const [query,setQuery]=useState(filters.query??"");
+ const committedQuery=filters.query??"";
+ const [queryState,setQueryState]=useState({committed:committedQuery,draft:committedQuery});
+ if(queryState.committed!==committedQuery)setQueryState({committed:committedQuery,draft:committedQuery});
+ const query=queryState.committed===committedQuery?queryState.draft:committedQuery;
+ const setQuery=(draft:string)=>setQueryState({committed:committedQuery,draft});
  const [open,setOpen]=useState(false);
  const [categoryOpen,setCategoryOpen]=useState(false);
  const [groups,setGroups]=useState<SearchSuggestionGroups>(emptyGroups);
@@ -52,6 +58,7 @@ export function MarketplaceSearch({categories,filters,activeVehicleLabel}:{categ
  const pushParams=(mutate:(params:URLSearchParams)=>void)=>{
   const params=new URLSearchParams(window.location.search);
   params.delete("family");params.delete("code");
+  resetMarketplacePagination(params);
   mutate(params);
   const qs=params.toString();
   startNavigation(()=>router.push(`/${qs?`?${qs}`:""}#marketplace`,{scroll:false}));
@@ -81,7 +88,7 @@ export function MarketplaceSearch({categories,filters,activeVehicleLabel}:{categ
 
  const clearCategory=()=>pushParams(params=>params.delete("category"));
  const clearSearchAndCategory=()=>{setQuery("");setOpen(false);setCategoryOpen(false);pushParams(params=>{params.delete("q");params.delete("category");});};
- const clearVehicle=()=>pushParams(params=>{for(const key of ["vehicle","cv","cy","cf","ce","vr","vc","fit"])params.delete(key);});
+ const clearVehicle=()=>{clearStoredVehicleContext();pushParams(params=>{for(const key of ["vehicle","cv","cy","cf","ce","vr","vc","fit"])params.delete(key);});};
  const hasSuggestions=items.length>0&&query.trim().length>=2;
 
  const onKeyDown=(event:ReactKeyboardEvent<HTMLInputElement>)=>{

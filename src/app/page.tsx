@@ -29,7 +29,7 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
  const requestedCatalogueFuel=addVehicleMode?undefined:first(params.cf);
  const requestedCatalogueEngine=addVehicleMode?undefined:integer(first(params.ce));
  const requestedPage=Math.max(1,integer(first(params.page))??1);
- const marketplaceCursor=first(params.cursor);
+ const marketplaceCursor=first(params.cursor)?.trim().slice(0,2048)||undefined;
  const pageSize=24;
  const rawRegistration=addVehicleMode?undefined:first(params.vr);
  const vehicleRegistration=rawRegistration?normalizeRegistration(rawRegistration):undefined;
@@ -65,7 +65,7 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   user&&selectedCatalogue?getGarageVehicleMatch(user.id,{catalogueVariantId:selectedCatalogue.variantId,year:selectedCatalogue.year,fuelType:selectedCatalogue.fuelType,engineSizeSimple:selectedCatalogue.engineSizeSimple,registration:vehicleRegistration??null}).catch(()=>null):Promise.resolve(null),
   user?getRecentlyViewedListings(user.id,3):Promise.resolve([])
  ]);
- if(requestedPage===1&&filters.query?.trim()){
+ if(requestedPage===1&&!marketplaceCursor&&filters.query?.trim()){
   const count=result.pagination.total??(result.pagination.returned+(result.pagination.hasMore?1:0));
   after(()=>recordMarketplaceSearch({
    source:"web",
@@ -80,5 +80,5 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
  const garageVehicles=selectedGarageVehicle&&!garagePage.items.some(vehicle=>vehicle.id===selectedGarageVehicle.id)?[selectedGarageVehicle,...garagePage.items]:garagePage.items;
  const visiblePartIds=[...result.data.map(item=>item.id),...recentlyViewed.map(item=>item.id)];
  const savedIds=user?await getSavedPartIdsForParts(user.id,visiblePartIds):[];
- return <><Header/><MarketplaceHome freshVehicleSelection={addVehicleMode} listings={result.data} categories={categories} vehicles={vehicles} garageVehicles={garageVehicles} recentlyViewed={recentlyViewed} signedIn={Boolean(user)} filters={filters} selectedCatalogue={selectedCatalogue} savedIds={savedIds} error={result.error} configured={result.configured} pagination={result.pagination} currentPage={requestedPage}/></>;
+ return <><Header/><MarketplaceHome freshVehicleSelection={addVehicleMode} listings={result.data} categories={categories} vehicles={vehicles} garageVehicles={garageVehicles} recentlyViewed={recentlyViewed} signedIn={Boolean(user)} filters={filters} selectedCatalogue={selectedCatalogue} savedIds={savedIds} error={result.error} configured={result.configured} pagination={result.pagination} currentPage={requestedPage} currentCursor={marketplaceCursor}/></>;
 }

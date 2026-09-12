@@ -3,6 +3,7 @@
 import { useRef,useState } from "react";
 import { Camera,ScanLine,Search } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { resetMarketplacePagination } from "@/lib/marketplace-navigation";
 
 type BarcodeResult={rawValue:string};
 type Detector={detect:(source:ImageBitmap)=>Promise<BarcodeResult[]>};
@@ -21,6 +22,7 @@ export function PartCodeScanner(){
   const params=new URLSearchParams(window.location.search);
   params.set("q",value);
   params.delete("category");
+  resetMarketplacePagination(params);
   router.push(`/?${params.toString()}#marketplace`);
  };
 

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Bell,CarFront,ChevronDown,Heart,Menu,Search,UserRound,Wrench,X } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import { CategoryBrowser } from "@/components/category-browser";
+import { resetMarketplacePagination } from "@/lib/marketplace-navigation";
 import type { Category } from "@/lib/types";
 
 export function HeaderShell({categories,user,displayName,seller}:{categories:Category[];user:boolean;displayName:string|null;seller:boolean}){
@@ -29,6 +30,7 @@ export function HeaderShell({categories,user,displayName,seller}:{categories:Cat
   const params=new URLSearchParams(window.location.pathname==="/"?window.location.search:"");
   params.set("category",category.id);
   params.delete("family");params.delete("code");
+  resetMarketplacePagination(params);
   startNavigation(()=>router.push(`/?${params.toString()}#marketplace`,{scroll:false}));
  };
 
