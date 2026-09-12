@@ -18,7 +18,7 @@ This is a high-level gate. Use `docs/launch-readiness.md` for canonical detail.
 ## B. Core marketplace
 
 - [ ] public browse stable
-- [ ] search stable
+- [ ] search stable — complete filtering/global ordering and malformed catalogue guards passed SQL fixtures and Preview API/browser checks ([search evidence](test-runs/2026-09-12-search-integrity.md)); production-scale and wider device gates remain.
 - [ ] product detail stable
 - [ ] saved vehicle / Garage stable
 - [ ] add/select new vehicle works cleanly

@@ -1,6 +1,6 @@
 # Listing validation retry QA — 12 September 2026
 
-Status: original validation/Draft retry PASS on actual Preview. Final integration review found a separate partial-save retry regression; follow-up repair and acceptance are recorded below.
+Status: PASS for validation/Draft retry on actual Preview and reviewed synthetic partial-save recovery. Actual induced provider-failure recovery remains a separate open RC gate.
 
 Preview baseline `d243fdb50dbd200b750d75b751b7e1761ebbe0bd`, deployment `dpl_Emre8wSxGZDtKrUkVxfqgmTFEGoP`. Used the existing unpublished QA Seller photo fixture `760fdafa-e589-449e-9296-397f76c74bd2`, with two existing photos, price £1 and no compatibility or identifier claim.
 
@@ -40,3 +40,7 @@ Independent review reproduced a second case using the actual update action with 
 The bounded repair distinguishes pre-write rejection from a confirmed parent write followed by a related-data error. The latter requires recovery through a native link to the saved edit form instead of resubmitting the stale selection. It cancels native/implicit submit and disables the button; the server refuses a supplied recovery marker without trusting or reflecting its contents. Only a database-returned listing ID creates the recovery link. Existing sanitized diagnostics remain visible. This is recovery for the returned action state, not universal request idempotency or atomic upload semantics.
 
 Independent specification and semantic/security re-review PASS. Both actual actions were independently replayed with synthetic A-success/B-failure: one attachment and two upload attempts remain unchanged after retry, with zero additional mutations. Focused listing/image tests 17/17 and photo cleanup boundaries 33/33 PASS. Full suite 233/233, lint (three existing warnings), typecheck, diff check and all 14 validators PASS. Build and deployment acceptance follow. No real Storage failure or alert was induced; that provider failure gate remains explicit in the photo-recovery report.
+
+Final build PASS. Code `e90788390aa903c311cc1c8691e1e2d213258807`, CI `34691988792` SUCCESS, READY Preview `dpl_EG2F8okDfjhK1xjt4N7QpAosMJ5B` (`second-part-shop-7qo6elptg-joannakwapis11-5369.vercel.app`); both aliases read back to that exact HEAD deployment after CI passed.
+
+On that deployment, reopened only the existing QA draft, changed displayed price to £3.26, selected Active and one repository PNG, and submitted the intentionally unsupported publication. The original missing-evidence validation remained effective. Price £3.26, 90-day warranty, note, Active and photo-ready feedback stayed visible; ordinary Save remained available, with no partial-save recovery lock. Database and Storage readback stayed at Draft/325 pence/90 days/unchanged note/three photos/three objects/zero order items. Reloaded the edit route afterwards: Draft and £3.25 restored from saved data, new-file feedback and validation message cleared. No extra upload was performed in this final replay; usable-file Draft retry was already proven above. Partial-write failure/recovery itself was tested synthetically, not induced against Preview Storage.
