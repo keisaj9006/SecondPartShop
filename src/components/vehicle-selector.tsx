@@ -175,10 +175,13 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
   void getItems<CatalogueEngine>(`/api/vehicle-catalogue?level=engines&variantId=${encodeURIComponent(variantId)}`,controller.signal)
    .then(items=>{
     setEngines(items);
-    if(items.length===1)setCatalogueEngine(engineKey(items[0]));
-    else if(registrationVehicle?.catalogue?.engineMatched&&registrationVehicle.fuelType){
-     const matched=items.find(item=>item.fuelType.toLowerCase()===registrationVehicle.fuelType?.toLowerCase()&&(registrationVehicle.engineSizeSimple==null||item.engineSizeSimple===registrationVehicle.engineSizeSimple));
-     if(matched)setCatalogueEngine(engineKey(matched));
+    const matched=items.length===1?items[0]:registrationVehicle?.catalogue?.engineMatched&&registrationVehicle.fuelType&&registrationVehicle.engineSizeSimple!=null
+     ?items.find(item=>item.fuelType.toLowerCase()===registrationVehicle.fuelType?.toLowerCase()&&item.engineSizeSimple===registrationVehicle.engineSizeSimple)
+     :undefined;
+    if(matched)setCatalogueEngine(engineKey(matched));
+    else if(items.length>1&&registrationVehicle){
+     setManualOpen(true);
+     setLookup({kind:"info",message:"Vehicle found. Choose the engine and fuel below to continue."});
     }
     setLoadingEngines(false);
    })
@@ -225,7 +228,7 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
    const response=await fetch("/api/vehicle-lookup",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({registration:value}),cache:"no-store"});
    const payload=await response.json() as {message?:string;registration?:string;vehicle?:Omit<RegistrationSummary,"registration"|"catalogue">;catalogue?:RegistrationSummary["catalogue"]};
    if(!response.ok){
-    setLookup({kind:response.status===503?"info":"error",message:payload.message??"Vehicle lookup is currently unavailable."});
+    setLookup({kind:response.status===503?"info":"error",message:response.status===503?"Registration lookup is unavailable right now. Select your vehicle manually below.":payload.message??"We could not look up that registration. Check it and try again, or select your vehicle manually below."});
     setManualOpen(true);
     return;
    }
@@ -281,7 +284,7 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
     <input id="registration" value={registration} onChange={event=>setRegistration(event.target.value.toUpperCase())} onKeyDown={event=>{if(event.key==="Enter"){event.preventDefault();void findByRegistration();}}} maxLength={10} autoComplete="off" className="min-w-0 flex-1 rounded-xl border border-black/15 bg-[#f8f7f2] px-4 py-3 font-mono text-base font-bold uppercase tracking-[.12em] outline-none focus:ring-2 focus:ring-[#173c31]" placeholder="AB12 CDE"/>
     <button type="button" onClick={()=>void findByRegistration()} disabled={lookup.kind==="loading"} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#173c31] px-5 py-3 text-sm font-black text-white disabled:opacity-60"><Search size={16}/>{lookup.kind==="loading"?"Checking…":"Find my vehicle"}</button>
    </div>
-   <p className="mt-2 text-xs leading-5 text-[#63706a]">Registration lookup uses a real provider only when credentials are configured. We do not fabricate vehicle results.</p>
+   <p className="mt-2 text-xs leading-5 text-[#63706a]">Enter a UK registration to look up your vehicle. If lookup is unavailable or the details are unclear, select your vehicle manually below.</p>
    {lookup.message&&<p role="status" className={`mt-3 rounded-xl px-3 py-2 text-sm ${lookup.kind==="error"?"bg-red-50 text-red-800":"bg-[#eef1eb] text-[#173c31]"}`}>{lookup.message}</p>}
    {registrationVehicle&&<div className="mt-3 grid gap-3 rounded-2xl border border-[#173c31]/15 bg-[#f4f7f2] p-4 md:grid-cols-[minmax(0,1fr)_minmax(260px,.9fr)] md:items-center"><div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#173c31] text-white"><CarFront size={19}/></span><div className="min-w-0"><p className="text-xs font-black uppercase tracking-[.12em] text-[#287154]">{registrationVehicle.registration}</p><p className="mt-1 text-lg font-black">{nameLabel(registrationVehicle.make)} {nameLabel(registrationVehicle.model)}</p><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#4f5e57]">{registrationVehicle.year&&<span>Year: <strong>{registrationVehicle.year}</strong></span>}{registrationVehicle.engineSizeSimple&&<span>Engine: <strong>{registrationVehicle.engineSizeSimple}cc</strong></span>}{registrationVehicle.fuelType&&<span>Fuel: <strong>{fuelLabel(registrationVehicle.fuelType)}</strong></span>}{registrationVehicle.colour&&<span>Colour: <strong>{nameLabel(registrationVehicle.colour)}</strong></span>}</div></div></div>{registrationVehicle.year&&<VehicleVisual make={nameLabel(registrationVehicle.make)} model={nameLabel(registrationVehicle.model)} year={registrationVehicle.year} colour={registrationVehicle.colour} registration={registrationVehicle.registration} engine={registrationVehicle.engineSizeSimple?registrationVehicle.engineSizeSimple+"cc":null} fuel={registrationVehicle.fuelType?fuelLabel(registrationVehicle.fuelType):null} compact/>}</div>}
    {!activeCatalogue&&!selectedLegacy&&<label className={`mt-3 flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${fitOnly?"border-[#173c31] bg-[#f7faef] ring-2 ring-[#d4f44d]/50":"border-black/10 bg-white"}`}>
@@ -301,11 +304,12 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
     <select aria-label="Version" className={control} value={variantId} disabled={!year||loadingVariants} onChange={event=>resetAfterVariant(event.target.value)}><option value="">{loadingVariants?"Loading versions…":"Version / derivative"}</option>{selectedVariant&&!variants.some(item=>item.id===selectedVariant.id)&&<option value={selectedVariant.id}>{selectedVariant.variant}</option>}{variants.map(item=><option key={item.id} value={item.id}>{item.variant}</option>)}</select>
     <select aria-label="Engine and fuel" className={`${control} col-span-2 sm:col-span-2`} value={catalogueEngine} disabled={!variantId||loadingEngines||engines.length===0} onChange={event=>setCatalogueEngine(event.target.value)}><option value="">{loadingEngines?"Loading engine…":engines.length?"Engine / fuel":"Engine data unavailable"}</option>{engines.map(item=><option key={engineKey(item)} value={engineKey(item)}>{item.engineSizeSimple?`${item.engineSizeSimple}cc · ${fuelLabel(item.fuelType)}`:fuelLabel(item.fuelType)}</option>)}</select>
    </div>
+   {engines.length>1&&!catalogueEngine&&<p className="mt-3 text-sm text-[#63706a]">Choose the engine and fuel shown for your vehicle. We have left this blank because an exact engine has not been confirmed.</p>}
    {catalogueError&&<p role="status" className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800">{catalogueError}</p>}
    {(loadingYears||loadingVariants||loadingEngines||isApplying)&&<p role="status" className="mt-3 rounded-xl bg-[#eef1eb] px-3 py-2 text-sm font-bold text-[#173c31]">{loadingYears?"Loading available years…":loadingVariants?"Loading exact versions…":loadingEngines?"Loading engine options…":"Applying vehicle and checking compatibility…"}</p>}
    <div className="mt-3 flex flex-wrap gap-3"><button type="button" disabled={!canApply} onClick={applyCatalogue} className="rounded-xl bg-[#d4f44d] px-5 py-3 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50">{isApplying?"Applying vehicle…":"Use this vehicle"}</button>{(selectedId||activeCatalogue)&&<button type="button" onClick={clearVehicle} className="inline-flex items-center gap-1 text-sm font-bold underline"><X size={14}/>Remove vehicle</button>}</div>
   </div>}
 
-  {selectedLegacy&&<p className="mt-3 rounded-xl bg-[#eef1eb] px-3 py-2 text-xs text-[#63706a]">Existing compatibility test vehicle selected: {selectedLegacy.make} {selectedLegacy.model} {selectedLegacy.year}. This preserves legacy QA fitments while the full catalogue fitments are populated.</p>}
+  {selectedLegacy&&<p className="mt-3 rounded-xl bg-[#eef1eb] px-3 py-2 text-xs text-[#63706a]">Selected vehicle: {selectedLegacy.make} {selectedLegacy.model} {selectedLegacy.year}. Compatibility results use the fitment information currently available for this vehicle.</p>}
  </div>;
 }

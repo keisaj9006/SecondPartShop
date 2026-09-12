@@ -63,10 +63,10 @@ Preview HTTP observation: public product response has the generic title, no JSON
 
 **Files:** mobile-bottom-nav.tsx; root-tab-loading.tsx and existing five loading.tsx boundaries only where measurement shows a gap; focused `scripts/test-mobile-navigation.mjs`.
 
-- [ ] Capture baseline real app nav logs for Home→Garage→Purchases→Inbox→Account and reverse; browser Back and scroll checks. Record viewport, warm/cold distinction and measurement limitations. Count component prefetch invocations separately from network requests.
-- [ ] Reproduce redundant warming and modified-click/pending semantics in component tests. Keep committed aria-current separate from visual pending state; modified clicks must not mark current tab pending.
-- [ ] If duplicate warming offers no evidenced benefit, use one bounded warming mechanism, no repetitive per-route double loop. Keep intent feedback and existing Link routing/Back; do not force reload or revive legacy shell.
-- [ ] Check skeleton geometry/status announcements before altering loading UI. Compare the same route matrix after the fix; report measured values even if latency improvement is inconclusive. Run tests/lint/typecheck/mobile validator and independent review.
+- [x] Capture baseline real app nav logs for Home→Garage→Purchases→Inbox→Account and reverse; browser Back and scroll checks. Record viewport, warm/cold distinction and measurement limitations. Count component prefetch invocations separately from network requests.
+- [x] Reproduce redundant warming and modified-click/pending semantics in component tests. Keep committed aria-current separate from visual pending state; modified clicks must not mark current tab pending.
+- [x] If duplicate warming offers no evidenced benefit, use one bounded warming mechanism, no repetitive per-route double loop. Keep intent feedback and existing Link routing/Back; do not force reload or revive legacy shell.
+- [x] Check skeleton geometry/status announcements before altering loading UI. Compare the same route matrix after the fix; report measured values even if latency improvement is inconclusive. Run tests/lint/typecheck/mobile validator and independent review.
 
 ## Task 3: Home/Garage clarity
 
@@ -112,3 +112,9 @@ Preview HTTP observation: public product response has the generic title, no JSON
 ## Checkpoint protocol
 
 Each task records code commit, focused/full checks, independent review, actual Preview observations and honest limits in `docs/test-runs/2026-09-12-product-excellence.md`. Keep prior evidence intact. When session size requires a boundary, finish/push the current verified batch and leave an exact first-unfinished-task checkpoint; do not restart this audit.
+
+### SEO decision boundary for Task7
+
+No production origin is approved by this phase. Preview must explicitly remain noindex; canonical URLs, URL-dependent Breadcrumb data and a production sitemap are blocked until the approved origin passes the existing HTTPS/non-preview requirements. No provider or auth URL configuration changes are part of SEO work. Request-scoped metadata reads must not create a cross-user data cache.
+
+Future category/make/model/OEM landing pages should be selected from real stocked inventory and meaningful buyer demand, with distinct useful descriptions, correct compatibility explanations and navigable active offers. Empty categories, synthetic compatibility and mass combinations are excluded. This phase documents that strategy; it does not publish landing pages or infer business prioritization from a handful of QA listings.

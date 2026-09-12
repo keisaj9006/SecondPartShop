@@ -95,3 +95,31 @@ Local client-manifest dependency footprint after Batches1–2 (same method and l
 | Account | 4 | 68772 | 22986 |
 
 This modest increase includes the accessibility fixes and changed chunk boundaries. No heavy new library was added, and this is not a total-first-load/network-transfer measurement or evidence of bundle reduction.
+
+### Batch2 Preview acceptance: PASS (navigation); performance comparison inconclusive
+
+Commit ca611339e94303e6492ef9ea5a73f56c3fa7eeb5 passed CI34705355569 and deployed READY as dpl_7fuG36R8hpcT7LUdxtBcconsY3Li (second-part-shop-9aidu0rqq-joannakwapis11-5369.vercel.app). Stable Preview was assigned only after exact-SHA/READY/CI confirmation.
+
+QA Buyer completed the same eight bottom-navigation transitions, forward and reverse, on the deployed code: Home→Garage99ms, Garage→Purchases61ms, Purchases→Inbox38ms, Inbox→Account121ms, Account→Inbox33ms, Inbox→Purchases41ms, Purchases→Garage33ms, Garage→Home103ms. Median51ms/max121ms versus baseline114/1018ms. These are warm-session click-to-pathname logs, not paint/LCP/network measurements. Actual post-run CSS viewport was586×781 (client574), despite the earlier requested mobile dimensions; the baseline used390×844. Because viewport and cache conditions are not controlled equivalently, this is NOT evidence of a quantified performance improvement. All routes remained in the mobile layout.
+
+A separate narrow-layout Back check at actual298×644 preserved scrollTop1292.2137451171875 exactly across Home→Garage→Back; Home alone retained aria-current. No QA record was changed. Browser Back, route completion and reverse navigation passed. Removal of10imperative prefetch invocations is component evidence only; no HTTP-request reduction is claimed. Local251tests, six focused regressions, lint/typecheck/build and14validators remain passing as recorded above. Physical hardware Back and device performance remain RC gates.
+
+Batch3 pre-change Preview observations on ca61133: QA Garage Add a vehicle opens addVehicle=1 with no previous selection. Use this vehicle explicitly restores saved Astra2017/Petrol1400. Fit enabled gives0 and a truthful No compatible matches yet plus Find My Part form; no request submitted. Unticking fit retains vehicle context with fit=0 and gives6. Remove active vehicle then reload leaves no Remove vehicle control and no cv/cy/cf/ce in URL; Garage record was not removed. Existing correct semantics are preserved, not reimplemented.
+
+Batch4 additional confirmed finding: saving DSG Solenoid Repair Set on the main card updates only that card; its Recently viewed copy incorrectly remains Save part. The QA Buyer operation was reversed using the main card and verified after reload: both copies returned to Save part. No other saved record changed. Add a two-instance regression to the scoped feedback repair.
+
+Both stable and branch aliases were read through Vercel API after Batch2 assignment and point to dpl_7fuG36R8hpcT7LUdxtBcconsY3Li.
+
+Buyer detail read-only pass: DSG detail exposes price GBP189.00, free delivery, New/12stock, genuine missing-photo/evidence states, and disabled checkout with seller-unavailable explanation; no payment attempted. Confirmed P2 empty-fitments copy leaks legacy QA terminology and refers to confidence above when no vehicle is selected. Task4 includes a minimal truthful copy fix with render regression, no compatibility logic change.
+
+## Batch3 local implementation
+
+The ambiguous engine selector was hidden after a registration result resolved one variant but no exact engine. It now reveals the required blank engine/fuel choice and actionable guidance. Single-engine selection remains automatic; no engine is inferred for ambiguous results. Technical setup/legacy-QA vehicle copy is replaced with truthful user guidance, including a separate manual-only case.
+
+Actual component RED/GREEN regressions cover adverse async catalogue ordering, preserved year/version, disabled apply until deliberate engine selection, exact cf/ce/vr/vc context, unchanged automatic single-engine flow and manual wording. Root focused10/10 and full255/255 passed, no skips/failures. Lint0errors/3existingwarnings, typecheck0, build0, diff-check0, mobile-performance and launch-baseline validators0. Independent review and exact Preview code acceptance are pending. No checkout/server compatibility code or QA database record changed in this repair.
+
+Additional buyer read-only acceptance on ca61133: public Gearbox Lab UK profile shows actual business identity,2active parts,0completed sales,New rating and No published transaction reviews yet. Existing QA Purchases loads2order links with Paid/Completed and Cancelled states. No order detail mutation, checkout or provider operation occurred. Pathname can commit before streamed page content is ready; the mobile timings above deliberately do not claim content/paint readiness.
+
+Task3 independent review required a further correction: multi-engine fuel-only evidence with null capacity could choose the first capacity. A minimal exact-evidence guard and two regression controls are in progress. Earlier local255/build success is not final acceptance of the corrected code.
+
+Batch3 correction accepted by scoped independent rereview: multiple-engine automatic matching now requires non-null exact capacity and matching fuel. The null-capacity regression witnessed RED then GREEN; the exact-capacity positive control and single-engine automation remain passing. Final root12focused/257full tests pass with no skips/failures; post-fix lint0errors/3legacywarnings, typecheck0, build0, diff-check0, mobile-performance0 and launch-baseline0. Ready for code commit and exact-SHA Preview acceptance; no provider E2E is inferred.
