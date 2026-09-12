@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft,Check,Flag,MapPin,ShieldCheck,Truck,Wrench } from "lucide-react";
 import { AskSellerForm } from "@/components/ask-seller-form";
@@ -13,7 +14,8 @@ import { RecentlyViewedTracker } from "@/components/recently-viewed-tracker";
 import { getCurrentUser } from "@/lib/auth";
 import { getPartCompatibility } from "@/lib/data/compatibility";
 import { isSellerCheckoutReady } from "@/lib/data/checkout";
-import { getListingBySlug,getSavedPartIdsForParts,getVehicleById } from "@/lib/data/marketplace";
+import { getSavedPartIdsForParts,getVehicleById } from "@/lib/data/marketplace";
+import { getPublicListingBySlug } from "@/lib/data/public-metadata";
 import { getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
 import { getPublicMemberProfileById } from "@/lib/data/reputation";
 import { getPartPassportEvidence } from "@/lib/data/part-passport";
@@ -23,6 +25,7 @@ import { isUuid } from "@/lib/identifiers";
 import { isStripeCheckoutConfigured } from "@/lib/stripe-payments";
 import { isMarketplaceUserBlocked } from "@/lib/marketplace-policy";
 import { getSellerDistanceFromPostcode } from "@/lib/seller-geo";
+import { buildListingJsonLd,buildListingResultMetadata,serializeJsonLd } from "@/lib/metadata";
 
 export const dynamic="force-dynamic";
 
@@ -30,9 +33,14 @@ const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:val
 const integer=(value:string|undefined)=>{if(!value)return undefined;const parsed=Number(value);return Number.isInteger(parsed)?parsed:undefined;};
 const contextKeys=["q","category","condition","sort","min","max","pc","collection","vehicle","vr","vc","cv","cy","cf","ce","fit","page","cursor"] as const;
 
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
+ try{return buildListingResultMetadata(await getPublicListingBySlug((await params).slug));}
+ catch{return buildListingResultMetadata(null);}
+}
+
 export default async function PartPage({params,searchParams}:{params:Promise<{slug:string}>;searchParams:Promise<Record<string,string|string[]|undefined>>}){
  const [{slug},rawSearch,user]=await Promise.all([params,searchParams,getCurrentUser()]);
- const result=await getListingBySlug(slug);
+ const result=await getPublicListingBySlug(slug);
  if(result.configured&&!result.data&&!result.error)notFound();
  const item=result.data;
  if(!item)return <><Header/><main className="mx-auto max-w-3xl px-4 py-16"><h1 className="text-3xl font-black">Listing unavailable</h1><p className="mt-3 rounded-xl bg-amber-50 p-4 text-amber-900">{result.error??"This listing could not be loaded."}</p></main></>;
@@ -97,7 +105,8 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
  }
  const fitHref=checkoutVehicleContext?`/fit/${item.id}?${fitParams.toString()}`:null;
 
- return <><Header/>{user&&<RecentlyViewedTracker partId={item.id}/>}<main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">{first(rawSearch.reported)==="1"&&<div className="mb-5 rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-900">Thanks. Your report was submitted for review.</div>}{first(rawSearch.checkout)==="cancelled"&&<div className="mb-5 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-900">Checkout cancelled. The temporary stock reservation was released unless Stripe had already started processing the payment.</div>}
+ const jsonLd=buildListingJsonLd(item);
+ return <>{jsonLd&&<script type="application/ld+json" dangerouslySetInnerHTML={{__html:serializeJsonLd(jsonLd)}}/>}<Header/>{user&&<RecentlyViewedTracker partId={item.id}/>}<main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">{first(rawSearch.reported)==="1"&&<div className="mb-5 rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-900">Thanks. Your report was submitted for review.</div>}{first(rawSearch.checkout)==="cancelled"&&<div className="mb-5 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-900">Checkout cancelled. The temporary stock reservation was released unless Stripe had already started processing the payment.</div>}
   <Link href={backHref} className="mb-6 inline-flex items-center gap-2 text-sm font-bold"><ArrowLeft size={16}/>Back to results</Link>
   <div className="grid gap-8 lg:grid-cols-[1.05fr_.95fr]">
    <ProductGallery images={item.images} alt={item.title}/>

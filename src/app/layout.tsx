@@ -6,28 +6,12 @@ import { PwaRegister } from "@/components/pwa-register";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { NativeAppMode } from "@/components/native-app-mode";
 import { NativeTopBar } from "@/components/native-top-bar";
+import { buildRootMetadata } from "@/lib/metadata";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: "SecondPart — The right part. First time.",
-  description: "Find verified used automotive parts from trusted UK garages.",
-  applicationName: "SecondPart",
-  manifest: "/manifest.webmanifest",
-  icons: {
-    icon: [
-      { url: "/icons/icon-192.svg", type: "image/svg+xml", sizes: "192x192" },
-      { url: "/icons/icon-512.svg", type: "image/svg+xml", sizes: "512x512" },
-    ],
-    apple: [{ url: "/icons/icon-192.svg", type: "image/svg+xml", sizes: "192x192" }],
-  },
-  appleWebApp: {
-    capable: true,
-    title: "SecondPart",
-    statusBarStyle: "default",
-  },
-};
+export const metadata: Metadata = buildRootMetadata();
 
 export const viewport: Viewport = {
   width: "device-width",

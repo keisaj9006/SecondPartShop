@@ -1,24 +1,32 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Boxes,MapPin,PackageCheck,ShieldCheck,Truck } from "lucide-react";
 import { Header } from "@/components/header";
 import { ProductCard } from "@/components/product-card";
 import { ReputationSummary } from "@/components/reputation-summary";
 import { ReviewList } from "@/components/review-list";
-import { getPublicSellerInventorySummary,getPublicSellerListingsPage,getSellerBySlug } from "@/lib/data/marketplace";
+import { getPublicSellerInventorySummary,getPublicSellerListingsPage } from "@/lib/data/marketplace";
+import { getPublicSellerBySlug } from "@/lib/data/public-metadata";
 import { getPublicMemberProfileById,getPublicMemberReviews } from "@/lib/data/reputation";
 import { sellerBusinessKindLabel } from "@/lib/seller-business";
+import { buildSellerMetadata } from "@/lib/metadata";
 
 export const dynamic="force-dynamic";
 
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 const pageNumber=(value:string|undefined)=>{const parsed=Number(value);return Number.isInteger(parsed)&&parsed>0?parsed:1;};
 
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
+ try{return buildSellerMetadata(await getPublicSellerBySlug((await params).slug));}
+ catch{return buildSellerMetadata(null);}
+}
+
 export default async function SellerPage({params,searchParams}:{params:Promise<{slug:string}>;searchParams:Promise<Record<string,string|string[]|undefined>>}){
  const [{slug},query]=await Promise.all([params,searchParams]);
  const page=pageNumber(first(query.page));
  const pageSize=24;
- const seller=await getSellerBySlug(slug);
+ const seller=await getPublicSellerBySlug(slug);
  if(!seller)notFound();
 
  const [listingPage,summary,trust]=await Promise.all([

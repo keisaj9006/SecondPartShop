@@ -1,4 +1,5 @@
 import { after } from "next/server";
+import type { Metadata } from "next";
 import { Header } from "@/components/header";
 import { MarketplaceHome } from "@/components/marketplace-home";
 import { getCategories,getMarketplacePage,getSavedPartIdsForParts,getVehicleById } from "@/lib/data/marketplace";
@@ -11,8 +12,10 @@ import { normalizePostcode } from "@/lib/postcode";
 import type { MarketplaceFilters,MarketplaceSort,PartCondition } from "@/lib/types";
 import { isUuid } from "@/lib/identifiers";
 import { recordMarketplaceSearch } from "@/lib/analytics/search";
+import { buildHomeMetadata } from "@/lib/metadata";
 
 export const dynamic="force-dynamic";
+export const metadata:Metadata=buildHomeMetadata();
 
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 const integer=(value:string|undefined)=>{if(!value)return undefined;const parsed=Number(value);return Number.isInteger(parsed)?parsed:undefined;};
