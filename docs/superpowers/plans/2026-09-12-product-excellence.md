@@ -91,16 +91,17 @@ Preview HTTP observation: public product response has the generic title, no JSON
 
 - [x] Read import preview/draft creation, seller-reference uniqueness and report limits; distinguish replay-safe existing references from rows without references. Do not claim universal idempotency.
 - [x] Require a nonempty stable seller_reference for each importable CSV row and explain reuse for retries; reject missing references before writes. Existing casefold uniqueness remains authoritative; reject duplicates without overwriting existing stock. Tests prove repeated missing-reference file writes zero and a referenced partial retry creates only remaining rows.
-- [ ] Reproduce preview file reset; retain selection only where no rows were written and keep deliberate success reset. Accurate valid/created/rejected counts and actionable report guidance; do not allow replay after partial writes or invent upload atomicity.
+- [x] Reproduce preview file reset; retain selection only where no rows were written and keep deliberate success reset. Actual QA Seller Preview confirmed retained files after valid and rejected previews, with accurate counts. Post-write clear/recovery remains synthetic coverage; no real import or upload atomicity is claimed.
 - [x] Check final batch update errors explicitly; expose incomplete-report recovery/batch link instead of success. Synchronize UI and importer limit constants at existing5000rows/20MiB without increasing limits. Test failed finalization and exact size/row boundaries synthetically.
-- [ ] Inspect errors, correction of rejected rows and existing inventory/report UI. Run only synthetic import action tests and safe Preview validation on QA Seller; no new public fixture or bulk mutation.
+- [x] Inspect errors, correction of rejected rows and existing inventory/report UI. QA Seller valid/missing-reference previews and retries passed without importing; unchanged inventory was observed. A single returned reference-lookup error was fail-closed and later previews succeeded; its provider cause remains unproven. No new public fixture or bulk mutation.
 - [x] Verify existing partial-save recovery/publication rules remain, run focused checks/review.
 
 ## Task 6: Responsive consistency
 
-- [ ] Capture representative Home, Garage, product, account and seller form at the five specified viewport/text conditions. Record actual clipped/overlapping control, horizontal overflow or contrast defect before editing.
+- [x] Capture representative Home, Garage, product, account and seller-form viewport evidence. Seller form was measured at320/389/769/1025/1281px widths including480px height; its confirmed shrinking checkbox defect was corrected and remeasured on Preview. See the report for representative, not exhaustive, coverage.
+- [ ] Native enlarged-text/zoom acceptance remains an RC gate: browser shortcuts did not apply a measurable zoom. Earlier synthetic text-size checks do not replace native execution.
 - [x] Apply the smallest shared style or local layout fix per confirmed defect; prefer readable text, reachable CTA and visible focus. Do not add decorative assets.
-- [x] Add regression coverage for changed behavior/layout contract; repeat affected viewports, tests/lint/typecheck/review. Corrected authenticated desktop/mobile and anonymous desktop checks passed on1a34457. Real physical device/screen reader execution remains RC; the seller-form matrix still requires QA Seller login.
+- [x] Add regression coverage for changed behavior/layout contract; repeat affected viewports, tests/lint/typecheck/review. Corrected authenticated desktop/mobile and anonymous desktop checks passed on1a34457. The QA Seller form matrix subsequently passed on a54f205. Real physical device/screen reader/native-zoom execution remains RC.
 
 ## Task 7: Safe metadata and SEO preparation
 
