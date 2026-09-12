@@ -25,9 +25,9 @@ This is a high-level gate. Use `docs/launch-readiness.md` for canonical detail.
 - [ ] compatibility filter understandable
 - [ ] compatibility fallback states honest
 - [ ] OE/OEM search stable
-- [ ] seller profile/listing lifecycle stable
+- [ ] seller profile/listing lifecycle stable — rejected publication and retained-photo Draft retry passed Preview ([Task 6 evidence](test-runs/2026-09-12-listing-validation-retry.md)); broader lifecycle/device gates remain.
 - [ ] large inventory path does not require impractical manual work
-- [ ] Find My Part/request flow usable
+- [ ] Find My Part/request flow usable — safe auth return context passed synthetic boundaries and public Preview links ([Task 5 evidence](test-runs/2026-09-12-auth-return-context.md)); real email/device and request lifecycle gates remain.
 
 ## C. Fitment / trust
 
