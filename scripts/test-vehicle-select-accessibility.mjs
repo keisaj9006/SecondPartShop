@@ -218,6 +218,28 @@ test("disabled or empty options discard keyboard intent even when the same optio
  }
 });
 
+test("no results are described as status feedback rather than an invalid listbox child",()=>{
+ const runner=hookRunner();
+ const {SearchableVehicleSelect}=moduleFrom("src/components/vehicle-selector.tsx",runner.react);
+ const render=()=>runner.render(SearchableVehicleSelect,{value:"",options,placeholder:"Search make",label:"Make",onChange(){}});
+ let tree=render();
+ byRole(tree,"combobox")[0].props.onChange(nativeEvent("input",{target:{value:"zzzz-qa-no-match"}}));
+ tree=render();
+ const input=byRole(tree,"combobox")[0];
+ const status=byRole(tree,"status")[0];
+ assert.equal(byRole(tree,"listbox").length,0);
+ assert.equal(input.props["aria-expanded"],false);
+ assert.equal(input.props["aria-controls"],undefined);
+ assert.equal(input.props["aria-describedby"],status.props.id);
+ assert.equal(status.props.children,"No matching options");
+ input.props.onChange(nativeEvent("input",{target:{value:"bmw"}}));
+ tree=render();
+ assert.equal(byRole(tree,"listbox").length,1);
+ assert.equal(byRole(tree,"status").length,0);
+ assert.equal(byRole(tree,"combobox")[0].props["aria-expanded"],true);
+ assert.equal(byRole(tree,"combobox")[0].props["aria-describedby"],undefined);
+});
+
 test("click selects the option value and active scrolling occurs only outside the visible listbox",()=>{
  const changes=[];
  const elements=new Map();

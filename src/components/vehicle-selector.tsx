@@ -92,14 +92,14 @@ export function SearchableVehicleSelect({value,options,placeholder,label,disable
  },[activeId]);
 
  return <div className="relative min-w-0" onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget as Node))close();}}>
-  <input role="combobox" aria-label={label} aria-controls={listboxId} aria-expanded={open&&!disabled} aria-activedescendant={activeId} aria-autocomplete="list" disabled={disabled} value={open&&!disabled?term:selectedLabel} onFocus={()=>{if(!disabled){setOpen(true);setTerm("");setActiveValue(null);}}} onChange={event=>{setTerm(event.target.value);setOpen(true);setActiveValue(null);}} onKeyDown={event=>{
+  <input role="combobox" aria-label={label} aria-controls={filtered.length?listboxId:undefined} aria-expanded={open&&!disabled&&filtered.length>0} aria-describedby={open&&!disabled&&!filtered.length?`${listboxId}-status`:undefined} aria-activedescendant={activeId} aria-autocomplete="list" disabled={disabled} value={open&&!disabled?term:selectedLabel} onFocus={()=>{if(!disabled){setOpen(true);setTerm("");setActiveValue(null);}}} onChange={event=>{setTerm(event.target.value);setOpen(true);setActiveValue(null);}} onKeyDown={event=>{
    if(event.key==="ArrowDown"&&!disabled){event.preventDefault();moveActive(1);}
    else if(event.key==="ArrowUp"&&!disabled){event.preventDefault();moveActive(-1);}
    else if(event.key==="Enter"&&open&&!disabled){event.preventDefault();if(activeOption)choose(activeOption.value);}
    else if(event.key==="Escape"&&open){event.preventDefault();close();}
    else if(event.key==="Tab"&&open)close();
   }} className="w-full rounded-xl border border-black/12 bg-white px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-[#173c31] disabled:bg-black/5" placeholder={placeholder}/>
-  {open&&!disabled&&<div ref={listboxRef} id={listboxId} role="listbox" aria-label={label} className="absolute z-30 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-black/10 bg-white p-1 shadow-xl">{filtered.length?filtered.map(option=><button key={option.value} id={optionId(option.value)} type="button" role="option" tabIndex={-1} aria-selected={option.value===value} onMouseDown={event=>event.preventDefault()} onClick={()=>choose(option.value)} className={`block w-full rounded-lg px-3 py-2 text-left text-sm ${option.value===activeOption?.value?"bg-[#eef1eb]":"hover:bg-[#eef1eb]"}`}>{option.label}</button>):<p role="status" className="px-3 py-3 text-sm text-[#63706a]">No matching options</p>}</div>}
+  {open&&!disabled&&(filtered.length?<div ref={listboxRef} id={listboxId} role="listbox" aria-label={label} className="absolute z-30 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-black/10 bg-white p-1 shadow-xl">{filtered.map(option=><button key={option.value} id={optionId(option.value)} type="button" role="option" tabIndex={-1} aria-selected={option.value===value} onMouseDown={event=>event.preventDefault()} onClick={()=>choose(option.value)} className={`block w-full rounded-lg px-3 py-2 text-left text-sm ${option.value===activeOption?.value?"bg-[#eef1eb]":"hover:bg-[#eef1eb]"}`}>{option.label}</button>)}</div>:<p id={`${listboxId}-status`} role="status" className="absolute z-30 mt-1 w-full rounded-xl border border-black/10 bg-white px-3 py-3 text-sm text-[#63706a] shadow-xl">No matching options</p>)}
  </div>;
 }
 

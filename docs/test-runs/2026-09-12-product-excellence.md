@@ -60,3 +60,14 @@ Implementation passed local release checks and is ready for the Batch1 code comm
 Independent semantic/accessibility review found two Important issues in the initial implementation: unnamed popup listbox and stale keyboard intent reviving after disabled/empty options returned. Both were reproduced with failing regression assertions, repaired and independently re-reviewed PASS. Controller also corrected the reduced-motion cascade and a duplicate mobile landmark name before release.
 
 Final focused tests: 11/11. Full tests: 244/244, zero skipped/failed. Lint: no errors, three pre-existing warnings in the legacy mobile-shell files. Final typecheck and build exited0; repeated14validators all exited0; diff-check passed. Preview acceptance is pending. No RC or physical screen-reader completion is implied.
+
+### Preview correction after initial code commit
+
+Code commit `13f947cb159f647af35e6bfa366501165eda9bf0` passed CI run34703304690 and deployed as READY Preview `dpl_HwEWRcZ8UMqKqAUUAkvkrbA3RgeD` (second-part-shop-6kwnr8x83-joannakwapis11-5369.vercel.app). Stable and branch aliases both matched that deployment.
+
+Actual390×844 QA Buyer browser acceptance: ArrowUp moves to the last displayed Make option and scrolls the list (scrollTop3485.6); focus remains on Make and active descendant points to a rendered option. Escape closes without selecting. Empty query result leaves Enter inert; Tab closes and moves to the next enabled control. BMW selected only after ArrowDown+Enter; its ID stays stable after filtering/reopening. Once models load, Tab moves Make→Model without selecting a new make. Header mobile-menu Escape returns focus to Open navigation with expanded=false. No vehicle was applied or saved and no QA data was mutated.
+
+Anonymous Chromium reduced-motion check: media=true, computed html scrollBehavior=auto (baseline smooth), both entry animation names=none (baseline fade-up). Open BMW list axe4.12.1:44passed rules,0violations,1incomplete contrast rule. Empty-result axe exposed aria-required-children: role=status was nested in listbox. Batch1 was deliberately left unaccepted despite earlier unit/review results.
+
+Correction: empty feedback is now a separate named status associated with the combobox through aria-describedby; it does not render an empty listbox or claim an expanded options popup. Restored matches restore the normal listbox. Exact new regression witnessed RED then GREEN; focused12/12 and full245/245 pass. Corrected Preview acceptance and final check details follow below; gradient contrast remains an incomplete automated result, not inferred PASS.
+Post-empty-state fix local gates: focused12/12, full245/245, lint0errors/3existing warnings, typecheck0, build0, diff-check clean, all14validators0; scoped semantic re-review PASS. Final Preview empty-state axe remains pending deployment.
