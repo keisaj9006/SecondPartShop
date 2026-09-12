@@ -75,7 +75,7 @@ export function MarketplaceHome({listings,categories,vehicles,garageVehicles,rec
   const query=params.toString();
   return query?"/?"+query+"#marketplace":"/#marketplace";
  };
- const offerGroups=groupListingsForOffers(listings);
+ const offerGroups=groupListingsForOffers(listings,{preserveOrder:Boolean(filters.query?.trim())});
  const selectedSaved=Boolean(selectedCatalogue&&garageVehicles.some(vehicle=>
   vehicle.catalogueVariantId===selectedCatalogue.variantId&&
   vehicle.year===selectedCatalogue.year&&

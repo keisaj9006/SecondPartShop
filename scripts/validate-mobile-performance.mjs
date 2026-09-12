@@ -18,6 +18,7 @@ const productionAndroidPrep=read("scripts/prepare-android-production.mjs");
 const productionAndroidPatch=read("scripts/patch-android-production.mjs");
 const productionAndroidWorkflow=read(".github/workflows/android-production-aab.yml");
 const searchScaleMigration=read("supabase/migrations/20260909100500_indexed_marketplace_search_candidates.sql");
+const searchPageMigration=read("supabase/migrations/20260912110440_complete_marketplace_search_page.sql");
 const cursorMigration=read("supabase/migrations/20260909103000_marketplace_cursor_pagination.sql");
 const sellerCursorMigration=read("supabase/migrations/20260909104500_seller_inventory_cursor_pagination.sql");
 const sortedCursorMigration=read("supabase/migrations/20260909195500_marketplace_sorted_cursor_pagination.sql");
@@ -77,12 +78,13 @@ const checks=[
  ["Sorted cursor RPC must cover price, delivery and warranty",sortedCursorMigration.includes("p_sort='price_asc'")&&sortedCursorMigration.includes("p_sort='price_desc'")&&sortedCursorMigration.includes("p_sort='delivery'")&&sortedCursorMigration.includes("p_sort='warranty'")],
  ["Default vehicle compatibility must use keyset pagination",marketplaceData.includes("marketplace_catalogue_cursor_page_v1")&&marketplaceData.includes('const canUseCatalogueCursor=sort==="best"&&!filters.query?.trim()')],
  ["Compatibility cursor must preserve confidence + created_at + id ordering",compatibilityCursorMigration.includes("f.confidence_rank<p_after_confidence_rank")&&compatibilityCursorMigration.includes("order by f.confidence_rank desc,f.created_at desc,f.part_id desc")],
- ["Compatibility search and special sorts must keep bounded fallback",marketplaceData.includes("marketplace_catalogue_sorted_page")&&marketplaceData.includes("p_part_ids:rankedIds")],
+ ["Text search must page global eligibility inside one bounded RPC",marketplaceData.includes('supabase.rpc("marketplace_search_page_v1"')&&marketplaceData.includes("const visibleRows=pageRows.slice(0,limit)")&&searchPageMigration.includes("limit greatest(1,least(coalesce(p_limit,24),60))+1")],
  ["Distance pagination must request limit+1",marketplaceData.includes("p_limit:limit+1")&&marketplaceData.includes("const hasMore=rawPageRows.length>limit")],
  ["Distance browse must use V2 RPCs",marketplaceData.includes("marketplace_distance_page_v2")&&marketplaceData.includes("marketplace_catalogue_distance_page_v2")],
  ["Distance V2 must compute distance once per seller",distanceV2Migration.includes("seller_distances as")&&distanceV2Migration.includes("join seller_distances d on d.seller_id=p.seller_id")],
  ["Distance V2 must avoid COUNT window on hot path",!distanceV2Migration.includes("count(*) over() as total_count")],
- ["Search ranking must stay bounded to indexed candidates",searchScaleMigration.includes("candidate_rows as")&&searchScaleMigration.includes("candidate_limit")],
+ ["Autosuggest retains its indexed candidate budget",searchScaleMigration.includes("candidate_rows as")&&searchScaleMigration.includes("candidate_limit")],
+ ["Full search has no early candidate cap",!searchPageMigration.includes("candidate_limit")&&!searchPageMigration.includes("marketplace_search_part_ids")&&searchPageMigration.includes("eligible as not materialized")],
  ["Cursor UI must avoid deep OFFSET page links",marketplaceHome.includes('pagination.mode==="cursor"')&&marketplaceHome.includes("Next 24 parts")],
  ["Large seller inventory must use keyset pagination by default",marketplaceData.includes("seller_inventory_cursor_page")&&marketplaceData.includes("encodeSellerInventoryCursor")],
  ["Seller cursor must match seller updated-at index order",sellerCursorMigration.includes("(p.updated_at,p.id)<(p_after_updated_at,p_after_id)")&&sellerCursorMigration.includes("order by p.updated_at desc,p.id desc")],

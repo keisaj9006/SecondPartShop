@@ -3721,6 +3721,34 @@ export type Database = {
           part_id: string
         }[]
       }
+      marketplace_search_page_v1: {
+        Args: {
+          p_query: string
+          p_sort?: string
+          p_category_ids?: string[]
+          p_condition?: string
+          p_min_price_pence?: number
+          p_max_price_pence?: number
+          p_collection_only?: boolean
+          p_variant_id?: string
+          p_year?: number
+          p_fuel?: string
+          p_engine?: number
+          p_vehicle_id?: string
+          p_compatible_only?: boolean
+          p_buyer_lat?: number
+          p_buyer_lon?: number
+          p_part_ids?: string[]
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: {
+          part_id: string
+          confidence: string | null
+          distance_miles: number | null
+          distance_approximate: boolean
+        }[]
+      }
       marketplace_search_part_ids_limited: {
         Args: { p_limit?: number; p_query: string }
         Returns: {

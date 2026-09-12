@@ -40,6 +40,10 @@ export async function GET(request:Request){
  const selectedCatalogue=variantId&&year
   ?await getCatalogueSelection(variantId,year,fuel,engine).catch(()=>null)
   :null;
+ if(url.searchParams.get("q")?.trim()&&(url.searchParams.has("cv")||url.searchParams.has("cy"))
+  &&(!selectedCatalogue||(url.searchParams.has("ce")&&engine===undefined))){
+  return mobileJson(request,{ok:false,error:"marketplace_unavailable",message:"Compatibility data is temporarily unavailable."},503);
+ }
 
  const filters:MarketplaceFilters={
   query:url.searchParams.get("q")?.trim()||undefined,

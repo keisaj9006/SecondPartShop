@@ -174,7 +174,7 @@ export async function getMarketplacePage(
 ):Promise<MarketplacePageResult>{
  const limit=Math.max(1,Math.min(Math.floor(options.limit??24),60));
  const offset=Math.max(0,Math.floor(options.offset??0));
- const emptyPagination={offset,limit,returned:0,total:0,hasMore:false,mode:"offset" as const,nextCursor:null};
+ const emptyPagination={offset,limit,returned:0,total:filters.query?.trim()?null:0,hasMore:false,mode:"offset" as const,nextCursor:null};
  const cardSelect=options.lean?selectListingCardLean():selectListingCard();
  const hydrateCards=options.lean?leanCardListingsFromRows:cardListingsFromRows;
  if(!isSupabaseConfigured())return {...failure([],"Connect Supabase to load marketplace data.",false),pagination:emptyPagination};
@@ -189,6 +189,45 @@ export async function getMarketplacePage(
  }
 
  const sort=filters.sort??"best";
+
+ // Search eligibility and global ordering must precede the only page boundary.
+ // Never turn a search RPC failure into a capped or unfiltered browse result.
+ if(filters.query?.trim()){
+  const searchPagination={...emptyPagination,total:null};
+  const hasVehicle=Boolean(filters.catalogueVariant||filters.vehicle);
+  if(Boolean(filters.catalogueVariant)!==(filters.catalogueYear!==undefined))return {...failure([],"Compatibility data is temporarily unavailable."),pagination:searchPagination};
+  const buyer=sort==="distance"&&filters.postcode?await lookupPostcodeLocation(filters.postcode):null;
+  if(sort==="distance"&&!buyer)return {...failure([],"Enter a valid UK postcode to sort by distance."),pagination:searchPagination};
+  const {data:rawRows,error}=await supabase.rpc("marketplace_search_page_v1",{
+   p_query:filters.query.trim(),p_sort:sort,p_category_ids:categoryIds,p_condition:filters.condition,
+   p_min_price_pence:Number.isFinite(filters.minPrice)?Math.round((filters.minPrice??0)*100):undefined,
+   p_max_price_pence:Number.isFinite(filters.maxPrice)?Math.round((filters.maxPrice??0)*100):undefined,
+   p_collection_only:Boolean(filters.collectionOnly),p_variant_id:filters.catalogueVariant,p_year:filters.catalogueYear,
+   p_fuel:filters.catalogueFuel,p_engine:filters.catalogueEngineSize,p_vehicle_id:filters.vehicle,
+   p_compatible_only:hasVehicle&&filters.compatibleOnly!==false,p_buyer_lat:buyer?.latitude,p_buyer_lon:buyer?.longitude,
+   p_part_ids:filters.ids?.length?filters.ids:undefined,p_limit:limit,p_offset:offset
+  });
+  if(error)return {...failure([],"Marketplace search is temporarily unavailable."),pagination:searchPagination};
+  type SearchRow={part_id:string;confidence:string|null;distance_miles:number|null;distance_approximate:boolean};
+  const pageRows=(rawRows??[]) as SearchRow[];
+  const hasMore=pageRows.length>limit;
+  const visibleRows=pageRows.slice(0,limit);
+  const ids=visibleRows.map(row=>row.part_id);
+  if(!ids.length)return {data:[],error:null,configured:true,pagination:searchPagination};
+  const {data:rows,error:rowError}=await supabase.from("parts").select(cardSelect).eq("status","active").in("id",ids);
+  if(rowError)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:searchPagination};
+  const cards=await hydrateCards(supabase,rows??[]);
+  const byId=new Map(cards.map(item=>[item.id,item] as const));
+  const listings=visibleRows.flatMap(row=>{
+   const item=byId.get(row.part_id);
+   if(!item)return [];
+   const level=row.confidence==="confirmed"||row.confidence==="buyer_verified"||row.confidence==="family_match"?row.confidence:"unverified";
+   return [{...item,compatibility:hasVehicle?compatibilityInfo(level):null,
+    distanceMiles:row.distance_miles===null?null:Math.round(Number(row.distance_miles)*10)/10,
+    distanceApproximate:Boolean(row.distance_approximate)}];
+  });
+  return {data:listings,error:null,configured:true,pagination:{...searchPagination,returned:listings.length,hasMore}};
+ }
 
  // All non-search browse sorts use keyset pagination. The phone still receives
  // only one small page and PostgreSQL seeks into a matching ordered index rather
@@ -257,27 +296,10 @@ export async function getMarketplacePage(
   const buyer=filters.postcode?await lookupPostcodeLocation(filters.postcode):null;
   if(!buyer)return {...failure([],"Enter a valid UK postcode to sort by distance."),pagination:emptyPagination};
 
-  let rankedIds:string[]|undefined;
-  if(filters.query?.trim()){
-   const searchText=filters.query.trim();
-   const {data,error}=await supabase.rpc("marketplace_search_part_ids",{p_query:searchText});
-   if(error)return {...failure([],"Marketplace search is temporarily unavailable."),pagination:emptyPagination};
-   rankedIds=(data??[]).map(row=>row.part_id);
-   if(!rankedIds.length){
-    const {data:synonym}=await supabase.from("marketplace_search_synonyms").select("canonical_query").eq("alias",searchText.toLowerCase()).maybeSingle();
-    if(synonym?.canonical_query){
-     const {data:fallback,error:fallbackError}=await supabase.rpc("marketplace_search_part_ids",{p_query:synonym.canonical_query});
-     if(fallbackError)return {...failure([],"Marketplace search is temporarily unavailable."),pagination:emptyPagination};
-     rankedIds=(fallback??[]).map(row=>row.part_id);
-    }
-   }
-   if(!rankedIds.length)return {data:[],error:null,configured:true,pagination:emptyPagination};
-  }
 
   const common={
    p_buyer_lat:buyer.latitude,
    p_buyer_lon:buyer.longitude,
-   p_part_ids:rankedIds,
    p_category_ids:categoryIds,
    p_condition:filters.condition,
    p_min_price_pence:Number.isFinite(filters.minPrice)?Math.round((filters.minPrice??0)*100):undefined,
@@ -341,22 +363,6 @@ export async function getMarketplacePage(
  // Catalogue compatibility is ranked and paged inside PostgreSQL. Only the IDs for
  // this page are hydrated with card images/details.
  if(filters.catalogueVariant&&filters.catalogueYear!==undefined){
-  let rankedIds:string[]|undefined;
-  if(filters.query?.trim()){
-   const searchText=filters.query.trim();
-   const {data,error}=await supabase.rpc("marketplace_search_part_ids",{p_query:searchText});
-   if(error)return {...failure([],"Marketplace search is temporarily unavailable."),pagination:emptyPagination};
-   rankedIds=(data??[]).map(row=>row.part_id);
-   if(!rankedIds.length){
-    const {data:synonym}=await supabase.from("marketplace_search_synonyms").select("canonical_query").eq("alias",searchText.toLowerCase()).maybeSingle();
-    if(synonym?.canonical_query){
-     const {data:fallback,error:fallbackError}=await supabase.rpc("marketplace_search_part_ids",{p_query:synonym.canonical_query});
-     if(fallbackError)return {...failure([],"Marketplace search is temporarily unavailable."),pagination:emptyPagination};
-     rankedIds=(fallback??[]).map(row=>row.part_id);
-    }
-   }
-   if(!rankedIds.length)return {data:[],error:null,configured:true,pagination:emptyPagination};
-  }
 
   const canUseCatalogueCursor=sort==="best"&&!filters.query?.trim();
   if(canUseCatalogueCursor){
@@ -419,7 +425,6 @@ export async function getMarketplacePage(
    p_year:filters.catalogueYear,
    p_fuel:filters.catalogueFuel,
    p_engine:filters.catalogueEngineSize,
-   p_part_ids:rankedIds,
    p_category_ids:categoryIds,
    p_condition:filters.condition,
    p_min_price_pence:Number.isFinite(filters.minPrice)?Math.round((filters.minPrice??0)*100):undefined,
@@ -472,58 +477,6 @@ export async function getMarketplacePage(
     returned:page.length,
     total:result.data.length,
     hasMore:offset+page.length<result.data.length,
-    mode:"offset",
-    nextCursor:null
-   }
-  };
- }
-
- // Text search already returns a bounded ranked candidate set. Filter only lightweight
- // IDs first, then hydrate the current page so card images/details are never loaded for
- // hundreds of search results at once.
- if(filters.query?.trim()){
-  const searchText=filters.query.trim();
-  const {data,error}=await supabase.rpc("marketplace_search_part_ids",{p_query:searchText});
-  if(error)return {...failure([],"Marketplace search is temporarily unavailable."),pagination:emptyPagination};
-  let rankedIds=(data??[]).map(row=>row.part_id);
-  if(!rankedIds.length){
-   const {data:synonym}=await supabase.from("marketplace_search_synonyms").select("canonical_query").eq("alias",searchText.toLowerCase()).maybeSingle();
-   if(synonym?.canonical_query){
-    const {data:fallback,error:fallbackError}=await supabase.rpc("marketplace_search_part_ids",{p_query:synonym.canonical_query});
-    if(fallbackError)return {...failure([],"Marketplace search is temporarily unavailable."),pagination:emptyPagination};
-    rankedIds=(fallback??[]).map(row=>row.part_id);
-   }
-  }
-  if(!rankedIds.length)return {data:[],error:null,configured:true,pagination:emptyPagination};
-
-  let idQuery=supabase.from("parts").select("id").eq("status","active").in("id",rankedIds);
-  if(categoryIds)idQuery=idQuery.in("category_id",categoryIds);
-  if(filters.condition)idQuery=idQuery.eq("condition",filters.condition);
-  if(filters.collectionOnly)idQuery=idQuery.eq("collection_available",true);
-  if(Number.isFinite(filters.minPrice))idQuery=idQuery.gte("price_pence",Math.round((filters.minPrice??0)*100));
-  if(Number.isFinite(filters.maxPrice))idQuery=idQuery.lte("price_pence",Math.round((filters.maxPrice??0)*100));
-  const {data:idRows,error:idError}=await idQuery.limit(500);
-  if(idError)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
-  const allowed=new Set((idRows??[]).map(row=>row.id));
-  const filteredIds=rankedIds.filter(id=>allowed.has(id));
-  const pageIds=filteredIds.slice(offset,offset+limit);
-  if(!pageIds.length)return {data:[],error:null,configured:true,pagination:{offset,limit,returned:0,total:filteredIds.length,hasMore:false,mode:"offset",nextCursor:null}};
-
-  const {data:rows,error:rowError}=await supabase.from("parts").select(cardSelect).in("id",pageIds);
-  if(rowError)return {...failure([],"Marketplace listings are temporarily unavailable."),pagination:emptyPagination};
-  const cardListings=await hydrateCards(supabase,rows??[]);
-  const byId=new Map(cardListings.map(item=>[item.id,item] as const));
-  const listings=pageIds.map(id=>byId.get(id)).filter((item):item is Listing=>Boolean(item));
-  return {
-   data:listings,
-   error:null,
-   configured:true,
-   pagination:{
-    offset,
-    limit,
-    returned:listings.length,
-    total:filteredIds.length,
-    hasMore:offset+pageIds.length<filteredIds.length,
     mode:"offset",
     nextCursor:null
    }

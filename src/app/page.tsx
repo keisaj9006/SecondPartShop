@@ -40,6 +40,9 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   ?getCatalogueSelection(requestedCatalogueVariant,requestedCatalogueYear,requestedCatalogueFuel,requestedCatalogueEngine).catch(()=>null)
   :Promise.resolve(null);
  const [categories,user,selectedCatalogue]=await Promise.all([getCategories(),getCurrentUser(),selectedCataloguePromise]);
+ const invalidSearchVehicle=Boolean(first(params.q)?.trim())&&!addVehicleMode
+  &&(params.cv!==undefined||params.cy!==undefined)
+  &&(!selectedCatalogue||(params.ce!==undefined&&requestedCatalogueEngine===undefined));
  const filters:MarketplaceFilters={
   query:first(params.q),
   category:first(params.category),
@@ -59,13 +62,14 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   compatibleOnly:Boolean(selectedCatalogue||isUuid(first(params.vehicle)))&&first(params.fit)!=="0"
  };
  const [result,legacyVehicle,garagePage,selectedGarageVehicle,recentlyViewed]=await Promise.all([
-  getMarketplacePage(filters,{offset:(requestedPage-1)*pageSize,limit:pageSize,cursor:marketplaceCursor,lean:true}),
+  invalidSearchVehicle?Promise.resolve({data:[],error:"Compatibility data is temporarily unavailable.",configured:true,pagination:{offset:(requestedPage-1)*pageSize,limit:pageSize,returned:0,total:null,hasMore:false,mode:"offset" as const,nextCursor:null}})
+   :getMarketplacePage(filters,{offset:(requestedPage-1)*pageSize,limit:pageSize,cursor:marketplaceCursor,lean:true}),
   legacyVehicleId?getVehicleById(legacyVehicleId):Promise.resolve(null),
   user?getGarageVehiclesPage(user.id,{limit:4}).catch(()=>({items:[],hasMore:false,offset:0,limit:4})):Promise.resolve({items:[],hasMore:false,offset:0,limit:4}),
   user&&selectedCatalogue?getGarageVehicleMatch(user.id,{catalogueVariantId:selectedCatalogue.variantId,year:selectedCatalogue.year,fuelType:selectedCatalogue.fuelType,engineSizeSimple:selectedCatalogue.engineSizeSimple,registration:vehicleRegistration??null}).catch(()=>null):Promise.resolve(null),
   user?getRecentlyViewedListings(user.id,3):Promise.resolve([])
  ]);
- if(requestedPage===1&&!marketplaceCursor&&filters.query?.trim()){
+ if(!result.error&&requestedPage===1&&!marketplaceCursor&&filters.query?.trim()){
   const count=result.pagination.total??(result.pagination.returned+(result.pagination.hasMore?1:0));
   after(()=>recordMarketplaceSearch({
    source:"web",

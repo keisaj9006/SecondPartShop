@@ -71,6 +71,17 @@ See `manual-qa-marketplace-rc.md`. Deferral is not a substitute for automated te
 
 ## Working checkpoint
 
+### Current checkpoint — 12 September
+
+- NAV-01/NAV-02/API-01: PASS on actual Preview, including submitted-query Back, cleared vehicle persistence and exact mobile returned-cursor roundtrip. See [Task 3](test-runs/2026-09-12-marketplace-navigation.md).
+- OPS-01: reviewed redaction repair and synthetic reporting boundaries PASS; no real alerts. See [Task 4](test-runs/2026-09-12-monitoring-redaction.md).
+- AUTH-01: safe Find My Part context and signup/resend boundaries PASS, with public Preview link/redirect checks; real email delivery remains separate. See [Task 5](test-runs/2026-09-12-auth-return-context.md).
+- SELL-01: actual rejection retains editable inputs and usable photo; Draft retry, database and Storage bytes PASS. See [Task 6](test-runs/2026-09-12-listing-validation-retry.md).
+- SEC-01: existing code/normal upload-delete evidence stands. Additional recovery runner is reviewed and synthetically verified, but actual execution is blocked by the protected service credential. Authenticated HTTP negatives and independent-session committed outcomes remain manual. See [Task 2 follow-up](test-runs/2026-09-12-photo-recovery.md).
+- SEARCH-01/SEARCH-02: next unblocked engineering P1, now in progress under the existing plan. Both public API and browser reproduce incorrect price ordering; local real-SQL fixtures address the old candidate caps. [Evidence](test-runs/2026-09-12-search-integrity.md) remains pending post-fix acceptance.
+
+The following paragraphs retain earlier batch checkpoints; their former next-task wording is historical.
+
 FIT-01 implemented and applied to Preview: both newer catalogue RPCs now read the canonical transaction-backed evidence view. Independent review approved; 23 batch tests, lint, sequential typecheck, build and 14 validators pass. See `test-runs/2026-09-11-verified-fit-catalogue.md` for migration mapping, SQL readback and honest limits. Commit/CI publication follows this checkpoint.
 
 Published FIT-01 checkpoint: commit `085d9b9381ebd2da6c68298d100b3ceba122a385`; GitHub Actions run `34650136088` succeeded; Preview deployment `dpl_831zFhpHrQCJQ8e6GnhGbKHBper5` (`second-part-shop-dq5cwur8b-joannakwapis11-5369.vercel.app`) is READY. Both stable and branch Preview aliases were read back and point to that deployment. No Production/main/Stripe Live changes.
