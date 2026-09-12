@@ -40,7 +40,9 @@ The existing sold payment fixture and its transaction remain untouched. Keep thi
 
 ## Remaining gates and honest limits
 
+Follow-up: [12 September recovery runner evidence](2026-09-12-photo-recovery.md) records synthetic verification and the protected-credential blocker. Actual provider recovery remains unexecuted; no additional Storage mutation occurred in that attempt. The fixture now has three photos after the separately verified Task 6 Draft retry.
+
 - The attempted two-session SQL check did not establish concurrency: the connector returned the lock-holder result before the observer saw an active session. The dependent deletion was not attempted. Use two independently connected PostgreSQL sessions for the runbook's committed concurrent outcomes; do not label this PASS.
 - Actual authenticated HTTP Storage DELETE/UPDATE and retired-path upload rejection, absent-object removal retry, and a controlled provider outage followed by maintenance recovery remain unexecuted. Current evidence is the deployed policy query plan, actual normal upload/delete, SQL triggers and adapter tests.
 - A real disposable account-deletion Storage/Auth E2E is still separate from the synthetic transaction and adapter tests. Existing QA Buyer, QA Seller, Moira and payment history were preserved.
-- `vercel.json` declares maintenance scheduling, but Vercel invokes cron jobs only in Production, not Preview. No automatic Preview retry schedule was established in this test. Use the existing authenticated maintenance endpoint for a deliberately configured Preview recovery batch; do not touch Production to satisfy this gate. [Vercel documentation](https://vercel.com/docs/cron-jobs).
+- `vercel.json` declares maintenance scheduling, but Vercel invokes cron jobs only in Production, not Preview. No automatic Preview retry schedule was established in this test. A photo-only recovery batch must use a reviewed trusted exact-path worker runner; broad maintenance also processes identities/payments and needs a separate full-workload preflight. Do not touch Production to satisfy this gate. [Vercel documentation](https://vercel.com/docs/cron-jobs).
