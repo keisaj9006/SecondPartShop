@@ -88,3 +88,7 @@ Execute only after Tasks 3–6 and the safely executable remaining Task 2 gates.
 5. Run SQL/app regressions, all tests, lint/typecheck/build and relevant validators. Controller reviews migration/grants and code independently, then applies only to verified Preview and checks live SQL/API/browser order, exact commit/CI/aliases. Production-scale 100k query plans and real multi-session concurrency remain distinct gates; WASM timings are not production capacity evidence.
 
 No implementation by multiple agents simultaneously. Implementer leaves changes uncommitted; controller owns providers, migration application, shared package/CI files, publication and evidence. Continue existing ledger, not a replacement plan.
+
+### Final integration repair within Task 6
+
+Independent cross-task review reproduced a partial-write retry: photo A attaches, photo B fails, and blindly retrying the retained selection adds A again. Keep all pre-write validation retry behavior. After a confirmed parent write followed by a related-data failure, return an explicit partial-save recovery state, retain safe diagnostics, block repeat submission and provide a safe full navigation to the saved edit form to inspect existing data and add only missing photos. Cover create and update with actual action/component synthetic regressions. Do not delete committed photos, redesign upload atomicity, claim cross-request idempotency or induce a real provider failure. Controller repeats checks, independent review and safe Preview validation on the existing QA draft.

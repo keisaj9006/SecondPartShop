@@ -268,3 +268,4 @@ export type SellerSale={
 };
 
 export type ActionState={status:"idle"|"success"|"error";message?:string;fieldErrors?:Record<string,string>};
+export type ListingActionState=ActionState&{recovery?:{partId:string|null}};

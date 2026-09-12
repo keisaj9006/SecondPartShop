@@ -1,6 +1,6 @@
 # Listing validation retry QA — 12 September 2026
 
-Status: PASS for Task 6, including actual Preview rejection, retained-photo Draft retry and provider readback.
+Status: original validation/Draft retry PASS on actual Preview. Final integration review found a separate partial-save retry regression; follow-up repair and acceptance are recorded below.
 
 Preview baseline `d243fdb50dbd200b750d75b751b7e1761ebbe0bd`, deployment `dpl_Emre8wSxGZDtKrUkVxfqgmTFEGoP`. Used the existing unpublished QA Seller photo fixture `760fdafa-e589-449e-9296-397f76c74bd2`, with two existing photos, price £1 and no compatibility or identifier claim.
 
@@ -32,3 +32,11 @@ A DOM-isolated browser-tool probe could not expose `input.files` (undefined both
 The new image ID is `3a376057-bc61-4926-8bf8-3f4fbe6cfdaa`, position 2, generated key suffix `2379dfe6-3eaf-4a82-b19d-d91600131335.png`. Public Storage GET returned HTTP 200, image/png, 13,537 bytes; SHA-256 `be4beb74005f654d9018511753830dfebf20b66d769ce9eeca7dcc198f1e2482` exactly matches the repository fixture. Existing cover and second image IDs/paths remain unchanged.
 
 Reopening Edit shows saved £3.25, 90 days, note, Draft and all three photos; the new-file ready feedback is correctly cleared after successful navigation. Keep this unpublished three-photo fixture as the documented QA baseline. No sold Stripe fixture, QA Buyer, Moira, payment, onboarding or compatibility data was changed.
+
+## Final integration follow-up: partial save
+
+Independent review reproduced a second case using the actual update action with synthetic files and mocked Storage: photo A attaches, photo B fails, then retrying both retained files creates three distinct attachments from two selected files. The attached A is not an orphan and must not be deleted by cleanup. Creating a listing has the analogous risk of another draft after the first parent write.
+
+The bounded repair distinguishes pre-write rejection from a confirmed parent write followed by a related-data error. The latter requires recovery through a native link to the saved edit form instead of resubmitting the stale selection. It cancels native/implicit submit and disables the button; the server refuses a supplied recovery marker without trusting or reflecting its contents. Only a database-returned listing ID creates the recovery link. Existing sanitized diagnostics remain visible. This is recovery for the returned action state, not universal request idempotency or atomic upload semantics.
+
+Independent specification and semantic/security re-review PASS. Both actual actions were independently replayed with synthetic A-success/B-failure: one attachment and two upload attempts remain unchanged after retry, with zero additional mutations. Focused listing/image tests 17/17 and photo cleanup boundaries 33/33 PASS. Full suite 233/233, lint (three existing warnings), typecheck, diff check and all 14 validators PASS. Build and deployment acceptance follow. No real Storage failure or alert was induced; that provider failure gate remains explicit in the photo-recovery report.

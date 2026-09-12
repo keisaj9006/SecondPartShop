@@ -6,9 +6,9 @@ import { buildCategoryTree,getCategoryAncestors,type CategoryNode } from "@/lib/
 import { SellerCompatibilityEditor } from "@/components/seller-compatibility-editor";
 import { OptimizedImageInput } from "@/components/optimized-image-input";
 import { ListingAiAssistant } from "@/components/listing-ai-assistant";
-import type { ActionState,CatalogueFitmentSelection,Category,DonorVehicle,Listing } from "@/lib/types";
+import type { ListingActionState,CatalogueFitmentSelection,Category,DonorVehicle,Listing } from "@/lib/types";
 
-const initial:ActionState={status:"idle"};
+const initial:ListingActionState={status:"idle"};
 const selectableDescendants=(node:CategoryNode|null)=>{
  if(!node)return [];
  const result:Category[]=[];
@@ -20,6 +20,8 @@ const selectableDescendants=(node:CategoryNode|null)=>{
 export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defaultCategoryId,defaultRequestId,initialCatalogueFitments=[],listing,sellerCheckoutReady=true}:{categories:Category[];donors:DonorVehicle[];defaultDonorId?:string;defaultTitle?:string;defaultCategoryId?:string;defaultRequestId?:string;initialCatalogueFitments?:CatalogueFitmentSelection[];listing?:Listing;sellerCheckoutReady?:boolean}){
  const handler=listing?updateListing:createListing;
  const [state,action,pending]=useActionState(handler,initial);
+ const recovery=state.recovery;
+ const recoveryHref=recovery?.partId&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(recovery.partId)?`/dashboard/listings/${recovery.partId}/edit`:"/dashboard";
  const [optimizingImages,setOptimizingImages]=useState(false);
  const formRef=useRef<HTMLFormElement>(null);
  const actionResetPending=useRef(false);
@@ -82,7 +84,7 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
  return <form
   ref={formRef}
   action={action}
-  onSubmitCapture={()=>{actionResetPending.current=true;}}
+  onSubmitCapture={event=>{if(recovery){event.preventDefault();return;}actionResetPending.current=true;}}
   onReset={event=>{
    if(!actionResetPending.current)return;
    actionResetPending.current=false;
@@ -159,6 +161,7 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
   <SellerCompatibilityEditor initialFitments={initialCatalogueFitments}/>
 
   {state.message&&<p role="status" className={`rounded-xl p-3 text-sm lg:col-span-2 ${state.status==="error"?"bg-red-50 text-red-800":"bg-emerald-50 text-emerald-800"}`}>{state.message}</p>}
-  <button disabled={pending||optimizingImages||!categoryId} className="rounded-xl bg-[#173c31] px-5 py-3.5 font-black text-white disabled:cursor-not-allowed disabled:opacity-50 lg:col-span-2">{optimizingImages?"Optimizing photos…":pending?"Saving…":listing?"Save listing":"Create listing"}</button>
+  {recovery&&<p className="rounded-xl bg-amber-50 p-3 text-sm lg:col-span-2">Open the saved listing to inspect its current details and add only missing photos. This form cannot be submitted again. <a href={recoveryHref} className="font-bold underline">Open saved listing</a></p>}
+  <button disabled={Boolean(recovery)||pending||optimizingImages||!categoryId} className="rounded-xl bg-[#173c31] px-5 py-3.5 font-black text-white disabled:cursor-not-allowed disabled:opacity-50 lg:col-span-2">{optimizingImages?"Optimizing photos…":pending?"Saving…":listing?"Save listing":"Create listing"}</button>
  </form>;
 }

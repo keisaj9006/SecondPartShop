@@ -18,7 +18,7 @@ const listing={
  shippingPence:0,deliveryDaysMin:null,deliveryDaysMax:null,status:"draft",images:[{id:"existing-1"},{id:"existing-2"}]
 };
 
-function mount({pending=false}={}){
+function mount({pending=false,actionState}={}){
  const states=[];const refs=[];let stateIndex=0;let refIndex=0;
  const exports={};
  const jsx=(type,props)=>({type,props});
@@ -27,7 +27,7 @@ function mount({pending=false}={}){
   require(name){
    if(name==="react/jsx-runtime")return {jsx,jsxs:jsx};
    if(name==="react")return {
-    useActionState(handler,initial){return [initial,handler,pending];},
+    useActionState(handler,initial){return [actionState??initial,handler,pending];},
     useMemo(factory){return factory();},
     useRef(value){const index=refIndex++;return refs[index]??(refs[index]={current:value});},
     useState(value){const index=stateIndex++;if(!(index in states))states[index]=typeof value==="function"?value():value;return [states[index],next=>{states[index]=typeof next==="function"?next(states[index]):next;}];}
@@ -102,7 +102,10 @@ const actionsCompiled=ts.transpileModule(fs.readFileSync("src/app/dashboard/acti
  compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}
 }).outputText;
 
-function loadActions(){
+const monitoringExports={};
+vm.runInNewContext(ts.transpileModule(fs.readFileSync("src/lib/ops-monitoring.ts","utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports:monitoringExports,URL,require(name){if(name!=="server-only")throw new Error(name);return {};}});
+
+function loadActions({failUploadAt=0,uploadMessage="synthetic second-upload failure"}={}){
  const mutations=[];const uploads=[];const redirects=[];
  const redirectError=new Error("NEXT_REDIRECT");
  const query=table=>{
@@ -128,13 +131,14 @@ function loadActions(){
  const supabase={
   from:query,
   rpc(name,args){mutations.push({operation:"rpc",name,args});return Promise.resolve({data:null,error:null});},
-  storage:{from:()=>({upload:async(path)=>{uploads.push(path);return {error:null};}})}
+  storage:{from:()=>({upload:async(path)=>{uploads.push(path);return {error:uploads.length===failUploadAt?new Error(uploadMessage):null};}})}
  };
  const exports={};
  vm.runInNewContext(actionsCompiled,{
   exports,FormData,File,Error,Set,Number,String,Boolean,Array,Object,JSON,Math,crypto,
   require(name){
    const modules={
+    "@/lib/ops-monitoring":monitoringExports,
     "@/lib/part-image-cleanup":{attemptPartImageCleanup:async()=>{},cleanupFailedPartImageUpload:async()=>{},requirePartImageCleanupReady:async()=>{}},
     "next/cache":{revalidatePath(){}},
     "next/navigation":{redirect(url){redirects.push(url);throw redirectError;}},
@@ -155,6 +159,56 @@ function loadActions(){
  });
  return {actions:exports,mutations,uploads,redirects,redirectError};
 }
+
+for(const actionName of ["createListing","updateListing"]){
+ test(`${actionName} prevents replay after A attaches and B fails`,async()=>{
+  const harness=loadActions({failUploadAt:2});
+  const data=listingFormData({status:"draft"});
+  data.append("images",new File(["synthetic-B"],"B.png",{type:"image/png"}));
+  const state=await harness.actions[actionName]({status:"idle"},data);
+  assert.equal(harness.mutations.filter(row=>row.table==="part_images").length,1);
+  assert.equal(state.recovery?.partId,listing.id,"post-write failure needs explicit existing-listing recovery");
+  const before=harness.mutations.length;
+  await harness.actions[actionName](state,data);
+  assert.equal(harness.mutations.length,before,"retry must not create a second parent or attach A again");
+  assert.equal(harness.uploads.length,2);
+ });
+}
+
+test("partial-save state blocks native submit and provides a full-navigation recovery link",()=>{
+ const form=mount({actionState:{status:"error",message:"Partial save",recovery:{partId:listing.id}}}).render();
+ const nodes=descendants(form);
+ const event=new Event("submit",{cancelable:true});
+ form.props.onSubmitCapture(event);
+ assert.equal(event.defaultPrevented,true);
+ const button=nodes.find(node=>node.type==="button"&&node.props?.children==="Save listing");
+ assert.equal(button.props.disabled,true);
+ const link=nodes.find(node=>node.type==="a"&&node.props.href===`/dashboard/listings/${listing.id}/edit`);
+ assert.ok(link,"native anchor must reload even on the current edit URL");
+ assert.match(JSON.stringify(nodes),/only missing photos/i);
+});
+
+test("untrusted recovery destinations never become navigation or mutation authority",async()=>{
+ const forged={status:"error",message:"untrusted",recovery:{partId:"//external.invalid/path"}};
+ const form=mount({actionState:forged}).render();
+ const link=descendants(form).find(node=>node.type==="a"&&node.props.children==="Open saved listing");
+ assert.equal(link.props.href,"/dashboard");
+ for(const name of ["createListing","updateListing"]){
+  const harness=loadActions();
+  const state=await harness.actions[name](forged,listingFormData({status:"draft"}));
+  assert.equal(state.recovery.partId,null);
+  assert.doesNotMatch(JSON.stringify(state),/external/);
+  assert.deepEqual(harness.mutations,[]);
+  assert.deepEqual(harness.uploads,[]);
+ }
+});
+
+test("partial-save diagnostics retain safe error detail while redacting synthetic credentials",async()=>{
+ const harness=loadActions({failUploadAt:1,uploadMessage:"Storage timeout req_synthetic whsec_SYNTHETIC_NOT_A_REAL_SECRET"});
+ const state=await harness.actions.updateListing({status:"idle"},listingFormData({status:"draft"}));
+ assert.match(state.message,/Storage timeout req_synthetic/);
+ assert.doesNotMatch(state.message,/whsec_|SYNTHETIC_NOT_A_REAL_SECRET/);
+});
 
 function listingFormData({status="active",withFile=true}={}){
  const data=new FormData();
