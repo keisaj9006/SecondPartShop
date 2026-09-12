@@ -5,7 +5,10 @@ export function safeInternalPath(value:unknown,fallback="/"){
   const base="https://secondpart.invalid";
   const parsed=new URL(candidate,base);
   if(parsed.origin!==base)return fallback;
-  return parsed.pathname+parsed.search+parsed.hash;
+  const normalized=parsed.pathname+parsed.search+parsed.hash;
+  if(normalized.startsWith("//"))return fallback;
+  if(new URL(normalized,base).origin!==base)return fallback;
+  return normalized;
  }catch{
   return fallback;
  }

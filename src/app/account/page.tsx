@@ -5,12 +5,15 @@ import {AuthForm} from "@/components/auth-form";
 import {AccountDashboardContent,AccountDashboardFallback,AccountTrustSummary} from "@/components/account-dashboard-content";
 import {getCurrentProfile,getCurrentUser} from "@/lib/auth";
 import {isSupabaseConfigured} from "@/lib/supabase/env";
+import {safeInternalPath} from "@/lib/navigation";
 
 export const dynamic="force-dynamic";
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 
 export default async function AccountPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
  const params=await searchParams;
+ const requestedReturnTo=first(params.returnTo);
+ const returnTo=requestedReturnTo===undefined?undefined:safeInternalPath(requestedReturnTo,"")||undefined;
  const [user,profile]=await Promise.all([getCurrentUser(),getCurrentProfile()]);
  if(!user||!profile){
   const notice=first(params.reason)==="signin-required"
@@ -18,7 +21,7 @@ export default async function AccountPage({searchParams}:{searchParams:Promise<R
    :first(params.error)==="confirmation-failed"
     ?"We could not confirm that email link. Request a fresh confirmation email and try again."
     :undefined;
-  return <><Header/><main className="mx-auto grid min-h-[70vh] max-w-7xl place-items-center px-4 py-12"><AuthForm defaultMode={first(params.mode)==="signup"?"signup":"signin"} defaultRole={first(params.role)==="seller"?"seller":"buyer"} returnTo={first(params.returnTo)??"/account"} configured={isSupabaseConfigured()} notice={notice}/></main></>;
+  return <><Header/><main className="mx-auto grid min-h-[70vh] max-w-7xl place-items-center px-4 py-12"><AuthForm defaultMode={first(params.mode)==="signup"?"signup":"signin"} defaultRole={first(params.role)==="seller"?"seller":"buyer"} returnTo={returnTo} configured={isSupabaseConfigured()} notice={notice}/></main></>;
  }
 
  const accessError=first(params.error);

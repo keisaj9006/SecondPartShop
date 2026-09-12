@@ -5,13 +5,14 @@ import { useActionState,useState } from "react";
 import { ShoppingBag,Store } from "lucide-react";
 import { signIn,signUp } from "@/app/auth/actions";
 import type { ActionState } from "@/lib/types";
+import { safeInternalPath } from "@/lib/navigation";
 
 const initial:ActionState={status:"idle"};
 
 export function AuthForm({
  defaultMode="signin",
  defaultRole="buyer",
- returnTo="/account",
+ returnTo,
  configured=true,
  notice
 }:{
@@ -29,6 +30,8 @@ export function AuthForm({
  const action=mode==="signin"?signInAction:signUpAction;
  const pending=mode==="signin"?signInPending:signUpPending;
  const input="mt-2 w-full rounded-xl border border-black/15 px-4 py-3 outline-none focus:ring-2 focus:ring-[#173c31]";
+ const safeReturnTo=returnTo===undefined?undefined:safeInternalPath(returnTo,"")||undefined;
+ const verificationHref=safeReturnTo?`/auth/verify-email?returnTo=${encodeURIComponent(safeReturnTo)}`:"/auth/verify-email";
 
  return <div className="w-full max-w-xl rounded-3xl border border-black/10 bg-white p-6 shadow-xl sm:p-8">
   <div className="grid grid-cols-2 rounded-xl bg-[#eef1eb] p-1">
@@ -67,7 +70,7 @@ export function AuthForm({
   </div>}
 
   <form action={action} className="mt-6">
-   <input type="hidden" name="returnTo" value={returnTo}/>
+   {safeReturnTo&&<input type="hidden" name="returnTo" value={safeReturnTo}/>}
    {mode==="signup"&&<>
     <input type="hidden" name="role" value={signupRole}/>
     <label className="block text-sm font-bold">Your name / contact name<input name="displayName" required minLength={2} className={input}/></label>
@@ -81,11 +84,11 @@ export function AuthForm({
 
    {mode==="signin"&&<div className="mt-2 flex justify-between gap-3 text-xs font-bold">
     <Link href="/auth/forgot-password" className="underline">Forgot password?</Link>
-    <Link href="/auth/verify-email" className="underline">Resend confirmation</Link>
+    <Link href={verificationHref} className="underline">Resend confirmation</Link>
    </div>}
 
    {state.message&&<p role="status" className={`mt-4 rounded-xl p-3 text-sm ${state.status==="error"?"bg-red-50 text-red-800":"bg-emerald-50 text-emerald-800"}`}>{state.message}</p>}
-   {mode==="signup"&&state.status==="success"&&<Link href="/auth/verify-email" className="mt-3 inline-block text-sm font-black underline">Resend confirmation email</Link>}
+   {mode==="signup"&&state.status==="success"&&<Link href={verificationHref} className="mt-3 inline-block text-sm font-black underline">Resend confirmation email</Link>}
 
    <button disabled={pending||!configured} className="mt-6 w-full rounded-xl bg-[#173c31] py-3.5 font-black text-white disabled:opacity-50">
     {pending?"Please wait…":mode==="signin"?"Sign in":signupRole==="seller"?"Create seller account":"Create buyer account"}

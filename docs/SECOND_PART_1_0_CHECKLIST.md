@@ -63,7 +63,7 @@ This is a high-level gate. Use `docs/launch-readiness.md` for canonical detail.
 - [ ] monitoring configured
 - [ ] critical alerts configured
 - [ ] support email configured
-- [ ] privacy-safe logging verified
+- [ ] privacy-safe logging verified — OPS-01 synthetic reporter/provider-boundary redaction and Preview release checks passed; see [evidence](test-runs/2026-09-12-monitoring-redaction.md). Final release configuration and authorized destination verification remain separate.
 - [ ] RLS/advisor checks acceptable
 
 ## F. Android / Google Play

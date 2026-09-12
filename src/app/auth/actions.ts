@@ -29,6 +29,8 @@ export async function signUp(_previous:ActionState,formData:FormData):Promise<Ac
  const displayName=String(formData.get("displayName")??"").trim();
  const requestedRole=String(formData.get("role")??"buyer");
  const role:UserRole=requestedRole==="seller"?"seller":"buyer";
+ const roleDefault=role==="seller"?"/dashboard":"/account";
+ const returnTo=safeInternalPath(formData.get("returnTo"),roleDefault);
  const termsAccepted=String(formData.get("termsAccepted")??"")==="1";
  if(displayName.length<2)return {status:"error",message:"Enter your name or business contact name."};
  if(!email.includes("@"))return {status:"error",message:"Enter a valid email address."};
@@ -37,12 +39,12 @@ export async function signUp(_previous:ActionState,formData:FormData):Promise<Ac
  const supabase=await createSupabaseServerClient();
  const {data,error}=await supabase.auth.signUp({
   email,password,
-  options:{emailRedirectTo:`${siteUrl()}/auth/callback?next=${encodeURIComponent(role==="seller"?"/dashboard":"/account")}`,data:{display_name:displayName,role,terms_accepted:"true",terms_version:CURRENT_MARKETPLACE_TERMS_VERSION}}
+  options:{emailRedirectTo:`${siteUrl()}/auth/callback?next=${encodeURIComponent(returnTo)}`,data:{display_name:displayName,role,terms_accepted:"true",terms_version:CURRENT_MARKETPLACE_TERMS_VERSION}}
  });
  if(error)return {status:"error",message:error.message};
  if(data.session){
   revalidatePath("/","layout");
-  redirect(role==="seller"?"/dashboard":"/account");
+  redirect(returnTo);
  }
  return {status:"success",message:"Check your email to confirm your account. If the message does not arrive, use the resend confirmation link below."};
 }
@@ -61,8 +63,9 @@ export async function resendConfirmation(_previous:ActionState,formData:FormData
  if(!isSupabaseConfigured())return {status:"error",message:"Authentication is not configured."};
  const email=emailValue(formData);
  if(!email.includes("@"))return {status:"error",message:"Enter a valid email address."};
+ const returnTo=safeInternalPath(formData.get("returnTo"),"/account");
  const supabase=await createSupabaseServerClient();
- const {error}=await supabase.auth.resend({type:"signup",email,options:{emailRedirectTo:`${siteUrl()}/auth/callback?next=/account`}});
+ const {error}=await supabase.auth.resend({type:"signup",email,options:{emailRedirectTo:`${siteUrl()}/auth/callback?next=${encodeURIComponent(returnTo)}`}});
  if(error)return {status:"error",message:"We could not resend the confirmation email right now. Please try again shortly."};
  return {status:"success",message:"Confirmation email sent. Check your inbox and spam folder."};
 }

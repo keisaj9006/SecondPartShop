@@ -1,6 +1,6 @@
 # Operational log redaction QA — 12 September 2026
 
-Status: independent review round 1 approved; release verification in progress.
+Status: PASS for the bounded OPS-01 code, synthetic redaction and Preview release gates below.
 
 ## Confirmed causes
 
@@ -25,3 +25,8 @@ Independent review, regression results, full checks, code commit, CI and exact-c
 
 Independent rereview approved specification compliance and code quality after all four findings were addressed. Focused tests: 8/8; full suite: 84/84. Monitoring (25 invariants), commerce E2E harness, account deletion harness and mobile performance validators passed. Tests verify fragments of long synthetic JWTs at 80/240/700-character output limits, sanitized context keys and caught analytics errors/codes, with ordinary dotted diagnostics and `PGRST116` retained. No suite substitutes for an actual external alert test.
 Final pre-commit checks: lint exit 0 (three existing mobile-shell unused-variable warnings), typecheck, production build and git diff --check passed. The build used public placeholder Supabase settings, not provider secrets.
+
+
+## Released Preview
+
+Code commit `01781314455d12b2401bb746ff3152f08e3f9815`, CI `34686565422` succeeded. READY Preview `dpl_84US6uVhc8AmAsp2gHrkYQEkdP7f`, `second-part-shop-k42sss040-joannakwapis11-5369.vercel.app`. Stable Preview was assigned only after commit and CI verification. Browser reload of the DSG marketplace retained three matching product cards and query context. No live fault or alert was induced to test redaction; credential assertions remain synthetic boundary evidence.
