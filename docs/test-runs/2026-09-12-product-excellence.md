@@ -77,3 +77,21 @@ Post-empty-state fix local gates: focused12/12, full245/245, lint0errors/3existi
 Final code `11a0b7b156e51583bbbcd82124fe545977b28e08`, CI34703923277 success; READY Preview `dpl_6cX65wap2ttZ6LHHXfuQYgPeqV4o`, second-part-shop-kg1h9w8yl-joannakwapis11-5369.vercel.app. On this exact version, actual anonymous390×844 Chromium empty-result axe:39passed,0violations,1incomplete contrast rule. Restored BMW list:42passed,0violations,1incomplete. The input has expanded=false, no listbox, and describedby points to the visible No matching options status. Enter remains inert; matching text restores the options. Reduced-motion still computes auto scroll and no entry animations. The already-tested mobile menu had39passed/0violations. Incomplete gradient contrast and physical screen-reader/device testing remain separate; this is not a blanket WCAG certification or RC PASS.
 
 Batch1 commits:13f947c (accessible picker/header/motion) and11a0b7b (Preview-discovered empty-result semantics). Final local checks:12focused,245full,0failed/skipped; lint0errors/3existing warnings; typecheck/build/diff-check and14validators PASS. Independent semantic review has no remaining findings. Continue at Task2 measured mobile navigation, without repeating this audit.
+
+## Batch2 implementation and local verification
+
+Removed both five-route imperative prefetch passes and pointer duplicate; kept Link prefetch=true. Next Link owns pending feedback, while aria-current follows the committed pathname. Cancelled attempts cannot leave selection/timing behind for a later Back/Forward change. Loading status text sits outside busy content and decorative skeletons are hidden from accessibility APIs; geometry is unchanged.
+
+Independent semantic review approved the scoped change with no blocking findings. Root focused6/6 and full251/251 passed, with no failures/skips. Lint0errors/3existing warnings, typecheck0, build0, diff-check and all14validators0. Exact Preview timings/Back/scroll remain pending deployment; no speed or HTTP-request reduction is claimed from removing10explicit calls.
+
+Local client-manifest dependency footprint after Batches1–2 (same method and limitations as baseline; cumulative comparison, not isolated Task2 attribution):
+
+| Route | Chunks | Raw bytes | Estimated gzip bytes |
+| --- | ---: | ---: | ---: |
+| Home | 4 | 101826 | 32774 |
+| Garage | 3 | 45883 | 14615 |
+| Purchases | 3 | 49730 | 15711 |
+| Inbox | 3 | 45883 | 14615 |
+| Account | 4 | 68772 | 22986 |
+
+This modest increase includes the accessibility fixes and changed chunk boundaries. No heavy new library was added, and this is not a total-first-load/network-transfer measurement or evidence of bundle reduction.
