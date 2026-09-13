@@ -5,6 +5,7 @@ import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,mobilePublicJson } from "@/lib/mobile-api";
 import { mobileThumbnailUrl } from "@/lib/mobile-image";
 import { normalizePostcode } from "@/lib/postcode";
+import { toPublicListing } from "@/lib/public-listing";
 import type { MarketplaceFilters,MarketplaceSort,PartCondition } from "@/lib/types";
 import { recordMarketplaceSearch } from "@/lib/analytics/search";
 
@@ -82,7 +83,10 @@ export async function GET(request:Request){
 
  return mobilePublicJson(request,{
   ok:true,
-  items:result.data.map(item=>({...item,images:item.images.map(image=>({...image,thumbnailUrl:mobileThumbnailUrl(request,image.url)}))})),
+  items:result.data.map(item=>{
+   const publicItem=toPublicListing(item);
+   return {...publicItem,images:publicItem.images.map(image=>({...image,thumbnailUrl:mobileThumbnailUrl(request,image.url)}))};
+  }),
   pagination:result.pagination,
   vehicle:selectedCatalogue
  },200,15,60);
