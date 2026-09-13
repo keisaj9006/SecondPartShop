@@ -178,3 +178,17 @@ test('released seller payout is reversed once before a successful refund and the
  assert.equal(f.state.refundCreateCalls,1);
  assert.equal(f.state.finalizeCalls,1);
 });
+
+test('pending refund persists a released-payout reversal and retry never reverses twice',async()=>{
+ const f=fixture({refundStatus:'pending',payoutReleased:true});
+ const first=await f.refund();
+ const second=await f.refund();
+ assert.equal(first.reason,'refund_pending');
+ assert.equal(second.reason,'refund_pending');
+ assert.equal(f.state.item.provider_transfer_reversal_id,'trr_fixture');
+ assert.equal(f.state.item.payout_status,'reversed');
+ assert.equal(f.state.reversalCalls,1);
+ assert.equal(f.state.refundCreateCalls,1);
+ assert.equal(f.state.refundReadCalls,1);
+ assert.equal(f.state.finalizeCalls,0);
+});
