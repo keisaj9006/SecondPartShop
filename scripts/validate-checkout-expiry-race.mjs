@@ -12,12 +12,17 @@ const mobileCancel=read("src/app/api/mobile/v1/orders/[orderId]/checkout/route.t
 const checkoutActions=read("src/app/checkout/actions.ts");
 const lifecycle=read("src/lib/checkout-lifecycle.ts");
 const sessionGuard=read("supabase/migrations/20260912215018_checkout_cancellation_session_guard.sql");
+const terminalEventGuard=read("supabase/migrations/20260913104500_checkout_terminal_event_session_claim.sql");
 
 const paymentFailureStart=webhook.indexOf('if(event.type==="payment_intent.payment_failed")');
 const disputeStart=webhook.indexOf('if(event.type==="charge.dispute.created")');
 const paymentFailureBlock=paymentFailureStart>=0&&disputeStart>paymentFailureStart
  ?webhook.slice(paymentFailureStart,disputeStart)
  :"";
+
+const terminalLock=terminalEventGuard.indexOf("for update");
+const terminalMutation=terminalEventGuard.indexOf("set provider_checkout_session_id=p_session_id");
+const terminalCancel=terminalEventGuard.indexOf("return public.cancel_checkout_order");
 
 const checks=[
  [
@@ -39,11 +44,21 @@ const checks=[
   reconciliation.includes('p_event_type:"reconciliation_checkout_expired"')
  ],
  [
-  "Stripe expiry/final async failure events must match the reserved Checkout Session before cancellation",
-  webhook.includes("checkoutSessionMatchesOrder")&&
+  "Stripe expiry/final async failure authority must be verified under the order lock before cancellation",
   webhook.includes('event.type==="checkout.session.expired"||event.type==="checkout.session.async_payment_failed"')&&
-  webhook.includes('admin.rpc("cancel_checkout_order_if_session_matches"')&&
-  webhook.includes('p_expected_session_id:sessionId')
+  webhook.includes('admin.rpc("cancel_checkout_order_from_provider_event"')&&
+  webhook.includes('p_session_id:sessionId')&&
+  terminalEventGuard.includes("p_event_type not in ('checkout.session.expired','checkout.session.async_payment_failed')")&&
+  terminalEventGuard.includes("stored_session is not null and stored_session<>p_session_id")&&
+  terminalEventGuard.includes("old_payment in ('paid','partially_refunded','refunded','disputed')")&&
+  terminalEventGuard.includes("stored_session is null and old_payment in ('unpaid','requires_action','processing')")&&
+  terminalLock>=0&&terminalMutation>terminalLock&&terminalCancel>terminalMutation
+ ],
+ [
+  "Terminal provider-event cancellation RPC must remain service-role only",
+  terminalEventGuard.includes("revoke all on function public.cancel_checkout_order_from_provider_event")&&
+  terminalEventGuard.includes("from public,anon,authenticated")&&
+  terminalEventGuard.includes("to service_role")
  ],
  [
   "A retryable PaymentIntent failure must reconcile provider state instead of releasing inventory",
