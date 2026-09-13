@@ -69,7 +69,7 @@ test("owner seller lookup uses the authenticated private seller rpc",()=>{
 test("security-definer seller directory excludes privacy-deleted sellers",()=>{
  assert.ok(fs.existsSync(path.join(root,deletedSellerGuardMigrationPath)),"expected deleted-seller SECURITY DEFINER guard migration");
  const migration=read(deletedSellerGuardMigrationPath);
- assert.match(migration,/create or replace function public\.get_seller_directory_page\(p_limit integer default 24,\s*p_offset integer default 0\)/i);
+ assert.match(migration,/create or replace function public\.get_seller_directory_page\(\s*p_limit integer default 24,\s*p_offset integer default 0\s*\)/i);
  assert.match(migration,/security definer/i);
  assert.match(migration,/set search_path\s*=\s*''/i);
  assert.match(migration,/from public\.sellers s[\s\S]*?where s\.account_deleted_at is null[\s\S]*?limit greatest\(1,least\(coalesce\(p_limit,24\),60\)\)\+1/i);
