@@ -213,6 +213,10 @@ export async function reverseSellerTransfer(transferId:string,amountPence?:numbe
  });
 }
 
+export async function getRefund(refundId:string){
+ return stripeV1<StripeRefund>(`/v1/refunds/${encodeURIComponent(refundId)}`,{method:"GET"});
+}
+
 export async function refundPlatformPayment(input:{paymentIntentId:string;amountPence?:number;idempotencyKey?:string}){
  const body=new URLSearchParams();
  append(body,"payment_intent",input.paymentIntentId);
