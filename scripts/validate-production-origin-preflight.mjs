@@ -9,6 +9,8 @@ const checks=[
  ["Production origin preflight must require HTTPS",preflight.includes('base.protocol!=="https:"')],
  ["Production origin preflight must reject preview/local/Vercel preview hosts",preflight.includes("vercel\\.app")&&preflight.includes("preview")&&preflight.includes("localhost")],
  ["Production origin preflight must verify homepage",preflight.includes('get("/")')&&preflight.includes("SecondPart")],
+ ["Production origin preflight must verify robots crawl readiness and canonical sitemap",preflight.includes('get("/robots.txt")')&&preflight.includes("canonicalSitemap")&&preflight.includes("Sitemap:")&&preflight.includes("Disallow")],
+ ["Production origin preflight must verify sitemap locations stay on the canonical origin",preflight.includes('get("/sitemap.xml")')&&preflight.includes("sitemapLocations")&&preflight.includes("sameOrigin")&&preflight.includes("<loc>")],
  ["Production origin preflight must verify public Privacy Policy",preflight.includes('get("/privacy")')&&preflight.includes("SecondPart Privacy Policy")],
  ["Production origin preflight must require configured public support email",preflight.includes("privacyEmail")&&preflight.includes("contactEmail")&&preflight.includes("contactEmail!==privacyEmail")],
  ["Production origin preflight must verify external account deletion",preflight.includes('get("/account-deletion")')&&preflight.includes("external account-deletion route for SecondPart")],
