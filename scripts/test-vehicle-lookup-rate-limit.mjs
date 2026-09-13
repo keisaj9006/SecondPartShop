@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import * as crypto from "node:crypto";
 import fs from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
@@ -34,7 +35,7 @@ function operationalModule(rpcMode){
   exports,
   require(name){
    if(name==="server-only")return {};
-   if(name==="node:crypto")return require("node:crypto");
+   if(name==="node:crypto")return crypto;
    if(name==="@/lib/supabase/admin")return {createSupabaseAdminClient:()=>admin};
    if(name==="@/lib/vehicle-registration")return {};
    throw new Error(`Unexpected dependency ${name}`);
