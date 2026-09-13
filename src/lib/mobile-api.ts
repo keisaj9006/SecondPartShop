@@ -2,7 +2,7 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 import type { SupabaseClient,User } from "@supabase/supabase-js";
-import type { Database } from "@/lib/supabase/database.types";
+import type { RuntimeUserDatabase } from "@/lib/supabase/runtime-user.types";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
 const mobileOrigins=new Set([
@@ -62,7 +62,7 @@ const bearerToken=(request:Request)=>{
 
 export type MobileApiContext={
  user:User;
- supabase:SupabaseClient<Database>;
+ supabase:SupabaseClient<RuntimeUserDatabase>;
  accessToken:string;
 };
 
@@ -71,13 +71,13 @@ export async function authenticateMobileRequest(request:Request):Promise<MobileA
  if(!accessToken)return null;
  const {url,key}=getSupabaseEnv();
 
- const verifier=createClient<Database>(url,key,{
+ const verifier=createClient<RuntimeUserDatabase>(url,key,{
   auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}
  });
  const {data,error}=await verifier.auth.getUser(accessToken);
  if(error||!data.user)return null;
 
- const supabase=createClient<Database>(url,key,{
+ const supabase=createClient<RuntimeUserDatabase>(url,key,{
   auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},
   global:{headers:{Authorization:"Bearer "+accessToken}}
  });
