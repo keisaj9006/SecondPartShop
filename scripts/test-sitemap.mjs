@@ -38,14 +38,14 @@ test("sitemap stays empty outside an approved production origin",()=>{
   {vercelEnv:"production",siteUrl:"http://secondpart.co.uk"},
   {vercelEnv:"production",siteUrl:undefined}
  ]){
-  assert.deepEqual(sitemap.buildSitemapEntries(sitemapRows,environment),[]);
+  assert.equal(sitemap.buildSitemapEntries(sitemapRows,environment).length,0);
  }
 });
 
 test("production sitemap contains only home, active part rows and deduplicated seller routes",()=>{
  const sitemap=moduleFrom("src/lib/sitemap.ts",{"@/lib/metadata":metadata});
  const entries=sitemap.buildSitemapEntries(sitemapRows,{vercelEnv:"production",siteUrl:"https://www.secondpart.co.uk"});
- const urls=entries.map(entry=>entry.url);
+ const urls=[...entries].map(entry=>entry.url);
  assert.deepEqual(urls,[
   "https://www.secondpart.co.uk/",
   "https://www.secondpart.co.uk/parts/ford-focus-alternator",
@@ -103,5 +103,6 @@ test("sitemap route fails closed when Supabase is unavailable",async()=>{
   "@/lib/supabase/env":{isSupabaseConfigured:()=>false},
   "@/lib/sitemap":{buildSitemapEntries:rows=>rows}
  });
- assert.deepEqual(await route.default(),[]);
+ const rows=await route.default();
+ assert.equal(rows.length,0);
 });
