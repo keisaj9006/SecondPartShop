@@ -57,7 +57,7 @@ export default async function SellerPage({params,searchParams}:{params:Promise<{
       <h1 className="text-4xl font-black tracking-[-.045em] sm:text-5xl">{seller.businessName}</h1>
       {trust&&<div className="mt-3 rounded-2xl bg-white px-4 py-3 text-[#173c31]"><ReputationSummary profile={trust}/></div>}
       <p className="mt-4 max-w-2xl text-lg leading-7 text-white/70">{seller.description}</p>
-      <p className="mt-5 flex items-center gap-2 text-sm font-bold"><MapPin size={17} className="text-[#d4f44d]"/>{seller.location}{seller.postcode&&` · ${seller.postcode}`}</p>
+      <p className="mt-5 flex items-center gap-2 text-sm font-bold"><MapPin size={17} className="text-[#d4f44d]"/>{seller.location}</p>
      </div>
 
      <div className="grid grid-cols-2 gap-3 rounded-3xl border border-white/10 bg-white/8 p-4">
