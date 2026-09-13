@@ -14,7 +14,7 @@ test("public seller profile does not render the seller postcode",()=>{
 
 test("public listing projections do not request seller postcode",()=>{
  const source=read("src/lib/data/marketplace.ts");
- const publicListingSelects=[...source.matchAll(/sellers!inner\(([^)]]+)\)/g)].map(match=>match[1]);
+ const publicListingSelects=[...source.matchAll(/sellers!inner\(([^)]+)\)/g)].map(match=>match[1]);
  assert.ok(publicListingSelects.length>=3,"expected marketplace listing seller projections");
  for(const projection of publicListingSelects){
   assert.doesNotMatch(projection,/(^|,)postcode(,|$)/,"public listing seller projection must not select postcode");
