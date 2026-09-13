@@ -13,8 +13,20 @@ export async function POST(request:Request){
  if(!isPlausibleUkRegistration(registration))return NextResponse.json({message:"Enter a valid-looking UK registration."},{status:400,headers:noStore});
 
  const rate=await consumeVehicleLookupRateLimit(request);
+ if(rate.status==="unavailable")return NextResponse.json(
+  {
+   code:"vehicle_lookup_guard_unavailable",
+   message:"Vehicle lookup is temporarily unavailable. Please try again or choose the vehicle manually.",
+   registration
+  },
+  {status:503,headers:noStore}
+ );
  if(!rate.allowed)return NextResponse.json(
-  {message:"Too many registration lookups. Please wait a few minutes and try again.",registration},
+  {
+   code:"vehicle_lookup_rate_limited",
+   message:"Too many registration lookups. Please wait a few minutes and try again.",
+   registration
+  },
   {status:429,headers:{...noStore,"retry-after":String(Math.max(1,rate.retryAfterSeconds))}}
  );
 
