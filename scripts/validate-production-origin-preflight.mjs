@@ -8,7 +8,7 @@ const assetlinks=read("src/app/.well-known/assetlinks.json/route.ts");
 const checks=[
  ["Production origin preflight must require HTTPS",preflight.includes('base.protocol!=="https:"')],
  ["Production origin preflight must reject preview/local/Vercel preview hosts",preflight.includes("vercel\\.app")&&preflight.includes("preview")&&preflight.includes("localhost")],
- ["Production origin preflight must verify homepage",preflight.includes('get("/")')&&preflight.includes("SecondPart")],
+ ["Production origin preflight must verify homepage",preflight.includes('get("/",{requireIndexable:true})')&&preflight.includes("SecondPart")],
  ["Production origin preflight must reject a noindex response header on the homepage",preflight.includes("requireIndexable")&&preflight.includes('headers.get("x-robots-tag")')&&preflight.includes("noindex")&&preflight.includes('get("/",{requireIndexable:true})')],
  ["Production origin preflight must verify robots crawl readiness and canonical sitemap",preflight.includes('get("/robots.txt")')&&preflight.includes("canonicalSitemap")&&preflight.includes("allowsRoot")&&preflight.includes("disallowsRoot")&&preflight.includes("advertisedSitemaps")],
  ["Production origin preflight must verify sitemap locations stay on the canonical origin",preflight.includes('get("/sitemap.xml")')&&preflight.includes("sitemapLocations")&&preflight.includes("sameOrigin")&&preflight.includes("<loc>")],
