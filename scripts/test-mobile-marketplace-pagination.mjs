@@ -24,6 +24,7 @@ function routeHarness(pages){
    };
    if(name==="@/lib/mobile-image")return {mobileThumbnailUrl:(_request,url)=>`thumb:${url}`};
    if(name==="@/lib/postcode")return {normalizePostcode:value=>value};
+   if(name==="@/lib/public-listing")return {toPublicListing:item=>item};
    if(name==="@/lib/analytics/search")return {recordMarketplaceSearch:event=>analytics.push(event)};
    throw new Error(`Unexpected dependency: ${name}`);
   }
