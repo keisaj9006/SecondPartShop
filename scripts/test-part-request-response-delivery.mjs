@@ -2,19 +2,19 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 
-const types=fs.readFileSync("src/lib/types.ts","utf8");
+const responseTypes=fs.readFileSync("src/lib/part-request-response.ts","utf8");
 const data=fs.readFileSync("src/lib/data/part-requests.ts","utf8");
 const page=fs.readFileSync("src/app/requests/page.tsx","utf8");
 
 test("buyer part requests expose a bounded public response projection",()=>{
- assert.match(types,/export type PartRequestResponse=\{/);
- assert.match(types,/requestId:string/);
- assert.match(types,/slug:string/);
- assert.match(types,/title:string/);
- assert.match(types,/pricePence:number/);
- assert.match(types,/sellerName:string/);
- assert.match(types,/sellerVerified:boolean/);
- assert.match(types,/responses:PartRequestResponse\[\]/);
+ assert.match(responseTypes,/export type PartRequestResponse=\{/);
+ assert.match(responseTypes,/requestId:string/);
+ assert.match(responseTypes,/slug:string/);
+ assert.match(responseTypes,/title:string/);
+ assert.match(responseTypes,/pricePence:number/);
+ assert.match(responseTypes,/sellerName:string/);
+ assert.match(responseTypes,/sellerVerified:boolean/);
+ assert.match(responseTypes,/responses:PartRequestResponse\[\]/);
 });
 
 test("request loader returns only currently active linked response listings",()=>{
