@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const read=(relative)=>fs.readFileSync(path.join(root,relative),"utf8");
 const migrationPath="supabase/migrations/20260913160500_public_seller_data_boundary.sql";
+const deletedSellerGuardMigrationPath="supabase/migrations/20260913193000_seller_directory_deleted_account_guard.sql";
 
 test("public seller profile does not render the seller postcode",()=>{
  const source=read("src/app/seller/[slug]/page.tsx");
@@ -63,4 +64,25 @@ test("private seller profile rpc is authenticated-only and ownership-bound",()=>
 test("owner seller lookup uses the authenticated private seller rpc",()=>{
  const source=read("src/lib/data/marketplace.ts");
  assert.match(source,/getSellerForOwner[\s\S]*?rpc\("get_own_seller_profile_private"\)/);
+});
+
+test("security-definer seller directory excludes privacy-deleted sellers",()=>{
+ assert.ok(fs.existsSync(path.join(root,deletedSellerGuardMigrationPath)),"expected deleted-seller SECURITY DEFINER guard migration");
+ const migration=read(deletedSellerGuardMigrationPath);
+ assert.match(migration,/create or replace function public\.get_seller_directory_page\(p_limit integer default 24,\s*p_offset integer default 0\)/i);
+ assert.match(migration,/security definer/i);
+ assert.match(migration,/set search_path\s*=\s*''/i);
+ assert.match(migration,/from public\.sellers s[\s\S]*?where s\.account_deleted_at is null[\s\S]*?limit greatest\(1,least\(coalesce\(p_limit,24\),60\)\)\+1/i);
+ assert.match(migration,/revoke all on function public\.get_seller_directory_page\(integer,integer\) from public;/i);
+ assert.match(migration,/grant execute on function public\.get_seller_directory_page\(integer,integer\) to anon,authenticated;/i);
+});
+
+test("public seller checkout readiness returns false for privacy-deleted sellers",()=>{
+ assert.ok(fs.existsSync(path.join(root,deletedSellerGuardMigrationPath)),"expected deleted-seller SECURITY DEFINER guard migration");
+ const migration=read(deletedSellerGuardMigrationPath);
+ assert.match(migration,/create or replace function public\.seller_checkout_ready\(p_seller_id uuid\)/i);
+ assert.match(migration,/from public\.sellers s\s+join public\.seller_payment_accounts spa on spa\.seller_id=s\.id/i);
+ assert.match(migration,/s\.id=p_seller_id[\s\S]*?s\.account_deleted_at is null/i);
+ assert.match(migration,/revoke all on function public\.seller_checkout_ready\(uuid\) from public;/i);
+ assert.match(migration,/grant execute on function public\.seller_checkout_ready\(uuid\) to anon,authenticated;/i);
 });
