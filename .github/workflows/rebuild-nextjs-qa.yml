@@ -73,4 +73,4 @@ jobs:
       - name: Run true two-connection last-stock race
         env:
           TEST_DATABASE_URL: postgresql://postgres:secondpart_rc_password@127.0.0.1:5432/secondpart_rc
-        run: node scripts/test-last-stock-concurrency-postgres.mjs
+        run: node scripts/verify-last-stock-concurrency-postgres.mjs
