@@ -60,6 +60,34 @@ const home=await get("/");
 if(!home.includes("SecondPart"))throw new Error("Production homepage does not contain the SecondPart product marker.");
 console.log("PASS: Production homepage is reachable on the canonical origin.");
 
+const canonicalSitemap=new URL("/sitemap.xml",base).toString();
+const robots=await get("/robots.txt");
+const robotsLines=robots.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
+const allowsRoot=robotsLines.some(line=>/^allow:\s*\/\s*$/i.test(line));
+const disallowsRoot=robotsLines.some(line=>/^disallow:\s*\/\s*$/i.test(line));
+const advertisedSitemaps=robotsLines
+ .filter(line=>/^sitemap:/i.test(line))
+ .map(line=>line.replace(/^sitemap:\s*/i,"").trim());
+if(!allowsRoot||disallowsRoot||advertisedSitemaps.length!==1||advertisedSitemaps[0]!==canonicalSitemap){
+ throw new Error("Production robots.txt must allow root crawling and advertise exactly the canonical sitemap URL.");
+}
+console.log("PASS: Production robots.txt allows crawl and advertises the canonical sitemap.");
+
+const sitemap=await get("/sitemap.xml");
+if(!/<urlset\b/i.test(sitemap))throw new Error("Production sitemap.xml is missing the urlset root element.");
+const sitemapLocations=[...sitemap.matchAll(/<loc>\s*([^<]+?)\s*<\/loc>/gi)].map(match=>match[1].trim());
+const canonicalHome=new URL("/",base).toString();
+if(!sitemapLocations.includes(canonicalHome))throw new Error("Production sitemap.xml is missing the canonical homepage URL.");
+for(const location of sitemapLocations){
+ let url;
+ try{url=new URL(location);}catch{throw new Error(`Production sitemap.xml contains an invalid URL: ${location}`);}
+ if(!sameOrigin(url))throw new Error(`Production sitemap.xml contains an off-origin URL: ${location}`);
+ if(url.search||url.hash)throw new Error(`Production sitemap.xml contains a non-canonical URL with search/hash: ${location}`);
+ const publicPath=url.pathname==="/"||url.pathname.startsWith("/parts/")||url.pathname.startsWith("/seller/");
+ if(!publicPath)throw new Error(`Production sitemap.xml contains a route outside the public SEO surface: ${location}`);
+}
+console.log(`PASS: Production sitemap.xml contains ${sitemapLocations.length} canonical same-origin public URL(s).`);
+
 const privacy=await get("/privacy");
 if(!privacy.includes("SecondPart Privacy Policy"))throw new Error("Privacy page is missing the SecondPart Privacy Policy marker.");
 if(privacy.includes("public privacy/support email must be configured in the Production environment before publication")){
