@@ -18,23 +18,20 @@ const slugify=(value:string)=>value
 export async function GET(request:Request){
  const auth=await requireMobileUser(request);
  if(!auth.context)return auth.response;
- const {user,supabase}=auth.context;
- const {data,error}=await supabase
-  .from("sellers")
-  .select("id,business_name,slug,location,postcode,description,verified_at,seller_type,business_kind")
-  .eq("owner_id",user.id)
-  .maybeSingle();
+ const {supabase}=auth.context;
+ const {data,error}=await supabase.rpc("get_own_seller_profile_private");
  if(error)return mobileJson(request,{ok:false,error:"seller_profile_unavailable"},503);
- return mobileJson(request,{ok:true,seller:data?{
-  id:data.id,
-  businessName:data.business_name,
-  slug:data.slug,
-  location:data.location,
-  postcode:data.postcode,
-  description:data.description,
-  verified:Boolean(data.verified_at),
-  sellerType:data.seller_type,
-  businessKind:data.business_kind
+ const seller=data?.[0]??null;
+ return mobileJson(request,{ok:true,seller:seller?{
+  id:seller.id,
+  businessName:seller.business_name,
+  slug:seller.slug,
+  location:seller.location,
+  postcode:seller.postcode,
+  description:seller.description,
+  verified:Boolean(seller.verified_at),
+  sellerType:seller.seller_type,
+  businessKind:seller.business_kind
  }:null});
 }
 
@@ -150,7 +147,7 @@ export async function PATCH(request:Request){
   })
   .eq("id",existing.id)
   .eq("owner_id",user.id)
-  .select("id,verified_at,seller_type,business_kind,business_name,location,postcode,description")
+  .select("id,verified_at,seller_type,business_kind,business_name,location,description")
   .single();
 
  if(error||!updated)return mobileJson(request,{ok:false,error:"seller_profile_update_failed"},503);
@@ -165,7 +162,7 @@ export async function PATCH(request:Request){
    businessKind:updated.business_kind,
    businessName:updated.business_name,
    location:updated.location,
-   postcode:updated.postcode,
+   postcode:sellerGeo.postcode,
    description:updated.description
   }
  });
