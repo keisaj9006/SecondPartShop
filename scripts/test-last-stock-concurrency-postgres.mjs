@@ -4,6 +4,10 @@ import fs from "node:fs";
 
 const databaseUrl=process.env.TEST_DATABASE_URL?.trim();
 if(!databaseUrl)throw new Error("TEST_DATABASE_URL is required.");
+const target=new URL(databaseUrl);
+if(!["localhost","127.0.0.1"].includes(target.hostname)||target.pathname!=="/secondpart_rc"){
+ throw new Error("Last-stock concurrency harness may run only against the ephemeral local secondpart_rc database.");
+}
 
 const functionSource=fs.readFileSync("supabase/migrations/20260906163000_checkout_reservation_lifecycle.sql","utf8");
 const functionStart=functionSource.indexOf("create or replace function public.prepare_checkout_order(");
@@ -43,12 +47,6 @@ function psql(sql,{allowFailure=false,onStdout}={}){
 }
 
 const setup=`
- drop schema if exists auth cascade;
- drop schema if exists private cascade;
- drop table if exists public.order_events,public.order_items,public.orders,public.parts,public.sellers,public.commerce_settings cascade;
- drop type if exists public.listing_status cascade;
- drop role if exists authenticated;
-
  create schema auth;
  create schema private;
  create role authenticated nologin nosuperuser nobypassrls;
@@ -138,15 +136,17 @@ const sessionSql=(buyer,hold)=>`
  commit;
 `;
 
-let releaseHolding;
-const holding=new Promise(resolve=>{releaseHolding=resolve;});
+let resolveHolding;
+let rejectHolding;
+const holding=new Promise((resolve,reject)=>{resolveHolding=resolve;rejectHolding=reject;});
 const firstPromise=psql(sessionSql(buyerA,true),{
  onStdout:stdout=>{
-  if(stdout.includes("HOLDING_LAST_STOCK_LOCK"))releaseHolding();
+  if(stdout.includes("HOLDING_LAST_STOCK_LOCK"))resolveHolding();
  }
 });
+firstPromise.catch(error=>rejectHolding(error));
 
-const holdTimeout=setTimeout(()=>releaseHolding(new Error("Timed out waiting for the first checkout to hold the listing lock.")),5000);
+const holdTimeout=setTimeout(()=>rejectHolding(new Error("Timed out waiting for the first checkout to hold the listing lock.")),5000);
 await holding;
 clearTimeout(holdTimeout);
 
