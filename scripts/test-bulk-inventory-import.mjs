@@ -297,7 +297,8 @@ test("the server action revalidates imported drafts when report finalization nee
     "@/lib/supabase/server":{createSupabaseServerClient:async()=>({})},
     "@/lib/identifiers":{isUuid:()=>true},
     "@/lib/inventory-csv-import":{processSellerInventoryCsv:async()=>recovery},
-    "@/lib/marketplace-policy":{hasCurrentMarketplaceTerms:async()=>true}
+    "@/lib/marketplace-policy":{hasCurrentMarketplaceTerms:async()=>true},
+    "@/lib/ops-monitoring":{reportOperationalWarning(){}}
    };
    if(name in dependencies)return dependencies[name];
    throw new Error(name);
