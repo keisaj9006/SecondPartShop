@@ -8,6 +8,7 @@ import type { MarketplaceFilters } from "@/lib/types";
 import { mobileJson,mobileOptions,mobilePublicJson } from "@/lib/mobile-api";
 import { mobileThumbnailUrl } from "@/lib/mobile-image";
 import { getSellerDistanceFromPostcode } from "@/lib/seller-geo";
+import { toPublicListing } from "@/lib/public-listing";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -37,6 +38,7 @@ export async function GET(request:Request,{params}:{params:Promise<{slug:string}
   isSellerCheckoutReady(result.data.sellerId).catch(()=>false),
   getSellerDistanceFromPostcode(result.data.sellerId,url.searchParams.get("pc")).catch(()=>null)
  ]);
- const item={...result.data,images:result.data.images.map(image=>({...image,thumbnailUrl:mobileThumbnailUrl(request,image.url)}))};
+ const publicListing=toPublicListing(result.data);
+ const item={...publicListing,images:publicListing.images.map(image=>({...image,thumbnailUrl:mobileThumbnailUrl(request,image.url)}))};
  return mobilePublicJson(request,{ok:true,item,sellerReputation:reputation,compatibility,distance:sellerDistance,checkoutReady:isStripeCheckoutConfigured()&&sellerCheckoutReady},200,15,60);
 }
