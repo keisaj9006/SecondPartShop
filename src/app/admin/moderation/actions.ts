@@ -29,16 +29,50 @@ export async function updateMarketplaceReport(formData:FormData){
  revalidatePath("/admin/moderation");
 }
 
-export async function updateSupportRequest(formData:FormData){
- await requireAdmin("/admin/moderation");
- const requestId=String(formData.get("requestId")??"");
- const status=String(formData.get("status")??"");
- if(!requestId||!["in_progress","closed"].includes(status))return;
+export async function adminReplyToSupportRequest(formData:FormData){
+ const requestId=String(formData.get("requestId")??"").trim();
+ const message=String(formData.get("message")??"").trim();
+ const nextStatus=String(formData.get("nextStatus")??"").trim();
+ await requireAdmin(requestId?`/admin/support/${requestId}`:"/admin/moderation");
+ if(!requestId||message.length<1||message.length>2000)return;
+ if(nextStatus&&!(["in_progress","resolved"] as string[]).includes(nextStatus))return;
  const supabase=await createSupabaseServerClient();
- const {error}=await supabase.from("support_requests").update({status,updated_at:new Date().toISOString()}).eq("id",requestId);
+ const {error}=await supabase.rpc("admin_reply_to_support_request",{
+  p_support_request_id:requestId,
+  p_message:message,
+  p_next_status:nextStatus||null
+ });
+ if(error)throw error;
+ revalidatePath(`/admin/support/${requestId}`);
+ revalidatePath("/admin/moderation");
+ revalidatePath(`/contact/${requestId}`);
+ revalidatePath("/contact");
+}
+
+export async function updateSupportRequest(formData:FormData){
+ const requestId=String(formData.get("requestId")??"").trim();
+ const status=String(formData.get("status")??"").trim();
+ await requireAdmin(requestId?`/admin/support/${requestId}`:"/admin/moderation");
+ if(!requestId||!(["in_progress","resolved","closed"] as string[]).includes(status))return;
+ const supabase=await createSupabaseServerClient();
+ const {error}=await supabase.rpc("admin_update_support_request_status",{p_support_request_id:requestId,p_status:status});
  if(error)throw error;
  revalidatePath("/admin/moderation");
+ revalidatePath(`/admin/support/${requestId}`);
+ revalidatePath(`/contact/${requestId}`);
+ revalidatePath("/contact");
  revalidatePath("/admin/beta-feedback");
+}
+
+export async function adminAddSupportRequestNote(formData:FormData){
+ const requestId=String(formData.get("requestId")??"").trim();
+ const note=String(formData.get("note")??"").trim();
+ await requireAdmin(requestId?`/admin/support/${requestId}`:"/admin/moderation");
+ if(!requestId||note.length<1||note.length>2000)return;
+ const supabase=await createSupabaseServerClient();
+ const {error}=await supabase.rpc("admin_add_support_request_note",{p_support_request_id:requestId,p_note:note});
+ if(error)throw error;
+ revalidatePath(`/admin/support/${requestId}`);
 }
 
 export async function reviewGaragePartner(formData:FormData){
