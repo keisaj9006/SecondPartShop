@@ -24,7 +24,7 @@ export async function bulkImportCsv(_previous:BulkImportState,formData:FormData)
  const result=await processSellerInventoryCsv({file,sellerId:seller.id,supabase,mode});
  if(result.status==="error"&&result.message==="Existing seller references could not be checked."){
   reportOperationalWarning({
-   component:"seller_csv_import",
+   component:"next_server",
    event:"seller_csv_reference_lookup_failed",
    message:"CSV seller-reference preflight failed closed.",
    route:"/dashboard/import",
