@@ -40,7 +40,7 @@ function operationalModule(rpcMode){
    if(name==="@/lib/vehicle-registration")return {};
    throw new Error(`Unexpected dependency ${name}`);
   },
-  Date,Number,Boolean,Record,Object,Array,Promise
+  Date,Number,Boolean,Object,Array,Promise
  });
  return exports;
 }
