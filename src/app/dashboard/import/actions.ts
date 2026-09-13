@@ -8,6 +8,7 @@ import {createSupabaseServerClient} from "@/lib/supabase/server";
 import {isUuid} from "@/lib/identifiers";
 import {processSellerInventoryCsv,type BulkImportState} from "@/lib/inventory-csv-import";
 import {hasCurrentMarketplaceTerms} from "@/lib/marketplace-policy";
+import {reportOperationalWarning} from "@/lib/ops-monitoring";
 
 export type {BulkImportIssue,BulkImportPreviewRow,BulkImportState} from "@/lib/inventory-csv-import";
 
@@ -21,6 +22,16 @@ export async function bulkImportCsv(_previous:BulkImportState,formData:FormData)
  const mode=String(formData.get("mode")??"preview");
  const supabase=await createSupabaseServerClient();
  const result=await processSellerInventoryCsv({file,sellerId:seller.id,supabase,mode});
+ if(result.status==="error"&&result.message==="Existing seller references could not be checked."){
+  reportOperationalWarning({
+   component:"seller_csv_import",
+   event:"seller_csv_reference_lookup_failed",
+   message:"CSV seller-reference preflight failed closed.",
+   route:"/dashboard/import",
+   context:{operation:"reference_lookup",code:"CSV_REF_LOOKUP_FAILED"}
+  });
+  return {...result,message:result.message+" Reference: CSV-REF-LOOKUP-01."};
+ }
  if(result.fileReset==="clear"){
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/import");
