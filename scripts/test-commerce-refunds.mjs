@@ -18,6 +18,7 @@ function fixture(options={}){
   finalizeCalls:0,
   refundKeys:[],
   finalizeError:false,
+  finalizeData:true,
   caseRow:{id:caseId,order_item_id:orderItemId,status:'open',provider_refund_id:null,provider_dispute_id:null},
   item:{id:orderItemId,order_id:orderId,quantity:1,unit_price_pence:2500,shipping_pence:500,seller_net_pence:2200,payout_status:'blocked',funds_released_at:null,provider_transfer_id:null,provider_transfer_reversal_id:null},
   order:{provider_payment_intent_id:'pi_fixture',payment_status:'paid'},
@@ -63,6 +64,7 @@ function fixture(options={}){
    if(name!=='finalize_transaction_case_refund')throw new Error('Unexpected RPC '+name);
    state.finalizeCalls+=1;
    if(state.finalizeError)return {data:null,error:{code:'finalize_failed'}};
+   if(state.finalizeData!==true)return {data:state.finalizeData,error:null};
    state.caseRow.status='resolved';
    state.caseRow.provider_refund_id=args.p_refund_id;
    state.item.provider_transfer_reversal_id=args.p_transfer_reversal_id??state.item.provider_transfer_reversal_id;
@@ -154,13 +156,26 @@ test('retry of a correlated pending refund reads provider state instead of creat
  assert.equal(f.state.finalizeCalls,0);
 });
 
-test('database finalization failure keeps provider correlation and retry finalizes without another POST',async()=>{
+test('database finalization error keeps provider correlation and retry finalizes without another POST',async()=>{
  const f=fixture({refundStatus:'succeeded',finalizeError:true});
  await assert.rejects(f.refund());
  assert.equal(f.state.caseRow.provider_refund_id,'re_fixture');
  assert.equal(f.state.refundCreateCalls,1);
  assert.equal(f.state.finalizeCalls,1);
  f.state.finalizeError=false;
+ const result=await f.refund();
+ assert.equal(result.refunded,true);
+ assert.equal(f.state.refundCreateCalls,1);
+ assert.equal(f.state.refundReadCalls,1);
+ assert.equal(f.state.finalizeCalls,2);
+});
+
+test('database finalization false acknowledgement stays retryable without another provider refund',async()=>{
+ const f=fixture({refundStatus:'succeeded',finalizeData:false});
+ await assert.rejects(f.refund(),/finalization/i);
+ assert.equal(f.state.caseRow.provider_refund_id,'re_fixture');
+ assert.equal(f.state.refundCreateCalls,1);
+ f.state.finalizeData=true;
  const result=await f.refund();
  assert.equal(result.refunded,true);
  assert.equal(f.state.refundCreateCalls,1);
