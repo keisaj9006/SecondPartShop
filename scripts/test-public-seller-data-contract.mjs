@@ -86,3 +86,20 @@ test("public seller checkout readiness returns false for privacy-deleted sellers
  assert.match(migration,/revoke all on function public\.seller_checkout_ready\(uuid\) from public;/i);
  assert.match(migration,/grant execute on function public\.seller_checkout_ready\(uuid\) to anon,authenticated;/i);
 });
+
+test("public member profile cannot reattach a privacy-deleted seller through SECURITY DEFINER",()=>{
+ const migration=read(deletedSellerGuardMigrationPath);
+ assert.match(migration,/create or replace function public\.get_public_member_profile\(p_handle text\)/i);
+ assert.match(migration,/left join public\.sellers s on s\.owner_id=p\.id\s+and s\.account_deleted_at is null/i);
+ assert.match(migration,/join public\.sellers sx on sx\.id=oi\.seller_id\s+and sx\.account_deleted_at is null/i);
+ assert.match(migration,/revoke all on function public\.get_public_member_profile\(text\) from public;/i);
+ assert.match(migration,/grant execute on function public\.get_public_member_profile\(text\) to anon,authenticated;/i);
+});
+
+test("public seller inventory summary exposes no retained inventory for a privacy-deleted seller",()=>{
+ const migration=read(deletedSellerGuardMigrationPath);
+ assert.match(migration,/create or replace function public\.get_public_seller_inventory_summary\(p_seller_id uuid\)/i);
+ assert.match(migration,/exists\(\s*select 1\s+from public\.sellers s\s+where s\.id=p_seller_id\s+and s\.account_deleted_at is null\s*\)/i);
+ assert.match(migration,/revoke all on function public\.get_public_seller_inventory_summary\(uuid\) from public;/i);
+ assert.match(migration,/grant execute on function public\.get_public_seller_inventory_summary\(uuid\) to anon,authenticated;/i);
+});
