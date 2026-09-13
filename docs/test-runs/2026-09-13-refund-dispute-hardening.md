@@ -1,4 +1,4 @@
-# RC hardening — refund authority and dispute ordering
+# RC hardening — payment, refund and dispute ordering
 
 Date: 2026-09-13
 
@@ -98,6 +98,70 @@ No dispute RPC was invoked against QA data during deployment verification.
 
 Provider Stripe webhook delivery/replay E2E is still **UNSIGNED**. The isolated SQL proof and deployed function-definition checks do not substitute for a real Stripe test-mode delivery sequence.
 
+## P0 payment failure / ordering — terminal Checkout event before session attachment
+
+### Defect reproduced
+
+A signed terminal Stripe Checkout event (`checkout.session.expired` or `checkout.session.async_payment_failed`) could arrive after Stripe created the Checkout Session but before SecondPart durably attached `provider_checkout_session_id` to the reserved order. The previous webhook required an already-attached local session, so this race was acknowledged without releasing the reservation. Without a local provider session ID, reconciliation could not query Stripe, leaving the daily commerce-maintenance pass as the eventual fallback.
+
+RED run `34752180494` reproduced the missing authority boundary: 419 tests passed and the new terminal-event scenario alone failed because `cancel_checkout_order_from_provider_event` did not yet exist.
+
+### Repair
+
+Migration source: `supabase/migrations/20260913104500_checkout_terminal_event_session_claim.sql`.
+
+- Added service-only `cancel_checkout_order_from_provider_event(uuid,text,text,text)`.
+- Only signed webhook code can reach it through the service-role client; `anon` and `authenticated` cannot execute it.
+- The RPC locks the order row before reading or changing session/payment authority.
+- A stale terminal event cannot cancel an order already attached to a different Checkout Session.
+- Financially settled states (`paid`, `partially_refunded`, `refunded`, `disputed`) cannot be cancelled through this path.
+- When the local session correlation is still null, a terminal event may claim it only while payment is still `unpaid`, `requires_action`, or `processing`.
+- The existing atomic cancellation path remains responsible for stock restoration, terminal buyer notification and semantic order event creation.
+- Non-terminal Checkout event types are rejected.
+- The Stripe webhook now calls this database-boundary RPC instead of relying on a non-transactional route-level read/match sequence.
+- Added a narrow generated-schema-compatible `RuntimeAdminDatabase` extension so the fresh service-only RPC stays strictly typed without `any`/casts while the main generated type snapshot remains unchanged.
+
+### Regression coverage
+
+The real SQL harness now verifies:
+
+1. terminal event before local session attach claims the exact session and releases stock once;
+2. replay is idempotent;
+3. stale terminal event cannot cancel another attached session;
+4. paid order cannot be cancelled even if local session correlation is missing;
+5. non-terminal event types are rejected;
+6. public client roles cannot execute any service-only cancellation RPC;
+7. previous buyer/session/paid/refund/local-expiry guards remain intact.
+
+The first integrated run after the fix exposed only a stale static validator that still required the previous route-level matching implementation. `npm test` was already 434/434 GREEN. The validator was updated to require the stronger transactional DB-boundary guarantees instead.
+
+### QA Supabase deployment
+
+Applied to project `secondpart` (`etkupijfdznljimrfyct`) as remote migration:
+
+- `20260913103858 / checkout_terminal_event_session_claim`
+
+Read-only post-deployment checks confirmed:
+
+- anon execute: `false`;
+- authenticated execute: `false`;
+- service_role execute: `true`;
+- deployed definition contains the terminal-event type guard;
+- deployed definition contains the session-claim guard.
+
+No checkout cancellation RPC was invoked against real QA order data during deployment verification.
+
+### Final verification
+
+- Integrated GREEN SHA: `303b278eea3a6449eb34fb9ec8f91465ad97fc37`.
+- GitHub Actions run: `34752542049` — SUCCESS.
+- `npm test`: 434/434 PASS.
+- Successful gates: diff check, lint, typecheck, notification validator, mobile-performance validator, launch baseline, monitoring, commerce E2E harness validator, checkout-expiry-race validator, payout recovery, Android RC validator, public-contact validator, account-deletion validator, production-origin/environment validators, beta-feedback, seller-read-policy, production build.
+- Vercel deployment `dpl_FCqtuAsdoMDht89uwcpBQAJ5h2jL` — READY for exact SHA `303b278eea3a6449eb34fb9ec8f91465ad97fc37`.
+- Branch Preview alias: `second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app`.
+
+Actual Stripe test-mode decline/retry/expiry and delayed/out-of-order webhook delivery are still **UNSIGNED** provider gates. This fix closes the reproduced code/SQL race; it does not replace external provider evidence.
+
 ## Remaining release implication
 
-These two confirmed P0 implementation defects are repaired and regression-protected at code/SQL level. Closed Beta is still **NOT READY** solely on the basis of these greens; the remaining RC P0 evidence includes provider adverse-flow E2E, last-stock concurrency, decline/retry/expiry, delayed/out-of-order provider delivery, remaining authorization/RLS boundaries, critical notification delivery, privacy/deletion external/destructive gates, and physical Android release gates.
+The confirmed refund-authority, provider-dispute-ordering and terminal-session-attachment races are repaired and regression-protected at code/SQL level. Closed Beta is still **NOT READY** solely on the basis of these greens; the remaining RC P0 evidence includes provider adverse-flow E2E, true last-stock concurrency, complete decline/retry/expiry provider evidence, delayed/out-of-order provider delivery, remaining authorization/RLS boundaries, critical notification delivery, privacy/deletion external/destructive gates, and physical Android release gates.
