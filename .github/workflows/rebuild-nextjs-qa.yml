@@ -45,3 +45,32 @@ jobs:
       - run: npm run validate:beta-feedback
       - run: npm run validate:seller-read-policy
       - run: npm run build
+
+  last-stock-concurrency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: secondpart_rc_password
+          POSTGRES_DB: secondpart_rc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d secondpart_rc"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify PostgreSQL client
+        run: psql --version
+      - name: Run true two-connection last-stock race
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:secondpart_rc_password@127.0.0.1:5432/secondpart_rc
+        run: node scripts/test-last-stock-concurrency-postgres.mjs
