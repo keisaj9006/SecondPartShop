@@ -72,11 +72,16 @@ export async function storeRegistrationLookup(registration:string,provider:strin
  }
 }
 
-export type VehicleLookupRateLimit={
- allowed:boolean;
- remaining:number|null;
- retryAfterSeconds:number;
-};
+export type VehicleLookupRateLimit=
+ | {status:"available";allowed:boolean;remaining:number;retryAfterSeconds:number}
+ | {status:"unavailable";allowed:false;remaining:null;retryAfterSeconds:0};
+
+const unavailableRateLimit=():VehicleLookupRateLimit=>({
+ status:"unavailable",
+ allowed:false,
+ remaining:null,
+ retryAfterSeconds:0
+});
 
 export async function consumeVehicleLookupRateLimit(request:Request):Promise<VehicleLookupRateLimit>{
  const forwarded=request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
@@ -91,15 +96,19 @@ export async function consumeVehicleLookupRateLimit(request:Request):Promise<Veh
    p_limit:30,
    p_window_seconds:600
   });
-  if(error)return {allowed:true,remaining:null,retryAfterSeconds:0};
+  if(error)return unavailableRateLimit();
   const row=data?.[0];
-  if(!row)return {allowed:true,remaining:null,retryAfterSeconds:0};
+  if(!row)return unavailableRateLimit();
+  const remaining=Number(row.remaining);
+  const retryAfterSeconds=Number(row.retry_after_seconds);
+  if(typeof row.allowed!=="boolean"||!Number.isFinite(remaining)||!Number.isFinite(retryAfterSeconds))return unavailableRateLimit();
   return {
-   allowed:Boolean(row.allowed),
-   remaining:Number(row.remaining??0),
-   retryAfterSeconds:Number(row.retry_after_seconds??0)
+   status:"available",
+   allowed:row.allowed,
+   remaining:Math.max(0,Math.floor(remaining)),
+   retryAfterSeconds:Math.max(0,Math.floor(retryAfterSeconds))
   };
  }catch{
-  return {allowed:true,remaining:null,retryAfterSeconds:0};
+  return unavailableRateLimit();
  }
 }
