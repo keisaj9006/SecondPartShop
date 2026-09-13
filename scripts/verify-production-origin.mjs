@@ -33,7 +33,7 @@ base.hash="";
 
 const sameOrigin=(url)=>new URL(url).origin===base.origin;
 
-async function get(path,{json=false}={}){
+async function get(path,{json=false,requireIndexable=false}={}){
  const url=new URL(path,base);
  const controller=new AbortController();
  const timer=setTimeout(()=>controller.abort(),TIMEOUT_MS);
@@ -41,6 +41,10 @@ async function get(path,{json=false}={}){
   const response=await fetch(url,{redirect:"follow",cache:"no-store",signal:controller.signal,headers:{"user-agent":"SecondPart-Production-Origin-Preflight/1.0"}});
   if(!response.ok)throw new Error(`${path} returned HTTP ${response.status}.`);
   if(!sameOrigin(response.url))throw new Error(`${path} redirected outside the production origin to ${response.url}.`);
+  if(requireIndexable){
+   const robotsTag=response.headers.get("x-robots-tag")??"";
+   if(/\bnoindex\b/i.test(robotsTag))throw new Error(`${path} is not indexable because X-Robots-Tag contains noindex.`);
+  }
   return json?await response.json():await response.text();
  }catch(error){
   if(error?.name==="AbortError")throw new Error(`${path} timed out after ${TIMEOUT_MS}ms.`);
@@ -56,9 +60,9 @@ const mailtoFrom=(html)=>{
 };
 const validEmail=(value)=>Boolean(value&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value));
 
-const home=await get("/");
+const home=await get("/",{requireIndexable:true});
 if(!home.includes("SecondPart"))throw new Error("Production homepage does not contain the SecondPart product marker.");
-console.log("PASS: Production homepage is reachable on the canonical origin.");
+console.log("PASS: Production homepage is reachable and indexable on the canonical origin.");
 
 const canonicalSitemap=new URL("/sitemap.xml",base).toString();
 const robots=await get("/robots.txt");
