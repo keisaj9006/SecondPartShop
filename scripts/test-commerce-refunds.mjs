@@ -21,7 +21,7 @@ function fixture(options={}){
   finalizeData:true,
   caseRow:{id:caseId,order_item_id:orderItemId,status:'open',provider_refund_id:null,provider_dispute_id:null},
   item:{id:orderItemId,order_id:orderId,quantity:1,unit_price_pence:2500,shipping_pence:500,seller_net_pence:2200,payout_status:'blocked',funds_released_at:null,provider_transfer_id:null,provider_transfer_reversal_id:null},
-  order:{provider_payment_intent_id:'pi_fixture',payment_status:'paid'},
+  order:{id:orderId,provider_payment_intent_id:'pi_fixture',payment_status:'paid'},
   ...options
  };
  if(options.providerRefundId!==undefined)state.caseRow.provider_refund_id=options.providerRefundId;
