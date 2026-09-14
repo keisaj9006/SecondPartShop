@@ -99,7 +99,7 @@ jobs:
           node-version: 24
       - name: Verify PostgreSQL client
         run: psql --version
-      - name: Run isolated 25k marketplace search proof
+      - name: Run isolated 100k marketplace search proof
         env:
           TEST_DATABASE_URL: postgresql://postgres:secondpart_scale_password@127.0.0.1:5432/secondpart_scale
         run: node scripts/verify-marketplace-scale-postgres.mjs
