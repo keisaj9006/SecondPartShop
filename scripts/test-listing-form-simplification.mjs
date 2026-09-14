@@ -10,11 +10,13 @@ test("seller listing form explains required-field markers",()=>{
  assert.match(form,/const RequiredMark=/);
 });
 
-test("seller listing form marks core required fields visibly",()=>{
- for(const label of ["Listing title","Description","Department","Category","Part type","Condition","Testing status","Warranty","Price (£)","Stock quantity"]){
+test("seller listing form marks only core required fields visibly",()=>{
+ for(const label of ["Listing title","Description","Department","Category","Part type","Condition","Price (£)","Stock quantity"]){
   const escaped=label.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
   assert.match(form,new RegExp(`${escaped}[^<]*(?:<[^>]+>)*<RequiredMark\\s*\\/>`),`${label} should show a visible required marker`);
  }
+ assert.doesNotMatch(form,/Testing status<RequiredMark\s*\/>/);
+ assert.doesNotMatch(form,/Warranty<RequiredMark\s*\/>/);
 });
 
 test("photo requirement is clear without pretending drafts require photos",()=>{
@@ -43,4 +45,23 @@ test("seller form removes duplicate manual delivery-range fields",()=>{
  assert.doesNotMatch(form,/name="deliveryDaysMax"/);
  assert.doesNotMatch(actions,/formData\.get\("deliveryDaysMin"\)/);
  assert.doesNotMatch(actions,/formData\.get\("deliveryDaysMax"\)/);
+});
+
+test("secondary listing details use progressive disclosure instead of cluttering the core form",()=>{
+ assert.match(form,/<details[^>]*className=/);
+ assert.match(form,/More details \(optional\)/);
+ for(const label of ["Testing status","Warranty","Damage / visible wear","OE/OEM number","Manufacturer / brand","Manufacturer / part number","Dispatch time","Local collection available","Delivery price (£)"]){
+  assert.match(form,new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")),`${label} should remain available as an optional detail`);
+ }
+});
+
+test("duplicate condition-notes field is removed because description already covers condition",()=>{
+ assert.doesNotMatch(form,/Condition notes/);
+ assert.doesNotMatch(form,/name="conditionNotes"/);
+ assert.doesNotMatch(actions,/formData\.get\("conditionNotes"\)/);
+});
+
+test("testing and warranty fall back safely when optional controls are left untouched",()=>{
+ assert.match(actions,/formData\.get\("testingStatus"\)\?\?"not_specified"/);
+ assert.match(actions,/formData\.get\("warrantyDays"\)\?\?0/);
 });
