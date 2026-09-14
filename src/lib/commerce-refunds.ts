@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { getRefund,refundPlatformPayment,reverseSellerTransfer,isStripeCheckoutConfigured } from "@/lib/stripe-payments";
+import { getRefund,getSellerTransferReversal,refundPlatformPayment,reverseSellerTransfer,isStripeCheckoutConfigured } from "@/lib/stripe-payments";
 
 const ACTIVE_CASE_STATUSES=["open","seller_response","under_review"];
 type AdminClient=ReturnType<typeof createSupabaseAdminClient>;
@@ -101,16 +101,23 @@ export async function refundTransactionCase(caseId:string){
   return {refunded:false,reason:"payout_reconciliation_required"} as const;
  }
 
- if(payoutWasReleased&&item.provider_transfer_id&&!reversalId){
-  const reversal=await reverseSellerTransfer(
-   item.provider_transfer_id,
-   item.seller_net_pence,
-   "secondpart-reversal-"+caseId
-  );
-  if(reversal.amount!==item.seller_net_pence){
-   throw new Error("Seller transfer reversal amount mismatch.");
+ if(payoutWasReleased&&item.provider_transfer_id){
+  if(reversalId){
+   const reversal=await getSellerTransferReversal(item.provider_transfer_id,reversalId);
+   if(reversal.amount!==item.seller_net_pence){
+    throw new Error("Seller transfer reversal amount mismatch.");
+   }
+  }else{
+   const reversal=await reverseSellerTransfer(
+    item.provider_transfer_id,
+    item.seller_net_pence,
+    "secondpart-reversal-"+caseId
+   );
+   if(reversal.amount!==item.seller_net_pence){
+    throw new Error("Seller transfer reversal amount mismatch.");
+   }
+   reversalId=await persistTransferReversal(admin,item.id,reversal.id);
   }
-  reversalId=await persistTransferReversal(admin,item.id,reversal.id);
  }
 
  const refund=caseRow.provider_refund_id
