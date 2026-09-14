@@ -124,6 +124,16 @@ export async function refundTransactionCase(caseId:string){
   return {refunded:false,reason:"refund_unverified",refundId:refund.id,status:refundStatus||"unknown"} as const;
  }
 
+ const refundCurrency="currency" in refund&&typeof refund.currency==="string"?refund.currency.toLowerCase():null;
+ const refundPaymentIntent="payment_intent" in refund&&typeof refund.payment_intent==="string"?refund.payment_intent:null;
+ if(
+  refund.amount!==refundPence||
+  refundCurrency!=="gbp"||
+  refundPaymentIntent!==order.provider_payment_intent_id
+ ){
+  return {refunded:false,reason:"refund_unverified",refundId:refund.id,status:refundStatus} as const;
+ }
+
  const {data:finalized,error:finalizeError}=await admin.rpc("finalize_transaction_case_refund",{
   p_case_id:caseId,
   p_refund_id:refund.id,
