@@ -17,6 +17,7 @@ const selectableDescendants=(node:CategoryNode|null)=>{
  return result;
 };
 const RequiredMark=()=> <><span aria-hidden="true" className="ml-1 text-red-700">*</span><span className="sr-only"> required</span></>;
+const PublishRequiredMark=()=> <><span aria-hidden="true" className="ml-1 text-amber-700">*</span><span className="sr-only"> required to publish</span></>;
 
 export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defaultCategoryId,defaultRequestId,initialCatalogueFitments=[],listing,sellerCheckoutReady=true}:{categories:Category[];donors:DonorVehicle[];defaultDonorId?:string;defaultTitle?:string;defaultCategoryId?:string;defaultRequestId?:string;initialCatalogueFitments?:CatalogueFitmentSelection[];listing?:Listing;sellerCheckoutReady?:boolean}){
  const handler=listing?updateListing:createListing;
@@ -94,7 +95,7 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
  >
   {listing&&<input type="hidden" name="partId" value={listing.id}/>} {!listing&&defaultRequestId&&<input type="hidden" name="sourceRequestId" value={defaultRequestId}/>}
   <input type="hidden" name="categoryId" value={categoryId}/>
-  <p className="text-xs text-[#63706a] lg:col-span-2"><RequiredMark/> Required fields are marked with an asterisk.</p>
+  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#63706a] lg:col-span-2"><span><RequiredMark/> Required fields are marked with an asterisk.</span><span><PublishRequiredMark/> Required to publish when listing status is Active.</span></div>
 
   <label className="text-sm font-bold lg:col-span-2">Listing title<RequiredMark/><input required minLength={5} name="title" value={title} onChange={event=>setTitle(event.target.value)} className={input} placeholder="e.g. Golf Mk7 LED headlight"/></label>
   <label className="text-sm font-bold lg:col-span-2">Description<RequiredMark/><textarea required minLength={20} rows={5} name="description" value={description} onChange={event=>setDescription(event.target.value)} className={input} placeholder="Describe the actual condition, what is included, testing if known, and any material damage or wear."/><small className="mt-2 block font-normal leading-5 text-[#63706a]">Give the buyer the important facts once here. Extra identifiers, warranty and delivery settings can be added below.</small></label>
@@ -119,7 +120,7 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
   </fieldset>
 
   <fieldset className="rounded-2xl border border-[#173c31]/15 bg-[#f4f7f2] p-4 lg:col-span-2">
-   <legend className="px-1 text-sm font-black">Compatibility</legend>
+   <legend className="px-1 text-sm font-black">Compatibility<PublishRequiredMark/></legend>
    <p className="mt-1 text-sm leading-6 text-[#63706a]">Add genuine fitment evidence you already have. Do not guess. A donor vehicle is a useful conservative signal; exact fitments and part numbers can make matching stronger.</p>
    <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
     <label className="text-sm font-bold">Search donor vehicles<input value={donorSearch} onChange={event=>setDonorSearch(event.target.value)} onKeyDown={event=>{if(event.key==="Enter"){event.preventDefault();void searchDonors();}}} className={input} placeholder="Registration, make, model or version"/></label>
@@ -133,7 +134,7 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
   <div className="rounded-2xl border border-[#173c31]/15 bg-[#f4f7f2] p-4 text-sm leading-6 text-[#52605a] lg:col-span-2"><strong className="text-[#173c31]">To publish, add at least one compatibility source:</strong> a donor vehicle, an exact compatible vehicle, an OE/OEM number, or both manufacturer / brand and manufacturer / part number.</div>
   <SellerCompatibilityEditor initialFitments={initialCatalogueFitments}/>
 
-  <label className="text-sm font-bold lg:col-span-2">Real product photos <span className="font-normal text-[#63706a]">(required to publish)</span><OptimizedImageInput name="images" existingCount={listing?.images.length??0} onProcessingChange={setOptimizingImages} className={`${input} file:mr-3 file:rounded-lg file:border-0 file:bg-[#eef1eb] file:px-3 file:py-2 file:font-bold`}/><small className="mt-2 block font-normal leading-5 text-[#63706a]">Real photos of the actual part only. Up to 6 JPG, PNG or WebP files. At least one photo is required to publish an active listing. Show the whole part, labels or OE numbers, connectors and any visible damage.</small></label>
+  <label className="text-sm font-bold lg:col-span-2">Real product photos<PublishRequiredMark/> <span className="font-normal text-[#63706a]">(required to publish)</span><OptimizedImageInput name="images" existingCount={listing?.images.length??0} onProcessingChange={setOptimizingImages} className={`${input} file:mr-3 file:rounded-lg file:border-0 file:bg-[#eef1eb] file:px-3 file:py-2 file:font-bold`}/><small className="mt-2 block font-normal leading-5 text-[#63706a]">Real photos of the actual part only. Up to 6 JPG, PNG or WebP files. At least one photo is required to publish an active listing. Show the whole part, labels or OE numbers, connectors and any visible damage.</small></label>
 
   <details className="rounded-2xl border border-black/10 bg-[#f8f7f2] lg:col-span-2">
    <summary className="cursor-pointer list-none px-4 py-4 font-black marker:hidden">More details (optional)<span className="mt-1 block text-xs font-normal text-[#63706a]">Part numbers, testing, warranty and delivery settings</span></summary>
