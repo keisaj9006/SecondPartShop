@@ -77,12 +77,12 @@ function fixture(options={}){
   async refundPlatformPayment(input){
    state.refundCreateCalls+=1;
    state.refundKeys.push(input.idempotencyKey);
-   return {id:state.refundId,status:state.refundStatus,amount:3000};
+   return {id:state.refundId,status:state.refundStatus,amount:3000,currency:'gbp',payment_intent:'pi_fixture'};
   },
   async getRefund(id){
    state.refundReadCalls+=1;
    assert.equal(id,state.refundId);
-   return {id:state.refundId,status:state.refundStatus,amount:3000};
+   return {id:state.refundId,status:state.refundStatus,amount:3000,currency:'gbp',payment_intent:'pi_fixture'};
   },
   async reverseSellerTransfer(){
    state.reversalCalls+=1;
