@@ -69,6 +69,17 @@ test("session expiration posts with a stable session-specific retry key",async()
  assert.equal((await api.expireCheckoutSession("cs_test_unit")).status,"expired");
 });
 
+test("a persisted transfer reversal can be re-read exactly from Stripe",async()=>{
+ const api=adapter(async(url,init)=>{
+  assert.equal(url,"https://api.stripe.com/v1/transfers/tr_test/reversals/trr_test");
+  assert.equal(init.method,"GET");
+  return {ok:true,json:async()=>({id:"trr_test",amount:2200})};
+ });
+ const reversal=await api.getSellerTransferReversal("tr_test","trr_test");
+ assert.equal(reversal.id,"trr_test");
+ assert.equal(reversal.amount,2200);
+});
+
 test("successful response with unreadable JSON cannot become a confirmed checkout creation",async()=>{
  const api=adapter(async()=>({ok:true,json:async()=>{throw new SyntaxError('unreadable provider body');}}));
  await assert.rejects(api.createCheckoutSession(input),/Checkout Session response/);
