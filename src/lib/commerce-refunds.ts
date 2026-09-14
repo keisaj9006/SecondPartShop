@@ -43,7 +43,12 @@ async function persistTransferReversal(admin:AdminClient,orderItemId:string,reve
   .select("provider_transfer_reversal_id")
   .maybeSingle();
  if(error)throw error;
- if(data?.provider_transfer_reversal_id)return data.provider_transfer_reversal_id;
+ if(data?.provider_transfer_reversal_id){
+  if(data.provider_transfer_reversal_id!==reversalId){
+   throw new Error("Seller transfer reversal correlation mismatch.");
+  }
+  return reversalId;
+ }
 
  const {data:existing,error:existingError}=await admin
   .from("order_items")
@@ -54,7 +59,10 @@ async function persistTransferReversal(admin:AdminClient,orderItemId:string,reve
  if(!existing?.provider_transfer_reversal_id){
   throw new Error("Seller transfer reversal correlation could not be persisted.");
  }
- return existing.provider_transfer_reversal_id;
+ if(existing.provider_transfer_reversal_id!==reversalId){
+  throw new Error("Seller transfer reversal correlation mismatch.");
+ }
+ return reversalId;
 }
 
 export async function refundTransactionCase(caseId:string){
