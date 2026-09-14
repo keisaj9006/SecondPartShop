@@ -9,7 +9,7 @@ const root=path.resolve(import.meta.dirname,"..");
 const databaseUrl=process.env.TEST_DATABASE_URL;
 if(!databaseUrl)throw new Error("TEST_DATABASE_URL is required for the isolated PostgreSQL scale verifier.");
 
-const fixtureCount=25_000;
+const fixtureCount=100_000;
 const queryText="Scale alternator";
 const migrationName="20260912110440_complete_marketplace_search_page.sql";
 const migrationPath=path.join(root,"supabase/migrations",migrationName);
@@ -30,7 +30,7 @@ function definition(source,kind,name){
 function psql(sql,{tuples=true}={}){
  const args=[databaseUrl,"-X","-v","ON_ERROR_STOP=1"];
  if(tuples)args.push("-qAt");
- const result=spawnSync("psql",args,{input:sql,encoding:"utf8",maxBuffer:32*1024*1024});
+ const result=spawnSync("psql",args,{input:sql,encoding:"utf8",maxBuffer:64*1024*1024});
  if(result.status!==0){
   const stderr=(result.stderr||"").trim();
   const stdout=(result.stdout||"").trim();
@@ -129,7 +129,7 @@ select
  '${queryText}',
  'scale-part-'||n,
  'A deterministic isolated scale fixture listing',
- case when n=${fixtureCount} then 'SCALE-OEM-25000' end,
+ case when n=${fixtureCount} then 'SCALE-OEM-100000' end,
  'used',
  n,
  'active',
@@ -141,17 +141,43 @@ analyze public.parts;
 `;
 }
 
-function queryIds({query=queryText,sort="best",categoryIds=null,limit=24,offset=0}){
+function functionCall({query=queryText,sort="best",categoryIds=null,limit=24,offset=0}){
  const categorySql=categoryIds?.length?`array[${categoryIds.map(value=>`'${value}'::uuid`).join(",")}]`:`null::uuid[]`;
  const safeQuery=query.replaceAll("'","''");
  const safeSort=sort.replaceAll("'","''");
- const sql=`select part_id::text from public.marketplace_search_page_v1(
+ return `public.marketplace_search_page_v1(
   p_query=>'${safeQuery}',p_sort=>'${safeSort}',p_limit=>${limit},p_offset=>${offset},p_category_ids=>${categorySql}
- );`;
+ )`;
+}
+
+function queryIds(input){
+ const sql=`select row_to_json(page)::text from ${functionCall(input)} page;`;
  const start=performance.now();
  const output=psql(sql);
  const durationMs=Number((performance.now()-start).toFixed(1));
- return {ids:output?output.split(/\r?\n/).filter(Boolean):[],durationMs};
+ const rows=output?output.split(/\r?\n/).filter(Boolean).map(line=>JSON.parse(line)):[];
+ return {
+  ids:rows.map(row=>row.part_id),
+  durationMs,
+  payloadBytes:Buffer.byteLength(output,"utf8")
+ };
+}
+
+function explain(name,input){
+ const output=psql(`EXPLAIN (ANALYZE,BUFFERS,FORMAT JSON) select * from ${functionCall(input)};`);
+ const document=JSON.parse(output);
+ const statement=Array.isArray(document)?document[0]:null;
+ const plan=statement?.Plan??null;
+ assert.ok(plan,`${name} returns a PostgreSQL execution plan`);
+ return {
+  name,
+  planningTimeMs:statement?.["Planning Time"]??null,
+  executionTimeMs:statement?.["Execution Time"]??null,
+  nodeType:plan["Node Type"]??null,
+  actualRows:plan["Actual Rows"]??null,
+  sharedHitBlocks:plan["Shared Hit Blocks"]??0,
+  sharedReadBlocks:plan["Shared Read Blocks"]??0
+ };
 }
 
 const totalStart=performance.now();
@@ -163,7 +189,7 @@ const seedStart=performance.now();
 psql(seedSql(),{tuples:false});
 const seedMs=Number((performance.now()-seedStart).toFixed(1));
 const actualCount=Number(psql("select count(*) from public.parts;"));
-assert.equal(actualCount,fixtureCount,"the isolated PostgreSQL fixture contains exactly 25,000 listings");
+assert.equal(actualCount,fixtureCount,"the isolated PostgreSQL fixture contains exactly 100,000 listings");
 
 const migrationSql=fs.readFileSync(migrationPath,"utf8");
 const migrationSha256=crypto.createHash("sha256").update(migrationSql).digest("hex");
@@ -176,15 +202,27 @@ function verify(name,input,expectedIds){
  const result=queryIds(input);
  assert.ok(result.ids.length<=Math.min(Math.max(input.limit??24,1),60)+1,`${name} stays within the bounded page plus sentinel`);
  assert.deepEqual(result.ids,expectedIds,`${name} preserves global order before pagination`);
- scenarios.push({name,rowCount:result.ids.length,firstPartId:result.ids[0]??null,lastPartId:result.ids.at(-1)??null,durationMs:result.durationMs});
+ scenarios.push({
+  name,
+  rowCount:result.ids.length,
+  firstPartId:result.ids[0]??null,
+  lastPartId:result.ids.at(-1)??null,
+  durationMs:result.durationMs,
+  payloadBytes:result.payloadBytes
+ });
 }
 
-verify("filtered_compact_oem",{query:"SCALEOEM25000",categoryIds:[id(7002)]},[id(25_000)]);
+verify("filtered_compact_oem",{query:"SCALEOEM100000",categoryIds:[id(7002)]},[id(100_000)]);
 verify("best_first_page",{},ids(1,25));
-verify("price_desc_clamped_page",{sort:"price_desc",limit:1000},ids(25_000,24_940,-1));
-verify("price_asc_deep_page",{sort:"price_asc",offset:24_960},ids(24_961,24_985));
-verify("price_desc_deep_page",{sort:"price_desc",offset:24_960},ids(40,16,-1));
-verify("best_terminal_page",{offset:24_984},ids(24_985,25_000));
+verify("price_desc_clamped_page",{sort:"price_desc",limit:1000},ids(100_000,99_940,-1));
+verify("price_asc_deep_page",{sort:"price_asc",offset:99_960},ids(99_961,99_985));
+verify("price_desc_deep_page",{sort:"price_desc",offset:99_960},ids(40,16,-1));
+verify("best_terminal_page",{offset:99_984},ids(99_985,100_000));
+
+const queryPlans=[
+ explain("best_first_page",{}),
+ explain("price_asc_deep_page",{sort:"price_asc",offset:99_960})
+];
 
 const runtime=psql("select version()||E'\\t'||(select extversion from pg_extension where extname='pg_trgm');").split("\t");
 const report={
@@ -194,13 +232,16 @@ const report={
  runtime:{postgresql:runtime[0]??null,pgTrgm:runtime[1]??null},
  migration:{path:`supabase/migrations/${migrationName}`,sha256:migrationSha256},
  timingsMs:{bootstrap:bootstrapMs,seed:seedMs,migration:migrationMs,queries:scenarios,total:Number((performance.now()-totalStart).toFixed(1))},
+ queryPlans,
  verified:[
-  "exactly 25,000 synthetic listings",
+  "exactly 100,000 synthetic listings",
   "current checked-in search migration loaded unchanged",
   "compact OEM matching under a category filter",
   "bounded limit-plus-one pages",
   "global best and price ordering before pagination",
-  "deep and terminal pagination behavior"
+  "deep and terminal pagination behavior",
+  "serialized result payload size recorded for every scenario",
+  "representative EXPLAIN ANALYZE/BUFFERS evidence recorded"
  ]
 };
 console.log(JSON.stringify(report,null,2));
