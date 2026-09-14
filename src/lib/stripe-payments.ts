@@ -178,6 +178,13 @@ export async function getSellerTransferReversals(transferId:string){
  );
 }
 
+export async function getSellerTransferReversal(transferId:string,reversalId:string){
+ return stripeV1<StripeTransferReversal>(
+  `/v1/transfers/${encodeURIComponent(transferId)}/reversals/${encodeURIComponent(reversalId)}`,
+  {method:"GET"}
+ );
+}
+
 export async function createSellerTransfer(input:{
  orderId:string;
  orderItemId:string;
