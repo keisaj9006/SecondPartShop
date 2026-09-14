@@ -18,7 +18,7 @@ test("marketplace search keeps the complete candidate set in one fail-closed eli
  assert.ok(start>=0&&end>start,"single-scan replacement block must be explicit in the migration");
  const candidateCte=source.slice(start+marker.length,end);
  assert.match(candidateCte,/candidate_ids as \(/i);
- assert.match(candidateCte,/select p\.id from eligible p cross join prepared_query q/i);
+ assert.match(candidateCte,/select\s+p\.id\s+from\s+eligible\s+p\s+cross\s+join\s+prepared_query\s+q/i);
  assert.match(candidateCte,/p\.search_document@@q\.ts_query/i);
  assert.match(candidateCte,/lower\(p\.title\) like/i);
  assert.match(candidateCte,/p\.oem_number is not null/i);
