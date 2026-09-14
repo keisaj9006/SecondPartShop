@@ -12,10 +12,10 @@ test("QA includes an isolated PostgreSQL 17 marketplace scale job",()=>{
  assert.match(workflow,/TEST_DATABASE_URL/);
 });
 
-test("native scale verifier uses the exact current migration and 25,000 isolated listings",()=>{
+test("native scale verifier uses the exact current migration and 100,000 isolated listings",()=>{
  assert.equal(fs.existsSync(verifierPath),true,"native PostgreSQL scale verifier must exist");
  const source=fs.readFileSync(verifierPath,"utf8");
- assert.match(source,/25_000/);
+ assert.match(source,/100_000/);
  assert.match(source,/20260912110440_complete_marketplace_search_page\.sql/);
  assert.match(source,/TEST_DATABASE_URL/);
  assert.match(source,/psql/);
