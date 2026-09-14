@@ -4,8 +4,8 @@ This checkpoint records the refund/reversal hardening verified on `rebuild-nextj
 
 ## Final verified code boundary
 
-- Final application SHA: `f1577d1a8594c60aeba6b9399100a7c41e97451b` — `payments: reject reversal correlation conflicts`
-- GitHub Actions run: `34870879224` (`rebuild-nextjs QA`, run 1887)
+- Final application SHA: `a8b6bc0d00c8f4579f0be2808c04a47e805bb03a` — `payments: verify transfer reversal amount`
+- GitHub Actions run: `34871738812` (`rebuild-nextjs QA`, run 1889)
 - `validate`: PASS
   - `git diff --check HEAD^ HEAD`: PASS
   - lint: PASS
@@ -15,9 +15,9 @@ This checkpoint records the refund/reversal hardening verified on `rebuild-nextj
   - production build: PASS
 - `last-stock-concurrency`: PASS
 - `marketplace-scale-postgres`: PASS, including the isolated 100k search proof and single-scan verification
-- Exact-SHA Vercel Preview: `dpl_EfLDoVr36yRjhaD79Mzey8ACFaoQ` — READY
+- Exact-SHA Vercel Preview: `dpl_8td6dKCxLvPYergmUsdpPe1A8SKY` — READY
 - Preview branch alias: `second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app`
-- Deployment metadata reports `githubCommitRef=rebuild-nextjs` and `githubCommitSha=f1577d1a8594c60aeba6b9399100a7c41e97451b`.
+- Deployment metadata reports `githubCommitRef=rebuild-nextjs` and `githubCommitSha=a8b6bc0d00c8f4579f0be2808c04a47e805bb03a`.
 
 This proves the implemented code boundary and deployment alignment. It does not by itself prove a real Stripe refund/reversal lifecycle through the authenticated Preview UI.
 
@@ -32,7 +32,7 @@ The existing successful Stripe sandbox happy-path fixture was inspected without 
 - Stripe platform sandbox account: `acct_1UEUN72RWsyIBCbK`
 - `livemode=false`
 
-Post-hardening readback:
+Post-hardening readback after the final GREEN commit:
 
 - Stripe `GET /v1/refunds?payment_intent=pi_3UEaav2RWsyIBCbK1Z4TppDc`: 0 refunds
 - order remains `paid / completed`
@@ -116,11 +116,41 @@ Commit `f1577d1a8594c60aeba6b9399100a7c41e97451b` tightened `persistTransferReve
 - an ID returned directly by the CAS must equal the Stripe reversal ID
 - an ID found by the fallback read after a lost CAS must also equal the Stripe reversal ID
 - missing correlation still fails closed
-- a different stored ID now raises `Seller transfer reversal correlation mismatch.`
+- a different stored ID raises `Seller transfer reversal correlation mismatch.`
 - the conflicting path stops before refund creation
 - the same-ID race remains an idempotent success
 
-The final full CI/Preview evidence for this commit is recorded above.
+This intermediate repair passed its full CI/Preview gate before the final review below found the amount-authority gap.
+
+## Defect C — successful transfer reversal amount was not verified
+
+### Root cause
+
+After Stripe returned a transfer-reversal object, the application validated/persisted the reversal ID but did not verify that the provider had reversed exactly the seller payout amount requested by SecondPart.
+
+A provider object with the expected reversal ID but a different amount could therefore have been accepted as authority to continue into refund creation.
+
+### RED proof
+
+Commit `8b3f18836c2816b00ecb086be628e447845aeda6` extended `scripts/test-refund-reversal-correlation.mjs` with a provider response returning `amount=2199` when `seller_net_pence=2200`.
+
+Required behavior:
+
+- reversal provider call occurs once
+- processing fails closed with reversal amount mismatch
+- no reversal correlation is accepted as a successful local transition
+- no refund is created
+- no transaction-case finalization occurs
+
+GitHub Actions run `34871566059` failed at `npm test` as the expected RED phase. The separate last-stock concurrency and marketplace-scale jobs still passed, proving the RED was localized to the new financial assertion.
+
+### GREEN repair
+
+Commit `a8b6bc0d00c8f4579f0be2808c04a47e805bb03a` verifies `reversal.amount === item.seller_net_pence` immediately after the Stripe reversal response and before reversal persistence/refund creation.
+
+If the amount differs, the operation raises `Seller transfer reversal amount mismatch.` and stops before creating a refund. The Stripe reversal request keeps the existing stable `secondpart-reversal-${caseId}` idempotency key, so a retry cannot create a second reversal merely because provider response verification failed.
+
+The final full CI/Preview evidence for this commit is recorded at the top of this checkpoint.
 
 ## Existing refund/reversal protections retained
 
@@ -129,15 +159,30 @@ The final green suite continues to cover the previously hardened behavior:
 - stable refund idempotency key: `secondpart-refund-${caseId}`
 - stable transfer-reversal idempotency key: `secondpart-reversal-${caseId}`
 - refund provider correlation persisted before local finalization
+- exact refund amount, GBP currency and PaymentIntent verification
 - `pending` / `requires_action` refunds remain unresolved and retryable
 - `failed` / `canceled` refunds never finalize the transaction case
 - unknown refund status fails closed
 - database finalization error retains provider correlation and retry reuses the same refund
 - false finalization acknowledgement is treated as failure
 - released seller payout is reversed before successful refund finalization
+- transfer-reversal amount must equal the exact expected seller net payout
 - persisted reversal correlation prevents repeat reversal
+- reversal CAS conflicts require exact provider ID equality
 - already resolved/refunded case is a no-op
 - provider-managed dispute case is not manually refunded through this path
+
+## Scope review
+
+Comparison from pre-batch checkpoint `f43211f1f39981cb82cc49cc8b69b019cfc816e9` to final code SHA `a8b6bc0d00c8f4579f0be2808c04a47e805bb03a` shows only:
+
+- `src/lib/commerce-refunds.ts`
+- `scripts/test-commerce-refunds.mjs`
+- `scripts/test-refund-provider-authority.mjs`
+- `scripts/test-refund-reversal-correlation.mjs`
+- this evidence document
+
+No unrelated application subsystem was changed in this batch.
 
 ## P0 interpretation
 
