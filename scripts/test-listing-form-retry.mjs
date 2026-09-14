@@ -181,8 +181,9 @@ test("partial-save state blocks native submit and provides a full-navigation rec
  const event=new Event("submit",{cancelable:true});
  form.props.onSubmitCapture(event);
  assert.equal(event.defaultPrevented,true);
- const button=nodes.find(node=>node.type==="button"&&node.props?.children==="Save listing");
- assert.equal(button.props.disabled,true);
+ const submitButtons=nodes.filter(node=>node.type==="button"&&node.props?.type==="submit"&&node.props?.name==="status");
+ assert.ok(submitButtons.length>=2,"direct draft/publish actions must remain rendered for recovery state");
+ assert.ok(submitButtons.every(button=>button.props.disabled===true),"all listing submit actions must be disabled after a partial save");
  const link=nodes.find(node=>node.type==="a"&&node.props.href===`/dashboard/listings/${listing.id}/edit`);
  assert.ok(link,"native anchor must reload even on the current edit URL");
  assert.match(JSON.stringify(nodes),/only missing photos/i);
