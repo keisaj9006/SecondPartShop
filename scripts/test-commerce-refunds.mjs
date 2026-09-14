@@ -15,6 +15,7 @@ function fixture(options={}){
   refundCreateCalls:0,
   refundReadCalls:0,
   reversalCalls:0,
+  reversalReadCalls:0,
   finalizeCalls:0,
   refundKeys:[],
   finalizeError:false,
@@ -87,6 +88,12 @@ function fixture(options={}){
   async reverseSellerTransfer(){
    state.reversalCalls+=1;
    return {id:'trr_fixture',amount:2200};
+  },
+  async getSellerTransferReversal(transferId,reversalId){
+   state.reversalReadCalls+=1;
+   assert.equal(transferId,'tr_fixture');
+   assert.equal(reversalId,'trr_fixture');
+   return {id:reversalId,amount:2200};
   }
  };
 
@@ -190,6 +197,7 @@ test('released seller payout is reversed once before a successful refund and the
  assert.equal(first.refunded,true);
  assert.equal(second.reason,'already_refunded');
  assert.equal(f.state.reversalCalls,1);
+ assert.equal(f.state.reversalReadCalls,0);
  assert.equal(f.state.refundCreateCalls,1);
  assert.equal(f.state.finalizeCalls,1);
 });
@@ -203,6 +211,7 @@ test('pending refund persists a released-payout reversal and retry never reverse
  assert.equal(f.state.item.provider_transfer_reversal_id,'trr_fixture');
  assert.equal(f.state.item.payout_status,'reversed');
  assert.equal(f.state.reversalCalls,1);
+ assert.equal(f.state.reversalReadCalls,1);
  assert.equal(f.state.refundCreateCalls,1);
  assert.equal(f.state.refundReadCalls,1);
  assert.equal(f.state.finalizeCalls,0);
