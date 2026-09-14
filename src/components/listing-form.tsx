@@ -113,7 +113,7 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
 
   <fieldset className="grid gap-4 rounded-2xl border border-black/10 bg-[#f8f7f2] p-4 lg:col-span-2 sm:grid-cols-3">
    <div className="sm:col-span-3"><p className="text-sm font-black">Condition & price</p><p className="mt-1 text-xs text-[#63706a]">Only the essentials needed to price and publish the part.</p></div>
-   <label className="text-sm font-bold">Condition<RequiredMark/><select required name="condition" defaultValue={listing?.condition??"used"} className={input}><option value="used">Used</option><option value="new">New</option><option value="reconditioned">Remanufactured / professionally refurbished</option></select></label>
+   <label className="text-sm font-bold">Condition<RequiredMark/><select required name="condition" defaultValue={listing?.condition??"used"} className={input}>{listing?.condition==="reconditioned"&&<option value="reconditioned">Existing refurbished listing</option>}<option value="used">Used</option><option value="new">New</option></select></label>
    <label className="text-sm font-bold">Price (£)<RequiredMark/><input required min="0" step="0.01" type="number" name="price" defaultValue={listing?listing.pricePence/100:undefined} className={input}/></label>
    <label className="text-sm font-bold">Stock quantity<RequiredMark/><input required min="0" step="1" type="number" name="stock" defaultValue={listing?.stock??1} className={input}/></label>
   </fieldset>
