@@ -4,20 +4,21 @@ This checkpoint records the refund/reversal hardening verified on `rebuild-nextj
 
 ## Final verified code boundary
 
-- Final application SHA: `a8b6bc0d00c8f4579f0be2808c04a47e805bb03a` — `payments: verify transfer reversal amount`
-- GitHub Actions run: `34871738812` (`rebuild-nextjs QA`, run 1889)
+- Final application SHA: `a6e8639f04bc4d91681b386bc6868ee3a222e2e8` — `test: align refund retry fixture with provider readback`
+- Effective production-code changes are contained in the preceding application commits through `8f6e03efa63109c21b725dff858478d284b43463`; `a6e8639f...` aligns the pre-existing regression fixture with the now-required provider readback contract and proves it in the full suite.
+- GitHub Actions run: `34873770345` (`rebuild-nextjs QA`, run 1894)
 - `validate`: PASS
   - `git diff --check HEAD^ HEAD`: PASS
   - lint: PASS
   - typecheck: PASS
   - full `npm test`: PASS
-  - all 14 release validators: PASS
+  - all release validators: PASS
   - production build: PASS
 - `last-stock-concurrency`: PASS
 - `marketplace-scale-postgres`: PASS, including the isolated 100k search proof and single-scan verification
-- Exact-SHA Vercel Preview: `dpl_8td6dKCxLvPYergmUsdpPe1A8SKY` — READY
+- Exact-SHA Vercel Preview: `dpl_A1DkZmuFzzBqADSt7k4xjDaZgRoq` — READY
 - Preview branch alias: `second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app`
-- Deployment metadata reports `githubCommitRef=rebuild-nextjs` and `githubCommitSha=a8b6bc0d00c8f4579f0be2808c04a47e805bb03a`.
+- Deployment metadata reports `githubCommitRef=rebuild-nextjs` and `githubCommitSha=a6e8639f04bc4d91681b386bc6868ee3a222e2e8`.
 
 This proves the implemented code boundary and deployment alignment. It does not by itself prove a real Stripe refund/reversal lifecycle through the authenticated Preview UI.
 
@@ -120,7 +121,7 @@ Commit `f1577d1a8594c60aeba6b9399100a7c41e97451b` tightened `persistTransferReve
 - the conflicting path stops before refund creation
 - the same-ID race remains an idempotent success
 
-This intermediate repair passed its full CI/Preview gate before the final review below found the amount-authority gap.
+This intermediate repair passed its full CI/Preview gate before later review found the amount-authority gap.
 
 ## Defect C — successful transfer reversal amount was not verified
 
@@ -150,7 +151,44 @@ Commit `a8b6bc0d00c8f4579f0be2808c04a47e805bb03a` verifies `reversal.amount === 
 
 If the amount differs, the operation raises `Seller transfer reversal amount mismatch.` and stops before creating a refund. The Stripe reversal request keeps the existing stable `secondpart-reversal-${caseId}` idempotency key, so a retry cannot create a second reversal merely because provider response verification failed.
 
-The final full CI/Preview evidence for this commit is recorded at the top of this checkpoint.
+## Defect D — a persisted reversal was trusted without provider revalidation on retry
+
+### Root cause
+
+After a reversal ID had been durably stored in `order_items.provider_transfer_reversal_id`, a later refund retry treated the database correlation itself as sufficient proof that the provider reversal was authoritative. The retry correctly avoided a second reversal POST, but it did not re-read the exact Stripe reversal before continuing to refund creation.
+
+That left a provider-authority gap: a persisted reversal correlation could be present while its provider amount was not revalidated against the exact expected `seller_net_pence` on the retry path.
+
+### RED proof
+
+Commit `10a10f86191d74103b72993be2d548e350976c62` extended `scripts/test-refund-reversal-correlation.mjs` with two persisted-reversal scenarios:
+
+- exact persisted reversal amount → retry must GET the exact reversal from Stripe, perform zero additional reversal POSTs, then may continue
+- mismatched persisted reversal amount → retry must GET the exact reversal and stop before refund creation/finalization
+
+GitHub Actions run `34872992307` failed exactly on those two new assertions.
+
+Commit `be561a6b17422beb2e53f281ea4aeb5b0c0174e3` then added the adapter-level contract in `scripts/test-stripe-payments.mjs`. It required a direct provider read at `GET /v1/transfers/{transfer}/reversals/{reversal}`. GitHub Actions run `34873235032` failed with the expected missing-adapter-method error before implementation.
+
+### GREEN repair
+
+Commit `52afe28372d901e6314689d30e4ff8e6004f67bd` added `getSellerTransferReversal(transferId,reversalId)` in `src/lib/stripe-payments.ts`, using Stripe's direct single-reversal GET endpoint.
+
+Commit `8f6e03efa63109c21b725dff858478d284b43463` changed `refundTransactionCase` so a released payout with an already-persisted reversal ID now:
+
+1. performs no new reversal POST
+2. re-reads that exact reversal from Stripe using the stored transfer ID and reversal ID
+3. requires `reversal.amount === item.seller_net_pence`
+4. stops with `Seller transfer reversal amount mismatch.` before any refund creation if provider authority does not match
+
+The first GREEN attempt correctly exposed one stale legacy mock in `scripts/test-commerce-refunds.mjs`; the new behavioral and adapter tests themselves were already passing. Commit `a6e8639f04bc4d91681b386bc6868ee3a222e2e8` aligned that old fixture with the new provider-readback contract and strengthened the existing retry regression to assert:
+
+- exactly one reversal POST across both attempts
+- exactly one provider reversal readback on retry
+- exactly one refund POST
+- the correlated refund is read rather than recreated
+
+GitHub Actions run `34873770345` then passed the full branch gate, including production build and both PostgreSQL jobs.
 
 ## Existing refund/reversal protections retained
 
@@ -166,23 +204,26 @@ The final green suite continues to cover the previously hardened behavior:
 - database finalization error retains provider correlation and retry reuses the same refund
 - false finalization acknowledgement is treated as failure
 - released seller payout is reversed before successful refund finalization
-- transfer-reversal amount must equal the exact expected seller net payout
-- persisted reversal correlation prevents repeat reversal
+- newly-created transfer reversal amount must equal the exact expected seller net payout
+- persisted reversal correlation prevents repeat reversal POSTs
+- persisted reversal is re-read from Stripe and its amount is revalidated before a retry can create/finalize a refund
 - reversal CAS conflicts require exact provider ID equality
 - already resolved/refunded case is a no-op
 - provider-managed dispute case is not manually refunded through this path
 
 ## Scope review
 
-Comparison from pre-batch checkpoint `f43211f1f39981cb82cc49cc8b69b019cfc816e9` to final code SHA `a8b6bc0d00c8f4579f0be2808c04a47e805bb03a` shows only:
+Comparison from pre-batch checkpoint `f43211f1f39981cb82cc49cc8b69b019cfc816e9` through final application SHA `a6e8639f04bc4d91681b386bc6868ee3a222e2e8` is confined to the refund/reversal hardening boundary and its tests/evidence, including:
 
 - `src/lib/commerce-refunds.ts`
+- `src/lib/stripe-payments.ts`
 - `scripts/test-commerce-refunds.mjs`
 - `scripts/test-refund-provider-authority.mjs`
 - `scripts/test-refund-reversal-correlation.mjs`
-- this evidence document
+- `scripts/test-stripe-payments.mjs`
+- refund/provider evidence documents
 
-No unrelated application subsystem was changed in this batch.
+No unrelated marketplace subsystem was intentionally changed in this batch.
 
 ## P0 interpretation
 
@@ -197,4 +238,10 @@ The following remains **UNSIGNED provider E2E** and must not be relabelled PASS 
 - webhook/reconciliation behavior for the resulting adverse transaction
 - any deliberately induced provider pending/failure condition that requires provider support/test instrumentation
 
-Do not create a direct Stripe refund solely to close this evidence gap: that would bypass the SecondPart application lifecycle and could intentionally diverge provider and database state. Use an authorized, isolated test-mode application scenario with matching UI, Stripe and Supabase evidence.
+Current hosted prerequisites discovered while preparing that proof:
+
+- a disposable `SecondPart QA Seller` draft now exists with stock 1, a real photo, a selectable category, an owned Vauxhall Astra 2017 donor, truthful compatibility evidence, current marketplace terms and payout-ready Stripe Connect status
+- Preview currently has no profile with role `admin`, while application refund approval correctly requires `requireAdmin`
+- the current chat has no connected interactive browser session; TinyFish was suggested for authenticated Preview navigation but remains unconnected at this checkpoint
+
+Do not create a direct Stripe refund solely to close this evidence gap, publish the listing through SQL, or silently elevate an existing buyer/seller role to admin. Those actions would bypass the SecondPart lifecycle or weaken the evidence boundary. Use the normal authenticated application flow with a dedicated QA admin and preserve matching UI, Stripe and Supabase evidence.
