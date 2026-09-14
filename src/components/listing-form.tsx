@@ -50,6 +50,7 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
  const donorSummary=selectedDonor?[selectedDonor.registration,selectedDonor.make+" "+selectedDonor.model,selectedDonor.year,selectedDonor.variant,selectedDonor.engineSizeSimple?selectedDonor.engineSizeSimple+"cc":null,selectedDonor.fuelType].filter(Boolean).join(" · "):"";
  const input="mt-2 w-full rounded-xl border border-black/15 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#173c31]";
  const activeAllowed=sellerCheckoutReady||listing?.status==="active";
+ const submitDisabled=Boolean(recovery)||pending||optimizingImages||!categoryId;
 
  const selectDepartment=(value:string)=>{setDepartmentId(value);setGroupId("");setCategoryId("");};
  const selectGroup=(value:string)=>{
@@ -153,11 +154,22 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
 
   <div className="lg:col-span-2">
    {!sellerCheckoutReady&&<div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><p className="font-black">Payments & payouts setup required before publishing</p><p className="mt-1 leading-6 text-amber-900/80">You can keep building and saving draft inventory now. Complete Stripe Connect before making a new listing active.</p><a href="/dashboard/payments" className="mt-3 inline-block rounded-xl bg-[#173c31] px-4 py-2.5 font-black text-white">Complete payments & payouts</a></div>}
-   <label className="text-sm font-bold">Listing status<select name="status" defaultValue={listing?.status==="active"?"active":"draft"} className={input}><option value="draft">Draft</option><option value="active" disabled={!activeAllowed}>Active{!activeAllowed?" · complete payouts first":""}</option></select></label>
+   <div className="rounded-2xl border border-black/10 bg-[#f8f7f2] p-4">
+    <p className="text-sm font-black">{listing?.status==="active"?"This listing is live":"Ready to save?"}</p>
+    <p className="mt-1 text-sm leading-6 text-[#63706a]">{listing?.status==="active"?"Save changes to keep it live, or move it back to draft.":"Save a draft now, or publish when photos, compatibility and payouts are ready."}</p>
+    <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+     {listing?.status==="active"?<>
+      <button type="submit" name="status" value="active" disabled={submitDisabled} className="min-h-12 flex-1 rounded-xl bg-[#173c31] px-5 py-3.5 font-black text-white disabled:cursor-not-allowed disabled:opacity-50">{optimizingImages?"Optimizing photos…":pending?"Saving…":"Save changes"}</button>
+      <button type="submit" name="status" value="draft" disabled={submitDisabled} className="min-h-12 rounded-xl border border-[#173c31]/20 bg-white px-5 py-3.5 font-black text-[#173c31] disabled:cursor-not-allowed disabled:opacity-50">Move to draft</button>
+     </>:<>
+      <button type="submit" name="status" value="draft" disabled={submitDisabled} className="min-h-12 flex-1 rounded-xl border border-[#173c31]/20 bg-white px-5 py-3.5 font-black text-[#173c31] disabled:cursor-not-allowed disabled:opacity-50">{optimizingImages?"Optimizing photos…":pending?"Saving…":"Save draft"}</button>
+      <button type="submit" name="status" value="active" disabled={submitDisabled||!activeAllowed} className="min-h-12 flex-1 rounded-xl bg-[#173c31] px-5 py-3.5 font-black text-white disabled:cursor-not-allowed disabled:opacity-50">Publish listing</button>
+     </>}
+    </div>
+   </div>
   </div>
 
   {state.message&&<p role="status" className={`rounded-xl p-3 text-sm lg:col-span-2 ${state.status==="error"?"bg-red-50 text-red-800":"bg-emerald-50 text-emerald-800"}`}>{state.message}</p>}
   {recovery&&<p className="rounded-xl bg-amber-50 p-3 text-sm lg:col-span-2">Open the saved listing to inspect its current details and add only missing photos. This form cannot be submitted again. <a href={recoveryHref} className="font-bold underline">Open saved listing</a></p>}
-  <button disabled={Boolean(recovery)||pending||optimizingImages||!categoryId} className="rounded-xl bg-[#173c31] px-5 py-3.5 font-black text-white disabled:cursor-not-allowed disabled:opacity-50 lg:col-span-2">{optimizingImages?"Optimizing photos…":pending?"Saving…":listing?"Save listing":"Create listing"}</button>
  </form>;
 }
