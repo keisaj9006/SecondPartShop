@@ -65,3 +65,9 @@ test("testing and warranty fall back safely when optional controls are left unto
  assert.match(actions,/formData\.get\("testingStatus"\)\?\?"not_specified"/);
  assert.match(actions,/formData\.get\("warrantyDays"\)\?\?0/);
 });
+
+test("new seller listings keep condition choices simple while legacy refurbished data remains accepted",()=>{
+ assert.doesNotMatch(form,/value="reconditioned"/);
+ assert.doesNotMatch(form,/Remanufactured \/ professionally refurbished/);
+ assert.match(actions,/\["new","reconditioned","used"\]/);
+});
