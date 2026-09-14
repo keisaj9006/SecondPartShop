@@ -16,6 +16,7 @@ const selectableDescendants=(node:CategoryNode|null)=>{
  visit(node);
  return result;
 };
+const RequiredMark=()=> <><span aria-hidden="true" className="ml-1 text-red-700">*</span><span className="sr-only"> required</span></>;
 
 export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defaultCategoryId,defaultRequestId,initialCatalogueFitments=[],listing,sellerCheckoutReady=true}:{categories:Category[];donors:DonorVehicle[];defaultDonorId?:string;defaultTitle?:string;defaultCategoryId?:string;defaultRequestId?:string;initialCatalogueFitments?:CatalogueFitmentSelection[];listing?:Listing;sellerCheckoutReady?:boolean}){
  const handler=listing?updateListing:createListing;
@@ -44,7 +45,6 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
  const group=groups.find(item=>item.id===groupId)??null;
  const partTypes=selectableDescendants(group);
  const selectedCategory=categories.find(category=>category.id===categoryId);
- const transmissionRelated=Boolean(selectedCategory?.isTransmissionRelated);
  const selectedDonor=donorOptions.find(donor=>donor.id===donorId)??donors.find(donor=>donor.id===donorId);
  const donorSummary=selectedDonor?[selectedDonor.registration,selectedDonor.make+" "+selectedDonor.model,selectedDonor.year,selectedDonor.variant,selectedDonor.engineSizeSimple?selectedDonor.engineSizeSimple+"cc":null,selectedDonor.fuelType].filter(Boolean).join(" · "):"";
  const input="mt-2 w-full rounded-xl border border-black/15 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-[#173c31]";
@@ -94,9 +94,10 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
  >
   {listing&&<input type="hidden" name="partId" value={listing.id}/>} {!listing&&defaultRequestId&&<input type="hidden" name="sourceRequestId" value={defaultRequestId}/>}
   <input type="hidden" name="categoryId" value={categoryId}/>
+  <p className="text-xs text-[#63706a] lg:col-span-2"><RequiredMark/> Required fields are marked with an asterisk.</p>
 
-  <label className="text-sm font-bold lg:col-span-2">Listing title<input required minLength={5} name="title" value={title} onChange={event=>setTitle(event.target.value)} className={input} placeholder="e.g. Golf Mk7 LED headlight"/></label>
-  <label className="text-sm font-bold lg:col-span-2">Description<textarea required minLength={20} rows={5} name="description" value={description} onChange={event=>setDescription(event.target.value)} className={input} placeholder="Describe condition, testing and what is included."/></label>
+  <label className="text-sm font-bold lg:col-span-2">Listing title<RequiredMark/><input required minLength={5} name="title" value={title} onChange={event=>setTitle(event.target.value)} className={input} placeholder="e.g. Golf Mk7 LED headlight"/></label>
+  <label className="text-sm font-bold lg:col-span-2">Description<RequiredMark/><textarea required minLength={20} rows={5} name="description" value={description} onChange={event=>setDescription(event.target.value)} className={input} placeholder="Describe condition, testing and what is included."/></label>
   <ListingAiAssistant formRef={formRef} categoryName={selectedCategory?.name??""} donorSummary={donorSummary} onApplyTitle={setTitle} onApplyDescription={setDescription}/>
   <fieldset className="rounded-2xl border border-[#173c31]/15 bg-[#f4f7f2] p-4 lg:col-span-2">
    <legend className="px-1 text-sm font-black">1. Which vehicle did this part come from?</legend>
@@ -114,29 +115,23 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
    <legend className="px-1 text-sm font-black">Part category</legend>
    <p className="mt-1 text-sm text-[#63706a]">Choose the department, category group and then the specific part type.</p>
    <div className="mt-3 grid gap-3 md:grid-cols-3">
-    <label className="text-sm font-bold">Department<select value={departmentId} onChange={event=>selectDepartment(event.target.value)} className={input} required><option value="">Choose department</option>{tree.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-    <label className="text-sm font-bold">Category<select value={groupId} onChange={event=>selectGroup(event.target.value)} className={input} disabled={!departmentId} required><option value="">Choose category</option>{groups.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-    <label className="text-sm font-bold">Part type<select value={categoryId} onChange={event=>setCategoryId(event.target.value)} className={input} disabled={!groupId} required><option value="">Choose part type</option>{partTypes.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+    <label className="text-sm font-bold">Department<RequiredMark/><select value={departmentId} onChange={event=>selectDepartment(event.target.value)} className={input} required><option value="">Choose department</option>{tree.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+    <label className="text-sm font-bold">Category<RequiredMark/><select value={groupId} onChange={event=>selectGroup(event.target.value)} className={input} disabled={!departmentId} required><option value="">Choose category</option>{groups.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+    <label className="text-sm font-bold">Part type<RequiredMark/><select value={categoryId} onChange={event=>setCategoryId(event.target.value)} className={input} disabled={!groupId} required><option value="">Choose part type</option>{partTypes.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
    </div>
    {selectedCategory&&<p className="mt-3 rounded-xl bg-[#e8eee9] px-3 py-2 text-sm"><strong>Selected:</strong> {initialPath.length&&listing?.categoryId===categoryId?getCategoryAncestors(categories,categoryId).map(item=>item.name).join(" › "):[department?.name,group?.name,selectedCategory.name].filter(Boolean).join(" › ")}</p>}
   </fieldset>
 
   <fieldset className="grid gap-4 rounded-2xl border border-black/10 bg-[#f8f7f2] p-4 lg:col-span-2 sm:grid-cols-2">
    <div className="sm:col-span-2"><p className="text-sm font-black">Condition, testing & warranty</p><p className="mt-1 text-xs text-[#63706a]">These details are visible to buyers and help them understand exactly what they are purchasing.</p></div>
-   <label className="text-sm font-bold">Condition<select required name="condition" defaultValue={listing?.condition??"used"} className={input}><option value="used">Used</option><option value="new">New</option><option value="reconditioned">Remanufactured / professionally refurbished</option></select></label>
-   <label className="text-sm font-bold">Testing status<select required name="testingStatus" defaultValue={listing?.testingStatus??"not_specified"} className={input}><option value="tested_working">Tested working</option><option value="removed_from_running_vehicle">Removed from running vehicle</option><option value="visually_inspected">Visually inspected only</option><option value="untested">Untested</option><option value="not_specified">Not specified</option></select></label>
-   <label className="text-sm font-bold">Warranty<select required name="warrantyDays" defaultValue={listing?.warrantyDays??0} className={input}><option value="0">No seller warranty stated</option><option value="30">30 days</option><option value="90">90 days</option><option value="180">6 months</option><option value="365">12 months</option></select></label>
-   <label className="text-sm font-bold">Price (£)<input required min="0" step="0.01" type="number" name="price" defaultValue={listing?listing.pricePence/100:undefined} className={input}/></label>
-   <label className="text-sm font-bold">Stock quantity<input required min="0" step="1" type="number" name="stock" defaultValue={listing?.stock??1} className={input}/></label>
+   <label className="text-sm font-bold">Condition<RequiredMark/><select required name="condition" defaultValue={listing?.condition??"used"} className={input}><option value="used">Used</option><option value="new">New</option><option value="reconditioned">Remanufactured / professionally refurbished</option></select></label>
+   <label className="text-sm font-bold">Testing status<RequiredMark/><select required name="testingStatus" defaultValue={listing?.testingStatus??"not_specified"} className={input}><option value="tested_working">Tested working</option><option value="removed_from_running_vehicle">Removed from running vehicle</option><option value="visually_inspected">Visually inspected only</option><option value="untested">Untested</option><option value="not_specified">Not specified</option></select></label>
+   <label className="text-sm font-bold">Warranty<RequiredMark/><select required name="warrantyDays" defaultValue={listing?.warrantyDays??0} className={input}><option value="0">No seller warranty stated</option><option value="30">30 days</option><option value="90">90 days</option><option value="180">6 months</option><option value="365">12 months</option></select></label>
+   <label className="text-sm font-bold">Price (£)<RequiredMark/><input required min="0" step="0.01" type="number" name="price" defaultValue={listing?listing.pricePence/100:undefined} className={input}/></label>
+   <label className="text-sm font-bold">Stock quantity<RequiredMark/><input required min="0" step="1" type="number" name="stock" defaultValue={listing?.stock??1} className={input}/></label>
    <label className="text-sm font-bold sm:col-span-2">Condition notes<textarea name="conditionNotes" maxLength={500} rows={3} defaultValue={listing?.conditionNotes??""} className={input} placeholder="e.g. Clean used condition, mounting points intact, connector pins checked."/></label>
    <label className="text-sm font-bold sm:col-span-2">Damage / visible wear<textarea name="damageNotes" maxLength={500} rows={3} defaultValue={listing?.damageNotes??""} className={input} placeholder="Describe scratches, cracks, corrosion, broken clips or other visible damage. Leave blank only if there is nothing material to disclose."/></label>
   </fieldset>
-
-  {transmissionRelated&&<div className="grid gap-4 rounded-2xl border border-black/10 bg-[#f8f7f2] p-4 lg:col-span-2 sm:grid-cols-2">
-   <div className="sm:col-span-2"><p className="text-sm font-black">Transmission technical details</p><p className="mt-1 text-xs text-[#63706a]">Required only because this selected part type is transmission-specific. Buyers do not need these codes in the normal search flow.</p></div>
-   <label className="text-sm font-bold">Gearbox family<input required name="gearboxFamily" defaultValue={listing?.gearboxFamily??""} className={input} placeholder="DQ250"/></label>
-   <label className="text-sm font-bold">Gearbox code<input required name="gearboxCode" defaultValue={listing?.gearboxCode??""} className={input} placeholder="02E"/></label>
-  </div>}
 
   <fieldset className="grid gap-4 rounded-2xl border border-black/10 bg-[#f8f7f2] p-4 lg:col-span-2 sm:grid-cols-2">
    <div className="sm:col-span-2"><p className="text-sm font-black">2. Identify the part</p><p className="mt-1 text-xs leading-5 text-[#63706a]">Add the numbers you can actually read from the part, label, packaging or supplier record. Do not guess. These identifiers help buyers verify compatibility even when an exact vehicle fitment is not known.</p></div>
@@ -145,19 +140,21 @@ export function ListingForm({categories,donors,defaultDonorId,defaultTitle,defau
    <label className="text-sm font-bold">Manufacturer / part number<input name="partNumber" defaultValue={listing?.partNumber??""} className={input} placeholder="Number printed on the part or packaging"/></label>
    <label className="text-sm font-bold">Dispatch time<select name="dispatchDays" defaultValue={listing?.dispatchDays??2} className={input}><option value="0">Same working day</option><option value="1">1 working day</option><option value="2">2 working days</option><option value="3">3 working days</option><option value="5">5 working days</option></select></label>
   </fieldset>
+
   <fieldset className="grid gap-4 rounded-2xl border border-black/10 bg-[#f8f7f2] p-4 lg:col-span-2 sm:grid-cols-2">
-   <div className="sm:col-span-2"><p className="text-sm font-black">Collection & delivery</p><p className="mt-1 text-xs text-[#63706a]">Give buyers a realistic seller estimate. This is not a courier guarantee.</p></div>
+   <div className="sm:col-span-2"><p className="text-sm font-black">Collection & delivery</p><p className="mt-1 text-xs text-[#63706a]">Set whether collection is available and the delivery price. Dispatch time above gives buyers the seller-side timing estimate.</p></div>
    <label className="flex items-center gap-3 rounded-xl bg-white p-3 text-sm font-bold"><input type="checkbox" name="collectionAvailable" defaultChecked={listing?.collectionAvailable??false}/>Local collection available</label>
    <label className="text-sm font-bold">Delivery price (£)<input type="number" min="0" max="10000" step="0.01" name="shippingPrice" defaultValue={listing?listing.shippingPence/100:0} className={input} placeholder="0.00"/></label>
-   <label className="text-sm font-bold">Delivery min days<input type="number" min="0" max="30" name="deliveryDaysMin" defaultValue={listing?.deliveryDaysMin??""} className={input} placeholder="1"/></label>
-   <label className="text-sm font-bold">Delivery max days<input type="number" min="0" max="30" name="deliveryDaysMax" defaultValue={listing?.deliveryDaysMax??""} className={input} placeholder="3"/></label>
   </fieldset>
+
   <div className="lg:col-span-2">
    {!sellerCheckoutReady&&<div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><p className="font-black">Payments & payouts setup required before publishing</p><p className="mt-1 leading-6 text-amber-900/80">You can keep building and saving draft inventory now. Complete Stripe Connect before making a new listing active.</p><a href="/dashboard/payments" className="mt-3 inline-block rounded-xl bg-[#173c31] px-4 py-2.5 font-black text-white">Complete payments & payouts</a></div>}
    <label className="text-sm font-bold">Listing status<select name="status" defaultValue={listing?.status==="active"?"active":"draft"} className={input}><option value="draft">Draft</option><option value="active" disabled={!activeAllowed}>Active{!activeAllowed?" · complete payouts first":""}</option></select></label>
   </div>
-  <label className="text-sm font-bold lg:col-span-2">Real product photos<OptimizedImageInput name="images" existingCount={listing?.images.length??0} onProcessingChange={setOptimizingImages} className={`${input} file:mr-3 file:rounded-lg file:border-0 file:bg-[#eef1eb] file:px-3 file:py-2 file:font-bold`}/><small className="mt-2 block font-normal leading-5 text-[#63706a]">Real photos of the actual part only. Up to 6 JPG, PNG or WebP files. SecondPart optimizes new photos on this device before upload (max edge about 1800 px, WebP where smaller). At least one photo is required to publish an active listing; we recommend a whole-part photo, the label/OE number and connectors or any visible damage. Existing images remain when editing.</small></label>
 
+  <label className="text-sm font-bold lg:col-span-2">Real product photos <span className="font-normal text-[#63706a]">(required to publish)</span><OptimizedImageInput name="images" existingCount={listing?.images.length??0} onProcessingChange={setOptimizingImages} className={`${input} file:mr-3 file:rounded-lg file:border-0 file:bg-[#eef1eb] file:px-3 file:py-2 file:font-bold`}/><small className="mt-2 block font-normal leading-5 text-[#63706a]">Real photos of the actual part only. Up to 6 JPG, PNG or WebP files. SecondPart optimizes new photos on this device before upload (max edge about 1800 px, WebP where smaller). At least one photo is required to publish an active listing; we recommend a whole-part photo, the label/OE number and connectors or any visible damage. Existing images remain when editing.</small></label>
+
+  <div className="rounded-2xl border border-[#173c31]/15 bg-[#f4f7f2] p-4 text-sm leading-6 text-[#52605a] lg:col-span-2"><strong className="text-[#173c31]">To publish, add at least one compatibility source:</strong> a donor vehicle, an exact compatible vehicle, an OE/OEM number, or both manufacturer / brand and manufacturer / part number.</div>
   <SellerCompatibilityEditor initialFitments={initialCatalogueFitments}/>
 
   {state.message&&<p role="status" className={`rounded-xl p-3 text-sm lg:col-span-2 ${state.status==="error"?"bg-red-50 text-red-800":"bg-emerald-50 text-emerald-800"}`}>{state.message}</p>}
