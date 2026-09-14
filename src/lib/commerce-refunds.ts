@@ -107,6 +107,9 @@ export async function refundTransactionCase(caseId:string){
    item.seller_net_pence,
    "secondpart-reversal-"+caseId
   );
+  if(reversal.amount!==item.seller_net_pence){
+   throw new Error("Seller transfer reversal amount mismatch.");
+  }
   reversalId=await persistTransferReversal(admin,item.id,reversal.id);
  }
 
