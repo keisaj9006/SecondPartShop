@@ -79,3 +79,12 @@ test("new seller listings keep condition choices simple while legacy refurbished
  assert.match(form,/listing\?\.condition==="reconditioned"&&<option value="reconditioned">Existing refurbished listing<\/option>/);
  assert.match(actions,/\["new","reconditioned","used"\]/);
 });
+
+test("seller chooses draft or publish directly instead of using a technical status dropdown",()=>{
+ assert.doesNotMatch(form,/<select[^>]*name="status"/);
+ assert.match(form,/<button[^>]*name="status"[^>]*value="draft"/);
+ assert.match(form,/<button[^>]*name="status"[^>]*value="active"/);
+ assert.match(form,/Save draft/);
+ assert.match(form,/Publish listing/);
+ assert.match(form,/Move to draft/);
+});
