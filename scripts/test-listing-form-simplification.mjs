@@ -19,6 +19,14 @@ test("seller listing form marks only core required fields visibly",()=>{
  assert.doesNotMatch(form,/Warranty<RequiredMark\s*\/>/);
 });
 
+test("publish-only requirements use a distinct marker without making drafts invalid",()=>{
+ assert.match(form,/const PublishRequiredMark=/,"Listing form should expose a reusable publish-only required marker.");
+ assert.match(form,/Real product photos[^\n]*<PublishRequiredMark\s*\/>/,"Real product photos should show a publish-only marker.");
+ assert.match(form,/Compatibility[^\n]*<PublishRequiredMark\s*\/>/,"Compatibility should show a publish-only marker.");
+ assert.match(form,/required to publish/i);
+ assert.doesNotMatch(form,/name="images"[^>]*\srequired(?:\s|>)/i,"Photo input must not use HTML required because drafts may be saved without photos.");
+});
+
 test("photo requirement is clear without pretending drafts require photos",()=>{
  assert.match(form,/Real product photos/);
  assert.match(form,/required to publish/i);
