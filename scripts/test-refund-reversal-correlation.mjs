@@ -8,7 +8,7 @@ const caseId="00000000-0000-4000-8000-000000000151";
 const orderItemId="00000000-0000-4000-8000-000000000152";
 const orderId="00000000-0000-4000-8000-000000000153";
 
-function fixture(existingRaceReversalId){
+function fixture(existingRaceReversalId,{reversalAmount=2200}={}){
  const state={
   caseRow:{id:caseId,order_item_id:orderItemId,status:"open",provider_refund_id:null,provider_dispute_id:null},
   item:{
@@ -86,7 +86,7 @@ function fixture(existingRaceReversalId){
   isStripeCheckoutConfigured:()=>true,
   async reverseSellerTransfer(){
    state.reversalCalls+=1;
-   return {id:"trr_expected",amount:2200};
+   return {id:"trr_expected",amount:reversalAmount};
   },
   async refundPlatformPayment(){
    state.refundCreateCalls+=1;
@@ -126,6 +126,15 @@ test("a competing write with a different reversal id stops before refund creatio
  await assert.rejects(f.refund(),/reversal correlation mismatch/i);
  assert.equal(f.state.reversalCalls,1);
  assert.equal(f.state.refundCreateCalls,0,"conflicting reversal authority must stop before creating a refund");
+ assert.equal(f.state.finalizeCalls,0);
+ assert.equal(f.state.caseRow.provider_refund_id,null);
+});
+
+test("a reversal with a mismatched amount stops before correlation or refund creation",async()=>{
+ const f=fixture("trr_expected",{reversalAmount:2199});
+ await assert.rejects(f.refund(),/reversal amount mismatch/i);
+ assert.equal(f.state.reversalCalls,1);
+ assert.equal(f.state.refundCreateCalls,0,"mismatched reversal amount must stop before creating a refund");
  assert.equal(f.state.finalizeCalls,0);
  assert.equal(f.state.caseRow.provider_refund_id,null);
 });
