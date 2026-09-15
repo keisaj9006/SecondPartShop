@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { acceptCurrentMarketplaceTerms,cancelAccountDeletion } from "./actions";
 import { AccountDeletionForm } from "@/components/account-deletion-form";
+import { AccountPasswordForm } from "@/components/account-password-form";
 
 export const dynamic="force-dynamic";
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
@@ -39,7 +40,8 @@ export default async function AccountSecurityPage({searchParams}:{searchParams:P
   </section>
 
   <section className="mt-8 rounded-3xl border border-black/10 bg-white p-5 sm:p-7">
-   <div className="flex items-start gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#173c31] text-[#d4f44d]"><ShieldCheck size={21}/></span><div><h2 className="text-xl font-black">Account protection</h2><p className="mt-1 text-sm leading-6 text-[#63706a]">SecondPart never asks you to send your password or recovery links to another user. Recovery emails should only be used by you.</p></div></div>
+   <div className="flex items-start gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#173c31] text-[#d4f44d]"><ShieldCheck size={21}/></span><div><h2 className="text-xl font-black">Account protection</h2><p className="mt-1 text-sm leading-6 text-[#63706a]">Change your password while signed in by confirming the current password first. Recovery by email remains available if you forget it.</p></div></div>
+   <AccountPasswordForm/>
   </section>
 
   {!currentTermsAccepted&&<section className="mt-8 rounded-3xl border border-amber-200 bg-amber-50 p-5 sm:p-7">
