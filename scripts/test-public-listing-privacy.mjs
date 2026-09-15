@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import test from "node:test";
 import ts from "typescript";
 
@@ -7,14 +10,19 @@ const loadPublicListingModule = async () => {
   const source = await readFile(new URL("../src/lib/public-listing.ts", import.meta.url), "utf8");
   const compiled = ts.transpileModule(source, {
     compilerOptions: {
-      module: ts.ModuleKind.CommonJS,
+      module: ts.ModuleKind.ES2022,
       target: ts.ScriptTarget.ES2022,
     },
   }).outputText;
 
-  const module = { exports: {} };
-  new Function("module", "exports", compiled)(module, module.exports);
-  return module.exports;
+  const tempDirectory = await mkdtemp(join(tmpdir(), "secondpart-public-listing-"));
+  const modulePath = join(tempDirectory, "public-listing.mjs");
+  await writeFile(modulePath, compiled, "utf8");
+  try {
+    return await import(pathToFileURL(modulePath).href);
+  } finally {
+    await rm(tempDirectory, { recursive: true, force: true });
+  }
 };
 
 const listingFixture = () => ({
