@@ -17,6 +17,7 @@ export default function QaAdminBootstrapPage(){
     <option value="login-admin">Login QA Admin</option>
     <option value="login-seller">Login QA Seller</option>
     <option value="login-buyer">Login QA Buyer</option>
+    <option value="retry-refund-e2e">Retry resolved QA refund (idempotency proof)</option>
     <option value="cleanup-admin">Delete QA Admin</option>
    </select>
    <button type="submit" className="rounded-md border px-4 py-2 font-medium">Run QA operation</button>
