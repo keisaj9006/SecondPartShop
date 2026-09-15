@@ -1,8 +1,10 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { attachCheckoutSession,cancelCheckoutOrder } from "@/lib/checkout-lifecycle";
+import { resolveCheckoutReturnOrigin } from "@/lib/checkout-return-origin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createCheckoutSession,getCreatedCheckoutSessionId,isStripeCheckoutConfigured,type StripeCheckoutSession } from "@/lib/stripe-payments";
 import { isUuid } from "@/lib/identifiers";
@@ -51,7 +53,19 @@ export async function startCheckout(_previous:ActionState,formData:FormData):Pro
  const {data:part}=await supabase.from("parts").select("slug,seller_id").eq("id",partId).maybeSingle();
  if(!part)return {status:"error",message:"This listing is no longer available."};
  const fallbackReturnTo="/parts/"+encodeURIComponent(part.slug);
- const returnTo=(()=>{try{const app=new URL(getAppUrl());const target=new URL(requestedReturnTo||fallbackReturnTo,app);return target.origin===app.origin&&target.pathname===fallbackReturnTo?target.pathname+target.search:fallbackReturnTo;}catch{return fallbackReturnTo;}})();
+ const canonicalOrigin=getAppUrl();
+ const returnTo=(()=>{try{const app=new URL(canonicalOrigin);const target=new URL(requestedReturnTo||fallbackReturnTo,app);return target.origin===app.origin&&target.pathname===fallbackReturnTo?target.pathname+target.search:fallbackReturnTo;}catch{return fallbackReturnTo;}})();
+ const requestHeaders=await headers();
+ const forwardedHost=(requestHeaders.get("x-forwarded-host")??requestHeaders.get("host")??"").split(",")[0]?.trim();
+ const forwardedProto=(requestHeaders.get("x-forwarded-proto")??"https").split(",")[0]?.trim();
+ const requestOrigin=forwardedHost&&forwardedProto?`${forwardedProto}://${forwardedHost}`:null;
+ const checkoutReturnOrigin=resolveCheckoutReturnOrigin({
+  requestOrigin,
+  canonicalOrigin,
+  vercelEnv:process.env.VERCEL_ENV,
+  vercelUrl:process.env.VERCEL_URL,
+  vercelBranchUrl:process.env.VERCEL_BRANCH_URL
+ });
 
  try{
   const paymentStatus=await syncSellerPaymentAccount(part.seller_id);
@@ -101,7 +115,8 @@ export async function startCheckout(_previous:ActionState,formData:FormData):Pro
    deliveryMethod:deliveryMethod as "shipping"|"collection",
    customerEmail:user.email,
    expiresAt:reservation.checkout_expires_at,
-   cancelUrl:getAppUrl()+"/checkout/cancel?order="+encodeURIComponent(reservation.order_id)+"&returnTo="+encodeURIComponent(returnTo)
+   successUrl:checkoutReturnOrigin+"/checkout/success?order="+encodeURIComponent(reservation.order_id)+"&session_id={CHECKOUT_SESSION_ID}",
+   cancelUrl:checkoutReturnOrigin+"/checkout/cancel?order="+encodeURIComponent(reservation.order_id)+"&returnTo="+encodeURIComponent(returnTo)
   });
 
   operation="session_attach";
