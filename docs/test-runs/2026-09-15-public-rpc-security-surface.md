@@ -2,7 +2,7 @@
 
 ## Scope
 
-Read-only inspection of the deployed QA Supabase function grants and definitions. No function was invoked for mutation and no database state changed.
+Read-only inspection of the deployed QA Supabase function grants, definitions and effective table privileges. No function was invoked for mutation and no database state changed.
 
 ## Public seller owner identifier
 
@@ -74,8 +74,36 @@ Their base functions were inspected:
 
 Seller CSV batch SECURITY DEFINER functions were separately inspected and all resolve a `current_seller` through `s.owner_id = auth.uid()` before returning or mutating batch data. `get_unverified_delivery_payout_reviews` requires `private.is_admin()`.
 
+## RLS-enabled tables with no policies
+
+The current Supabase security advisor reports nine INFO findings for `rls_enabled_no_policy`:
+
+- `private.part_image_cleanup`;
+- `public.commerce_settings`;
+- `public.marketplace_search_events`;
+- `public.mobile_push_devices`;
+- `public.mobile_push_outbox`;
+- `public.ops_client_error_rate_limits`;
+- `public.payment_events`;
+- `public.vehicle_lookup_cache`;
+- `public.vehicle_lookup_rate_limits`.
+
+Effective privileges were checked directly with `has_table_privilege` for SELECT, INSERT, UPDATE and DELETE. For every one of the nine tables, **all four privileges are false for both `anon` and `authenticated`**.
+
+Therefore the lack of row policies is intentional deny-all behavior for client roles, not a public-data gap. Access is mediated through service-role/internal functions where needed.
+
+## Advisor interpretation
+
+At the time of this inspection the Supabase security advisor reports three classes:
+
+1. `rls_enabled_no_policy` — INFO, now confirmed intentional deny-all for all nine tables.
+2. `anon_security_definer_function_executable` — WARN, reviewed function-by-function above; the exposed functions are intentional bounded public marketplace APIs.
+3. `authenticated_security_definer_function_executable` — WARN, reviewed by direct guard inspection, wrapper/base-function tracing and earlier hosted cross-role negative tests.
+
+The remaining advisor warning that is not closed by database design is **Auth leaked password protection disabled**. This is a Supabase Auth project setting rather than SQL/RLS behavior and remains a separate external configuration gate.
+
 ## Result
 
-**VERIFIED for the inspected deployed surface:** the Supabase advisor's SECURITY DEFINER/execute warnings are not evidence of blanket public privilege bypass. The currently exposed public functions return bounded marketplace projections/aggregates, and the authenticated mutation/private-data functions inspected bind authority to `auth.uid()`, seller ownership or `private.is_admin()`.
+**VERIFIED for the inspected deployed surface:** the Supabase advisor's RLS/SECURITY DEFINER warnings are not evidence of blanket public privilege bypass. The currently exposed public functions return bounded marketplace projections/aggregates, the authenticated mutation/private-data functions inspected bind authority to `auth.uid()`, seller ownership or `private.is_admin()`, and the nine no-policy tables grant no client table privileges.
 
-No blanket function revocation is recommended. Future privilege changes should remain function-specific and regression-tested because indiscriminate revocation would break intended marketplace browse, compatibility, reputation and checkout behavior.
+No blanket function or table privilege revocation is recommended. Future privilege changes should remain function-specific and regression-tested because indiscriminate revocation would break intended marketplace browse, compatibility, reputation and checkout behavior.
