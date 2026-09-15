@@ -5,6 +5,7 @@ import fs from "node:fs";
 const routePath="src/app/api/qa/admin-bootstrap/route.ts";
 const pagePath="src/app/qa/admin-bootstrap/page.tsx";
 const expectedDigest="5226130fc56a12dd5396a47b6552c263a203fea8f7d65197adeaedbc3365194c";
+const qaRefundCaseId="e924aa7f-f117-4f30-849b-de611da11bdf";
 
 function readRequired(path){
  assert.ok(fs.existsSync(path),`${path} must exist`);
@@ -48,6 +49,19 @@ test("cleanup can delete only the dedicated QA admin account",()=>{
  assert.match(route,/auth\.admin\.deleteUser\(/);
  assert.match(route,/qa-admin-20260915@example\.com/);
  assert.match(route,/SecondPart QA Admin/);
+});
+
+test("provider retry control is pinned to the resolved QA refund case and expects a no-op core result",()=>{
+ const route=readRequired(routePath);
+ const page=readRequired(pagePath);
+ assert.match(route,/refundTransactionCase/);
+ assert.match(route,new RegExp(qaRefundCaseId));
+ assert.match(route,/retry-refund-e2e/);
+ assert.match(route,/status["']?\s*[:,)]|\.eq\(["']status["'],["']resolved["']\)/s);
+ assert.match(route,/resolution["']?\s*[:,)]|full_refund/s);
+ assert.match(route,/provider_refund_id/);
+ assert.match(route,/reason\s*!==\s*["']already_refunded["']/);
+ assert.match(page,/value=["']retry-refund-e2e["']/);
 });
 
 test("temporary bootstrap page is hidden outside Preview and posts the token",()=>{
