@@ -15,7 +15,7 @@ export async function changeCurrentPassword(_previous:ActionState,formData:FormD
  if(password!==confirmPassword)return {status:"error",message:"The new passwords do not match."};
  if(password===currentPassword)return {status:"error",message:"Choose a new password that is different from your current password."};
  const supabase=await createSupabaseServerClient();
- const {error}=await supabase.auth.updateUser({ password, currentPassword });
+ const {error}=await supabase.auth.updateUser({ password, current_password:currentPassword });
  if(error)return {status:"error",message:"Your current password is incorrect or the password could not be changed."};
  revalidatePath("/account/security");
  return {status:"success",message:"Your password was changed successfully."};
