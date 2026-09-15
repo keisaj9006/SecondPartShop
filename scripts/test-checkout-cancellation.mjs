@@ -40,11 +40,12 @@ function fixture(options={}){
   if(cache[path])return cache[path];
   const output=ts.transpileModule(fs.readFileSync(new URL('../src/'+path+'.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
   const exports={};cache[path]=exports;
-  vm.runInNewContext(output,{exports,URL,Request,Response,console,require(name){
+  vm.runInNewContext(output,{exports,URL,Request,Response,console,process:{env:{VERCEL_ENV:'preview',VERCEL_URL:'preview.example.test',VERCEL_BRANCH_URL:'preview.example.test'}},require(name){
    if(name==='server-only')return {};
    if(name==='node:crypto')return crypto;
    if(name==='next/server')return {NextResponse:{redirect:(url)=>Response.redirect(url),json:(body,init)=>Response.json(body,init)}};
    if(name==='next/navigation')return {redirect:(url)=>{throw Error('REDIRECT:'+url);}};
+   if(name==='next/headers')return {headers:async()=>({get:(name)=>name==='x-forwarded-host'?'preview.example.test':name==='x-forwarded-proto'?'https':name==='host'?'preview.example.test':null})};
    if(name==='@/lib/auth')return {getCurrentUser:async()=>state.unauthenticated?null:{id:buyerId},requireUser:async()=>({id:buyerId})};
    if(name==='@/lib/supabase/admin')return {createSupabaseAdminClient:()=>db};
    if(name==='@/lib/supabase/server')return {createSupabaseServerClient:async()=>db};
