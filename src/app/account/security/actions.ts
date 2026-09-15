@@ -5,6 +5,22 @@ import { requireUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
 
+export async function changeCurrentPassword(_previous:ActionState,formData:FormData):Promise<ActionState>{
+ await requireUser("/account/security");
+ const currentPassword=String(formData.get("currentPassword")??"");
+ const password=String(formData.get("password")??"");
+ const confirmPassword=String(formData.get("confirmPassword")??"");
+ if(!currentPassword)return {status:"error",message:"Enter your current password."};
+ if(password.length<8)return {status:"error",message:"Use at least 8 characters for your new password."};
+ if(password!==confirmPassword)return {status:"error",message:"The new passwords do not match."};
+ if(password===currentPassword)return {status:"error",message:"Choose a new password that is different from your current password."};
+ const supabase=await createSupabaseServerClient();
+ const {error}=await supabase.auth.updateUser({ password, currentPassword });
+ if(error)return {status:"error",message:"Your current password is incorrect or the password could not be changed."};
+ revalidatePath("/account/security");
+ return {status:"success",message:"Your password was changed successfully."};
+}
+
 export async function requestAccountDeletion(_previous:ActionState,formData:FormData):Promise<ActionState>{
  const user=await requireUser("/account/security");
  const reason=String(formData.get("reason")??"").trim().slice(0,500)||null;
