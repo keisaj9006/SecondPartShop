@@ -23,7 +23,7 @@ test("password change form collects current password plus confirmed 8-character 
  assert.ok((form.match(/autoComplete="new-password"/g)??[]).length>=2,"both replacement fields must use new-password autocomplete");
 });
 
-test("server action verifies ownership and forwards currentPassword to Supabase Auth",()=>{
+test("server action verifies ownership and forwards the installed Supabase current_password attribute",()=>{
  const actions=read("src/app/account/security/actions.ts");
  assert.match(actions,/export async function changeCurrentPassword/);
  assert.match(actions,/requireUser\("\/account\/security"\)/);
@@ -32,6 +32,6 @@ test("server action verifies ownership and forwards currentPassword to Supabase 
  assert.match(actions,/formData\.get\("confirmPassword"\)/);
  assert.match(actions,/password\.length<8/);
  assert.match(actions,/password!==confirmPassword/);
- assert.match(actions,/supabase\.auth\.updateUser\(\{\s*password,\s*currentPassword\s*\}\)/s);
+ assert.match(actions,/supabase\.auth\.updateUser\(\{\s*password,\s*current_password:currentPassword\s*\}\)/s);
  assert.match(actions,/revalidatePath\("\/account\/security"\)/);
 });
