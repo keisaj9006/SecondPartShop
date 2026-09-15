@@ -12,12 +12,13 @@ for(const file of files){
 
 const latest=definitions.at(-1);
 
-test("latest profile-role guard allows only authenticated service-role bootstrap or an app admin",()=>{
+test("latest profile-role guard derives service-role authority from the current JWT and still allows app admins",()=>{
  assert.ok(latest,"protect_profile_role definition must exist");
  assert.match(latest.sql,/security\s+definer/i);
- assert.match(latest.sql,/current_setting\(\s*['"]request\.jwt\.claim\.role['"]\s*,\s*true\s*\)/i);
+ assert.match(latest.sql,/auth\.jwt\(\)\s*->>\s*['"]role['"]/i);
  assert.match(latest.sql,/request_role\s*=\s*['"]service_role['"]/i);
  assert.match(latest.sql,/private\.is_admin\(\)/i);
+ assert.doesNotMatch(latest.sql,/current_setting\(\s*['"]request\.jwt\.claim\.role['"]/i);
  assert.doesNotMatch(latest.sql,/current_user\s+(?:in|=)[\s\S]{0,80}service_role/i);
 });
 
