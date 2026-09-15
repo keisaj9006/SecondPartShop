@@ -1,5 +1,6 @@
 import {createHash,randomBytes,timingSafeEqual} from "node:crypto";
 import {NextResponse} from "next/server";
+import {refundTransactionCase} from "@/lib/commerce-refunds";
 import {createSupabaseAdminClient} from "@/lib/supabase/admin";
 import {createSupabaseServerClient} from "@/lib/supabase/server";
 
@@ -10,8 +11,9 @@ const QA_ADMIN_NAME="SecondPart QA Admin";
 const QA_ADMIN_EMAIL="qa-admin-20260915@example.com";
 const QA_SELLER_NAME="SecondPart QA Seller";
 const QA_BUYER_NAME="SecondPart QA Buyer";
+const QA_REFUND_CASE_ID="e924aa7f-f117-4f30-849b-de611da11bdf";
 
-type Operation="create-admin"|"login-admin"|"login-seller"|"login-buyer"|"cleanup-admin";
+type Operation="create-admin"|"login-admin"|"login-seller"|"login-buyer"|"retry-refund-e2e"|"cleanup-admin";
 type AdminClient=ReturnType<typeof createSupabaseAdminClient>;
 
 function tokenMatches(candidate:string){
@@ -75,6 +77,19 @@ async function createQaAdmin(admin:AdminClient){
  return userId;
 }
 
+async function retryQaRefund(admin:AdminClient){
+ const {data,error}=await admin
+  .from("transaction_cases")
+  .select("id,status,resolution,provider_refund_id")
+  .eq("id",QA_REFUND_CASE_ID)
+  .eq("status","resolved")
+  .eq("resolution","full_refund")
+  .maybeSingle();
+ if(error||!data?.provider_refund_id)throw new Error("Resolved QA refund fixture is unavailable.");
+ const result=await refundTransactionCase(QA_REFUND_CASE_ID);
+ if(!result.refunded||result.reason!=="already_refunded")throw new Error("QA refund retry did not remain idempotent.");
+}
+
 async function cleanupQaAdmin(admin:AdminClient){
  const {data:profile,error:profileError}=await admin.from("profiles").select("id,role,display_name").eq("role","admin").eq("display_name",QA_ADMIN_NAME).maybeSingle();
  if(profileError||!profile?.id)throw new Error("Dedicated QA admin is unavailable.");
@@ -101,6 +116,10 @@ export async function POST(request:Request){
   if(operation==="login-admin")return signInQaActor(request,admin,await findQaActorId(admin,"admin"),"/admin/commerce/e2e");
   if(operation==="login-seller")return signInQaActor(request,admin,await findQaActorId(admin,"seller"),"/dashboard");
   if(operation==="login-buyer")return signInQaActor(request,admin,await findQaActorId(admin,"buyer"),"/account/orders");
+  if(operation==="retry-refund-e2e"){
+   await retryQaRefund(admin);
+   return redirectTo(request,"/admin/commerce/e2e?refund_retry=verified");
+  }
   if(operation==="cleanup-admin"){
    await cleanupQaAdmin(admin);
    return redirectTo(request,"/");
