@@ -47,7 +47,7 @@ export async function signUp(_previous:ActionState,formData:FormData):Promise<Ac
  const returnOrigin=authReturnOrigin();
  const {data,error}=await supabase.auth.signUp({
   email,password,
-  options:{emailRedirectTo:`${returnOrigin}/auth/callback?next=${encodeURIComponent(returnTo)}`,data:{display_name:displayName,role,terms_accepted:"true",terms_version:CURRENT_MARKETPLACE_TERMS_VERSION}}
+  options:{emailRedirectTo:`${returnOrigin}/auth/confirm?next=${encodeURIComponent(returnTo)}`,data:{display_name:displayName,role,terms_accepted:"true",terms_version:CURRENT_MARKETPLACE_TERMS_VERSION}}
  });
  if(error)return {status:"error",message:error.message};
  if(data.session){
@@ -63,7 +63,7 @@ export async function requestPasswordReset(_previous:ActionState,formData:FormDa
  if(!email.includes("@"))return {status:"error",message:"Enter a valid email address."};
  const supabase=await createSupabaseServerClient();
  const returnOrigin=authReturnOrigin();
- const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:`${returnOrigin}/auth/callback?next=/auth/reset-password`});
+ const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:`${returnOrigin}/auth/confirm?next=${encodeURIComponent("/auth/reset-password")}`});
  if(error)return {status:"error",message:"We could not send a reset email right now. Please try again."};
  return {status:"success",message:"If an account exists for that email, a password reset link has been sent."};
 }
@@ -75,7 +75,7 @@ export async function resendConfirmation(_previous:ActionState,formData:FormData
  const returnTo=safeInternalPath(formData.get("returnTo"),"/account");
  const supabase=await createSupabaseServerClient();
  const returnOrigin=authReturnOrigin();
- const {error}=await supabase.auth.resend({type:"signup",email,options:{emailRedirectTo:`${returnOrigin}/auth/callback?next=${encodeURIComponent(returnTo)}`}});
+ const {error}=await supabase.auth.resend({type:"signup",email,options:{emailRedirectTo:`${returnOrigin}/auth/confirm?next=${encodeURIComponent(returnTo)}`}});
  if(error)return {status:"error",message:"We could not resend the confirmation email right now. Please try again shortly."};
  return {status:"success",message:"Confirmation email sent. Check your inbox and spam folder."};
 }
