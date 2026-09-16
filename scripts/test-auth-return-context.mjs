@@ -76,14 +76,13 @@ function loadAuthActions({session=null}={}){
   async resend(payload){calls.resend.push(payload);return {error:null};}
  };
  const actions=moduleFrom("src/app/auth/actions.ts",{
-  "next/headers":{headers:async()=>({get:()=>null})},
   "next/cache":{revalidatePath:(...args)=>calls.revalidate.push(args)},
   "next/navigation":{redirect},
   "@/lib/supabase/server":{createSupabaseServerClient:async()=>({auth})},
   "@/lib/supabase/env":{isSupabaseConfigured:()=>true},
   "@/lib/navigation":moduleFrom("src/lib/navigation.ts"),
   "@/lib/policy-versions":{CURRENT_MARKETPLACE_TERMS_VERSION:"2026-09-01"},
-  "@/lib/checkout-return-origin":{resolveCheckoutReturnOrigin:input=>input.canonicalOrigin}
+  "@/lib/auth-email-origin":moduleFrom("src/lib/auth-email-origin.ts")
  });
  return {actions,calls};
 }
