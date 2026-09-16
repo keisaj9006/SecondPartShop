@@ -26,8 +26,16 @@ The existing alert implementation is unchanged:
 - the browser never supplies arbitrary alert content or webhook credentials;
 - the smoke action is protected by `requireAdmin('/admin/system/alerts')`.
 
+## Diagnostic smoke attempt
+
+A first Preview smoke attempt reached the configured HTTPS destination but returned `HTTP 400`. The admin page reported adapter `generic`, and Vercel runtime logs recorded `SECOND_PART_ALERT_DELIVERY_FAILED HTTP 400` for `manual_alert_smoke_test` on Preview release `a23ea5338614`.
+
+Root cause: `OPS_ALERT_WEBHOOK_URL` was present, but `OPS_ALERT_WEBHOOK_KIND` had not actually been persisted in Vercel. The project owner then added `OPS_ALERT_WEBHOOK_KIND=discord` as a Preview-only Config variable. No Production variable was added.
+
+A fresh Preview deployment is now required so the corrected environment configuration is loaded before retrying the smoke test.
+
 ## Status
 
 **CONFIGURED / RECEIPT PENDING.**
 
-A fresh Preview deployment is required after the environment-variable change. The gate is not VERIFIED until the admin smoke action returns delivered/HTTP success and the message is visibly present in the real `#secondpart-alerts` destination.
+The gate is not VERIFIED until the admin smoke action returns delivered/HTTP success and the message is visibly present in the real `#secondpart-alerts` destination.
