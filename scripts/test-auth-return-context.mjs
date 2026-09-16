@@ -117,11 +117,11 @@ const signupValues={
  termsAccepted:"1"
 };
 
-test("signUp carries a product returnTo into the confirmation callback",async()=>{
+test("signUp carries a product returnTo into the server-side confirmation endpoint",async()=>{
  const {actions,calls}=loadAuthActions();
  const result=await actions.signUp({status:"idle"},formData({...signupValues,returnTo:"/parts/used-alternator?cv=variant#fitment"}));
  assert.equal(result.status,"success");
- assert.equal(calls.signUp[0].options.emailRedirectTo,"http://localhost:3000/auth/callback?next=%2Fparts%2Fused-alternator%3Fcv%3Dvariant%23fitment");
+ assert.equal(calls.signUp[0].options.emailRedirectTo,"http://localhost:3000/auth/confirm?next=%2Fparts%2Fused-alternator%3Fcv%3Dvariant%23fitment");
  assert.deepEqual(JSON.parse(JSON.stringify(calls.signUp[0].options.data)),{display_name:"Test Buyer",role:"buyer",terms_accepted:"true",terms_version:"2026-09-01"});
 });
 
@@ -145,7 +145,7 @@ test("signUp keeps role defaults for missing and unsafe destinations",async()=>{
    const values={...signupValues,role};
    if(returnTo!==undefined)values.returnTo=returnTo;
    await assert.rejects(actions.signUp({status:"idle"},formData(values)),error=>error.destination===want);
-   assert.equal(calls.signUp[0].options.emailRedirectTo,`http://localhost:3000/auth/callback?next=${encodeURIComponent(want)}`);
+   assert.equal(calls.signUp[0].options.emailRedirectTo,`http://localhost:3000/auth/confirm?next=${encodeURIComponent(want)}`);
   }
  }
 });
@@ -175,7 +175,7 @@ test("resendConfirmation preserves safe context and falls back without context",
   if(returnTo!==undefined)values.returnTo=returnTo;
   const result=await actions.resendConfirmation({status:"idle"},formData(values));
   assert.equal(result.status,"success");
-  assert.equal(calls.resend[0].options.emailRedirectTo,`http://localhost:3000/auth/callback?next=${encodeURIComponent(want)}`);
+  assert.equal(calls.resend[0].options.emailRedirectTo,`http://localhost:3000/auth/confirm?next=${encodeURIComponent(want)}`);
  }
 });
 
