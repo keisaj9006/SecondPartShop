@@ -9,8 +9,9 @@ export function resolveAuthEmailOrigin(input:{
  configuredOrigin:string;
  vercelEnv?:string|null;
  vercelBranchUrl?:string|null;
+ vercelUrl?:string|null;
 }){
  const configured=normalizeOrigin(input.configuredOrigin)??"http://localhost:3000";
  if(input.vercelEnv!=="preview")return configured;
- return normalizeOrigin(input.vercelBranchUrl)??configured;
+ return normalizeOrigin(input.vercelBranchUrl)??normalizeOrigin(input.vercelUrl)??configured;
 }
