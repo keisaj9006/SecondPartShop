@@ -1,4 +1,5 @@
 "use server";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -6,8 +7,29 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import type { ActionState,UserRole } from "@/lib/types";
 import { safeInternalPath } from "@/lib/navigation";
 import { CURRENT_MARKETPLACE_TERMS_VERSION } from "@/lib/policy-versions";
+import { resolveCheckoutReturnOrigin } from "@/lib/checkout-return-origin";
 
 const siteUrl=()=>String(process.env.NEXT_PUBLIC_SITE_URL??"http://localhost:3000").replace(/\/$/,"");
+const previewFallbackOrigin=()=>{
+ const host=(process.env.VERCEL_BRANCH_URL??process.env.VERCEL_URL)?.trim();
+ return host?`https://${host.replace(/^https?:\/\//,"").replace(/\/$/,"")}`:null;
+};
+const authReturnOrigin=async()=>{
+ const configured=siteUrl();
+ if(process.env.VERCEL_ENV!=="preview")return configured;
+ const canonicalOrigin=previewFallbackOrigin()??configured;
+ const requestHeaders=await headers();
+ const forwardedHost=(requestHeaders.get("x-forwarded-host")??requestHeaders.get("host")??"").split(",")[0]?.trim();
+ const forwardedProto=(requestHeaders.get("x-forwarded-proto")??"https").split(",")[0]?.trim();
+ const requestOrigin=forwardedHost&&forwardedProto?`${forwardedProto}://${forwardedHost}`:null;
+ return resolveCheckoutReturnOrigin({
+  requestOrigin,
+  canonicalOrigin,
+  vercelEnv:process.env.VERCEL_ENV,
+  vercelUrl:process.env.VERCEL_URL,
+  vercelBranchUrl:process.env.VERCEL_BRANCH_URL
+ });
+};
 const emailValue=(formData:FormData)=>String(formData.get("email")??"").trim().toLowerCase();
 
 export async function signIn(_previous:ActionState,formData:FormData):Promise<ActionState>{
@@ -37,9 +59,10 @@ export async function signUp(_previous:ActionState,formData:FormData):Promise<Ac
  if(password.length<8)return {status:"error",message:"Use at least 8 characters for your password."};
  if(!termsAccepted)return {status:"error",message:"You need to accept the Terms of Use and Privacy Policy to create an account."};
  const supabase=await createSupabaseServerClient();
+ const returnOrigin=await authReturnOrigin();
  const {data,error}=await supabase.auth.signUp({
   email,password,
-  options:{emailRedirectTo:`${siteUrl()}/auth/callback?next=${encodeURIComponent(returnTo)}`,data:{display_name:displayName,role,terms_accepted:"true",terms_version:CURRENT_MARKETPLACE_TERMS_VERSION}}
+  options:{emailRedirectTo:`${returnOrigin}/auth/callback?next=${encodeURIComponent(returnTo)}`,data:{display_name:displayName,role,terms_accepted:"true",terms_version:CURRENT_MARKETPLACE_TERMS_VERSION}}
  });
  if(error)return {status:"error",message:error.message};
  if(data.session){
@@ -54,7 +77,8 @@ export async function requestPasswordReset(_previous:ActionState,formData:FormDa
  const email=emailValue(formData);
  if(!email.includes("@"))return {status:"error",message:"Enter a valid email address."};
  const supabase=await createSupabaseServerClient();
- const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:`${siteUrl()}/auth/callback?next=/auth/reset-password`});
+ const returnOrigin=await authReturnOrigin();
+ const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:`${returnOrigin}/auth/callback?next=/auth/reset-password`});
  if(error)return {status:"error",message:"We could not send a reset email right now. Please try again."};
  return {status:"success",message:"If an account exists for that email, a password reset link has been sent."};
 }
@@ -65,7 +89,8 @@ export async function resendConfirmation(_previous:ActionState,formData:FormData
  if(!email.includes("@"))return {status:"error",message:"Enter a valid email address."};
  const returnTo=safeInternalPath(formData.get("returnTo"),"/account");
  const supabase=await createSupabaseServerClient();
- const {error}=await supabase.auth.resend({type:"signup",email,options:{emailRedirectTo:`${siteUrl()}/auth/callback?next=${encodeURIComponent(returnTo)}`}});
+ const returnOrigin=await authReturnOrigin();
+ const {error}=await supabase.auth.resend({type:"signup",email,options:{emailRedirectTo:`${returnOrigin}/auth/callback?next=${encodeURIComponent(returnTo)}`}});
  if(error)return {status:"error",message:"We could not resend the confirmation email right now. Please try again shortly."};
  return {status:"success",message:"Confirmation email sent. Check your inbox and spam folder."};
 }
