@@ -247,6 +247,6 @@ test("confirmation callback failure retains safe retry context without changing 
  });
  const request=new Request("https://secondpart.test/auth/callback?code=bad&next=%2Fsaved%3Fview%3Dparts%23latest");
  const response=await GET(request);
- assert.match(String(response.url),/\/account\?error=auth-callback/);
+ assert.match(String(response.url),/\/account\?error=confirmation-failed/);
  assert.match(String(response.url),/returnTo=%2Fsaved%3Fview%3Dparts%23latest/);
 });
