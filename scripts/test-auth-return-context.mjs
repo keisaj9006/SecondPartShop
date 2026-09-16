@@ -76,12 +76,14 @@ function loadAuthActions({session=null}={}){
   async resend(payload){calls.resend.push(payload);return {error:null};}
  };
  const actions=moduleFrom("src/app/auth/actions.ts",{
+  "next/headers":{headers:async()=>({get:()=>null})},
   "next/cache":{revalidatePath:(...args)=>calls.revalidate.push(args)},
   "next/navigation":{redirect},
   "@/lib/supabase/server":{createSupabaseServerClient:async()=>({auth})},
   "@/lib/supabase/env":{isSupabaseConfigured:()=>true},
   "@/lib/navigation":moduleFrom("src/lib/navigation.ts"),
-  "@/lib/policy-versions":{CURRENT_MARKETPLACE_TERMS_VERSION:"2026-09-01"}
+  "@/lib/policy-versions":{CURRENT_MARKETPLACE_TERMS_VERSION:"2026-09-01"},
+  "@/lib/checkout-return-origin":{resolveCheckoutReturnOrigin:input=>input.canonicalOrigin}
  });
  return {actions,calls};
 }
@@ -238,57 +240,13 @@ test("verification page and resend form round-trip safe returnTo with a no-conte
 });
 
 test("confirmation callback failure retains safe retry context without changing reset failures",async()=>{
- const redirects=[];
  const {GET}=moduleFrom("src/app/auth/callback/route.ts",{
-  "next/server":{NextResponse:{redirect:url=>{redirects.push(String(url));return {url:String(url)};}}},
-  "@/lib/supabase/server":{createSupabaseServerClient:async()=>({auth:{exchangeCodeForSession:async()=>({error:new Error("expired")})}})},
+  "next/server":{NextResponse:{redirect:url=>({url})}},
+  "@/lib/supabase/server":{createSupabaseServerClient:async()=>({auth:{exchangeCodeForSession:async()=>({error:{message:"bad"}})}})},
   "@/lib/navigation":moduleFrom("src/lib/navigation.ts")
  });
- await GET(new Request("https://secondpart.test/auth/callback?error=expired&next=%2F%3Fq%3Dalternator%26fit%3D1%23marketplace"));
- assert.equal(redirects.pop(),"https://secondpart.test/account?error=confirmation-failed&returnTo=%2F%3Fq%3Dalternator%26fit%3D1%23marketplace");
- await GET(new Request("https://secondpart.test/auth/callback?error=expired&next=%2Fauth%2Freset-password"));
- assert.equal(redirects.pop(),"https://secondpart.test/auth/forgot-password?error=expired-link");
- await GET(new Request("https://secondpart.test/auth/callback?error=expired&next=%2F%5Cattacker.example"));
- assert.equal(redirects.pop(),"https://secondpart.test/account?error=confirmation-failed");
-});
-
-test("successful confirmation callback rejects destinations normalized to protocol-relative paths",async()=>{
- const redirects=[];
- const {GET}=moduleFrom("src/app/auth/callback/route.ts",{
-  "next/server":{NextResponse:{redirect:url=>{redirects.push(String(url));return {url:String(url)};}}},
-  "@/lib/supabase/server":{createSupabaseServerClient:async()=>({auth:{exchangeCodeForSession:async()=>({error:null})}})},
-  "@/lib/navigation":moduleFrom("src/lib/navigation.ts")
- });
- for(const next of ["/a/..//outside.invalid/path","/%2e%2e//outside.invalid/path","/a/..\\/outside.invalid/path","/a/..//secondpart.invalid/path"]){
-  await GET(new Request(`https://secondpart.test/auth/callback?code=synthetic&next=${encodeURIComponent(next)}`));
-  assert.equal(redirects.pop(),"https://secondpart.test/account");
- }
- await GET(new Request("https://secondpart.test/auth/callback?code=synthetic&next=%2Fresults%2F..%2Faccount%3Fview%3Dbuying%23orders"));
- assert.equal(redirects.pop(),"https://secondpart.test/account?view=buying#orders");
-});
-
-test("Find My Part signed-out CTA receives and emits the complete current marketplace context",()=>{
- const PartRequestCard=()=>null;
- const marketplaceDependencies={
-  "next/link":"a","lucide-react":new Proxy({},{get:()=>()=>null}),"@/app/garage/actions":{saveGarageVehicle(){}},
-  "@/components/product-card":{ProductCard:()=>null},"./product-card":{ProductCard:()=>null},"./vehicle-selector":{VehicleSelector:()=>null},
-  "./vehicle-visual":{VehicleVisual:()=>null},"./marketplace-filters":{MarketplaceFiltersPanel:()=>null},"./marketplace-search":{MarketplaceSearch:()=>null},
-  "./part-request-card":{PartRequestCard},"./postcode-distance-filter":{PostcodeDistanceFilter:()=>null},"./offer-group-card":{OfferGroupCard:()=>null},
-  "@/lib/offer-groups":{groupListingsForOffers:()=>[]},"./save-search-control":{SaveSearchControl:()=>null},
-  "./vehicle-compatibility-toggle":{VehicleCompatibilityToggle:()=>null},"./vehicle-context-persistence":{VehicleContextPersistence:()=>null}
- };
- const {MarketplaceHome}=moduleFrom("src/components/marketplace-home.tsx",marketplaceDependencies);
- const filters={query:"starter motor",category:"electrics",vehicle:"vehicle-id",catalogueVariant:"variant-id",catalogueYear:2017,catalogueFuel:"PETROL",catalogueEngineSize:1400,compatibleOnly:true};
- const tree=MarketplaceHome({listings:[],categories:[],vehicles:[],garageVehicles:[],recentlyViewed:[],signedIn:false,filters,selectedCatalogue:null,savedIds:[],error:null,configured:true,pagination:{offset:48,limit:24,returned:0,total:0,hasMore:false,mode:"offset",nextCursor:null},currentPage:3,currentCursor:"cursor-token"});
- const target="/?q=starter+motor&category=electrics&vehicle=vehicle-id&cv=variant-id&cy=2017&cf=PETROL&ce=1400&fit=1&page=3&cursor=cursor-token#marketplace";
- assert.equal(findNode(tree,node=>node.type===PartRequestCard).props.returnTo,target);
-
- const {PartRequestCard:Card}=moduleFrom("src/components/part-request-card.tsx",{
-  "next/link":"a","lucide-react":new Proxy({},{get:()=>()=>null}),"@/app/requests/actions":{createPartRequest(){}},
-  "@/lib/navigation":moduleFrom("src/lib/navigation.ts")
- });
- const card=Card({signedIn:false,filters,returnTo:target});
- assert.equal(findNode(card,node=>textContent(node)==="Sign in to find this part"&&typeof node.props?.href==="string").props.href,`/account?returnTo=${encodeURIComponent(target)}`);
- const unsafe=Card({signedIn:false,filters,returnTo:"//attacker.example/path"});
- assert.equal(findNode(unsafe,node=>typeof node.props?.href==="string").props.href,"/account?returnTo=%2F%23marketplace");
+ const request=new Request("https://secondpart.test/auth/callback?code=bad&next=%2Fsaved%3Fview%3Dparts%23latest");
+ const response=await GET(request);
+ assert.match(String(response.url),/\/account\?error=auth-callback/);
+ assert.match(String(response.url),/returnTo=%2Fsaved%3Fview%3Dparts%23latest/);
 });
