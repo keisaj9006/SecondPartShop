@@ -12,7 +12,8 @@ const siteUrl=()=>String(process.env.NEXT_PUBLIC_SITE_URL??"http://localhost:300
 const authReturnOrigin=()=>resolveAuthEmailOrigin({
  configuredOrigin:siteUrl(),
  vercelEnv:process.env.VERCEL_ENV,
- vercelBranchUrl:process.env.VERCEL_BRANCH_URL
+ vercelBranchUrl:process.env.VERCEL_BRANCH_URL,
+ vercelUrl:process.env.VERCEL_URL
 });
 const emailValue=(formData:FormData)=>String(formData.get("email")??"").trim().toLowerCase();
 
