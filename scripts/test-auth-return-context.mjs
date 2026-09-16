@@ -99,6 +99,16 @@ test("safeInternalPath rejects destinations that normalize to protocol-relative 
  assert.equal(safeInternalPath("/results/../account?view=buying#orders","/fallback"),"/account?view=buying#orders");
 });
 
+test("Preview auth email origin falls back to the deployment URL when the branch URL is unavailable",()=>{
+ const {resolveAuthEmailOrigin}=moduleFrom("src/lib/auth-email-origin.ts");
+ assert.equal(resolveAuthEmailOrigin({
+  configuredOrigin:"http://localhost:3000",
+  vercelEnv:"preview",
+  vercelBranchUrl:null,
+  vercelUrl:"second-part-shop-preview-abc.vercel.app"
+ }),"https://second-part-shop-preview-abc.vercel.app");
+});
+
 const signupValues={
  email:"buyer@example.test",
  password:"password123",
