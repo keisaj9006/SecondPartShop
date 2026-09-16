@@ -24,6 +24,7 @@ export type CriticalAlertDeliveryResult={
 const MAX_MESSAGE=700;
 const MAX_STACK=1800;
 const MAX_CONTEXT_VALUE=240;
+const ALERT_DELIVERY_TIMEOUT_MS=5000;
 
 export function sanitizeMonitoringText(value:unknown,max=MAX_MESSAGE){
  const raw=String(value??"").slice(0,Math.max(1,max*2));
@@ -89,7 +90,7 @@ async function sendCriticalAlert(record:Record<string,unknown>):Promise<Critical
  if(url.protocol!=="https:")return {delivered:false,reason:"invalid_url"};
 
  const controller=new AbortController();
- const timer=setTimeout(()=>controller.abort(),1500);
+ const timer=setTimeout(()=>controller.abort(),ALERT_DELIVERY_TIMEOUT_MS);
  try{
   const headers=new Headers({"content-type":"application/json"});
   const token=process.env.OPS_ALERT_WEBHOOK_TOKEN?.trim();
