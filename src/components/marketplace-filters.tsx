@@ -7,9 +7,7 @@ export function MarketplaceFiltersPanel({filters}:{filters:MarketplaceFilters}){
  const preserved=new URLSearchParams();
  if(filters.query)preserved.set("q",filters.query);
  if(filters.category)preserved.set("category",filters.category);
- if(filters.sort)preserved.set("sort",filters.sort);
  if(filters.postcode)preserved.set("pc",filters.postcode);
- if(filters.collectionOnly)preserved.set("collection","1");
  if(filters.vehicle)preserved.set("vehicle",filters.vehicle);
  if(filters.vehicleRegistration)preserved.set("vr",filters.vehicleRegistration);
  if(filters.vehicleColour)preserved.set("vc",filters.vehicleColour);
