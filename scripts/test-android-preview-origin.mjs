@@ -20,3 +20,10 @@ test("Android Preview workflow builds and verifies against the rebuild-nextjs br
  assert.match(workflow,new RegExp(`config\\.server\\?\\.url!==\\"${branchPreview.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}\\"`));
  assert.doesNotMatch(workflow,new RegExp(legacyPreview.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
 });
+
+test("Android SDK setup explicitly avoids the removed legacy tools package",()=>{
+ const setupBlock=workflow.match(/- name: Set up Android SDK[\s\S]*?(?=\n\s*- name:)/)?.[0]??"";
+ assert.match(setupBlock,/uses:\s*android-actions\/setup-android@v[34]/);
+ assert.match(setupBlock,/with:\s*\n\s*packages:\s*platform-tools\s*$/m);
+ assert.doesNotMatch(setupBlock,/packages:\s*tools(?:\s|$)/);
+});
