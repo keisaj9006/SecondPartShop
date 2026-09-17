@@ -23,11 +23,14 @@ type RawResponse={
  slug:string;
  title:string;
  price_pence:number;
+ shipping_pence:number;
+ dispatch_days:number;
+ warranty_days:number;
  condition:PartRequestResponse["condition"];
  sellers:{business_name:string;verified_at:string|null}|{business_name:string;verified_at:string|null}[];
 };
 const one=<T>(value:T|T[])=>Array.isArray(value)?value[0]:value;
-const responseSelect="id,source_request_id,slug,title,price_pence,condition,sellers!inner(business_name,verified_at)";
+const responseSelect="id,source_request_id,slug,title,price_pence,shipping_pence,dispatch_days,warranty_days,condition,sellers!inner(business_name,verified_at)";
 
 export async function getPartRequestsPage(profileId:string,options:{offset?:number;limit?:number}={}):Promise<{items:PartRequestWithResponses[];hasMore:boolean;offset:number;limit:number}>{
  const offset=Math.max(0,Math.floor(options.offset??0));
@@ -72,6 +75,10 @@ export async function getPartRequestsPage(profileId:string,options:{offset?:numb
    slug:raw.slug,
    title:raw.title,
    pricePence:raw.price_pence,
+   shippingPence:raw.shipping_pence,
+   totalPence:raw.price_pence+raw.shipping_pence,
+   dispatchDays:raw.dispatch_days,
+   warrantyDays:raw.warranty_days,
    condition:raw.condition,
    sellerName:seller.business_name,
    sellerVerified:Boolean(seller.verified_at)
