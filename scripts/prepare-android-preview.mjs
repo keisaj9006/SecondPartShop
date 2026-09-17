@@ -1,6 +1,6 @@
 import {readFile,writeFile} from "node:fs/promises";
 
-const rawUrl=String(process.env.SECOND_PART_PREVIEW_URL||"https://second-part-shop-preview.vercel.app").trim();
+const rawUrl=String(process.env.SECOND_PART_PREVIEW_URL||"https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app").trim();
 let previewUrl;
 try{previewUrl=new URL(rawUrl);}catch{throw new Error("SECOND_PART_PREVIEW_URL must be a valid HTTPS URL.");}
 if(previewUrl.protocol!=="https:")throw new Error("SECOND_PART_PREVIEW_URL must use HTTPS.");
