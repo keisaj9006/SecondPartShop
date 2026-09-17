@@ -64,6 +64,8 @@ const filters={
  compatibleOnly:true
 };
 
+const resetHref=tree=>nodes(tree).find(node=>node.type==="a"&&typeof node.props.href==="string"&&node.props.href.endsWith("#marketplace"))?.props.href;
+
 test("advanced marketplace filter submit preserves vehicle colour",()=>{
  const tree=MarketplaceFiltersPanel({filters});
  const colour=nodes(tree).find(node=>node.type==="input"&&node.props.name==="vc");
@@ -72,8 +74,24 @@ test("advanced marketplace filter submit preserves vehicle colour",()=>{
 });
 
 test("marketplace filter reset preserves vehicle colour",()=>{
- const tree=MarketplaceFiltersPanel({filters});
- const reset=nodes(tree).find(node=>node.type==="a"&&typeof node.props.href==="string"&&node.props.href.endsWith("#marketplace"));
- assert.ok(reset,"Expected Reset link");
- assert.match(reset.props.href,/(?:\?|&)vc=blue(?:&|#)/);
+ const href=resetHref(MarketplaceFiltersPanel({filters}));
+ assert.ok(href,"Expected Reset link");
+ assert.match(href,/(?:\?|&)vc=blue(?:&|#)/);
+});
+
+test("marketplace filter reset clears controls owned by the panel while preserving search, location and vehicle context",()=>{
+ const href=resetHref(MarketplaceFiltersPanel({filters}));
+ assert.ok(href,"Expected Reset link");
+ const params=new URLSearchParams(href.slice(href.indexOf("?")+1,href.indexOf("#")));
+ assert.equal(params.get("q"),"alternator");
+ assert.equal(params.get("category"),"cat-a");
+ assert.equal(params.get("pc"),"EH25 9BE");
+ assert.equal(params.get("cv"),filters.catalogueVariant);
+ assert.equal(params.get("cy"),"2020");
+ assert.equal(params.get("vc"),"blue");
+ assert.equal(params.has("condition"),false);
+ assert.equal(params.has("sort"),false);
+ assert.equal(params.has("min"),false);
+ assert.equal(params.has("max"),false);
+ assert.equal(params.has("collection"),false);
 });
