@@ -119,6 +119,7 @@ function mobileGarageHarness(){
   querySelectorAll(selector){
    if(selector==="[data-use-garage]")return [useButton];
    if(selector==="[data-remove-garage]")return [];
+   if(selector==="[data-garage-fit]")return [];
    return [];
   }
  };
@@ -140,10 +141,20 @@ function mobileGarageHarness(){
   empty(){},toast(){},route(){},vehicleVisual:()=>"<div>vehicle</div>"
  };
  const document={getElementById:()=>({addEventListener(){}})};
- const source=fs.readFileSync(path.join(root,"mobile-shell/views-marketplace.js"),"utf8");
- vm.runInNewContext(source,{window:{SecondPartUI:UI},document,URLSearchParams,encodeURIComponent,console});
+ const context={window:{SecondPartUI:UI},document,URLSearchParams,encodeURIComponent,console};
+ for(const relativePath of ["mobile-shell/views-marketplace.js","mobile-shell/views-garage.js"]){
+  const source=fs.readFileSync(path.join(root,relativePath),"utf8");
+  vm.runInNewContext(source,context);
+ }
  return {routes,app,checkbox,getUseClick:()=>useClick,getSelected:()=>selected};
 }
+
+test("mobile shell loads the Garage override after the marketplace routes",()=>{
+ const source=fs.readFileSync(path.join(root,"mobile-shell/index.html"),"utf8");
+ const marketplaceIndex=source.indexOf("./views-marketplace.js");
+ const garageIndex=source.indexOf("./views-garage.js");
+ assert.ok(marketplaceIndex>=0&&garageIndex>marketplaceIndex);
+});
 
 test("mobile Garage renders the same compatibility choice beside saved vehicles",async()=>{
  const harness=mobileGarageHarness();
