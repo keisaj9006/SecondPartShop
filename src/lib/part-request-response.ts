@@ -6,6 +6,10 @@ export type PartRequestResponse={
  slug:string;
  title:string;
  pricePence:number;
+ shippingPence:number;
+ totalPence:number;
+ dispatchDays:number;
+ warrantyDays:number;
  condition:PartCondition;
  sellerName:string;
  sellerVerified:boolean;
