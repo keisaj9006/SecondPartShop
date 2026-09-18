@@ -30,7 +30,7 @@ export default async function CommerceAdminPage({searchParams}:{searchParams:Pro
   return {result,cases,evidenceByCase,payoutReviews:deliveryReviews??[]};
  })().catch(async error=>{
   await reportOperationalError({
-   component:"commerce_admin",
+   component:"commerce_maintenance",
    event:"commerce_admin_data_load_failed",
    error,
    route:"/admin/commerce"
