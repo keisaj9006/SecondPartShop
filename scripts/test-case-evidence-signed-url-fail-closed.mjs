@@ -136,6 +136,7 @@ function mobileHarness({signedUrlFailure=true}={}){
     async requireMobileUser(){return {context:{user:{id:"user-1"},supabase}};}
    };
    if(name==="@/lib/supabase/admin")return {createSupabaseAdminClient(){throw new Error("admin not expected in GET");}};
+   if(name==="@/lib/case-evidence-cleanup")return {cleanupFailedCaseEvidenceUpload:async()=>true};
    throw new Error("Unexpected dependency "+name);
   }
  });
