@@ -6,18 +6,18 @@ This file supersedes `2026-09-15-rc-hardening-status.md` for current execution s
 
 Latest fully verified application-code boundary:
 
-- SHA `0c849e2a23a80b1909d168c0c877884f5945d107`
-- GitHub Actions `35215533760`: **SUCCESS** across `validate`, `marketplace-scale-postgres` and `last-stock-concurrency`
-- full validation pipeline: lint, typecheck, full tests, release validators, production build, true two-connection last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
-- exact Vercel Preview `dpl_286wQCAtkkcCcifyTQg2BV8Zxpec`
-- exact Preview URL `https://second-part-shop-3msj1gxh0-joannakwapis11-5369.vercel.app`
+- SHA `3c43d6f93cb512ec7425cd6cbe0061533974de38`
+- GitHub Actions `35345127617`: **SUCCESS** across `validate`, `marketplace-scale-postgres` and `last-stock-concurrency`
+- full validation pipeline: lint, typecheck, **576/576 tests**, release validators, production build, true two-connection last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
+- exact Vercel Preview `dpl_Hrn5bfc5hhzSY8vsgJ57Pwft2upW`
+- exact Preview URL `https://second-part-shop-m5nrr5aeu-joannakwapis11-5369.vercel.app`
 - stable branch Preview alias: `https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app`
 - deployment state: READY
-- read-only Preview smoke: `/api/mobile/v1/health` HTTP 200 with `backendReady:true`; homepage HTTP 200 with current vehicle chooser, compatibility control and mobile-navigation markup
+- read-only health smoke on both exact deployment and branch alias: `/api/mobile/v1/health` HTTP 200 with `backendReady:true`
 - `main` untouched
-- no Production configuration or data modified in this execution session
+- no Production application deployment or live Stripe operation was performed by this code repair
 
-Current branch head is documentation-only SHA `ee8a76e1f3bf3b53b8a57b87bed8c39a25da670d`, whose parent is the verified code boundary above.
+Current branch head after evidence-only work is documentation-only SHA `37872f5ca26dbba7e07c62f12c94a3eab924e068`, whose parent is the verified code boundary above.
 
 ## Newly closed / hardened
 
@@ -101,22 +101,39 @@ The Preview route was live-smoked without a token and reached the expected safe 
 
 **Remaining boundary:** Supabase project-level Auth email templates still need a controlled change to emit `TokenHash` into this route. That project-wide configuration was deliberately not changed in a Preview-only session. Therefore application support is VERIFIED, but a new real token-hash email-confirmation lifecycle remains unsigned.
 
-### `seller_checkout_ready` least-privilege grant — code/migration VERIFIED, hosted deployment pending
+### `seller_checkout_ready` least-privilege grant — VERIFIED source + hosted deployment
 
-The current connected Supabase database exposes seventeen public `SECURITY DEFINER` functions to `anon`. Sixteen are buyer-facing read-model/search/profile functions. `public.seller_checkout_ready(uuid)` is different: it is an internal commerce/publication helper and does not need to be a direct anonymous API surface.
+The connected Supabase database previously exposed seventeen public `SECURITY DEFINER` functions to `anon`. Sixteen are buyer-facing read-model/search/profile functions. `public.seller_checkout_ready(uuid)` is an internal commerce/publication helper and does not need direct anonymous execution.
 
 Hosted pre-change readback confirmed EXECUTE for `anon`, `authenticated` and `service_role`.
 
-A least-privilege migration now revokes direct execution from `PUBLIC`/`anon` while preserving `authenticated` and `service_role`:
+The reviewed least-privilege migration revokes direct execution from `PUBLIC`/`anon` while preserving `authenticated` and `service_role`:
 
-- RED contract `f21cb855460a05efe7f7652f575ebd384bc5f41c`, GitHub Actions `35110422165` failed at the deliberately missing migration contract;
-- migration `supabase/migrations/20260916144500_restrict_seller_checkout_ready_anon.sql`;
-- GREEN `757275da2222b69da819aca7b1207b9644c47108`, GitHub Actions `35110601856`: all jobs PASS;
-- exact Preview `dpl_7ihCaS3s7J1QK4nDVDoz1TWnFQtn`: READY.
+- RED contract `f21cb855460a05efe7f7652f575ebd384bc5f41c`, GitHub Actions `35110422165`;
+- source migration `supabase/migrations/20260916144500_restrict_seller_checkout_ready_anon.sql`;
+- source GREEN `757275da2222b69da819aca7b1207b9644c47108`, GitHub Actions `35110601856`;
+- explicit hosted deployment authorised and applied on 2026-09-18 as migration `20260918122032 / restrict_seller_checkout_ready_anon`;
+- post-deploy privilege readback: `anon=false`, `authenticated=true`, `service_role=true`;
+- Security Advisor anonymous SECURITY DEFINER warning count fell from 17 to 16; `seller_checkout_ready` is no longer in the `anon` warning set.
 
-The migration was **not** applied to the connected Supabase project from this session because repository environment documentation treats that database as Production-candidate state while this execution scope is Preview-only. Hosted `anon` EXECUTE therefore remains unchanged until a controlled DB deployment is explicitly authorised.
+No user, listing, order, Auth, payment or payout record was mutated by this grant-only deployment.
 
-Evidence: `docs/test-runs/2026-09-16-auth-confirmation-and-rpc-grant-hardening.md`.
+Evidence: `docs/test-runs/2026-09-16-auth-confirmation-and-rpc-grant-hardening.md` plus the 2026-09-18 hosted privilege readback.
+
+### Mobile seller payment refresh synchronization — VERIFIED
+
+The mobile seller payment refresh route had retained a private copy of Stripe/database synchronization logic after the canonical `syncSellerPaymentAccount` path was hardened. This allowed mobile refresh state to drift from web/checkout behavior.
+
+TDD evidence:
+
+- RED `d131f07105bb5adc42287f10529f9824d9eb9cbc`, GitHub Actions `35344973320`: 573 PASS / 3 expected FAIL;
+- implementation `3c43d6f93cb512ec7425cd6cbe0061533974de38`;
+- GREEN GitHub Actions `35345127617`: **576/576 PASS**, all validators and production build PASS;
+- exact Preview `dpl_Hrn5bfc5hhzSY8vsgJ57Pwft2upW`: READY.
+
+The mobile route now delegates provider/database synchronization to the same shared synchronizer used by checkout/web flows, preserves `not_started`, maps restricted provider states truthfully, and no longer mutates `seller_payment_accounts` directly.
+
+Evidence: `docs/test-runs/2026-09-18-mobile-seller-payment-refresh.md`.
 
 ## Current gap register
 
@@ -132,7 +149,7 @@ Evidence: `docs/test-runs/2026-09-16-auth-confirmation-and-rpc-grant-hardening.m
 | Auth password hardening | **VERIFIED app/config scoped; leaked-password check PLAN-LIMITED** | Minimum password/current-password safeguards are in place. Fresh provider/account readback confirms the current Supabase organisation is on **Free** and leaked-password protection is a **Pro+** feature, so the remaining gate is an explicit plan upgrade/configuration decision rather than an application-code defect. |
 | Auth Preview email origin | **VERIFIED code + fresh email redirect boundary** | Preview confirmation email uses a Preview origin rather than localhost. |
 | Auth token-hash confirmation | **VERIFIED application support; project template config OPEN** | Server-side `/auth/confirm` + `verifyOtp` is green and deployed. Supabase confirmation/recovery templates still need controlled TokenHash wiring before a new email lifecycle can be signed off. |
-| RLS / Storage / private data | **VERIFIED scoped hosted + public serialization; one DB grant hardening staged** | Private seller/draft/evidence boundaries and public allowlists remain verified. `seller_checkout_ready` anon revoke is source-controlled and green but intentionally not applied to the connected Supabase database yet. |
+| RLS / Storage / private data | **VERIFIED scoped hosted + public serialization + seller checkout grant** | Private seller/draft/evidence boundaries and public allowlists remain verified. `seller_checkout_ready` anonymous EXECUTE has been revoked in the connected project and read back as `anon=false`, `authenticated=true`, `service_role=true`. |
 | Messaging / notifications | **VERIFIED in-app + authorization; physical FCM/email receipt EXTERNAL** | Physical FCM remains a device gate. |
 | Support journey | **VERIFIED in-app + hosted authorization; monitored public mailbox EXTERNAL** | Public operational support mailbox/ownership remains launch configuration. |
 | Scale | **VERIFIED isolated 100k PostgreSQL engineering proof** | Latest application boundary also keeps the 100k proof green. Does not claim hosted concurrent latency or image-CDN load. |
@@ -172,9 +189,8 @@ Evidence: `docs/test-runs/2026-09-16-account-deletion-e2e-attempt.md` and `docs/
 4. **Physical Android signed-device matrix** — app links, FCM receipt, image upload and external-return flows.
 5. **Destructive account deletion E2E** — configure/verify the normal token-hash Supabase Auth email-template path, then use a fresh disposable confirmed account only.
 6. **Auth leaked-password protection** — current Supabase organisation is Free; leaked-password protection requires Pro+ and remains disabled until the explicit plan/configuration upgrade.
-7. **Controlled DB deployment of `20260916144500_restrict_seller_checkout_ready_anon.sql`** — in an explicitly authorised Supabase environment, then verify `anon` denied while `authenticated` and `service_role` retain EXECUTE.
-8. **Legal/support operations** — contracting identity, retention/privacy wording sign-off and monitored support mailbox.
-9. **Marketplace liquidity / real seller supply** — operational business gate.
+7. **Legal/support operations** — contracting identity, retention/privacy wording sign-off and monitored support mailbox.
+8. **Marketplace liquidity / real seller supply** — operational business gate.
 
 ### No longer open on Preview
 
