@@ -19,9 +19,9 @@ export default async function SellerCasesPage({searchParams}:{searchParams:Promi
  const page=pageNumber(first(params.page));
  const pageSize=20;
  const seller=await getSellerForOwner(user.id);
- const result=seller?await getSellerTransactionCasesPage(seller.id,{offset:(page-1)*pageSize,limit:pageSize}).catch(()=>({items:[],hasMore:false,offset:(page-1)*pageSize,limit:pageSize})):{items:[],hasMore:false,offset:0,limit:pageSize};
+ const result=seller?await getSellerTransactionCasesPage(seller.id,{offset:(page-1)*pageSize,limit:pageSize}):{items:[],hasMore:false,offset:0,limit:pageSize};
  const cases=result.items;
- const evidenceByCase=await getTransactionCaseEvidence(cases.map(item=>item.id)).catch(()=>new Map());
+ const evidenceByCase=await getTransactionCaseEvidence(cases.map(item=>item.id));
 
  return <><Header/><main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
   <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-xs font-black uppercase tracking-[.2em] text-[#287154]">Seller dashboard</p><h1 className="mt-2 text-4xl font-black tracking-[-.045em]">Returns & cases</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-[#63706a]">Respond with factual listing, condition, dispatch or tracking information. Payouts remain blocked while an unresolved case is active.</p></div><Link href="/dashboard/orders" className="w-fit rounded-full border border-black/15 px-4 py-2.5 text-sm font-black">Back to sales</Link></div>
