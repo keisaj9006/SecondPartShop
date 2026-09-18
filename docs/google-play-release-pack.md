@@ -11,9 +11,9 @@ This document keeps the Google Play release answers consistent. Credentials, sig
 
 This pack is aligned to the latest fully verified application-code boundary rather than the older 2026-09-10 snapshot:
 
-- verified application SHA: `c830cb6f85812c682a6dfc0cfb07393102b74104`;
-- GitHub Actions `35346135192`: `validate`, `marketplace-scale-postgres` and `last-stock-concurrency` all SUCCESS, including **578/578 tests**, commerce/release validators and production build;
-- exact Preview deployment `dpl_AjwpfCWpzAPL4BFBaQQx9mwsp9VH`: READY;
+- verified application SHA: `efa24de9e59cd2a3fdd63c3141b33e177989f8b7`;
+- GitHub Actions `35355788417`: `validate`, `marketplace-scale-postgres` and `last-stock-concurrency` all SUCCESS, including **604/604 tests**, commerce/release validators and production build;
+- exact Preview deployment `dpl_8GymWULrVX4rfPAGKMtWquQa1sLu`: READY;
 - Android Preview artifact source SHA `b0ff850904abc073d0e2b9a50ba1e1dcb5aad048`, workflow `35214653966`, artifact id `10493049326`, digest `sha256:99c819b6a6ee5297fbc1650ac7f893aff7b847371d7c48ee78a2d893f7e352cf`;
 - current Production pipeline explicitly enforces Android 16 / API 36 (`compileSdkVersion = 36`, `targetSdkVersion = 36`), matching the Google Play target-API requirement effective 2026-08-31;
 - direct inspection of the retained Preview APK found native `.so` libraries with 16 KB (`0x4000`) ELF LOAD alignment and 16 KB-aligned uncompressed APK data offsets; repeat this compatibility check on the exact submitted Production AAB/Play Console because Preview artifact evidence is not the final release gate;
@@ -21,6 +21,9 @@ This pack is aligned to the latest fully verified application-code boundary rath
 - Stripe sandbox evidence includes the normal commerce happy path plus one genuine full-refund flow after payout release, including a successful payout reversal and idempotent provider retry;
 - decline/abandon/retry and full provider/UI last-stock race remain unsigned because they require a truthful active checkout-ready disposable listing;
 - Find My Part seller-response comparison is engineering/exact-Preview verified;
+- selected-vehicle checkout fails closed if compatibility verification is unavailable, before stock reservation or Stripe session creation;
+- buyer transaction list/detail screens fail closed on data-loader failures instead of manufacturing empty/404 states, and mobile buyer order history retains sold-item identity through the existing authorized minimal fallback;
+- transaction-case evidence read paths fail closed when Storage cannot generate a signed URL, preventing partial evidence sets from being presented as complete;
 - destructive account deletion still requires the controlled Supabase Auth TokenHash email-template change and a fresh disposable confirmed account;
 - the current Supabase organisation is on Free; leaked-password protection is a Pro+ configuration gate and is not an application-code defect.
 
