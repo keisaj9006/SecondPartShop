@@ -82,7 +82,13 @@ export async function startCheckout(_previous:ActionState,formData:FormData):Pro
    catalogueFuel:vehicleFuel||undefined,
    catalogueEngineSize:vehicleEngine
   };
-  const compatibility=await getPartCompatibility(partId,filters).catch(()=>null);
+  let compatibility;
+  try{
+   compatibility=await getPartCompatibility(partId,filters);
+  }catch(error){
+   await reportOperationalError({component:"checkout",event:"checkout_compatibility_check_failed",error});
+   return {status:"error",message:"We could not verify compatibility right now. Please try again."};
+  }
   if(compatibility&&(compatibility.level==="family_match"||compatibility.level==="unverified")&&!compatibilityAcknowledged){
    return {status:"error",message:"Compatibility with your selected vehicle is not confirmed. Please acknowledge the compatibility warning before checkout."};
   }
