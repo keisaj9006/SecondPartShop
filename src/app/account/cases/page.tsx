@@ -21,18 +21,18 @@ export default async function BuyerCasesPage({searchParams}:{searchParams:Promis
  const casePageSize=20;
  const selectedId=first(params.item);
  const [caseResult,orderResult,selectedPurchase]=await Promise.all([
-  getBuyerTransactionCasesPage(user.id,{offset:(casePage-1)*casePageSize,limit:casePageSize}).catch(()=>({items:[],hasMore:false,offset:(casePage-1)*casePageSize,limit:casePageSize})),
-  getBuyerOrdersPage(user.id,{limit:30}).catch(()=>({items:[],hasMore:false,offset:0,limit:30})),
+  getBuyerTransactionCasesPage(user.id,{offset:(casePage-1)*casePageSize,limit:casePageSize}),
+  getBuyerOrdersPage(user.id,{limit:30}),
   selectedId?getBuyerCaseOrderItem(user.id,selectedId).catch(()=>null):Promise.resolve(null)
  ]);
  const buyerCases=caseResult.items;
- const evidenceByCase=await getTransactionCaseEvidence(buyerCases.map(item=>item.id)).catch(()=>new Map());
+ const evidenceByCase=await getTransactionCaseEvidence(buyerCases.map(item=>item.id));
  let eligible=orderResult.items.flatMap(order=>order.items.filter(item=>
   ["paid","disputed"].includes(order.paymentStatus)&&
   !["cancelled","refunded","returned"].includes(item.fulfilmentStatus)
  ).map(item=>({id:item.id,partTitle:item.partTitle,sellerName:item.sellerName})));
  if(selectedPurchase&&!eligible.some(item=>item.id===selectedPurchase.id))eligible=[selectedPurchase,...eligible];
- const existingItems=await getActiveCaseOrderItemIds(eligible.map(item=>item.id)).catch(()=>new Set<string>());
+ const existingItems=await getActiveCaseOrderItemIds(eligible.map(item=>item.id));
  eligible=eligible.filter(item=>!existingItems.has(item.id));
  const requestedType=first(params.type);
  const defaultCaseType=(["return","dispute","cancellation"] as string[]).includes(requestedType??"")?requestedType as "return"|"dispute"|"cancellation":"return";
