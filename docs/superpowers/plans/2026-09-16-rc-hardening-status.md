@@ -6,16 +6,16 @@ This file supersedes `2026-09-15-rc-hardening-status.md` for current execution s
 
 Latest fully verified application-code boundary:
 
-- SHA `78bb46883f553c0cbc2efc95895e25a51881cd37`
-- GitHub Actions `35354417869`: **SUCCESS** across `validate`, `marketplace-scale-postgres` and `last-stock-concurrency`
-- full validation pipeline: lint, typecheck, **600/600 tests**, commerce/release validators, production build, true two-connection last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
-- exact Vercel Preview `dpl_A15GTydkUuz3KkKgN9FM4RUaaBBN`
-- exact Preview URL `https://second-part-shop-mfco8y5w0-joannakwapis11-5369.vercel.app`
+- SHA `efa24de9e59cd2a3fdd63c3141b33e177989f8b7`
+- GitHub Actions `35355788417`: **SUCCESS** across `validate`, `marketplace-scale-postgres` and `last-stock-concurrency`
+- full validation pipeline: lint, typecheck, **604/604 tests**, commerce/release validators, production build, true two-connection last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
+- exact Vercel Preview `dpl_8GymWULrVX4rfPAGKMtWquQa1sLu`
+- exact Preview URL `https://second-part-shop-j9j8020sz-joannakwapis11-5369.vercel.app`
 - stable branch Preview alias: `https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app`
 - deployment state: READY
 - fresh read-only health smoke on both exact deployment and branch alias: `/api/mobile/v1/health` HTTP 200 with `backendReady:true`
 - `main` untouched
-- no Production application deployment, live Stripe operation or hosted marketplace data mutation was performed by this mobile buyer-order hardening
+- no Production application deployment, live Stripe operation or hosted marketplace data mutation was performed by this evidence-read hardening
 
 Current branch HEAD may be documentation-only and ahead of the verified application boundary above.
 
@@ -230,6 +230,24 @@ TDD evidence:
 The buyer-scoped order query remains the authorization gate. Only missing `parts` identities from an already authorized order are recovered server-side, selecting only `id/title/slug`. Inaccessible orders perform no privileged lookup. A recovery error fails with HTTP 503 instead of hiding the purchased item.
 
 Evidence: `docs/test-runs/2026-09-18-mobile-buyer-orders-sold-items.md`.
+
+### Case evidence signed-URL fail-closed — VERIFIED
+
+Case evidence on web/mobile previously omitted individual evidence rows when Storage failed to issue a signed URL. A temporary Storage/signing failure could therefore look like missing dispute/return evidence.
+
+TDD evidence:
+
+- RED `b48d73787a1c81b08aff49d697ee76252c8a0a05`, GitHub Actions `35355440519`: 602 PASS / 2 expected FAIL;
+- web implementation `fd90e1d489f4c090ea514a625adc385912a2ee1a`;
+- mobile/final application SHA `efa24de9e59cd2a3fdd63c3141b33e177989f8b7`;
+- final GitHub Actions `35355788417`: **604/604 PASS**, all commerce/release validators and production build PASS;
+- exact Preview `dpl_8GymWULrVX4rfPAGKMtWquQa1sLu`: READY.
+
+Evidence loads now fail closed if any signed URL cannot be created; web reaches the retry boundary and mobile returns HTTP 503 `evidence_url_unavailable` instead of returning a partial/misleading evidence list. Uploader-label fallback remains unchanged.
+
+Evidence: `docs/test-runs/2026-09-18-case-evidence-signed-url-fail-closed.md`.
+
+**Follow-up:** failed cleanup after an upload succeeds but evidence registration fails currently has no durable retry queue; this orphan-file cleanup boundary remains separate.
 
 ## Current gap register
 
