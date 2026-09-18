@@ -18,6 +18,7 @@ export async function getTransactionCaseEvidence(caseIds:string[]):Promise<Map<s
 
  const rows=data??[];
  const urls=await Promise.all(rows.map(row=>supabase.storage.from("case-evidence").createSignedUrl(row.storage_path,600)));
+ if(urls.some(result=>result.error||!result.data?.signedUrl))throw new Error("Case evidence file is temporarily unavailable.");
  const uploaderIds=[...new Set(rows.map(row=>row.uploader_profile_id).filter((id):id is string=>Boolean(id)))];
  const profiles=await Promise.all(uploaderIds.map(id=>getPublicMemberProfileById(id).catch(()=>null)));
  const profileMap=new Map(profiles.filter((profile):profile is NonNullable<typeof profile>=>Boolean(profile)).map(profile=>[profile.id,profile]));
