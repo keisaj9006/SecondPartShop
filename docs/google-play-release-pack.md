@@ -241,7 +241,7 @@ Before pressing Submit for review, retain evidence that:
 - network loss/recovery is acceptable;
 - FCM notification E2E passes;
 - Stripe sandbox happy-path plus the verified full-refund/released-payout-reversal path remain green, and the still-open adverse checkout/retry/provider-race scenarios in `docs/commerce-e2e-runbook.md` are completed before public commerce;
-- staged commerce/database grants required by the current RC, including the source-controlled `seller_checkout_ready` anonymous EXECUTE revoke, are deployed and re-read in the explicitly authorised release database before money-flow sign-off;
+- the `seller_checkout_ready` anonymous EXECUTE revoke remains deployed/read-back in the authorised release database (`anon=false`, `authenticated=true`, `service_role=true`), and any later least-privilege grant changes are likewise verified before money-flow sign-off;
 - destructive account-deletion QA passes using `docs/account-deletion-e2e-runbook.md`;
 - Production critical alerts have a real destination;
 - `/admin/system/alerts` returns a successful HTTP 2xx smoke result and the fixed smoke alert is visibly confirmed in the intended operations destination;
@@ -260,7 +260,6 @@ These cannot be represented as complete merely by committing code:
 - final Vercel production environment access;
 - real monitored public support/privacy mailbox;
 - real Production critical-alert destination and successful smoke alert;
-- controlled deployment/readback of the staged `20260916144500_restrict_seller_checkout_ready_anon.sql` grant migration in an explicitly authorised Supabase environment;
 - controlled Supabase Auth confirmation/recovery email-template wiring to `TokenHash`, followed by a fresh legitimate confirmation lifecycle;
 - destructive account-deletion E2E using a fresh disposable confirmed account;
 - Supabase Pro+ plan/configuration if leaked-password protection remains a launch gate; the current organisation is Free;
