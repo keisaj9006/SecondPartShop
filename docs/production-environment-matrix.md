@@ -1,6 +1,6 @@
 # SecondPart Production Environment Matrix
 
-Snapshot: 2026-09-10
+Snapshot: 2026-09-18
 Branch: `rebuild-nextjs`
 Production Android package: `com.secondpart.marketplace`
 
@@ -102,10 +102,12 @@ Required Production state:
 - server-side service role configured only in trusted server runtime;
 - all repository migrations required by the release are applied;
 - RLS/grants/service-role RPC boundaries match migrations;
-- pending payout-transfer recovery migration is deployed and verified before final money-flow E2E;
-- destructive deletion processor migration/state is verified before deletion E2E.
+- `20260916144500_restrict_seller_checkout_ready_anon.sql` is deployed in the explicitly authorised release database and read back with `anon` denied while `authenticated` and `service_role` retain the required EXECUTE boundary;
+- Supabase Auth confirmation/recovery email templates are wired to the application `TokenHash` confirmation route and a fresh legitimate confirmation lifecycle is verified;
+- leaked-password protection is enabled if it remains in the launch security baseline; the current organisation is on Free and this provider control requires a supporting Pro+ plan;
+- destructive deletion processor migration/state is verified and the full Auth + database + Storage deletion lifecycle passes on a fresh disposable confirmed account.
 
-**Current blocker:** the connected Supabase project currently rejects migration inspection with `You do not have permission to perform this action`. Until access is restored, no pending database migration may be assumed deployed.
+**Current RC boundary:** the staged `seller_checkout_ready` grant migration is source-controlled but intentionally not applied under the Preview-only execution scope. The application-side `TokenHash` route is implemented, but the project email templates are still open configuration. Leaked-password protection is plan/configuration-limited rather than an application-code defect. Do not treat any of these as deployed until the target project is explicitly authorised and read back after the change.
 
 ## 6. Stripe
 
@@ -122,7 +124,7 @@ Use `docs/commerce-e2e-runbook.md`. Never force database payment/payout states m
 
 ## 7. Production release order
 
-1. Restore Supabase administrative access and reconcile pending migrations.
+1. Authorise the target Supabase release environment, reconcile repository migrations, deploy/read back the staged `seller_checkout_ready` grant change, wire the `TokenHash` Auth templates, and complete the remaining project-level security configuration.
 2. Choose/register the Production domain and attach it to the Production Vercel project.
 3. Configure the Production Vercel runtime values from section 1.
 4. Create/configure Play Console app + Play App Signing for `com.secondpart.marketplace`.
