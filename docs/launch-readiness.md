@@ -9,7 +9,7 @@ This document is the canonical launch checklist for the Android / Google Play an
 
 For current release execution status, `docs/superpowers/plans/2026-09-16-rc-hardening-status.md` is the source of truth. Historical evidence below is retained, but it must not be used to override the current boundary.
 
-Latest fully verified application-code boundary is `6159916e6eda8ce6ab9c726377f51b51255a784b` with GitHub Actions run `35359425939` green across validation, **614/614 tests**, commerce/release validators, isolated 100k PostgreSQL marketplace proof and true two-connection last-stock concurrency. Exact Preview `dpl_CagJASFvVzYYB8BqEynzUapuBPaz` is READY. Current branch HEAD may be documentation-only and ahead of that code boundary.
+Latest fully verified application-code boundary is `333a9a1da111f5de528dc4df02e070217affd3a3` with GitHub Actions run `35360904820` green across validation, **616/616 tests**, commerce/release validators, isolated 100k PostgreSQL marketplace proof and true two-connection last-stock concurrency. Exact Preview `dpl_E4xTQ2XX5xEf9GCuE2oYGAsPjtgr` is READY. Current branch HEAD may be documentation-only and ahead of that code boundary.
 
 Current important open gates include:
 - adverse Stripe checkout provider/UI Scenario H and the full provider/UI last-stock race, both requiring a truthful active checkout-ready disposable listing;
