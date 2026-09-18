@@ -6,18 +6,18 @@ This file supersedes `2026-09-15-rc-hardening-status.md` for current execution s
 
 Latest fully verified application-code boundary:
 
-- SHA `02ea63dab48496424a12034d0fb2c3c9b8106268`
-- GitHub Actions `35347166356`: **SUCCESS** across `validate`, `marketplace-scale-postgres` and `last-stock-concurrency`
-- full validation pipeline: lint, typecheck, **581/581 tests**, commerce/release validators, production build, true two-connection last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
-- exact Vercel Preview `dpl_Gs1XTV56sMEkdH34xpXqmDzHZU3G`
-- exact Preview URL `https://second-part-shop-9k303drs6-joannakwapis11-5369.vercel.app`
+- SHA `d4a6a168e6f87bfc347ac41a8fb6c585369bcd28`
+- GitHub Actions `35350230043`: **SUCCESS** across `validate`, `marketplace-scale-postgres` and `last-stock-concurrency`
+- full validation pipeline: lint, typecheck, **583/583 tests**, commerce/release validators, production build, true two-connection last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
+- exact Vercel Preview `dpl_Agq6XHgYHVk6KXPJ967GWjWsFXp3`
+- exact Preview URL `https://second-part-shop-qyjs4ovlr-joannakwapis11-5369.vercel.app`
 - stable branch Preview alias: `https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app`
 - deployment state: READY
 - fresh read-only health smoke on both exact deployment and branch alias: `/api/mobile/v1/health` HTTP 200 with `backendReady:true`
 - `main` untouched
-- no Production application deployment or live Stripe operation was performed by these seller-payment synchronization repairs
+- no Production application deployment, live Stripe operation or hosted marketplace data mutation was performed by this compatibility hardening
 
-Current branch head after evidence-only work is documentation-only SHA `ae7f4d924ae04e80c2a72fe10f294225b8112317`, whose parent is the verified code boundary above.
+Current branch head after evidence-only work is documentation-only SHA `6ec15cfa43f1a659f242d32d4a718cabe2ebe295`, whose parent is the verified code boundary above.
 
 ## Newly closed / hardened
 
@@ -166,6 +166,22 @@ TDD evidence:
 The failure path now reports `payout / seller_stripe_onboarding_return_sync_failed`, shows a truthful retry message and no longer claims a successful automatic re-check. Success and normal pending/restricted return behavior remain unchanged.
 
 Evidence: `docs/test-runs/2026-09-18-web-seller-payment-return-sync.md`.
+
+### Checkout compatibility outage fail-closed — VERIFIED
+
+Web and mobile checkout previously converted a compatibility lookup failure to `null` and continued toward reservation and Stripe Checkout. Because `prepare_checkout_order_v2` validates vehicle identity but does not re-run the part compatibility confidence/acknowledgement gate, an availability failure could bypass the uncertain-fit warning.
+
+TDD evidence:
+
+- RED `a00702468dee353a350b87c7b09f1bb2ebc55ce3`, GitHub Actions `35350026877`: 581 PASS / 2 expected FAIL; web reached Stripe and mobile returned 201 after a forced compatibility backend failure;
+- web implementation `1fa5050036c86ff87344a1d5c74e50210039ed61`;
+- final mobile/application SHA `d4a6a168e6f87bfc347ac41a8fb6c585369bcd28`;
+- final GitHub Actions `35350230043`: **583/583 PASS**, all commerce/release validators and production build PASS;
+- exact Preview `dpl_Agq6XHgYHVk6KXPJ967GWjWsFXp3`: READY.
+
+Selected-vehicle checkout now fails closed if compatibility cannot be verified, reports an operational checkout error, and stops before stock reservation or Stripe session creation. Existing `confirmed` / `buyer_verified` and acknowledged uncertain-fit behavior is unchanged.
+
+Evidence: `docs/test-runs/2026-09-18-checkout-compatibility-fail-closed.md`.
 
 ## Current gap register
 
