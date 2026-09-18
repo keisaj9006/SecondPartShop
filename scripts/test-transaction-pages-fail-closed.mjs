@@ -175,7 +175,7 @@ test("Admin Commerce reports and propagates case-list backend failure",async()=>
  const {page,calls}=adminHarness({caseFailure:true});
  await assert.rejects(page({searchParams:Promise.resolve({})}),/backend unavailable/);
  assert.equal(calls.reported.length,1);
- assert.equal(calls.reported[0].component,"commerce_admin");
+ assert.equal(calls.reported[0].component,"commerce_maintenance");
  assert.equal(calls.reported[0].event,"commerce_admin_data_load_failed");
 });
 
@@ -183,6 +183,6 @@ test("Admin Commerce reports and propagates payout-review RPC failure",async()=>
  const {page,calls}=adminHarness({payoutFailure:true});
  await assert.rejects(page({searchParams:Promise.resolve({})}),/payout reviews unavailable/);
  assert.equal(calls.reported.length,1);
- assert.equal(calls.reported[0].component,"commerce_admin");
+ assert.equal(calls.reported[0].component,"commerce_maintenance");
  assert.equal(calls.reported[0].event,"commerce_admin_data_load_failed");
 });
