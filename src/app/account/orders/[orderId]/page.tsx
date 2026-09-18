@@ -18,9 +18,9 @@ const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:val
 export default async function BuyerOrderDetailPage({params,searchParams}:{params:Promise<{orderId:string}>;searchParams:Promise<Record<string,string|string[]|undefined>>}){
  const [{orderId},query]=await Promise.all([params,searchParams]);
  const user=await requireUser("/account/orders/"+orderId);
- const order=await getBuyerOrderById(user.id,orderId).catch(()=>null);
+ const order=await getBuyerOrderById(user.id,orderId);
  if(!order)notFound();
- const timeline=await getOrderTimeline(order.id).catch(()=>[]);
+ const timeline=await getOrderTimeline(order.id);
  const checkout=first(query.checkout);
  const checkoutNotice=(()=>{
   if(!checkout||!["success","pending","expired","unavailable","cancel_pending","not_cancellable"].includes(checkout))return null;
