@@ -6,18 +6,18 @@ This file supersedes `2026-09-15-rc-hardening-status.md` for current execution s
 
 Latest fully verified application-code boundary:
 
-- SHA `d4a6a168e6f87bfc347ac41a8fb6c585369bcd28`
-- GitHub Actions `35350230043`: **SUCCESS** across `validate`, `marketplace-scale-postgres` and `last-stock-concurrency`
-- full validation pipeline: lint, typecheck, **583/583 tests**, commerce/release validators, production build, true two-connection last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
-- exact Vercel Preview `dpl_Agq6XHgYHVk6KXPJ967GWjWsFXp3`
-- exact Preview URL `https://second-part-shop-qyjs4ovlr-joannakwapis11-5369.vercel.app`
+- SHA `bcef9f5a4044967842a77a3995ede8081ef0b473`
+- GitHub Actions `35351147618`: **SUCCESS** across `validate`, `marketplace-scale-postgres` and `last-stock-concurrency`
+- full validation pipeline: lint, typecheck, **591/591 tests**, commerce/release validators, production build, true two-connection last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
+- exact Vercel Preview `dpl_625nAoAWQRmnPSeyWiBSr1vdzpjX`
+- exact Preview URL `https://second-part-shop-da433i9yl-joannakwapis11-5369.vercel.app`
 - stable branch Preview alias: `https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app`
 - deployment state: READY
 - fresh read-only health smoke on both exact deployment and branch alias: `/api/mobile/v1/health` HTTP 200 with `backendReady:true`
 - `main` untouched
-- no Production application deployment, live Stripe operation or hosted marketplace data mutation was performed by this compatibility hardening
+- no Production application deployment, live Stripe operation or hosted marketplace data mutation was performed by this transaction-screen hardening
 
-Current branch head after evidence-only work is documentation-only SHA `6ec15cfa43f1a659f242d32d4a718cabe2ebe295`, whose parent is the verified code boundary above.
+Current branch head after evidence-only work is documentation-only SHA `9b9ba7bcdb4153f93691a2dfcb94eb238fe97466`, whose parent is the verified code boundary above.
 
 ## Newly closed / hardened
 
@@ -182,6 +182,23 @@ TDD evidence:
 Selected-vehicle checkout now fails closed if compatibility cannot be verified, reports an operational checkout error, and stops before stock reservation or Stripe session creation. Existing `confirmed` / `buyer_verified` and acknowledged uncertain-fit behavior is unchanged.
 
 Evidence: `docs/test-runs/2026-09-18-checkout-compatibility-fail-closed.md`.
+
+### Transaction list/admin false-empty handling — VERIFIED
+
+Several transaction-facing pages previously converted Supabase/data-loader failures into valid-looking empty states. That could show “No purchases”, “No sales”, “No transaction cases” or “No commerce cases” during a backend outage; buyer case eligibility could also treat an unavailable active-case lookup as no active case.
+
+TDD evidence:
+
+- RED `667bb09136b85740a68a252dfacea40b27eb12f6`, GitHub Actions `35350713062`: 583 PASS / 8 expected FAIL;
+- application changes across buyer purchases, seller sales, buyer cases, seller cases and Admin Commerce;
+- first implementation exposed an invalid new monitoring component name during typecheck; it was aligned to existing `commerce_maintenance` taxonomy rather than expanding the monitoring model;
+- final SHA `bcef9f5a4044967842a77a3995ede8081ef0b473`;
+- final GitHub Actions `35351147618`: **591/591 PASS**, all commerce/release validators and production build PASS;
+- exact Preview `dpl_625nAoAWQRmnPSeyWiBSr1vdzpjX`: READY.
+
+Real empty datasets still render the existing empty-state UI. Backend failures now propagate to the existing global retry error boundary; Admin Commerce also emits `commerce_maintenance / commerce_admin_data_load_failed`.
+
+Evidence: `docs/test-runs/2026-09-18-transaction-screens-fail-closed.md`.
 
 ## Current gap register
 
