@@ -22,6 +22,8 @@ Current important open gates include:
 
 One real Stripe sandbox full-refund flow after payout release, including payout reversal and idempotent retry, is already verified and is not an open generic refund/reversal gap.
 
+Recent RC hardening also verifies that selected-vehicle checkout fails closed when compatibility cannot be checked, transaction pages no longer turn backend failures into false empty/404 states, mobile buyer orders retain sold-item identity after public listing RLS hides the part, and case-evidence reads fail closed rather than silently returning a partial evidence set.
+
 ## Current verified engineering baseline
 
 Product Excellence update (2026-09-12): accessibility, mobile navigation, vehicle-selection clarity, saved-state viewer boundaries, CSV retry/report handling, responsive navigation and safe Preview metadata have passed scoped engineering checks and independent review. Corrected `1a34457` passed301 tests, lint/typecheck/build,14 validators and CI; representative Preview checks passed. QA Seller CSV Preview/file retention and seller-form viewport checks subsequently passed on `a54f205`; actual import/provider recovery and native zoom remain unsigned. See [full evidence/checkpoint](test-runs/2026-09-12-product-excellence.md). This does not close provider, physical-device, production-domain or marketplace-liquidity gates.
