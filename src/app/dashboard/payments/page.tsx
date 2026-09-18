@@ -6,6 +6,7 @@ import { getSellerForOwner } from "@/lib/data/marketplace";
 import { getSellerPaymentAccount } from "@/lib/data/seller-payments";
 import { syncSellerPaymentAccount } from "@/lib/seller-payment-sync";
 import { isStripeConnectConfigured } from "@/lib/stripe-connect";
+import { reportOperationalError } from "@/lib/ops-monitoring";
 import { refreshStripePaymentStatus,startStripeOnboarding } from "./actions";
 
 export const dynamic="force-dynamic";
@@ -20,7 +21,16 @@ export default async function SellerPaymentsPage({searchParams}:{searchParams:Pr
 
  const configured=isStripeConnectConfigured();
  const returned=first(params.returned)==="1";
- const returnSync=returned&&configured?await syncSellerPaymentAccount(seller.id).catch(()=>null):null;
+ let returnSync:Awaited<ReturnType<typeof syncSellerPaymentAccount>>|null=null;
+ let returnSyncFailed=false;
+ if(returned&&configured){
+  try{
+   returnSync=await syncSellerPaymentAccount(seller.id);
+  }catch(error){
+   returnSyncFailed=true;
+   await reportOperationalError({component:"payout",event:"seller_stripe_onboarding_return_sync_failed",error});
+  }
+ }
  const payment=await getSellerPaymentAccount(seller.id).catch(()=>null);
  const active=Boolean(payment?.transfersEnabled&&payment.onboardingStatus==="complete");
  const error=first(params.error);
@@ -39,7 +49,7 @@ export default async function SellerPaymentsPage({searchParams}:{searchParams:Pr
    <p className="font-black">{error==="not-configured"?"Stripe test configuration is not connected yet.":error==="email-required"?"Your account needs an email address before payout onboarding.":error==="sync"?"We could not refresh the Stripe status right now.":"Stripe onboarding could not be started right now."}</p>
   </div>}
   {first(params.refreshed)==="1"&&<div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-900">Payment account status refreshed.</div>}
-  {returned&&<div className={`mt-6 rounded-2xl border p-4 text-sm ${returnSync?.active?"border-emerald-200 bg-emerald-50 text-emerald-900":"border-blue-200 bg-blue-50 text-blue-900"}`}><p className="font-black">{returnSync?.active?"Stripe onboarding is complete.":"You returned from Stripe onboarding."}</p><p className="mt-1">{returnSync?.active?"SecondPart re-checked the account automatically and marketplace transfers are enabled.":"SecondPart re-checked the account automatically. If Stripe still has requirements outstanding, continue onboarding below."}</p></div>}
+  {returned&&<div className={`mt-6 rounded-2xl border p-4 text-sm ${returnSyncFailed?"border-red-200 bg-red-50 text-red-900":returnSync?.active?"border-emerald-200 bg-emerald-50 text-emerald-900":"border-blue-200 bg-blue-50 text-blue-900"}`}><p className="font-black">{returnSyncFailed?"Stripe status refresh needs another try.":returnSync?.active?"Stripe onboarding is complete.":"You returned from Stripe onboarding."}</p><p className="mt-1">{returnSyncFailed?"We could not refresh your Stripe status automatically. Use Refresh status below to try again.":returnSync?.active?"SecondPart re-checked the account automatically and marketplace transfers are enabled.":"SecondPart re-checked the account automatically. If Stripe still has requirements outstanding, continue onboarding below."}</p></div>}
 
   <section className="mt-8 rounded-[30px] bg-[#173c31] p-6 text-white sm:p-8">
    <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-start">
