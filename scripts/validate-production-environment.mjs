@@ -51,7 +51,9 @@ const checks=[
  ["Production workflow must keep Firebase Android client config in GitHub Actions",workflow.includes('GOOGLE_SERVICES_JSON_BASE64_PRODUCTION: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64_PRODUCTION }}')],
  ["Production workflow must keep all upload-key inputs in GitHub Actions secrets",["ANDROID_RELEASE_KEYSTORE_BASE64","ANDROID_RELEASE_STORE_PASSWORD","ANDROID_RELEASE_KEY_ALIAS","ANDROID_RELEASE_KEY_PASSWORD"].every(name=>workflow.includes(`secrets.${name}`))],
  ["Production matrix must explicitly distinguish upload signing from Play App Signing",matrix.includes("upload key")&&matrix.includes("Google Play App Signing")&&matrix.includes("must remain separate")],
- ["Production matrix must retain Supabase migration access as an explicit blocker",matrix.includes("You do not have permission to perform this action")&&matrix.includes("pending payout-transfer recovery migration")],
+ ["Production matrix must track staged seller_checkout_ready grant deployment",matrix.includes("20260916144500_restrict_seller_checkout_ready_anon.sql")&&matrix.includes("anon")&&matrix.includes("authenticated")&&matrix.includes("service_role")],
+ ["Production matrix must track Supabase Auth TokenHash template configuration",matrix.includes("TokenHash")&&matrix.includes("email templates")],
+ ["Production matrix must track leaked-password protection as a provider plan/configuration gate",matrix.toLowerCase().includes("leaked-password protection")&&matrix.includes("Pro+")],
  ["Production matrix must keep DVSA outside the first RC gate",matrix.includes("DVSA")&&matrix.includes("manual vehicle selection")&&matrix.includes("not a blocker for the first RC")]
 ];
 
