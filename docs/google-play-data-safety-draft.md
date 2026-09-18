@@ -168,13 +168,14 @@ Google Play requires apps that create accounts to provide both an in-app deletio
 
 Current source/release-preparation evidence must be read with these limitations:
 
-- latest fully verified application-code SHA is `efa24de9e59cd2a3fdd63c3141b33e177989f8b7`, with GitHub Actions `35355788417` green across **604/604 tests**, commerce/release validators, production build, isolated 100k PostgreSQL scale proof and true two-connection last-stock concurrency;
+- latest fully verified application-code SHA is `6159916e6eda8ce6ab9c726377f51b51255a784b`, with GitHub Actions `35359425939` green across **614/614 tests**, commerce/release validators, production build, isolated 100k PostgreSQL scale proof and true two-connection last-stock concurrency;
 - the current connected Supabase organisation is on the **Free** plan. Supabase leaked-password protection remains disabled and requires **Pro+**; do not represent it as enabled in Play/security material until the plan and project configuration are actually changed and re-read;
 - application support for server-side Supabase Auth `TokenHash` confirmation is implemented and Preview-verified, but the project-level confirmation/recovery email templates still need a controlled configuration change before a new real token-hash email lifecycle is signed off;
 - `supabase/migrations/20260916144500_restrict_seller_checkout_ready_anon.sql` was explicitly authorised and applied to the connected `secondpart` project on 2026-09-18 as hosted migration `20260918122032 / restrict_seller_checkout_ready_anon`; privilege readback is `anon=false`, `authenticated=true`, `service_role=true`;
 - the latest Android Preview build/artifact proves the Preview wrapper/build/signing path only. It does **not** replace inspection of the merged manifest, SDK set, permissions and provider configuration from the exact Production AAB submitted to Google Play;
 - destructive account-deletion code/preflight is implemented, but the full Auth + DB + Storage destructive lifecycle still requires a fresh disposable legitimately confirmed account after the Auth template gate above is resolved;
-- private transaction-case evidence remains in a non-public Storage bucket and current web/mobile reads now fail closed if a required signed URL cannot be generated, instead of silently omitting that evidence from the rendered set.
+- private transaction-case evidence remains in a non-public Storage bucket and current web/mobile reads now fail closed if a required signed URL cannot be generated, instead of silently omitting that evidence from the rendered set;
+- the case-evidence orphan-cleanup outbox/worker is source-controlled and Preview-compatible, but the hosted Supabase migration `20260918154500_case_evidence_cleanup_outbox.sql` is still **OPEN** and must not be represented as deployed until explicit migration/readback evidence exists.
 
 A Supabase advisor warning count is not itself a Play Data Safety answer. Security-definer/grant findings must be interpreted function by function; do not translate an advisor warning mechanically into a claim that user data is exposed or not exposed.
 
