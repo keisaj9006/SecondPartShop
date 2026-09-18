@@ -1,5 +1,6 @@
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -18,7 +19,7 @@ export async function GET(request:Request,{params}:{params:Promise<{orderId:stri
 
  const {data:order,error}=await supabase
   .from("orders")
-  .select("id,status,payment_status,total_pence,currency,created_at,order_items(id,quantity,unit_price_pence,shipping_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,buyer_received_at,release_eligible_at,funds_released_at,parts(title,slug),sellers(business_name,slug))")
+  .select("id,status,payment_status,total_pence,currency,created_at,order_items(id,part_id,quantity,unit_price_pence,shipping_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,buyer_received_at,release_eligible_at,funds_released_at,parts(title,slug),sellers(business_name,slug))")
   .eq("id",orderId)
   .eq("buyer_id",user.id)
   .maybeSingle();
@@ -32,6 +33,20 @@ export async function GET(request:Request,{params}:{params:Promise<{orderId:stri
   .order("created_at",{ascending:true});
  if(eventError)return mobileJson(request,{ok:false,error:"timeline_unavailable"},503);
 
+ const missingPartIds=[...new Set((order.order_items??[])
+  .filter(item=>!one(item.parts))
+  .map(item=>item.part_id)
+  .filter((value):value is string=>Boolean(value)))];
+ const purchasedParts=new Map<string,{title:string;slug:string}>();
+ if(missingPartIds.length){
+  const {data:partRows,error:partError}=await createSupabaseAdminClient()
+   .from("parts")
+   .select("id,title,slug")
+   .in("id",missingPartIds);
+  if(partError)return mobileJson(request,{ok:false,error:"order_items_unavailable"},503);
+  for(const part of partRows??[])purchasedParts.set(part.id,{title:part.title,slug:part.slug});
+ }
+
  return mobileJson(request,{
   ok:true,
   order:{
@@ -42,7 +57,7 @@ export async function GET(request:Request,{params}:{params:Promise<{orderId:stri
    currency:order.currency,
    createdAt:order.created_at,
    items:(order.order_items??[]).flatMap(item=>{
-    const part=one(item.parts);
+    const part=one(item.parts)??purchasedParts.get(item.part_id);
     const seller=one(item.sellers);
     if(!part||!seller)return [];
     return [{
