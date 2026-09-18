@@ -9,7 +9,7 @@ This document is the canonical launch checklist for the Android / Google Play an
 
 For current release execution status, `docs/superpowers/plans/2026-09-16-rc-hardening-status.md` is the source of truth. Historical evidence below is retained, but it must not be used to override the current boundary.
 
-Latest fully verified application-code boundary is `c830cb6f85812c682a6dfc0cfb07393102b74104` with GitHub Actions run `35346135192` green across validation, **578/578 tests**, release validators, isolated 100k PostgreSQL marketplace proof and true two-connection last-stock concurrency. Exact Preview `dpl_AjwpfCWpzAPL4BFBaQQx9mwsp9VH` is READY. Current branch HEAD may be documentation-only and ahead of that code boundary.
+Latest fully verified application-code boundary is `6159916e6eda8ce6ab9c726377f51b51255a784b` with GitHub Actions run `35359425939` green across validation, **614/614 tests**, commerce/release validators, isolated 100k PostgreSQL marketplace proof and true two-connection last-stock concurrency. Exact Preview `dpl_CagJASFvVzYYB8BqEynzUapuBPaz` is READY. Current branch HEAD may be documentation-only and ahead of that code boundary.
 
 Current important open gates include:
 - adverse Stripe checkout provider/UI Scenario H and the full provider/UI last-stock race, both requiring a truthful active checkout-ready disposable listing;
@@ -18,11 +18,12 @@ Current important open gates include:
 - controlled Supabase Auth `TokenHash` email-template configuration followed by a fresh confirmed-account lifecycle;
 - leaked-password protection, which is a Supabase **Pro+** configuration gate while the current organisation is on Free;
 - destructive account-deletion E2E after the Auth template gate;
+- controlled deployment/readback of `20260918154500_case_evidence_cleanup_outbox.sql` so durable case-evidence orphan cleanup is active on the hosted project;
 - final legal/support/contracting identity and real marketplace liquidity.
 
 One real Stripe sandbox full-refund flow after payout release, including payout reversal and idempotent retry, is already verified and is not an open generic refund/reversal gap.
 
-Recent RC hardening also verifies that selected-vehicle checkout fails closed when compatibility cannot be checked, transaction pages no longer turn backend failures into false empty/404 states, mobile buyer orders retain sold-item identity after public listing RLS hides the part, and case-evidence reads fail closed rather than silently returning a partial evidence set.
+Recent RC hardening also verifies that selected-vehicle checkout fails closed when compatibility cannot be checked, transaction pages no longer turn backend failures into false empty/404 states, mobile buyer orders retain sold-item identity after public listing RLS hides the part, case-evidence reads fail closed rather than silently returning a partial evidence set, and failed evidence attachment now has a source-controlled durable cleanup path with a safe staged-rollout fallback.
 
 ## Current verified engineering baseline
 
