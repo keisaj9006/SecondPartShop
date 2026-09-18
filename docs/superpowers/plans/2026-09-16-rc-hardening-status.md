@@ -6,18 +6,18 @@ This file supersedes `2026-09-15-rc-hardening-status.md` for current execution s
 
 Latest fully verified application-code boundary:
 
-- SHA `7b2f6bff1a6a4d718810f15de9f91ec0cd5ddbb6`
-- GitHub Actions `35351853027`: **SUCCESS** across `validate`, `marketplace-scale-postgres` and `last-stock-concurrency`
-- full validation pipeline: lint, typecheck, **597/597 tests**, commerce/release validators, production build, true two-connection last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
-- exact Vercel Preview `dpl_8JAB2bmwNPjtCPpiYQ9uGGveqaTB`
-- exact Preview URL `https://second-part-shop-pxmc970s5-joannakwapis11-5369.vercel.app`
+- SHA `78bb46883f553c0cbc2efc95895e25a51881cd37`
+- GitHub Actions `35354417869`: **SUCCESS** across `validate`, `marketplace-scale-postgres` and `last-stock-concurrency`
+- full validation pipeline: lint, typecheck, **600/600 tests**, commerce/release validators, production build, true two-connection last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
+- exact Vercel Preview `dpl_A15GTydkUuz3KkKgN9FM4RUaaBBN`
+- exact Preview URL `https://second-part-shop-mfco8y5w0-joannakwapis11-5369.vercel.app`
 - stable branch Preview alias: `https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app`
 - deployment state: READY
 - fresh read-only health smoke on both exact deployment and branch alias: `/api/mobile/v1/health` HTTP 200 with `backendReady:true`
 - `main` untouched
-- no Production application deployment, live Stripe operation or hosted marketplace data mutation was performed by this transaction-detail hardening
+- no Production application deployment, live Stripe operation or hosted marketplace data mutation was performed by this mobile buyer-order hardening
 
-Current branch head after evidence-only work is documentation-only SHA `47191e60067acecc2960c8a68829fba7db300156`, whose parent is the verified code boundary above.
+Current branch HEAD may be documentation-only and ahead of the verified application boundary above.
 
 ## Newly closed / hardened
 
@@ -214,6 +214,22 @@ TDD evidence:
 Genuine absent/unauthorised order or sale rows still produce the existing 404. Supabase/data-loader failures now propagate to the global retry boundary instead of being misrepresented as missing business data, and timeline failures no longer appear as empty transaction history.
 
 Evidence: `docs/test-runs/2026-09-18-transaction-detail-pages-fail-closed.md`.
+
+### Mobile buyer order sold-item retention — VERIFIED
+
+Web buyer order history already had a protected fallback for sold listings hidden by public `parts` RLS after a real Stripe test purchase exposed the issue. Mobile order list/detail had not inherited that boundary and could silently drop the purchased order item.
+
+TDD evidence:
+
+- RED `ffc348d8950e0b6b5cb5fb224c3805f1f6376ca3`, GitHub Actions `35354167211`: 598 PASS / 2 expected FAIL;
+- list implementation `4f2cb7a0290e69d8cb8dbd202743e00851618663`;
+- detail/final application SHA `78bb46883f553c0cbc2efc95895e25a51881cd37`;
+- final GitHub Actions `35354417869`: **600/600 PASS**, all commerce/release validators and production build PASS;
+- exact Preview `dpl_A15GTydkUuz3KkKgN9FM4RUaaBBN`: READY.
+
+The buyer-scoped order query remains the authorization gate. Only missing `parts` identities from an already authorized order are recovered server-side, selecting only `id/title/slug`. Inaccessible orders perform no privileged lookup. A recovery error fails with HTTP 503 instead of hiding the purchased item.
+
+Evidence: `docs/test-runs/2026-09-18-mobile-buyer-orders-sold-items.md`.
 
 ## Current gap register
 
