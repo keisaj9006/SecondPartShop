@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { cleanupFailedCaseEvidenceUpload } from "@/lib/case-evidence-cleanup";
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -111,8 +111,7 @@ export async function POST(request:Request,{params}:{params:Promise<{caseId:stri
   p_mime_type:file.type
  });
  if(registerError){
-  const admin=createSupabaseAdminClient();
-  await admin.storage.from("case-evidence").remove([storagePath]);
+  await cleanupFailedCaseEvidenceUpload(user.id,caseId,storagePath);
   const code=registerError.message.toLowerCase().includes("maximum")?"evidence_limit":"evidence_attach_failed";
   return mobileJson(request,{ok:false,error:code},409);
  }
