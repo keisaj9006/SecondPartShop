@@ -8,6 +8,7 @@ import { requireAdmin } from "@/lib/auth";
 import { getTransactionCaseEvidence } from "@/lib/data/case-evidence";
 import { getTransactionCasesPage } from "@/lib/data/transaction-cases";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { reportOperationalError } from "@/lib/ops-monitoring";
 
 export const dynamic="force-dynamic";
 const label=(value:string)=>value.replaceAll("_"," ").replace(/\b\w/g,letter=>letter.toUpperCase());
@@ -19,12 +20,24 @@ export default async function CommerceAdminPage({searchParams}:{searchParams:Pro
  await requireAdmin("/admin/commerce");
  const page=pageNumber(first(params.page));
  const pageSize=30;
- const result=await getTransactionCasesPage({offset:(page-1)*pageSize,limit:pageSize}).catch(()=>({items:[],hasMore:false,offset:(page-1)*pageSize,limit:pageSize}));
- const cases=result.items;
- const evidenceByCase=await getTransactionCaseEvidence(cases.map(item=>item.id)).catch(()=>new Map());
- const supabase=await createSupabaseServerClient();
- const {data:deliveryReviews}=await supabase.rpc("get_unverified_delivery_payout_reviews",{p_limit:30});
- const payoutReviews=deliveryReviews??[];
+ const loaded=await (async()=>{
+  const result=await getTransactionCasesPage({offset:(page-1)*pageSize,limit:pageSize});
+  const cases=result.items;
+  const evidenceByCase=await getTransactionCaseEvidence(cases.map(item=>item.id));
+  const supabase=await createSupabaseServerClient();
+  const {data:deliveryReviews,error:deliveryReviewsError}=await supabase.rpc("get_unverified_delivery_payout_reviews",{p_limit:30});
+  if(deliveryReviewsError)throw deliveryReviewsError;
+  return {result,cases,evidenceByCase,payoutReviews:deliveryReviews??[]};
+ })().catch(async error=>{
+  await reportOperationalError({
+   component:"commerce_admin",
+   event:"commerce_admin_data_load_failed",
+   error,
+   route:"/admin/commerce"
+  });
+  throw error;
+ });
+ const {result,cases,evidenceByCase,payoutReviews}=loaded;
 
  return <><Header/><main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
   <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-xs font-black uppercase tracking-[.2em] text-[#287154]">Marketplace operations</p><h1 className="mt-2 text-4xl font-black tracking-[-.045em]">Commerce cases</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-[#63706a]">Review buyer returns and disputes. Full refund runs the controlled Stripe reversal/refund path; rejecting the case re-opens an eligible blocked payout.</p></div><div className="flex flex-wrap gap-2"><Link href="/admin/commerce/e2e" className="inline-flex w-fit items-center gap-2 rounded-full border border-[#173c31] bg-[#eef8f3] px-4 py-2.5 text-sm font-black text-[#173c31]"><FlaskConical size={15}/>E2E verifier</Link><Link href="/admin/commerce/settings" className="w-fit rounded-full bg-[#173c31] px-4 py-2.5 text-sm font-black text-white">Commerce settings</Link><Link href="/admin/moderation" className="w-fit rounded-full border border-black/15 px-4 py-2.5 text-sm font-black">Moderation</Link><Link href="/admin/system" className="inline-flex w-fit items-center gap-2 rounded-full border border-black/15 px-4 py-2.5 text-sm font-black"><Settings2 size={15}/>System readiness</Link></div></div>
