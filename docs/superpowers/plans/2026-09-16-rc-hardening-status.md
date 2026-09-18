@@ -6,16 +6,16 @@ This file supersedes `2026-09-15-rc-hardening-status.md` for current execution s
 
 Latest fully verified application-code boundary:
 
-- SHA `efa24de9e59cd2a3fdd63c3141b33e177989f8b7`
-- GitHub Actions `35355788417`: **SUCCESS** across `validate`, `marketplace-scale-postgres` and `last-stock-concurrency`
-- full validation pipeline: lint, typecheck, **604/604 tests**, commerce/release validators, production build, true two-connection last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
-- exact Vercel Preview `dpl_8GymWULrVX4rfPAGKMtWquQa1sLu`
-- exact Preview URL `https://second-part-shop-j9j8020sz-joannakwapis11-5369.vercel.app`
+- SHA `6159916e6eda8ce6ab9c726377f51b51255a784b`
+- GitHub Actions `35359425939`: **SUCCESS** across `validate`, `marketplace-scale-postgres` and `last-stock-concurrency`
+- full validation pipeline: lint, typecheck, **614/614 tests**, commerce/release validators, production build, true two-connection last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
+- exact Vercel Preview `dpl_CagJASFvVzYYB8BqEynzUapuBPaz`
+- exact Preview URL `https://second-part-shop-pvf1yogj8-joannakwapis11-5369.vercel.app`
 - stable branch Preview alias: `https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app`
 - deployment state: READY
 - fresh read-only health smoke on both exact deployment and branch alias: `/api/mobile/v1/health` HTTP 200 with `backendReady:true`
 - `main` untouched
-- no Production application deployment, live Stripe operation or hosted marketplace data mutation was performed by this evidence-read hardening
+- no Production application deployment, live Stripe operation or hosted database migration was performed by this case-evidence cleanup hardening
 
 Current branch HEAD may be documentation-only and ahead of the verified application boundary above.
 
@@ -247,7 +247,24 @@ Evidence loads now fail closed if any signed URL cannot be created; web reaches 
 
 Evidence: `docs/test-runs/2026-09-18-case-evidence-signed-url-fail-closed.md`.
 
-**Follow-up:** failed cleanup after an upload succeeds but evidence registration fails currently has no durable retry queue; this orphan-file cleanup boundary remains separate.
+### Case evidence orphan cleanup outbox — VERIFIED source/app boundary; hosted migration OPEN
+
+Web/mobile evidence upload previously performed one best-effort Storage removal after a successful upload followed by failed DB evidence registration. A failed/uncertain removal had no durable retry authority.
+
+TDD / rollout evidence:
+
+- RED `672630c59cd81626ae85ac7c0638177dd9482a1e`, GitHub Actions `35358590404`: 604 PASS / 10 expected FAIL;
+- source migration `20260918154500_case_evidence_cleanup_outbox.sql` adds a private service-only outbox and participant/path validation;
+- application helper `src/lib/case-evidence-cleanup.ts` queues cleanup before removal when the RPC is available, retries through commerce maintenance and rejects arbitrary paths;
+- web/mobile registration-failure paths delegate to the helper instead of issuing direct untracked deletes;
+- pre-migration `PGRST202` safely preserves the old exact-path cleanup fallback, so Preview remains functional during staged rollout;
+- final application SHA `6159916e6eda8ce6ab9c726377f51b51255a784b`;
+- final GitHub Actions `35359425939`: **614/614 PASS**, all commerce/release validators and production build PASS;
+- exact Preview `dpl_CagJASFvVzYYB8BqEynzUapuBPaz`: READY.
+
+**Remaining boundary:** the new migration is source-controlled but has not been applied to the connected `secondpart` project. Durable hosted retry is therefore not yet claimed active; hosted deployment/readback requires explicit authorization.
+
+Evidence: `docs/test-runs/2026-09-18-case-evidence-orphan-cleanup.md`.
 
 ## Current gap register
 
