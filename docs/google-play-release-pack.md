@@ -1,10 +1,28 @@
 # SecondPart — Google Play Release Pack
 
-Snapshot: 2026-09-10
+Snapshot: 2026-09-18
 Package: `com.secondpart.marketplace`
 Status: pre-submission working pack; re-check against the exact production AAB and Play Console forms on submission day.
 
 This document keeps the Google Play release answers consistent. Credentials, signing secrets, Firebase files, Stripe secrets and personal verification documents must never be committed here.
+
+
+## Current RC evidence snapshot
+
+This pack is aligned to the latest fully verified application-code boundary rather than the older 2026-09-10 snapshot:
+
+- verified application SHA: `0c849e2a23a80b1909d168c0c877884f5945d107`;
+- GitHub Actions `35215533760`: `validate`, `marketplace-scale-postgres` and `last-stock-concurrency` all SUCCESS;
+- exact Preview deployment `dpl_286wQCAtkkcCcifyTQg2BV8Zxpec`: READY;
+- Android Preview artifact source SHA `b0ff850904abc073d0e2b9a50ba1e1dcb5aad048`, workflow `35214653966`, artifact id `10493049326`, digest `sha256:99c819b6a6ee5297fbc1650ac7f893aff7b847371d7c48ee78a2d893f7e352cf`;
+- the Preview Android artifact is build/signing evidence only; the physical-device/test-track matrix remains external;
+- Stripe sandbox evidence includes the normal commerce happy path plus one genuine full-refund flow after payout release, including a successful payout reversal and idempotent provider retry;
+- decline/abandon/retry and full provider/UI last-stock race remain unsigned because they require a truthful active checkout-ready disposable listing;
+- Find My Part seller-response comparison is engineering/exact-Preview verified;
+- destructive account deletion still requires the controlled Supabase Auth TokenHash email-template change and a fresh disposable confirmed account;
+- the current Supabase organisation is on Free; leaked-password protection is a Pro+ configuration gate and is not an application-code defect.
+
+Do not use this section to waive the remaining external/provider/device gates.
 
 ## 1. Store identity
 
@@ -219,8 +237,8 @@ Before pressing Submit for review, retain evidence that:
 - App Links work from a Google Play test-track installation, not only a locally signed build;
 - network loss/recovery is acceptable;
 - FCM notification E2E passes;
-- real Stripe test-mode commerce E2E and edge cases have passed using `docs/commerce-e2e-runbook.md` before public commerce;
-- payout-transfer recovery migration is deployed and verified in the release database before money-flow sign-off;
+- Stripe sandbox happy-path plus the verified full-refund/released-payout-reversal path remain green, and the still-open adverse checkout/retry/provider-race scenarios in `docs/commerce-e2e-runbook.md` are completed before public commerce;
+- staged commerce/database grants required by the current RC, including the source-controlled `seller_checkout_ready` anonymous EXECUTE revoke, are deployed and re-read in the explicitly authorised release database before money-flow sign-off;
 - destructive account-deletion QA passes using `docs/account-deletion-e2e-runbook.md`;
 - Production critical alerts have a real destination;
 - `/admin/system/alerts` returns a successful HTTP 2xx smoke result and the fixed smoke alert is visibly confirmed in the intended operations destination;
@@ -230,20 +248,24 @@ Before pressing Submit for review, retain evidence that:
 ## 9. Current external blockers
 
 These cannot be represented as complete merely by committing code:
+- final contracting/developer identity for Production, currently waiting on the planned UK Ltd incorporation and downstream business setup;
 - stable production domain/origin;
 - permanent Google Play upload key and production signing secrets;
-- Play Console app creation / Play App Signing configuration and its final app-signing SHA-256 fingerprint set;
+- Play Console Organisation app creation / developer-account verification / Play App Signing configuration and its final app-signing SHA-256 fingerprint set;
 - Production `ANDROID_APP_LINK_SHA256_FINGERPRINTS` and GitHub `ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS` configuration;
 - production Firebase `google-services.json` secret;
 - final Vercel production environment access;
 - real monitored public support/privacy mailbox;
 - real Production critical-alert destination and successful smoke alert;
-- current Supabase connector permission needed to deploy/verify the pending payout-recovery migration;
-- Play Console developer/account verification and manual declarations;
+- controlled deployment/readback of the staged `20260916144500_restrict_seller_checkout_ready_anon.sql` grant migration in an explicitly authorised Supabase environment;
+- controlled Supabase Auth confirmation/recovery email-template wiring to `TokenHash`, followed by a fresh legitimate confirmation lifecycle;
+- destructive account-deletion E2E using a fresh disposable confirmed account;
+- Supabase Pro+ plan/configuration if leaked-password protection remains a launch gate; the current organisation is Free;
 - physical-device/test-track QA using `docs/android-rc-test-matrix.md`;
-- real Stripe test transactions;
-- destructive deletion QA using a disposable account;
-- reviewer/demo account creation.
+- truthful checkout-ready provider fixture for decline/abandon/retry and full provider/UI last-stock race;
+- natural 48-hour release observation if retained as release evidence;
+- reviewer/demo account creation and Play Console manual declarations;
+- real marketplace seller supply/liquidity.
 
 ## Release protocols in this repository
 
