@@ -3,7 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { cleanupFailedCaseEvidenceUpload } from "@/lib/case-evidence-cleanup";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
 
@@ -42,8 +42,7 @@ export async function uploadCaseEvidence(_previous:ActionState,formData:FormData
    p_mime_type:file.type
   });
   if(registerError){
-   const admin=createSupabaseAdminClient();
-   await admin.storage.from("case-evidence").remove([path]);
+   await cleanupFailedCaseEvidenceUpload(user.id,caseId,path);
    return {status:"error",message:registerError.message.includes("maximum")?"This case already has the maximum number of evidence images.":"The evidence image could not be attached to this case."};
   }
  }
