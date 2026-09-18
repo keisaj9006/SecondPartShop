@@ -168,7 +168,7 @@ Google Play requires apps that create accounts to provide both an in-app deletio
 
 Current source/release-preparation evidence must be read with these limitations:
 
-- latest fully verified application-code SHA is `0c849e2a23a80b1909d168c0c877884f5945d107`, with GitHub Actions `35215533760` green across validation, isolated 100k PostgreSQL scale proof and true two-connection last-stock concurrency;
+- latest fully verified application-code SHA is `c830cb6f85812c682a6dfc0cfb07393102b74104`, with GitHub Actions `35346135192` green across **578/578 tests**, commerce/release validators, production build, isolated 100k PostgreSQL scale proof and true two-connection last-stock concurrency;
 - the current connected Supabase organisation is on the **Free** plan. Supabase leaked-password protection remains disabled and requires **Pro+**; do not represent it as enabled in Play/security material until the plan and project configuration are actually changed and re-read;
 - application support for server-side Supabase Auth `TokenHash` confirmation is implemented and Preview-verified, but the project-level confirmation/recovery email templates still need a controlled configuration change before a new real token-hash email lifecycle is signed off;
 - `supabase/migrations/20260916144500_restrict_seller_checkout_ready_anon.sql` was explicitly authorised and applied to the connected `secondpart` project on 2026-09-18 as hosted migration `20260918122032 / restrict_seller_checkout_ready_anon`; privilege readback is `anon=false`, `authenticated=true`, `service_role=true`;
