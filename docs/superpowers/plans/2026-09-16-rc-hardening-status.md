@@ -1,4 +1,4 @@
-# SecondPart RC hardening — current status 2026-09-17
+# SecondPart RC hardening — current status 2026-09-18
 
 This file supersedes `2026-09-15-rc-hardening-status.md` for current execution status. The original `2026-09-12-rc-hardening.md` remains the historical plan and defect register. `VERIFIED` applies only to the observed boundary; external prerequisites are not waived by green CI.
 
@@ -6,18 +6,36 @@ This file supersedes `2026-09-15-rc-hardening-status.md` for current execution s
 
 Latest fully verified application-code boundary:
 
-- SHA `62fba262a4351d30503441ec73d57cc90211564d`
-- GitHub Actions `35209338887`: **SUCCESS**
-- full validation pipeline: lint, typecheck, full tests, release validators, production build, true last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
-- exact Vercel Preview `dpl_BtCP66VCyaU6Hg5dB15wCiZdxbAY`
-- exact Preview URL `https://second-part-shop-ooy1rbil9-joannakwapis11-5369.vercel.app`
+- SHA `0c849e2a23a80b1909d168c0c877884f5945d107`
+- GitHub Actions `35215533760`: **SUCCESS** across `validate`, `marketplace-scale-postgres` and `last-stock-concurrency`
+- full validation pipeline: lint, typecheck, full tests, release validators, production build, true two-connection last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
+- exact Vercel Preview `dpl_286wQCAtkkcCcifyTQg2BV8Zxpec`
+- exact Preview URL `https://second-part-shop-3msj1gxh0-joannakwapis11-5369.vercel.app`
+- stable branch Preview alias: `https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app`
 - deployment state: READY
+- read-only Preview smoke: `/api/mobile/v1/health` HTTP 200 with `backendReady:true`; homepage HTTP 200 with current vehicle chooser, compatibility control and mobile-navigation markup
 - `main` untouched
 - no Production configuration or data modified in this execution session
 
-Current branch head after evidence-only work is documentation-only and may be ahead of the clean code boundary.
+Current branch head is documentation-only SHA `ee8a76e1f3bf3b53b8a57b87bed8c39a25da670d`, whose parent is the verified code boundary above.
 
 ## Newly closed / hardened
+
+### Android Preview build pipeline — VERIFIED build/artifact boundary; physical-device gate remains EXTERNAL
+
+The current Android Preview workflow successfully produced a signed debug Preview artifact against the stable `rebuild-nextjs` Preview origin.
+
+- artifact source SHA: `b0ff850904abc073d0e2b9a50ba1e1dcb5aad048`;
+- GitHub Actions run: `35214653966` — SUCCESS;
+- artifact: `SecondPart-Android-Preview-Manual`, id `10493049326`;
+- artifact digest: `sha256:99c819b6a6ee5297fbc1650ac7f893aff7b847371d7c48ee78a2d893f7e352cf`;
+- workflow verified the generated Capacitor wrapper targets the stable branch Preview alias and completed Java/Android toolchain setup, deep-link patching, Capacitor sync, Firebase Preview config, `assembleDebug`, signer verification and artifact upload;
+- the only application-boundary changes from `b0ff850...` to the current verified SHA `0c849e...` are validator/test alignment changes, not Android runtime/app-wrapper behavior.
+
+Evidence: `docs/test-runs/2026-09-17-android-preview-current-head-checkpoint.md`.
+
+This does **not** replace the physical signed-device matrix. App Links, FCM receipt, image upload and external-return behavior still require a real Android device/test-track observation before release sign-off.
+
 
 ### Find My Part seller-response comparison — VERIFIED engineering + exact Preview boundary
 
@@ -111,7 +129,7 @@ Evidence: `docs/test-runs/2026-09-16-auth-confirmation-and-rpc-grant-hardening.m
 | Delayed/out-of-order events | **VERIFIED code + deployed SQL + hosted PG17** | Hosted rollback probes cover key adverse ordering. Deliberate Stripe-side replay of every ordering remains a separate provider boundary. |
 | Received / Accept / 48 h | **VERIFIED state semantics + explicit-Accept provider path; natural elapsed observation pending** | No currently pending received item exists. Never alter historic timestamps to manufacture evidence. |
 | Roles / authorization | **VERIFIED current app + hosted DB boundary** | Admin pages/actions and RPC boundaries have negative-path evidence. Temporary alert-test admin elevation was reverted to seller. |
-| Auth password hardening | **VERIFIED app/config scoped; leaked-password check PLAN-LIMITED** | Minimum password/current-password safeguards are in place. Supabase security advisor still reports leaked-password protection disabled; repository evidence classifies provider leaked-password protection as plan-limited and no project Auth setting was changed in this session. |
+| Auth password hardening | **VERIFIED app/config scoped; leaked-password check PLAN-LIMITED** | Minimum password/current-password safeguards are in place. Fresh provider/account readback confirms the current Supabase organisation is on **Free** and leaked-password protection is a **Pro+** feature, so the remaining gate is an explicit plan upgrade/configuration decision rather than an application-code defect. |
 | Auth Preview email origin | **VERIFIED code + fresh email redirect boundary** | Preview confirmation email uses a Preview origin rather than localhost. |
 | Auth token-hash confirmation | **VERIFIED application support; project template config OPEN** | Server-side `/auth/confirm` + `verifyOtp` is green and deployed. Supabase confirmation/recovery templates still need controlled TokenHash wiring before a new email lifecycle can be signed off. |
 | RLS / Storage / private data | **VERIFIED scoped hosted + public serialization; one DB grant hardening staged** | Private seller/draft/evidence boundaries and public allowlists remain verified. `seller_checkout_ready` anon revoke is source-controlled and green but intentionally not applied to the connected Supabase database yet. |
@@ -153,7 +171,7 @@ Evidence: `docs/test-runs/2026-09-16-account-deletion-e2e-attempt.md` and `docs/
 3. **Natural 48 h auto-release provider observation** — requires a fresh legitimate received order and elapsed window if retained as beta sign-off evidence.
 4. **Physical Android signed-device matrix** — app links, FCM receipt, image upload and external-return flows.
 5. **Destructive account deletion E2E** — configure/verify the normal token-hash Supabase Auth email-template path, then use a fresh disposable confirmed account only.
-6. **Auth leaked-password protection** — provider/project plan/configuration gate; current advisor still reports it disabled.
+6. **Auth leaked-password protection** — current Supabase organisation is Free; leaked-password protection requires Pro+ and remains disabled until the explicit plan/configuration upgrade.
 7. **Controlled DB deployment of `20260916144500_restrict_seller_checkout_ready_anon.sql`** — in an explicitly authorised Supabase environment, then verify `anon` denied while `authenticated` and `service_role` retain EXECUTE.
 8. **Legal/support operations** — contracting identity, retention/privacy wording sign-off and monitored support mailbox.
 9. **Marketplace liquidity / real seller supply** — operational business gate.
