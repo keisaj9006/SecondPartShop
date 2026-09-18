@@ -75,6 +75,29 @@ The APK was built from `b0ff850...`, not from `0c849e2...`. Comparing `b0ff850..
 
 No application, Android wrapper, Capacitor configuration or runtime frontend file changed in that interval. Therefore this artifact is valid evidence for the runtime produced immediately before the validator-only repair, while the current HEAD has the fresh green branch QA that verifies the corrected invariant.
 
+## Android 16 / 16 KB native-library static audit — 2026-09-18
+
+The retained Preview APK was downloaded from GitHub Actions artifact `10493049326` and inspected directly rather than inferred from source dependencies.
+
+Current Google Play technical requirements require apps containing native code to support devices using 16 KB memory page sizes. The current production pipeline separately enforces `compileSdkVersion = 36` and `targetSdkVersion = 36`, matching the Google Play target-API requirement effective from 2026-08-31.
+
+Observed APK native libraries:
+
+- `libdatastore_shared_counter.so`;
+- `libimage_processing_util_jni.so`;
+- `libsurface_util_jni.so`;
+
+for `arm64-v8a`, `armeabi-v7a`, `x86` and `x86_64`.
+
+Direct ELF program-header inspection showed every LOAD segment in every retained native library with alignment `0x4000` (16,384 bytes). Direct ZIP local-header inspection also showed every native library stored uncompressed and beginning at a data offset divisible by 16,384. The 64-bit ABI set therefore passes the static 16 KB alignment checks on this Preview artifact.
+
+This is strong build-artifact evidence, but it is **not** a substitute for the exact Production AAB/Play Console compatibility result or a physical/emulator 16 KB runtime test. The Production release gate must repeat compatibility inspection on the exact submitted AAB.
+
+Official references:
+- https://support.google.com/googleplay/android-developer/answer/11926878
+- https://developer.android.com/guide/practices/page-sizes
+- https://support.google.com/googleplay/android-developer/answer/17492799
+
 ## Root cause closed by the current HEAD
 
 The Android Preview generator/workflow had already moved to the stable `rebuild-nextjs` Preview alias, while the mobile-performance validator still asserted the older convenience Preview origin. The app/runtime configuration and QA invariant therefore disagreed. `0c849e2...` aligns the validator with the intended stable branch Preview origin; the full `rebuild-nextjs QA` then passed.
