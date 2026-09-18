@@ -73,7 +73,18 @@ export async function POST(request:Request){
    catalogueFuel:vehicleFuel||undefined,
    catalogueEngineSize:vehicleEngine
   };
-  const compatibility=await getPartCompatibility(partId,filters).catch(()=>null);
+  let compatibility;
+  try{
+   compatibility=await getPartCompatibility(partId,filters);
+  }catch(error){
+   await reportOperationalError({
+    component:"checkout",
+    event:"mobile_checkout_compatibility_check_failed",
+    error,
+    route:"/api/mobile/v1/checkout"
+   });
+   return mobileJson(request,{ok:false,error:"compatibility_check_unavailable"},503);
+  }
   if(compatibility&&(compatibility.level==="family_match"||compatibility.level==="unverified")&&!compatibilityAcknowledged){
    return mobileJson(request,{ok:false,error:"compatibility_acknowledgement_required",compatibility},409);
   }
