@@ -171,7 +171,7 @@ Current source/release-preparation evidence must be read with these limitations:
 - latest fully verified application-code SHA is `0c849e2a23a80b1909d168c0c877884f5945d107`, with GitHub Actions `35215533760` green across validation, isolated 100k PostgreSQL scale proof and true two-connection last-stock concurrency;
 - the current connected Supabase organisation is on the **Free** plan. Supabase leaked-password protection remains disabled and requires **Pro+**; do not represent it as enabled in Play/security material until the plan and project configuration are actually changed and re-read;
 - application support for server-side Supabase Auth `TokenHash` confirmation is implemented and Preview-verified, but the project-level confirmation/recovery email templates still need a controlled configuration change before a new real token-hash email lifecycle is signed off;
-- `supabase/migrations/20260916144500_restrict_seller_checkout_ready_anon.sql` is source-controlled and green but has **not** been applied to the connected Supabase project under the Preview-only execution scope; hosted anonymous EXECUTE therefore remains unchanged until an explicitly authorised deployment;
+- `supabase/migrations/20260916144500_restrict_seller_checkout_ready_anon.sql` was explicitly authorised and applied to the connected `secondpart` project on 2026-09-18 as hosted migration `20260918122032 / restrict_seller_checkout_ready_anon`; privilege readback is `anon=false`, `authenticated=true`, `service_role=true`;
 - the latest Android Preview build/artifact proves the Preview wrapper/build/signing path only. It does **not** replace inspection of the merged manifest, SDK set, permissions and provider configuration from the exact Production AAB submitted to Google Play;
 - destructive account-deletion code/preflight is implemented, but the full Auth + DB + Storage destructive lifecycle still requires a fresh disposable legitimately confirmed account after the Auth template gate above is resolved.
 
@@ -184,7 +184,7 @@ Do not claim security properties only because the code intends them. Before Play
 - production WebView debugging/logging are disabled;
 - secrets are server-side and absent from the AAB/web client;
 - RLS/service-role boundaries are applied to the production Supabase project;
-- payout/deletion/admin RPC grants match migrations, including deployment/readback of any source-controlled least-privilege grant changes that are still staged at RC time;
+- payout/deletion/admin RPC grants match migrations, including retained readback evidence for the deployed `seller_checkout_ready` least-privilege grant and any later source-controlled grant changes;
 - if leaked-password protection is included in the final security baseline, the Production Supabase organisation/project is on a supporting plan and the setting is confirmed enabled;
 - production FCM and Stripe credentials are isolated from Preview/test configuration;
 - the exact submitted AAB's `android-release-permissions.txt` contains no release-blocked sensitive permission.
