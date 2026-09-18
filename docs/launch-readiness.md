@@ -1,9 +1,27 @@
 # SecondPart Launch Readiness
 
-Snapshot: 2026-09-11
+Snapshot: 2026-09-18
 Branch: `rebuild-nextjs`
 
 This document is the canonical launch checklist for the Android / Google Play and public marketplace release. It deliberately separates code readiness from marketplace liquidity, and it distinguishes code-level safeguards from real provider/device E2E evidence.
+
+## Current RC status sync — 2026-09-18
+
+For current release execution status, `docs/superpowers/plans/2026-09-16-rc-hardening-status.md` is the source of truth. Historical evidence below is retained, but it must not be used to override the current boundary.
+
+Latest fully verified application-code boundary is `0c849e2a23a80b1909d168c0c877884f5945d107` with GitHub Actions run `35215533760` green across validation, isolated 100k PostgreSQL marketplace proof and true two-connection last-stock concurrency. Current branch HEAD may be documentation-only and ahead of that code boundary.
+
+Current important open gates include:
+- adverse Stripe checkout provider/UI Scenario H and the full provider/UI last-stock race, both requiring a truthful active checkout-ready disposable listing;
+- natural 48-hour release observation if retained as beta/release evidence;
+- physical Android/test-track matrix and real FCM/device return paths;
+- controlled Supabase Auth `TokenHash` email-template configuration followed by a fresh confirmed-account lifecycle;
+- controlled deployment/readback of `20260916144500_restrict_seller_checkout_ready_anon.sql`;
+- leaked-password protection, which is a Supabase **Pro+** configuration gate while the current organisation is on Free;
+- destructive account-deletion E2E after the Auth template gate;
+- final legal/support/contracting identity and real marketplace liquidity.
+
+One real Stripe sandbox full-refund flow after payout release, including payout reversal and idempotent retry, is already verified and is not an open generic refund/reversal gap.
 
 ## Current verified engineering baseline
 
@@ -59,7 +77,7 @@ Commerce QA update (2026-09-11): QA Seller Connect and Preview webhook delivery/
 - [x] Retryable Stripe `payment_intent.payment_failed` no longer releases stock by itself; provider state is reconciled and only provider-confirmed expiry/final async failure can release the reservation.
 - [x] Terminal Stripe Checkout expiry / async payment failure now restores inventory and creates a deduplicated buyer notification atomically in `cancel_checkout_order`; the notification links back to the affected order without exposing payment secrets.
 - [x] Stripe paid confirmation now serialises against terminal cancellation on the authoritative order row and rejects a mismatched Checkout Session at the database boundary. Migration `20260911093000_confirm_checkout_paid_provider_guard.sql` was deployed and privilege-verified against the live `secondpart` Supabase project on 2026-09-11; only `service_role` can execute the function.
-- [x] Commerce release QA includes Scenario H: declined payment attempt -> retry -> successful payment, specifically guarding against `paid at Stripe / cancelled in SecondPart` split-brain state.
+- [ ] Scenario H provider/UI sign-off remains open: declined payment attempt -> retry -> successful payment must be observed through a truthful active checkout-ready disposable listing. Code/harness safeguards exist, but they do not substitute for the missing provider/UI evidence.
 - [x] Operational account-deletion processor is implemented with hard Auth deletion, identity detachment, PII cleanup, storage cleanup, blockers and retry-safe maintenance processing.
 - [x] Account-deletion completion verifies identity state directly against Supabase Auth and fails closed when Auth deletion cannot be confirmed; partially completed deletions can retry the hard-delete safely.
 - [x] Retained transaction-case evidence is moved through the Storage API to a deterministic service-role retained path before Auth deletion; the deleted profile UUID/original filename is removed while required evidence remains retained.
@@ -94,14 +112,16 @@ Commerce QA update (2026-09-11): QA Seller Connect and Preview webhook delivery/
 - [x] Deploy `20260911093000_confirm_checkout_paid_provider_guard.sql`. Verified on 2026-09-11: paid confirmation locks the order row, rejects cancelled orders and mismatched Checkout Sessions, and remains executable only by `service_role`.
 - [x] Complete a real Stripe test-mode E2E transaction: buyer checkout -> webhook confirmation -> seller fulfilment -> buyer receipt/acceptance -> payout eligibility.
   - Scenario A passed on 2026-09-11: distinct approved QA users, synthetic normal-flow listing, paid order, tracked fulfilment, receipt review window and explicit acceptance produced one test Connect transfer. API and database evidence, replay results and limits are in `docs/test-runs/2026-09-11-commerce-preview-preflight.md`.
-- [ ] Test cancellation, refund, return/case, payment-dispute and payout-reversal paths end to end.
+- [x] Verify one real Stripe sandbox full-refund flow after payout release, including payout reversal and idempotent provider retry. This scoped provider E2E is complete.
+- [ ] Complete the remaining distinct adverse commerce variants still required by the RC runbook, including return/case and payment-dispute provider paths; do not relabel the verified full-refund/reversal scenario as proof of every refund/dispute variant.
 - [ ] Test Scenario G concurrency/stock reservation with stock `1` and competing checkout attempts; exactly one reservation must win and cancellation/expiry must restore stock at most once.
 - [ ] Test Scenario H with a declined Stripe test payment followed by a successful retry in the same Checkout flow; stock must remain reserved after the failed attempt and the order must finish paid exactly once.
 - [x] Decide and document the payout policy when a buyer never marks an item as received and no trusted carrier delivery event exists.
 - [x] Define the account-data retention matrix for transactions, disputes, fraud prevention and legal records.
 - [x] Implement the operational account deletion/anonymisation processor; a request no longer merely freezes an account. See `docs/account-data-retention.md`.
+- [ ] Configure the Supabase Auth confirmation/recovery email templates to emit `TokenHash` into the deployed `/auth/confirm` route and verify a fresh legitimate confirmation lifecycle.
 - [ ] Run destructive account-deletion E2E on a disposable QA account: request -> claim -> listing-image cleanup -> retained case-evidence ownership/path detach -> PII transformation -> hard Auth delete -> completed audit record -> idempotent second pass.
-- [ ] Enable Supabase Auth leaked-password protection and verify it remains enabled before public account creation at scale. This is a project Auth setting and is not changed by database migrations.
+- [ ] Upgrade/configure Supabase so leaked-password protection can be enabled and re-read before public account creation at scale. The current organisation is on Free and this provider control requires **Pro+**; it is a plan/project configuration gate, not an application-code defect.
 - [ ] Final legal review of Privacy Policy and Terms with real contracting/developer identity, contact details, consumer-rights wording, seller obligations, returns/refunds, fees and retention.
 - [ ] Add/configure the real public privacy/support contact suitable for the Play listing. The code path is implemented; Production mailbox configuration is still required.
 - [x] Add production error/crash monitoring for web/API/checkout/commerce failures with structured logs and privacy-safe browser telemetry. See `docs/operations-monitoring.md`.
