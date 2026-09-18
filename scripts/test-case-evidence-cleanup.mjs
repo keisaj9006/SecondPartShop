@@ -112,6 +112,20 @@ test("invalid cleanup path is never removed even when queueing is unavailable",a
  assert.equal(h.events.some(e=>e[0]==="remove"),false);
 });
 
+test("uncertain queue failure never removes Storage bytes",async()=>{
+ const h=cleanupHarness({queueError:{code:"PGRST001",message:"database unavailable"}});
+ assert.equal(await h.api.cleanupFailedCaseEvidenceUpload(userId,caseId,storagePath),false);
+ assert.equal(h.events.some(e=>e[0]==="remove"),false,"Uncertain queue outcome must fail closed on Storage deletion.");
+ assert.equal(h.warnings.some(w=>w.event==="case_evidence_cleanup_queue_failed"),true);
+});
+
+test("ambiguous empty queue response never removes Storage bytes",async()=>{
+ const h=cleanupHarness({queueData:null});
+ assert.equal(await h.api.cleanupFailedCaseEvidenceUpload(userId,caseId,storagePath),false);
+ assert.equal(h.events.some(e=>e[0]==="remove"),false,"Null queue result is not cleanup authority.");
+ assert.equal(h.warnings.some(w=>w.event==="case_evidence_cleanup_queue_uncertain"),true);
+});
+
 test("worker leaves failed Storage cleanup queued for retry",async()=>{
  const h=cleanupHarness({storageError:{message:"storage failed"}});
  const result=await h.api.processCaseEvidenceCleanup(50);
