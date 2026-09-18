@@ -143,7 +143,8 @@ export async function getBuyerCaseOrderItem(profileId:string,orderItemId:string)
   .eq("id",orderItemId)
   .eq("orders.buyer_id",profileId)
   .maybeSingle();
- if(error||!data)return null;
+ if(error)throw new Error("Buyer case purchase is temporarily unavailable.");
+ if(!data)return null;
  const raw=data as unknown as EligibleOrderItemRow;
  const part=one(raw.parts);
  const seller=one(raw.sellers);
