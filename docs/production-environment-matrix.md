@@ -105,9 +105,10 @@ Required Production state:
 - `20260916144500_restrict_seller_checkout_ready_anon.sql` is deployed in the explicitly authorised release database and read back with `anon` denied while `authenticated` and `service_role` retain the required EXECUTE boundary;
 - Supabase Auth confirmation/recovery email templates are wired to the application `TokenHash` confirmation route and a fresh legitimate confirmation lifecycle is verified;
 - leaked-password protection is enabled if it remains in the launch security baseline; the current organisation is on Free and this provider control requires a supporting Pro+ plan;
-- destructive deletion processor migration/state is verified and the full Auth + database + Storage deletion lifecycle passes on a fresh disposable confirmed account.
+- destructive deletion processor migration/state is verified and the full Auth + database + Storage deletion lifecycle passes on a fresh disposable confirmed account;
+- `20260918154500_case_evidence_cleanup_outbox.sql` is deployed/read back before claiming durable hosted retry for failed case-evidence attachment cleanup.
 
-**Current RC boundary:** the `seller_checkout_ready` least-privilege grant was explicitly authorised, deployed to the connected `secondpart` project on 2026-09-18 as hosted migration `20260918122032 / restrict_seller_checkout_ready_anon`, and read back as `anon=false`, `authenticated=true`, `service_role=true`. The application-side `TokenHash` route is implemented, but the project email templates are still open configuration. Leaked-password protection is plan/configuration-limited rather than an application-code defect.
+**Current RC boundary:** the `seller_checkout_ready` least-privilege grant was explicitly authorised, deployed to the connected `secondpart` project on 2026-09-18 as hosted migration `20260918122032 / restrict_seller_checkout_ready_anon`, and read back as `anon=false`, `authenticated=true`, `service_role=true`. The case-evidence cleanup outbox migration is source-controlled but **not yet applied** to the connected project; read-only preflight confirms the cleanup table/RPCs are absent and the private `case-evidence` bucket currently contains zero objects/orphans. The application-side `TokenHash` route is implemented, but the project email templates are still open configuration. Leaked-password protection is plan/configuration-limited rather than an application-code defect.
 
 ## 6. Stripe
 
