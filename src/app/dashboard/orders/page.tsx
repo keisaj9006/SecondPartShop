@@ -19,7 +19,7 @@ export default async function SellerOrdersPage({searchParams}:{searchParams:Prom
  const page=pageNumber(first(params.page));
  const pageSize=30;
  const seller=await getSellerForOwner(user.id);
- const result=seller?await getSellerSalesPage(seller.id,{offset:(page-1)*pageSize,limit:pageSize}).catch(()=>({items:[],hasMore:false,offset:(page-1)*pageSize,limit:pageSize})):{items:[],hasMore:false,offset:0,limit:pageSize};
+ const result=seller?await getSellerSalesPage(seller.id,{offset:(page-1)*pageSize,limit:pageSize}):{items:[],hasMore:false,offset:0,limit:pageSize};
  const sales=result.items;
 
  return <><Header/><main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
