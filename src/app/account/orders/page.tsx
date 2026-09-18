@@ -18,7 +18,7 @@ export default async function PurchasesPage({searchParams}:{searchParams:Promise
  const [user,params]=await Promise.all([requireUser("/account/orders"),searchParams]);
  const page=pageNumber(first(params.page));
  const pageSize=20;
- const result=await getBuyerOrdersPage(user.id,{offset:(page-1)*pageSize,limit:pageSize}).catch(()=>({items:[],hasMore:false,offset:(page-1)*pageSize,limit:pageSize}));
+ const result=await getBuyerOrdersPage(user.id,{offset:(page-1)*pageSize,limit:pageSize});
  const orders=result.items;
 
  return <><Header/><main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
