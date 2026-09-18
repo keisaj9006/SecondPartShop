@@ -7,12 +7,11 @@ import { getSellerForOwner } from "@/lib/data/marketplace";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { reportOperationalError } from "@/lib/ops-monitoring";
+import { syncSellerPaymentAccount } from "@/lib/seller-payment-sync";
 import {
  createStripeOnboardingLink,
  createStripeRecipientAccount,
- getStripeRecipientAccount,
- isStripeConnectConfigured,
- recipientTransferStatus
+ isStripeConnectConfigured
 } from "@/lib/stripe-connect";
 
 export async function startStripeOnboarding(){
@@ -67,28 +66,9 @@ export async function refreshStripePaymentStatus(){
  const seller=await getSellerForOwner(user.id);
  if(!seller)redirect("/dashboard");
 
- const supabase=await createSupabaseServerClient();
- const {data}=await supabase
-  .from("seller_payment_accounts")
-  .select("provider_account_id")
-  .eq("seller_id",seller.id)
-  .maybeSingle();
-
- if(!data?.provider_account_id)redirect("/dashboard/payments");
-
  let synced=false;
  try{
-  const account=await getStripeRecipientAccount(data.provider_account_id);
-  const transferStatus=recipientTransferStatus(account);
-  const complete=transferStatus==="active";
-  const admin=createSupabaseAdminClient();
-  const {error}=await admin.from("seller_payment_accounts").update({
-   onboarding_status:complete?"complete":"pending",
-   transfers_enabled:complete,
-   payouts_enabled:complete,
-   details_submitted:complete
-  }).eq("seller_id",seller.id);
-  if(error)throw error;
+  await syncSellerPaymentAccount(seller.id);
   synced=true;
   revalidatePath("/dashboard/payments");
  }catch(error){
