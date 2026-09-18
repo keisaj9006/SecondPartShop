@@ -44,8 +44,8 @@ test("case evidence cleanup migration defines a service-only durable outbox",()=
  assert.match(sql,/get_case_evidence_cleanup_queue/i);
  assert.match(sql,/complete_case_evidence_cleanup/i);
  assert.match(sql,/fail_case_evidence_cleanup/i);
- assert.match(sql,/o\.buyer_id\s*=\s*p_uploader_id|p_uploader_id\s*=\s*o\.buyer_id/i);
- assert.match(sql,/s\.owner_id\s*=\s*p_uploader_id|p_uploader_id\s*=\s*s\.owner_id/i);
+ assert.match(sql,/participant\.buyer_id\s+is\s+distinct\s+from\s+p_uploader_id/i);
+ assert.match(sql,/participant\.owner_id\s+is\s+distinct\s+from\s+p_uploader_id/i);
  assert.match(sql,/transaction_case_evidence/i);
  assert.match(sql,/grant execute on function public\.queue_orphan_case_evidence_cleanup[\s\S]*?to service_role/i);
  assert.doesNotMatch(sql,/grant execute on function public\.queue_orphan_case_evidence_cleanup[\s\S]*?to authenticated/i);
