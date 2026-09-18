@@ -15,6 +15,8 @@ This pack is aligned to the latest fully verified application-code boundary rath
 - GitHub Actions `35215533760`: `validate`, `marketplace-scale-postgres` and `last-stock-concurrency` all SUCCESS;
 - exact Preview deployment `dpl_286wQCAtkkcCcifyTQg2BV8Zxpec`: READY;
 - Android Preview artifact source SHA `b0ff850904abc073d0e2b9a50ba1e1dcb5aad048`, workflow `35214653966`, artifact id `10493049326`, digest `sha256:99c819b6a6ee5297fbc1650ac7f893aff7b847371d7c48ee78a2d893f7e352cf`;
+- current Production pipeline explicitly enforces Android 16 / API 36 (`compileSdkVersion = 36`, `targetSdkVersion = 36`), matching the Google Play target-API requirement effective 2026-08-31;
+- direct inspection of the retained Preview APK found native `.so` libraries with 16 KB (`0x4000`) ELF LOAD alignment and 16 KB-aligned uncompressed APK data offsets; repeat this compatibility check on the exact submitted Production AAB/Play Console because Preview artifact evidence is not the final release gate;
 - the Preview Android artifact is build/signing evidence only; the physical-device/test-track matrix remains external;
 - Stripe sandbox evidence includes the normal commerce happy path plus one genuine full-refund flow after payout release, including a successful payout reversal and idempotent provider retry;
 - decline/abandon/retry and full provider/UI last-stock race remain unsigned because they require a truthful active checkout-ready disposable listing;
@@ -229,6 +231,7 @@ Before pressing Submit for review, retain evidence that:
 - AAB package/version/upload signature are correct;
 - AAB SHA-256 and upload signer SHA-256 are recorded in `android-release-evidence.json` / `.txt`;
 - merged Release permissions are retained in `android-release-permissions.txt`;
+- exact Production AAB targets API 36 and passes the current Google Play native-code / 16 KB page-size compatibility check;
 - test-track install succeeds on a physical Android device;
 - the complete P0 physical-device matrix in `docs/android-rc-test-matrix.md` passes;
 - sign-up/sign-in/logout/recovery works;
@@ -284,3 +287,5 @@ These cannot be represented as complete merely by committing code:
 - Target audience/content: https://support.google.com/googleplay/android-developer/answer/9867159
 - Content rating requirements: https://support.google.com/googleplay/android-developer/answer/9859655
 - Play App Signing: https://support.google.com/googleplay/android-developer/answer/9842756
+- Target API level requirements: https://support.google.com/googleplay/android-developer/answer/11926878
+- 16 KB page-size compatibility: https://developer.android.com/guide/practices/page-sizes
