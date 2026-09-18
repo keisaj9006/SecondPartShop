@@ -42,7 +42,7 @@ const checks=[
  ["Commerce operations must link to the E2E verifier",commerceAdminPage.includes('href="/admin/commerce/e2e"')&&commerceAdminPage.includes("E2E verifier")],
  ["System readiness must link directly to Commerce E2E",systemPage.includes('href="/admin/commerce/e2e"')&&systemPage.includes("Commerce E2E")],
  ["Canonical Stripe seller sync must persist complete payout readiness",sellerPaymentSync.includes("payouts_enabled:active")&&sellerPaymentSync.includes("transfers_enabled:active")],
- ["Manual Stripe refresh must persist the same payout readiness",sellerPaymentActions.includes("payouts_enabled:complete")&&sellerPaymentActions.includes("transfers_enabled:complete")],
+ ["Manual Stripe refresh must delegate payout readiness to the canonical synchronizer",sellerPaymentActions.includes("syncSellerPaymentAccount")&&!sellerPaymentActions.includes("payouts_enabled:complete")&&!sellerPaymentActions.includes("transfers_enabled:complete")],
  ["Stripe onboarding return must trigger an automatic status sync",sellerPaymentPage.includes("syncSellerPaymentAccount")&&sellerPaymentPage.includes("returned&&configured")],
  ["Stripe recipient creation must require an idempotency key",stripeConnect.includes("idempotencyKey:string")&&stripeConnect.includes('"Idempotency-Key"')],
  ["Seller onboarding must use a stable seller-scoped idempotency key",sellerPaymentActions.includes("secondpart-recipient-${seller.id}")],
