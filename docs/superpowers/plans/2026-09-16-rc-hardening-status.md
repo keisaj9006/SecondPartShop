@@ -6,18 +6,18 @@ This file supersedes `2026-09-15-rc-hardening-status.md` for current execution s
 
 Latest fully verified application-code boundary:
 
-- SHA `3c43d6f93cb512ec7425cd6cbe0061533974de38`
-- GitHub Actions `35345127617`: **SUCCESS** across `validate`, `marketplace-scale-postgres` and `last-stock-concurrency`
-- full validation pipeline: lint, typecheck, **576/576 tests**, release validators, production build, true two-connection last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
-- exact Vercel Preview `dpl_Hrn5bfc5hhzSY8vsgJ57Pwft2upW`
-- exact Preview URL `https://second-part-shop-m5nrr5aeu-joannakwapis11-5369.vercel.app`
+- SHA `c830cb6f85812c682a6dfc0cfb07393102b74104`
+- GitHub Actions `35346135192`: **SUCCESS** across `validate`, `marketplace-scale-postgres` and `last-stock-concurrency`
+- full validation pipeline: lint, typecheck, **578/578 tests**, commerce/release validators, production build, true two-connection last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
+- exact Vercel Preview `dpl_AjwpfCWpzAPL4BFBaQQx9mwsp9VH`
+- exact Preview URL `https://second-part-shop-myjxtivnw-joannakwapis11-5369.vercel.app`
 - stable branch Preview alias: `https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app`
 - deployment state: READY
 - read-only health smoke on both exact deployment and branch alias: `/api/mobile/v1/health` HTTP 200 with `backendReady:true`
 - `main` untouched
-- no Production application deployment or live Stripe operation was performed by this code repair
+- no Production application deployment or live Stripe operation was performed by these seller-payment synchronization repairs
 
-Current branch head after evidence-only work is documentation-only SHA `37872f5ca26dbba7e07c62f12c94a3eab924e068`, whose parent is the verified code boundary above.
+Current branch head after evidence-only work is documentation-only SHA `f6ba4092d8b4d6fd36097b66eb8d0a66b4ac9d70`, whose parent is the verified code boundary above.
 
 ## Newly closed / hardened
 
@@ -134,6 +134,23 @@ TDD evidence:
 The mobile route now delegates provider/database synchronization to the same shared synchronizer used by checkout/web flows, preserves `not_started`, maps restricted provider states truthfully, and no longer mutates `seller_payment_accounts` directly.
 
 Evidence: `docs/test-runs/2026-09-18-mobile-seller-payment-refresh.md`.
+
+### Web seller payment refresh synchronization — VERIFIED
+
+The manual web seller payment refresh action retained another private copy of Stripe/database readiness synchronization after the canonical `syncSellerPaymentAccount` path was hardened. That duplicate path could collapse provider-restricted states to `pending` and independently rewrite readiness fields.
+
+TDD / validator evidence:
+
+- RED `a1f4f03e1fa427f4fe978ddc0160c377d3eedfa3`, GitHub Actions `35345771596`: two expected web-refresh failures;
+- implementation `f51a3e7f15927fe01a7b217bc212737016c591ff`;
+- the first GREEN pass exposed one stale commerce validator that required the removed direct field writes rather than the canonical synchronizer contract;
+- validator alignment `c830cb6f85812c682a6dfc0cfb07393102b74104`;
+- final GitHub Actions `35346135192`: **578/578 PASS**, all commerce/release validators and production build PASS;
+- exact Preview `dpl_AjwpfCWpzAPL4BFBaQQx9mwsp9VH`: READY.
+
+The manual web refresh now uses the same shared seller-payment synchronizer as checkout, automatic onboarding-return sync and mobile refresh, while preserving existing revalidation, redirect and operational-monitoring behavior.
+
+Evidence: `docs/test-runs/2026-09-18-web-seller-payment-refresh.md`.
 
 ## Current gap register
 
