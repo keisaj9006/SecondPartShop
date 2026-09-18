@@ -322,8 +322,9 @@ Evidence: `docs/test-runs/2026-09-16-account-deletion-e2e-attempt.md` and `docs/
 4. **Physical Android signed-device matrix** — app links, FCM receipt, image upload and external-return flows.
 5. **Destructive account deletion E2E** — configure/verify the normal token-hash Supabase Auth email-template path, then use a fresh disposable confirmed account only.
 6. **Auth leaked-password protection** — current Supabase organisation is Free; leaked-password protection requires Pro+ and remains disabled until the explicit plan/configuration upgrade.
-7. **Legal/support operations** — contracting identity, retention/privacy wording sign-off and monitored support mailbox.
-8. **Marketplace liquidity / real seller supply** — operational business gate.
+7. **Case-evidence orphan cleanup hosted deployment** — explicitly deploy/read back `20260918154500_case_evidence_cleanup_outbox.sql`; source/app behavior is green, but durable retry is not active on the connected project yet.
+8. **Legal/support operations** — contracting identity, retention/privacy wording sign-off and monitored support mailbox.
+9. **Marketplace liquidity / real seller supply** — operational business gate.
 
 ### No longer open on Preview
 
