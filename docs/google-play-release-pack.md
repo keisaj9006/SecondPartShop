@@ -11,9 +11,9 @@ This document keeps the Google Play release answers consistent. Credentials, sig
 
 This pack is aligned to the latest fully verified application-code boundary rather than the older 2026-09-10 snapshot:
 
-- verified application SHA: `efa24de9e59cd2a3fdd63c3141b33e177989f8b7`;
-- GitHub Actions `35355788417`: `validate`, `marketplace-scale-postgres` and `last-stock-concurrency` all SUCCESS, including **604/604 tests**, commerce/release validators and production build;
-- exact Preview deployment `dpl_8GymWULrVX4rfPAGKMtWquQa1sLu`: READY;
+- verified application SHA: `6159916e6eda8ce6ab9c726377f51b51255a784b`;
+- GitHub Actions `35359425939`: `validate`, `marketplace-scale-postgres` and `last-stock-concurrency` all SUCCESS, including **614/614 tests**, commerce/release validators and production build;
+- exact Preview deployment `dpl_CagJASFvVzYYB8BqEynzUapuBPaz`: READY;
 - Android Preview artifact source SHA `b0ff850904abc073d0e2b9a50ba1e1dcb5aad048`, workflow `35214653966`, artifact id `10493049326`, digest `sha256:99c819b6a6ee5297fbc1650ac7f893aff7b847371d7c48ee78a2d893f7e352cf`;
 - current Production pipeline explicitly enforces Android 16 / API 36 (`compileSdkVersion = 36`, `targetSdkVersion = 36`), matching the Google Play target-API requirement effective 2026-08-31;
 - direct inspection of the retained Preview APK found native `.so` libraries with 16 KB (`0x4000`) ELF LOAD alignment and 16 KB-aligned uncompressed APK data offsets; repeat this compatibility check on the exact submitted Production AAB/Play Console because Preview artifact evidence is not the final release gate;
@@ -24,6 +24,7 @@ This pack is aligned to the latest fully verified application-code boundary rath
 - selected-vehicle checkout fails closed if compatibility verification is unavailable, before stock reservation or Stripe session creation;
 - buyer transaction list/detail screens fail closed on data-loader failures instead of manufacturing empty/404 states, and mobile buyer order history retains sold-item identity through the existing authorized minimal fallback;
 - transaction-case evidence read paths fail closed when Storage cannot generate a signed URL, preventing partial evidence sets from being presented as complete;
+- case-evidence upload registration failures now have a source-controlled durable cleanup outbox/worker design with a safe pre-migration exact-path fallback; hosted retry is **not** claimed active until `20260918154500_case_evidence_cleanup_outbox.sql` is explicitly deployed and read back;
 - destructive account deletion still requires the controlled Supabase Auth TokenHash email-template change and a fresh disposable confirmed account;
 - the current Supabase organisation is on Free; leaked-password protection is a Pro+ configuration gate and is not an application-code defect.
 
