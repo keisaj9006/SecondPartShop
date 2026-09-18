@@ -107,7 +107,7 @@ Required Production state:
 - leaked-password protection is enabled if it remains in the launch security baseline; the current organisation is on Free and this provider control requires a supporting Pro+ plan;
 - destructive deletion processor migration/state is verified and the full Auth + database + Storage deletion lifecycle passes on a fresh disposable confirmed account.
 
-**Current RC boundary:** the staged `seller_checkout_ready` grant migration is source-controlled but intentionally not applied under the Preview-only execution scope. The application-side `TokenHash` route is implemented, but the project email templates are still open configuration. Leaked-password protection is plan/configuration-limited rather than an application-code defect. Do not treat any of these as deployed until the target project is explicitly authorised and read back after the change.
+**Current RC boundary:** the `seller_checkout_ready` least-privilege grant was explicitly authorised, deployed to the connected `secondpart` project on 2026-09-18 as hosted migration `20260918122032 / restrict_seller_checkout_ready_anon`, and read back as `anon=false`, `authenticated=true`, `service_role=true`. The application-side `TokenHash` route is implemented, but the project email templates are still open configuration. Leaked-password protection is plan/configuration-limited rather than an application-code defect.
 
 ## 6. Stripe
 
@@ -124,7 +124,7 @@ Use `docs/commerce-e2e-runbook.md`. Never force database payment/payout states m
 
 ## 7. Production release order
 
-1. Authorise the target Supabase release environment, reconcile repository migrations, deploy/read back the staged `seller_checkout_ready` grant change, wire the `TokenHash` Auth templates, and complete the remaining project-level security configuration.
+1. Reconcile the authorised Supabase release environment, retain the verified `seller_checkout_ready` least-privilege grant, wire the `TokenHash` Auth templates when the plan/email-template prerequisites are available, and complete the remaining project-level security configuration.
 2. Choose/register the Production domain and attach it to the Production Vercel project.
 3. Configure the Production Vercel runtime values from section 1.
 4. Create/configure Play Console app + Play App Signing for `com.secondpart.marketplace`.
