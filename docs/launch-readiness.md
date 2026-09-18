@@ -9,14 +9,13 @@ This document is the canonical launch checklist for the Android / Google Play an
 
 For current release execution status, `docs/superpowers/plans/2026-09-16-rc-hardening-status.md` is the source of truth. Historical evidence below is retained, but it must not be used to override the current boundary.
 
-Latest fully verified application-code boundary is `0c849e2a23a80b1909d168c0c877884f5945d107` with GitHub Actions run `35215533760` green across validation, isolated 100k PostgreSQL marketplace proof and true two-connection last-stock concurrency. Current branch HEAD may be documentation-only and ahead of that code boundary.
+Latest fully verified application-code boundary is `c830cb6f85812c682a6dfc0cfb07393102b74104` with GitHub Actions run `35346135192` green across validation, **578/578 tests**, release validators, isolated 100k PostgreSQL marketplace proof and true two-connection last-stock concurrency. Exact Preview `dpl_AjwpfCWpzAPL4BFBaQQx9mwsp9VH` is READY. Current branch HEAD may be documentation-only and ahead of that code boundary.
 
 Current important open gates include:
 - adverse Stripe checkout provider/UI Scenario H and the full provider/UI last-stock race, both requiring a truthful active checkout-ready disposable listing;
 - natural 48-hour release observation if retained as beta/release evidence;
 - physical Android/test-track matrix and real FCM/device return paths;
 - controlled Supabase Auth `TokenHash` email-template configuration followed by a fresh confirmed-account lifecycle;
-- controlled deployment/readback of `20260916144500_restrict_seller_checkout_ready_anon.sql`;
 - leaked-password protection, which is a Supabase **Pro+** configuration gate while the current organisation is on Free;
 - destructive account-deletion E2E after the Auth template gate;
 - final legal/support/contracting identity and real marketplace liquidity.
@@ -107,6 +106,7 @@ Commerce QA update (2026-09-11): QA Seller Connect and Preview webhook delivery/
 ## P0 — before public commerce
 
 - [x] Restore Supabase project access and deploy/verify the payout-transfer recovery migration before running the final money-flow E2E. Verified on 2026-09-10: all recovery RPCs exist as `SECURITY DEFINER`; `anon` and `authenticated` cannot execute them; `service_role` can.
+- [x] Deploy and privilege-verify the `seller_checkout_ready` least-privilege grant. Explicitly authorised and applied on 2026-09-18 as hosted migration `20260918122032 / restrict_seller_checkout_ready_anon`; readback: `anon=false`, `authenticated=true`, `service_role=true`.
 - [x] Deploy and privilege-verify `20260911080000_checkout_expiry_provider_guard.sql` on the live `secondpart` Supabase project. Verified on 2026-09-11: provider-backed reservations cannot be cancelled by generic DB expiry; `anon`/`authenticated` cannot execute `cancel_checkout_order`; `service_role` can.
 - [x] Deploy `20260911084500_checkout_terminal_buyer_notification.sql`. Verified on 2026-09-11: terminal Checkout expiry/final async failure cancellation and buyer notification are atomic and deduplicated; the cancel RPC remains service-role only.
 - [x] Deploy `20260911093000_confirm_checkout_paid_provider_guard.sql`. Verified on 2026-09-11: paid confirmation locks the order row, rejects cancelled orders and mismatched Checkout Sessions, and remains executable only by `service_role`.
