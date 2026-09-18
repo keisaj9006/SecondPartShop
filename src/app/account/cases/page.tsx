@@ -23,7 +23,7 @@ export default async function BuyerCasesPage({searchParams}:{searchParams:Promis
  const [caseResult,orderResult,selectedPurchase]=await Promise.all([
   getBuyerTransactionCasesPage(user.id,{offset:(casePage-1)*casePageSize,limit:casePageSize}),
   getBuyerOrdersPage(user.id,{limit:30}),
-  selectedId?getBuyerCaseOrderItem(user.id,selectedId).catch(()=>null):Promise.resolve(null)
+  selectedId?getBuyerCaseOrderItem(user.id,selectedId):Promise.resolve(null)
  ]);
  const buyerCases=caseResult.items;
  const evidenceByCase=await getTransactionCaseEvidence(buyerCases.map(item=>item.id));
