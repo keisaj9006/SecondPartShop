@@ -39,6 +39,7 @@ export async function GET(request:Request,{params}:{params:Promise<{caseId:strin
 
  const rows=data??[];
  const urls=await Promise.all(rows.map(row=>supabase.storage.from("case-evidence").createSignedUrl(row.storage_path,600)));
+ if(urls.some(result=>result.error||!result.data?.signedUrl))return mobileJson(request,{ok:false,error:"evidence_url_unavailable"},503);
 
  return mobileJson(request,{
   ok:true,
