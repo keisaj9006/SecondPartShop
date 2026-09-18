@@ -51,6 +51,8 @@ The maintenance worker treats the missing cleanup RPC as `skipped:true` rather t
 
 Therefore code can be deployed before the database migration without disabling evidence upload. Durable retry becomes active once the reviewed migration is explicitly deployed.
 
+A later failure-path review tightened this boundary further: only a positively identified missing-function response (`PGRST202` / `42883`) may use the legacy exact-path removal. Any other queue error, timeout or ambiguous `data:null` result is treated as uncertain and **must not delete Storage bytes**, because evidence registration may have committed even if its response was lost.
+
 ## TDD RED
 
 RED commit:
@@ -81,18 +83,23 @@ The first GREEN run exposed two test-harness assumptions rather than product def
 
 Those harnesses were aligned without weakening application or SQL behavior.
 
+Additional fail-closed correction:
+
+- RED `010bdbbaf278ab675d7a626f9538c4820b3082eb`, GitHub Actions `35360663267`: **614 PASS / 2 expected FAIL** proving non-missing queue errors and ambiguous null queue results still removed Storage;
+- GREEN `333a9a1da111f5de528dc4df02e070217affd3a3`: uncertain queue outcomes now defer deletion and emit bounded warnings; only missing-schema responses retain the staged legacy fallback.
+
 Final application/test SHA:
 
-- `6159916e6eda8ce6ab9c726377f51b51255a784b`
+- `333a9a1da111f5de528dc4df02e070217affd3a3`
 
 ## Final verification
 
-GitHub Actions run `35359425939`:
+GitHub Actions run `35360904820`:
 
 - `validate`: PASS;
 - `last-stock-concurrency`: PASS;
 - `marketplace-scale-postgres`: PASS;
-- tests: **614/614 PASS**, 0 FAIL;
+- tests: **616/616 PASS**, 0 FAIL;
 - lint: 0 errors;
 - typecheck: PASS;
 - commerce/release validators: PASS;
@@ -100,8 +107,8 @@ GitHub Actions run `35359425939`:
 
 Vercel Preview:
 
-- deployment: `dpl_CagJASFvVzYYB8BqEynzUapuBPaz`;
-- exact URL: `https://second-part-shop-pvf1yogj8-joannakwapis11-5369.vercel.app`;
+- deployment: `dpl_E4xTQ2XX5xEf9GCuE2oYGAsPjtgr`;
+- exact URL: `https://second-part-shop-r737lmuw3-joannakwapis11-5369.vercel.app`;
 - stable branch alias: `https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app`;
 - state: READY.
 
@@ -114,7 +121,7 @@ The migration is source-controlled but has **not** been applied to the connected
 Until explicit hosted deployment/readback:
 
 - normal evidence upload remains functional through the staged compatibility path;
-- direct cleanup remains the fallback when the new RPC is absent;
+- direct cleanup remains the fallback only when the new RPC is positively identified as absent; any other uncertain queue result fails closed on Storage deletion;
 - the durable outbox/retry semantics are not yet claimed as active on the hosted project.
 
 Hosted sign-off requires an explicitly authorised migration deployment followed by privilege/schema readback. No production/shared database mutation was performed by this checkpoint.
