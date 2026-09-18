@@ -6,18 +6,18 @@ This file supersedes `2026-09-15-rc-hardening-status.md` for current execution s
 
 Latest fully verified application-code boundary:
 
-- SHA `bcef9f5a4044967842a77a3995ede8081ef0b473`
-- GitHub Actions `35351147618`: **SUCCESS** across `validate`, `marketplace-scale-postgres` and `last-stock-concurrency`
-- full validation pipeline: lint, typecheck, **591/591 tests**, commerce/release validators, production build, true two-connection last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
-- exact Vercel Preview `dpl_625nAoAWQRmnPSeyWiBSr1vdzpjX`
-- exact Preview URL `https://second-part-shop-da433i9yl-joannakwapis11-5369.vercel.app`
+- SHA `7b2f6bff1a6a4d718810f15de9f91ec0cd5ddbb6`
+- GitHub Actions `35351853027`: **SUCCESS** across `validate`, `marketplace-scale-postgres` and `last-stock-concurrency`
+- full validation pipeline: lint, typecheck, **597/597 tests**, commerce/release validators, production build, true two-connection last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
+- exact Vercel Preview `dpl_8JAB2bmwNPjtCPpiYQ9uGGveqaTB`
+- exact Preview URL `https://second-part-shop-pxmc970s5-joannakwapis11-5369.vercel.app`
 - stable branch Preview alias: `https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app`
 - deployment state: READY
 - fresh read-only health smoke on both exact deployment and branch alias: `/api/mobile/v1/health` HTTP 200 with `backendReady:true`
 - `main` untouched
-- no Production application deployment, live Stripe operation or hosted marketplace data mutation was performed by this transaction-screen hardening
+- no Production application deployment, live Stripe operation or hosted marketplace data mutation was performed by this transaction-detail hardening
 
-Current branch head after evidence-only work is documentation-only SHA `9b9ba7bcdb4153f93691a2dfcb94eb238fe97466`, whose parent is the verified code boundary above.
+Current branch head after evidence-only work is documentation-only SHA `47191e60067acecc2960c8a68829fba7db300156`, whose parent is the verified code boundary above.
 
 ## Newly closed / hardened
 
@@ -199,6 +199,21 @@ TDD evidence:
 Real empty datasets still render the existing empty-state UI. Backend failures now propagate to the existing global retry error boundary; Admin Commerce also emits `commerce_maintenance / commerce_admin_data_load_failed`.
 
 Evidence: `docs/test-runs/2026-09-18-transaction-screens-fail-closed.md`.
+
+### Transaction detail false-404 / false-empty handling — VERIFIED
+
+Buyer order detail, seller sale detail, order timelines and the Buyer Cases selected-purchase lookup previously collapsed some backend failures into `notFound()`, `null` or an empty timeline.
+
+TDD evidence:
+
+- RED `0735e56a9decc70449d0d64a33d92d55bc136470`, GitHub Actions `35351654976`: 591 PASS / 6 expected FAIL;
+- final application SHA `7b2f6bff1a6a4d718810f15de9f91ec0cd5ddbb6`;
+- final GitHub Actions `35351853027`: **597/597 PASS**, all commerce/release validators and production build PASS;
+- exact Preview `dpl_8JAB2bmwNPjtCPpiYQ9uGGveqaTB`: READY.
+
+Genuine absent/unauthorised order or sale rows still produce the existing 404. Supabase/data-loader failures now propagate to the global retry boundary instead of being misrepresented as missing business data, and timeline failures no longer appear as empty transaction history.
+
+Evidence: `docs/test-runs/2026-09-18-transaction-detail-pages-fail-closed.md`.
 
 ## Current gap register
 
