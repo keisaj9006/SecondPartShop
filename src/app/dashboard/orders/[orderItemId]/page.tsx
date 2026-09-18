@@ -18,9 +18,9 @@ export default async function SellerSaleDetailPage({params}:{params:Promise<{ord
  const {user}=await requireSeller("/dashboard/orders/"+orderItemId);
  const seller=await getSellerForOwner(user.id);
  if(!seller)notFound();
- const sale=await getSellerSaleById(seller.id,orderItemId).catch(()=>null);
+ const sale=await getSellerSaleById(seller.id,orderItemId);
  if(!sale)notFound();
- const timeline=await getOrderTimeline(sale.orderId,sale.orderItemId).catch(()=>[]);
+ const timeline=await getOrderTimeline(sale.orderId,sale.orderItemId);
 
  return <><Header/><main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
   <Link href="/dashboard/orders" className="inline-flex items-center gap-2 text-sm font-black"><ArrowLeft size={16}/>Back to sales</Link>
