@@ -1,4 +1,5 @@
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -20,7 +21,7 @@ export async function GET(request:Request){
 
  let query=supabase
   .from("orders")
-  .select("id,status,payment_status,total_pence,currency,created_at,order_items(id,quantity,unit_price_pence,shipping_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,buyer_received_at,release_eligible_at,funds_released_at,parts(title,slug),sellers(business_name,slug))")
+  .select("id,status,payment_status,total_pence,currency,created_at,order_items(id,part_id,quantity,unit_price_pence,shipping_pence,delivery_method,fulfilment_status,payout_status,tracking_carrier,tracking_number,buyer_received_at,release_eligible_at,funds_released_at,parts(title,slug),sellers(business_name,slug))")
   .eq("buyer_id",user.id)
   .order("created_at",{ascending:false})
   .order("id",{ascending:false});
@@ -30,6 +31,19 @@ export async function GET(request:Request){
  const raw=data??[];
  const hasMore=raw.length>limit;
  const page=raw.slice(0,limit);
+ const missingPartIds=[...new Set(page.flatMap(order=>(order.order_items??[])
+  .filter(item=>!one(item.parts))
+  .map(item=>item.part_id)
+  .filter((value):value is string=>Boolean(value))))];
+ const purchasedParts=new Map<string,{title:string;slug:string}>();
+ if(missingPartIds.length){
+  const {data:partRows,error:partError}=await createSupabaseAdminClient()
+   .from("parts")
+   .select("id,title,slug")
+   .in("id",missingPartIds);
+  if(partError)return mobileJson(request,{ok:false,error:"order_items_unavailable"},503);
+  for(const part of partRows??[])purchasedParts.set(part.id,{title:part.title,slug:part.slug});
+ }
 
  const items=page.map(order=>({
   id:order.id,
@@ -39,7 +53,7 @@ export async function GET(request:Request){
   currency:order.currency,
   createdAt:order.created_at,
   items:(order.order_items??[]).flatMap(item=>{
-   const part=one(item.parts);
+   const part=one(item.parts)??purchasedParts.get(item.part_id);
    const seller=one(item.sellers);
    if(!part||!seller)return [];
    return [{
