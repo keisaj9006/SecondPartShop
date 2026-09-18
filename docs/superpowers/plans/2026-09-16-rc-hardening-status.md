@@ -6,11 +6,11 @@ This file supersedes `2026-09-15-rc-hardening-status.md` for current execution s
 
 Latest fully verified application-code boundary:
 
-- SHA `6159916e6eda8ce6ab9c726377f51b51255a784b`
-- GitHub Actions `35359425939`: **SUCCESS** across `validate`, `marketplace-scale-postgres` and `last-stock-concurrency`
-- full validation pipeline: lint, typecheck, **614/614 tests**, commerce/release validators, production build, true two-connection last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
-- exact Vercel Preview `dpl_CagJASFvVzYYB8BqEynzUapuBPaz`
-- exact Preview URL `https://second-part-shop-pvf1yogj8-joannakwapis11-5369.vercel.app`
+- SHA `333a9a1da111f5de528dc4df02e070217affd3a3`
+- GitHub Actions `35360904820`: **SUCCESS** across `validate`, `marketplace-scale-postgres` and `last-stock-concurrency`
+- full validation pipeline: lint, typecheck, **616/616 tests**, commerce/release validators, production build, true two-connection last-stock concurrency and isolated 100k marketplace PostgreSQL proof all PASS
+- exact Vercel Preview `dpl_E4xTQ2XX5xEf9GCuE2oYGAsPjtgr`
+- exact Preview URL `https://second-part-shop-r737lmuw3-joannakwapis11-5369.vercel.app`
 - stable branch Preview alias: `https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app`
 - deployment state: READY
 - fresh read-only health smoke on both exact deployment and branch alias: `/api/mobile/v1/health` HTTP 200 with `backendReady:true`
@@ -265,6 +265,8 @@ TDD / rollout evidence:
 **Remaining boundary:** the new migration is source-controlled but has not been applied to the connected `secondpart` project. Durable hosted retry is therefore not yet claimed active; hosted deployment/readback requires explicit authorization.
 
 Evidence: `docs/test-runs/2026-09-18-case-evidence-orphan-cleanup.md`.
+
+A follow-up failure-path correction also verified that a non-missing queue error or ambiguous null queue result cannot authorize Storage deletion. RED `010bdbbaf278ab675d7a626f9538c4820b3082eb` produced exactly two failures; GREEN `333a9a1da111f5de528dc4df02e070217affd3a3` leaves those uncertain objects untouched and warns instead. The pre-migration exact-path fallback remains only for positively identified missing-RPC responses.
 
 ## Current gap register
 
