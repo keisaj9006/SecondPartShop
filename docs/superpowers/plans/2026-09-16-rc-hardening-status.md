@@ -258,9 +258,9 @@ TDD / rollout evidence:
 - application helper `src/lib/case-evidence-cleanup.ts` queues cleanup before removal when the RPC is available, retries through commerce maintenance and rejects arbitrary paths;
 - web/mobile registration-failure paths delegate to the helper instead of issuing direct untracked deletes;
 - pre-migration `PGRST202` safely preserves the old exact-path cleanup fallback, so Preview remains functional during staged rollout;
-- final application SHA `6159916e6eda8ce6ab9c726377f51b51255a784b`;
-- final GitHub Actions `35359425939`: **614/614 PASS**, all commerce/release validators and production build PASS;
-- exact Preview `dpl_CagJASFvVzYYB8BqEynzUapuBPaz`: READY.
+- initial outbox GREEN application SHA `6159916e6eda8ce6ab9c726377f51b51255a784b`;
+- initial outbox GREEN GitHub Actions `35359425939`: **614/614 PASS**, all commerce/release validators and production build PASS;
+- initial outbox GREEN Preview `dpl_CagJASFvVzYYB8BqEynzUapuBPaz`: READY.
 
 **Remaining boundary:** the new migration is source-controlled but has not been applied to the connected `secondpart` project. Durable hosted retry is therefore not yet claimed active; hosted deployment/readback requires explicit authorization.
 
