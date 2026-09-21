@@ -148,3 +148,5 @@ Use `docs/commerce-e2e-runbook.md`. Never force database payment/payout states m
 - Nationwide Buy + Fit coverage, provided the product does not imply universal availability.
 
 These items still matter to product scale, but they must not be confused with the technical RC gate.
+
+2026-09-21 update: the case-evidence outbox is now deployed together with its registration/cleanup race guard as hosted migration 20260921133420. This supersedes the earlier absent-schema statement above. See docs/test-runs/2026-09-21-case-evidence-registration-race.md for source mapping, privilege readback and remaining Storage E2E boundary. Auth templates and leaked-password protection remain open.

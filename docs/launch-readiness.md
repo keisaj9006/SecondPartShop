@@ -212,3 +212,11 @@ DVSA registration lookup is valuable but must not block the application architec
 Durable one-shot claims, provider evidence recovery and SQL terminal guards are implemented and locally verified. See [implementation, evidence and rollout gates](test-runs/2026-09-21-dispute-reversal-recovery.md). This is not a hosted migration, deployment or fresh provider E2E sign-off.
 
 Hosted continuation: [21 September dispute recovery rollout](test-runs/2026-09-21-dispute-reversal-rollout.md) records merged code, green CI, applied migration and activated Preview. Fresh signed provider recovery/replay proof remains open pending QA administrator access.
+
+## 21 September continuation — fresh scoped evidence
+
+- Fresh sandbox order 2766715b-3d07-4f66-be8e-75ae1650875f completed checkout, collection, explicit buyer acceptance and GBP 5 Connect transfer; 13/13 verifier checks pass. This is not a bank-payout proof. An earlier expired checkout restored stock correctly.
+- The same disposable transaction now has return case 896b3b6f-f990-45c1-910b-c7e270c972b2 at return_shipped through normal buyer/admin UI, with explicitly simulated tracking. Seller receipt and final refund/reversal remain open; do not mark all Scenario E complete. See [sandbox report](test-runs/2026-09-21-sandbox-checkout.md).
+- Case-evidence cleanup outbox and registration race guard are now deployed atomically as hosted migration 20260921133420. Privileges and active trigger verified; no Storage objects deleted. Source/hosted mapping and real concurrency proof: [cleanup report](test-runs/2026-09-21-case-evidence-registration-race.md).
+- Fresh Preview System readiness: core commerce configured, DVSA missing (manual selection retained), no payout backlog, zero registered push devices; Android configuration 2/6. FCM sender, Play app links, final production origin and monitored public contact remain external. Six active legacy listings are not checkout-ready; the QA stock was consumed.
+- Five CI jobs pass, 660 local tests pass; this does not close provider-dispute/replay, physical-device, company/legal or marketplace-liquidity gates.
