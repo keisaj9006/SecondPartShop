@@ -16,9 +16,19 @@ export async function GET(request:Request){
   ?"/account?error=confirmation-failed"
   :`/account?error=confirmation-failed&returnTo=${encodeURIComponent(next)}`;
 
- if(tokenHash&&type){
+ const providerFailed=url.searchParams.has("error")||url.searchParams.has("error_description");
+ if(!providerFailed&&tokenHash&&type){
   const supabase=await createSupabaseServerClient();
   const {error}=await supabase.auth.verifyOtp({token_hash:tokenHash,type});
+  if(!error)return NextResponse.redirect(new URL(next,url.origin));
+ }
+
+ // Default Supabase templates return a PKCE code to the same redirectTo route.
+ // Preserve its cookie-bound verifier; never downgrade a token-hash attempt.
+ const code=url.searchParams.get("code");
+ if(!providerFailed&&!url.searchParams.has("token_hash")&&code){
+  const supabase=await createSupabaseServerClient();
+  const {error}=await supabase.auth.exchangeCodeForSession(code);
   if(!error)return NextResponse.redirect(new URL(next,url.origin));
  }
 

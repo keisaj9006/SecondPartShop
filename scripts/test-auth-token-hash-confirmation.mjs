@@ -123,3 +123,69 @@ test("token-hash confirmation preserves recovery and signup failure UX",async()=
  assert.equal(signupUrl.searchParams.get("error"),"confirmation-failed");
  assert.equal(signupUrl.searchParams.get("returnTo"),target);
 });
+
+function confirmationHarness({exchangeError=null,otpError=null}={}){
+ const calls={code:[],otp:[]};
+ const {GET}=moduleFrom('src/app/auth/confirm/route.ts',{
+  'next/server':{NextResponse:{redirect:url=>({url})}},
+  '@/lib/supabase/server':{createSupabaseServerClient:async()=>({auth:{
+   exchangeCodeForSession:async code=>{calls.code.push(code);return {error:exchangeError};},
+   verifyOtp:async payload=>{calls.otp.push(payload);return {error:otpError};}
+  }})},
+  '@/lib/navigation':moduleFrom('src/lib/navigation.ts')
+ });
+ return {GET,calls};
+}
+
+test('default-template PKCE confirmation exchanges code and preserves safe return context',async()=>{
+ const h=confirmationHarness();
+ const response=await h.GET(new Request('https://secondpart.test/auth/confirm?code=qa-code&next=%2Fsaved'));
+ assert.equal(String(response.url),'https://secondpart.test/saved');
+ assert.deepEqual(h.calls.code,['qa-code']); assert.equal(h.calls.otp.length,0);
+});
+
+test('default-template PKCE recovery reaches reset form only after successful exchange',async()=>{
+ const h=confirmationHarness();
+ const response=await h.GET(new Request('https://secondpart.test/auth/confirm?code=qa-code&next=%2Fauth%2Freset-password'));
+ assert.equal(String(response.url),'https://secondpart.test/auth/reset-password');
+ assert.equal(h.calls.code.length,1);
+});
+
+test('PKCE failure keeps signup context and never exposes provider details',async()=>{
+ const h=confirmationHarness({exchangeError:{message:'private provider diagnostic'}});
+ const response=await h.GET(new Request('https://secondpart.test/auth/confirm?code=bad&next=%2Fsaved'));
+ const url=new URL(response.url);
+ assert.equal(h.calls.code.length,1);
+ assert.equal(url.searchParams.get('error'),'confirmation-failed');
+ assert.equal(url.searchParams.get('returnTo'),'/saved');
+ assert.equal(String(url).includes('private'),false);
+});
+
+test('PKCE recovery failure uses expired-link UX',async()=>{
+ const h=confirmationHarness({exchangeError:{message:'missing verifier'}});
+ const response=await h.GET(new Request('https://secondpart.test/auth/confirm?code=bad&next=%2Fauth%2Freset-password'));
+ assert.equal(h.calls.code.length,1);
+ assert.equal(String(response.url),'https://secondpart.test/auth/forgot-password?error=expired-link');
+});
+
+test('PKCE confirmation rejects external return destinations',async()=>{
+ const h=confirmationHarness();
+ const response=await h.GET(new Request('https://secondpart.test/auth/confirm?code=qa-code&next=https%3A%2F%2Fevil.test'));
+ assert.equal(String(response.url),'https://secondpart.test/account');
+ assert.equal(h.calls.code.length,1);
+});
+
+test('provider error prevents either credential exchange',async()=>{
+ const h=confirmationHarness();
+ const response=await h.GET(new Request('https://secondpart.test/auth/confirm?error=access_denied&token_hash=qa&type=email&code=qa-code'));
+ assert.equal(h.calls.otp.length,0); assert.equal(h.calls.code.length,0);
+ assert.equal(String(response.url),'https://secondpart.test/account?error=confirmation-failed');
+});
+
+test('token-hash inputs never fall back to a supplied PKCE code',async()=>{
+ for(const query of ['token_hash=qa&type=email','token_hash=qa&type=invalid','token_hash=&type=email']){
+  const h=confirmationHarness({otpError:{message:'expired'}});
+  await h.GET(new Request('https://secondpart.test/auth/confirm?'+query+'&code=qa-code'));
+  assert.equal(h.calls.code.length,0);
+ }
+});
