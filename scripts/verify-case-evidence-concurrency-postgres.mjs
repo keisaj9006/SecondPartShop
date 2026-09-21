@@ -54,4 +54,3 @@ try{
 }finally{
  await a.query('rollback').catch(()=>{}); await Promise.all(clients.map(x=>x.end().catch(()=>{})));
 }
-
