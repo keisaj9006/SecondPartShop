@@ -336,3 +336,10 @@ Closed beta is therefore **not globally READY**, but the remaining gap set is no
 ## 2026-09-21 dispute recovery rollout
 
 PR #1 merged into rebuild-nextjs at 26b84b2. All four merge CI jobs PASS, including true dispute reversal concurrency. The service-only recovery migration is hosted (20260921084303); Preview dpl_DLJopwniSgNN8LA36FdDukkaCGGX is READY and the stable Preview alias is activated. The sandbox webhook was restored after the controlled drain. See [rollout evidence](../../test-runs/2026-09-21-dispute-reversal-rollout.md). Fresh provider lost-response/replay E2E remains open: existing browser session is QA seller, while preflight requires QA administrator. No main/Production deployment.
+
+## 2026-09-21 current continuation status (supersedes earlier open-schema snapshot)
+
+- Cleanup outbox and registration race guard are deployed atomically as hosted 20260921133420; permissions and trigger verified. PR #2 merge CI 35606572958 passed all five jobs. Storage retry/deletion E2E remains separate.
+- Fresh sandbox checkout/collection/explicit acceptance/GBP 5 Connect transfer passed 13/13 checks. Return case is return_shipped and awaits seller receipt plus final refund. See ../../test-runs/2026-09-21-sandbox-checkout.md.
+- Dashboard confirms default .ConfirmationURL Auth templates; custom editing requires SMTP or Pro. Fixed /auth/confirm to support cookie-bound PKCE codes alongside token hashes; PR #3, 667 local tests and five feature CI jobs pass. See ../../test-runs/2026-09-21-auth-default-template-pkce.md.
+- Fresh same-browser/same-origin email lifecycle, destructive disposable-account deletion, adverse payment variants, physical device checks and business prerequisites remain OPEN. No existing QA account was deleted or manually confirmed; no credentials or paid plans changed.
