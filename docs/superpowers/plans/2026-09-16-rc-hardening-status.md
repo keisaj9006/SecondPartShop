@@ -332,3 +332,7 @@ Evidence: `docs/test-runs/2026-09-16-account-deletion-e2e-attempt.md` and `docs/
 - **Find My Part response comparison** is green on the exact Preview application SHA and no longer an engineering gap; broader real network/liquidity remains separate.
 
 Closed beta is therefore **not globally READY**, but the remaining gap set is now concentrated in genuine provider/UI sessions, physical-device evidence, project-level Auth/DB configuration, legal/operational setup and real marketplace supply. Green CI or isolated database proofs must not be used to waive those boundaries.
+
+## 2026-09-21 dispute recovery rollout
+
+PR #1 merged into rebuild-nextjs at 26b84b2. All four merge CI jobs PASS, including true dispute reversal concurrency. The service-only recovery migration is hosted (20260921084303); Preview dpl_DLJopwniSgNN8LA36FdDukkaCGGX is READY and the stable Preview alias is activated. The sandbox webhook was restored after the controlled drain. See [rollout evidence](../../test-runs/2026-09-21-dispute-reversal-rollout.md). Fresh provider lost-response/replay E2E remains open: existing browser session is QA seller, while preflight requires QA administrator. No main/Production deployment.

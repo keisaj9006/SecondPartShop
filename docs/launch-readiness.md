@@ -210,3 +210,5 @@ DVSA registration lookup is valuable but must not block the application architec
 ### 21 September: dispute reversal recovery (local)
 
 Durable one-shot claims, provider evidence recovery and SQL terminal guards are implemented and locally verified. See [implementation, evidence and rollout gates](test-runs/2026-09-21-dispute-reversal-recovery.md). This is not a hosted migration, deployment or fresh provider E2E sign-off.
+
+Hosted continuation: [21 September dispute recovery rollout](test-runs/2026-09-21-dispute-reversal-rollout.md) records merged code, green CI, applied migration and activated Preview. Fresh signed provider recovery/replay proof remains open pending QA administrator access.
