@@ -5,6 +5,10 @@ Branch: `rebuild-nextjs`
 
 This document is the canonical launch checklist for the Android / Google Play and public marketplace release. It deliberately separates code readiness from marketplace liquidity, and it distinguishes code-level safeguards from real provider/device E2E evidence.
 
+## Continuation audit — 2026-09-21
+
+[The handover reconciliation](test-runs/2026-09-21-handover-audit.md) records the 356-commit local/remote drift, current hosted migration readback and a local provider-dispute terminal guard repair. It does not replace the scoped deployed evidence or close release gates below.
+
 ## Current RC status sync — 2026-09-18
 
 For current release execution status, `docs/superpowers/plans/2026-09-16-rc-hardening-status.md` is the source of truth. Historical evidence below is retained, but it must not be used to override the current boundary.
@@ -202,3 +206,7 @@ Target launch gate:
 ## DVSA
 
 DVSA registration lookup is valuable but must not block the application architecture or test launch. Manual vehicle selection remains the production fallback until approved credentials and the final data agreement are available.
+
+### 21 September: dispute reversal recovery (local)
+
+Durable one-shot claims, provider evidence recovery and SQL terminal guards are implemented and locally verified. See [implementation, evidence and rollout gates](test-runs/2026-09-21-dispute-reversal-recovery.md). This is not a hosted migration, deployment or fresh provider E2E sign-off.

@@ -111,3 +111,32 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://postgres:secondpart_scale_password@127.0.0.1:5432/secondpart_scale
         run: node scripts/verify-marketplace-single-scan-postgres.mjs
+  dispute-reversal-concurrency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: secondpart_dispute_test_password
+          POSTGRES_DB: secondpart_dispute_rc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d secondpart_dispute_rc"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install isolated PostgreSQL test client
+        run: npm install --prefix "$RUNNER_TEMP/dispute-pg" --ignore-scripts --no-audit --no-fund pg@8.16.3
+      - name: Prove claim and terminal outcome serialization
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:secondpart_dispute_test_password@127.0.0.1:5432/secondpart_dispute_rc
+          PG_CLIENT_MODULE: ${{ runner.temp }}/dispute-pg/node_modules/pg/lib/index.js
+        run: node scripts/verify-dispute-reversal-concurrency-postgres.mjs
