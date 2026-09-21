@@ -140,3 +140,32 @@ jobs:
           TEST_DATABASE_URL: postgresql://postgres:secondpart_dispute_test_password@127.0.0.1:5432/secondpart_dispute_rc
           PG_CLIENT_MODULE: ${{ runner.temp }}/dispute-pg/node_modules/pg/lib/index.js
         run: node scripts/verify-dispute-reversal-concurrency-postgres.mjs
+  case-evidence-concurrency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: secondpart_evidence_test_password
+          POSTGRES_DB: secondpart_evidence_rc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d secondpart_evidence_rc"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install isolated PostgreSQL test client
+        run: npm install --prefix "$RUNNER_TEMP/evidence-pg" --ignore-scripts --no-audit --no-fund pg@8.16.3
+      - name: Prove evidence registration and cleanup serialization
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:secondpart_evidence_test_password@127.0.0.1:5432/secondpart_evidence_rc
+          PG_CLIENT_MODULE: ${{ runner.temp }}/evidence-pg/node_modules/pg/lib/index.js
+        run: node scripts/verify-case-evidence-concurrency-postgres.mjs
