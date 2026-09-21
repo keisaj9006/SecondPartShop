@@ -88,3 +88,8 @@ for(const payload of [{},{id:''},{id:123},null])test("malformed successful creat
  const api=adapter(async()=>({ok:true,json:async()=>payload}));
  await assert.rejects(api.createCheckoutSession(input),/Checkout Session response/);
 });
+
+test('dispute reversal carries exact recoverable correlation without changing other reversals',async()=>{
+ const api=adapter(async(url,init)=>{assert.equal(url,'https://api.stripe.com/v1/transfers/tr_fixture/reversals');assert.equal(init.body.get('amount'),'500');assert.equal(init.body.get('metadata[secondpart_dispute_id]'),'dp_fixture');assert.equal(init.headers.get('Idempotency-Key'),'secondpart-provider-dispute-reversal-dp_fixture');return {ok:true,json:async()=>({id:'trr_fixture',amount:500})};});
+ await api.reverseSellerTransfer('tr_fixture',500,'secondpart-provider-dispute-reversal-dp_fixture','dp_fixture');
+});

@@ -47,7 +47,7 @@ export type StripeTransfer={
 };
 export type StripeTransferList={data:StripeTransfer[];has_more:boolean};
 export type StripeRefund={id:string;status:string|null;amount:number};
-export type StripeTransferReversal={id:string;amount:number};
+export type StripeTransferReversal={id:string;amount:number;currency?:string;transfer?:string|{id:string};metadata?:Record<string,string>|null};
 export type StripeTransferReversalList={data:StripeTransferReversal[];has_more:boolean};
 
 const secret=()=>{
@@ -210,9 +210,10 @@ export async function createSellerTransfer(input:{
  });
 }
 
-export async function reverseSellerTransfer(transferId:string,amountPence?:number,idempotencyKey?:string){
+export async function reverseSellerTransfer(transferId:string,amountPence?:number,idempotencyKey?:string,disputeId?:string){
  const body=new URLSearchParams();
  append(body,"amount",amountPence);
+ if(disputeId)append(body,"metadata[secondpart_dispute_id]",disputeId);
  return stripeV1<StripeTransferReversal>(`/v1/transfers/${encodeURIComponent(transferId)}/reversals`,{
   method:"POST",
   body,
