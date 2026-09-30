@@ -145,6 +145,7 @@ jobs:
             exit 1
           fi
           echo "$GOOGLE_SERVICES_JSON_BASE64_PRODUCTION" | base64 --decode > android/app/google-services.json
+          node scripts/verify-google-services-config.mjs android/app/google-services.json com.secondpart.marketplace production
 
       - name: Verify production configuration
         run: |

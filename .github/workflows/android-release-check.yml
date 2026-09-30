@@ -121,7 +121,9 @@ jobs:
           node scripts/patch-android-app-links.mjs
 
       - name: Configure CI Firebase placeholder
-        run: node scripts/write-ci-google-services.mjs
+        run: |
+          node scripts/write-ci-google-services.mjs
+          node scripts/verify-google-services-config.mjs android/app/google-services.json com.secondpart.marketplace ci
 
       - name: Verify production-style configuration
         run: |

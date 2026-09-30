@@ -49,6 +49,12 @@ const checks=[
  ["Runtime App Links fingerprint set must not be confused with GitHub Play-signing expectation",envHas("ANDROID_APP_LINK_SHA256_FINGERPRINTS")&&!envHas("ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS")],
  ["Production workflow must keep Play App Signing expectation in GitHub Actions",workflow.includes('ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS: ${{ secrets.ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS }}')],
  ["Production workflow must keep Firebase Android client config in GitHub Actions",workflow.includes('GOOGLE_SERVICES_JSON_BASE64_PRODUCTION: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64_PRODUCTION }}')],
+ ["Production workflow must verify the decoded Firebase Android client before bundleRelease",(()=>{
+  const verificationLine=/^[ \t]+node scripts\/verify-google-services-config\.mjs android\/app\/google-services\.json com\.secondpart\.marketplace production[ \t]*$/m.exec(workflow);
+  const verification=verificationLine?.index??-1;
+  const bundleBuild=workflow.indexOf("./gradlew bundleRelease");
+  return verification>=0&&bundleBuild>verification;
+ })()],
  ["Production workflow must keep all upload-key inputs in GitHub Actions secrets",["ANDROID_RELEASE_KEYSTORE_BASE64","ANDROID_RELEASE_STORE_PASSWORD","ANDROID_RELEASE_KEY_ALIAS","ANDROID_RELEASE_KEY_PASSWORD"].every(name=>workflow.includes(`secrets.${name}`))],
  ["Production matrix must explicitly distinguish upload signing from Play App Signing",matrix.includes("upload key")&&matrix.includes("Google Play App Signing")&&matrix.includes("must remain separate")],
  ["Production matrix must track staged seller_checkout_ready grant deployment",matrix.includes("20260916144500_restrict_seller_checkout_ready_anon.sql")&&matrix.includes("anon")&&matrix.includes("authenticated")&&matrix.includes("service_role")],
