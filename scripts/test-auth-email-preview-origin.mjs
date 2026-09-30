@@ -8,8 +8,8 @@ test("Preview auth emails prefer branch URL, then exact deployment URL, over the
  assert.match(source,/vercelBranchUrl/);
  assert.match(source,/vercelUrl/);
  assert.match(source,/input\.vercelEnv!=="preview"/);
- assert.match(source,/normalizeOrigin\(input\.vercelBranchUrl\)\?\?normalizeOrigin\(input\.vercelUrl\)\?\?configured/);
- assert.doesNotMatch(source,/requestOrigin/);
+ assert.match(source,/return branch\?\?deployment\?\?configured/);
+ assert.match(source,/allowed\.includes\(request\)/);
 });
 
 test("auth actions pass both Vercel branch and deployment URLs into the dedicated auth email origin resolver",()=>{
