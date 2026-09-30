@@ -226,3 +226,5 @@ Hosted continuation: [21 September dispute recovery rollout](test-runs/2026-09-2
 ## 30 September verification update
 
 The same-origin Auth fix is merged and on Preview; 674 local tests and the full web build passed. Android release checking exposed and fixed a retired SDK tools dependency in both AAB workflows. The repaired AAB pipeline and final five-job web CI pass (676 tests). A signed Preview APK is downloaded and locally signature/package/hash verified. See [Android and release evidence](test-runs/2026-09-30-android-release-verification.md) and [Auth origin repair](test-runs/2026-09-30-auth-same-origin.md). This does not satisfy the production signing, Play, physical-device/FCM, genuine email, adverse-payment or operational gates. No adb device is connected; only Preview signing is configured.
+
+30 September continuation: FCM error classification repaired so generic HTTP 404/provider text cannot disable registered devices. 687 tests and required baseline checks pass; physical Firebase E2E and current return/refund remain open. See [FCM safety and continuation evidence](test-runs/2026-09-30-fcm-registration-safety.md).
