@@ -107,8 +107,16 @@ export async function sendFcmPush(input:{
  }finally{clearTimeout(timer);}
  const payload=await response.json().catch(()=>({})) as Record<string,unknown>;
  if(response.ok)return {ok:true,invalidToken:false,error:null};
- const serialized=JSON.stringify(payload);
- const invalidToken=response.status===404||serialized.includes("UNREGISTERED")||serialized.includes("registration-token-not-registered");
+ // Only typed FCM evidence identifies an unregistered device. A generic 404
+ // can describe a project/service failure and must remain retryable.
+ const providerError=payload?.error;
+ const details=providerError&&typeof providerError==="object"
+  ?(providerError as Record<string,unknown>).details:undefined;
+ const invalidToken=Array.isArray(details)&&details.some(detail=>
+  detail&&typeof detail==="object"&&
+  detail["@type"]==="type.googleapis.com/google.firebase.fcm.v1.FcmError"&&
+  detail.errorCode==="UNREGISTERED"
+ );
  return {
   ok:false,
   invalidToken,
