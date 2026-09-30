@@ -36,8 +36,14 @@ Independent Stripe sandbox GET confirms transfer tr_3UI6AA2RWsyIBCbK1uG7sJSn: am
 
 Hosted E2E verifier: Completed, 13 pass / 0 pending / 0 fail. Happy-path sandbox checkout, collection, explicit buyer acceptance and Connect transfer are verified. Preflight for a NEW purchase still shows no checkout-ready listing because the fixture stock was consumed. Fresh refund, dispute, reversal recovery and webhook replay remain separate unverified gates.
 
-## Return case workflow (partial)
+## Return case, refund and released-transfer reversal verified
 
-Buyer opened a clearly labelled sandbox return for the current item via normal UI; Admin Commerce displayed case 896B3B6F. Admin authorised the simulated return. Buyer recorded carrier QA SIMULATION - NO CARRIER and reference QA-NO-SHIPMENT-2766715B; UI now shows Return Shipped. No real shipment, customer allegation or physical evidence was fabricated. Seller receipt/response requires the separate seller session; final refund/reversal remains unexecuted. Do not count this as a complete Scenario E pass.
+Buyer opened a clearly labelled sandbox return for the current item via normal UI; Admin Commerce displayed case 896B3B6F. Admin authorised the simulated return. Buyer recorded carrier QA SIMULATION - NO CARRIER and reference QA-NO-SHIPMENT-2766715B. No real shipment, customer allegation or physical evidence was fabricated.
+
+On 30 September the QA seller used the normal **Confirm return received** action. Database readback recorded `return_shipped -> returned` at 2026-09-30T12:52:26.880674Z. The QA administrator then used the normal **Full refund** action. The case moved `returned -> under_review -> resolved`, resolution `full_refund`, and the order, item and payout finished as `refunded`, `refunded` and `reversed` respectively.
+
+Independent Stripe sandbox readback confirms refund `re_3UI6AA2RWsyIBCbK1nXHrAZn`: GBP 5.00, `succeeded`, charge `ch_3UI6AA2RWsyIBCbK1E9rygyY`, PaymentIntent `pi_3UI6AA2RWsyIBCbK1r44MsX4`, livemode false. Transfer `tr_3UI6AA2RWsyIBCbK1uG7sJSn` is fully reversed for GBP 5.00 by the single reversal `trr_1ULNGG2RWsyIBCbKQsCWrkFI`; provider and database correlations each occur once.
+
+The returned used-part listing intentionally remains `sold`, stock `0`. The finalizer restores inventory only for eligible pre-fulfilment cancellation cases; a physically returned used part requires seller inspection before it can be listed again. This completes the scoped normal-UI Scenario E return/refund/released-transfer-reversal proof. It does not close Stripe payment-dispute/replay, bank payout or physical shipment evidence.
 
 Policy clarification: the review-window copy after explicit buyer receipt agrees with docs/launch-readiness.md. The prohibited silent-buyer release is the absence of buyer receipt or trusted delivery; no product-policy defect was established by the earlier UI observation.
