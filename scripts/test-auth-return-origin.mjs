@@ -8,9 +8,9 @@ test("Preview auth email redirects use the dedicated stable branch origin resolv
  assert.match(source,/resolveAuthEmailOrigin/);
  assert.match(source,/vercelEnv:process\.env\.VERCEL_ENV/);
  assert.match(source,/vercelBranchUrl:process\.env\.VERCEL_BRANCH_URL/);
- assert.match(source,/const returnOrigin=authReturnOrigin\(\)/);
+ assert.match(source,/const returnOrigin=await authReturnOrigin\(\)/);
  assert.doesNotMatch(source,/emailRedirectTo:`\$\{siteUrl\(\)\}/);
  assert.doesNotMatch(source,/redirectTo:`\$\{siteUrl\(\)\}/);
- assert.doesNotMatch(source,/from "next\/headers"/);
+ assert.match(source,/from "next\/headers"/);
  assert.doesNotMatch(source,/resolveCheckoutReturnOrigin/);
 });

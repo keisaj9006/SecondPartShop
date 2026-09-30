@@ -77,6 +77,7 @@ function loadAuthActions({session=null}={}){
  };
  const actions=moduleFrom("src/app/auth/actions.ts",{
   "next/cache":{revalidatePath:(...args)=>calls.revalidate.push(args)},
+  "next/headers":{headers:async()=>new Map()},
   "next/navigation":{redirect},
   "@/lib/supabase/server":{createSupabaseServerClient:async()=>({auth})},
   "@/lib/supabase/env":{isSupabaseConfigured:()=>true},

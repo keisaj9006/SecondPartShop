@@ -30,7 +30,7 @@ function formData(values){
  return data;
 }
 
-function loadAuthActions(){
+function loadAuthActions(requestOrigin=null){
  const calls={signUp:[],resend:[],passwordReset:[]};
  const auth={
   async signUp(payload){calls.signUp.push(payload);return {data:{session:null},error:null};},
@@ -39,6 +39,7 @@ function loadAuthActions(){
  };
  const actions=moduleFrom("src/app/auth/actions.ts",{
   "next/cache":{revalidatePath(){}},
+  "next/headers":{headers:async()=>new Map([["origin",requestOrigin]])},
   "next/navigation":{redirect(destination){throw new Error(`Unexpected redirect ${destination}`);}},
   "@/lib/supabase/server":{createSupabaseServerClient:async()=>({auth})},
   "@/lib/supabase/env":{isSupabaseConfigured:()=>true},
@@ -188,4 +189,22 @@ test('token-hash inputs never fall back to a supplied PKCE code',async()=>{
   await h.GET(new Request('https://secondpart.test/auth/confirm?'+query+'&code=qa-code'));
   assert.equal(h.calls.code.length,0);
  }
+});
+
+test('signup, resend and recovery retain the configured requesting origin',async()=>{
+ const keys=["NEXT_PUBLIC_SITE_URL","VERCEL_ENV","VERCEL_BRANCH_URL","VERCEL_URL"];
+ const previous=Object.fromEntries(keys.map(key=>[key,process.env[key]]));
+ process.env.NEXT_PUBLIC_SITE_URL='https://secondpart.test';
+ process.env.VERCEL_ENV='preview';
+ process.env.VERCEL_BRANCH_URL='branch.secondpart.test';
+ process.env.VERCEL_URL='deployment.secondpart.test';
+ try{
+  const {actions,calls}=loadAuthActions('https://secondpart.test');
+  await actions.signUp({status:'idle'},formData(signupValues));
+  await actions.resendConfirmation({status:'idle'},formData({email:signupValues.email}));
+  await actions.requestPasswordReset({status:'idle'},formData({email:signupValues.email}));
+  for(const value of [calls.signUp[0].options.emailRedirectTo,calls.resend[0].options.emailRedirectTo,calls.passwordReset[0].options.redirectTo]){
+   assert.equal(new URL(value).origin,'https://secondpart.test');
+  }
+ }finally{for(const key of keys){if(previous[key]===undefined)delete process.env[key];else process.env[key]=previous[key];}}
 });
