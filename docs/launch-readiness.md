@@ -222,3 +222,7 @@ Hosted continuation: [21 September dispute recovery rollout](test-runs/2026-09-2
 - Five CI jobs pass, 660 local tests pass; this does not close provider-dispute/replay, physical-device, company/legal or marketplace-liquidity gates.
 
 2026-09-21 Auth compatibility: normal signup/resend/recovery target /auth/confirm. That route now handles the PKCE code returned by current default Supabase templates as well as custom token-hash links. 667 local tests and five feature CI jobs pass; hosted negative-link smoke passes. Successful fresh email/session lifecycle still requires evidence, including matching browser/origin context. Dashboard template customization requires SMTP or Pro; neither was changed. Details: [Auth repair](test-runs/2026-09-21-auth-default-template-pkce.md).
+
+## 30 September verification update
+
+The same-origin Auth fix is merged and on Preview; 674 local tests and the full web build passed. Android release checking exposed and fixed a retired SDK tools dependency in both AAB workflows. The repaired AAB pipeline and final five-job web CI pass (676 tests). A signed Preview APK is downloaded and locally signature/package/hash verified. See [Android and release evidence](test-runs/2026-09-30-android-release-verification.md) and [Auth origin repair](test-runs/2026-09-30-auth-same-origin.md). This does not satisfy the production signing, Play, physical-device/FCM, genuine email, adverse-payment or operational gates. No adb device is connected; only Preview signing is configured.
