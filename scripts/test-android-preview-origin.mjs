@@ -34,3 +34,12 @@ test("mobile performance validation follows the same moving Android Preview orig
  assert.match(mobilePerformanceValidator,new RegExp(escaped("second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app")));
  assert.doesNotMatch(mobilePerformanceValidator,new RegExp(escaped("second-part-shop-preview.vercel.app")));
 });
+
+for(const name of ['android-release-check.yml','android-production-aab.yml']){
+ test(`${name} avoids removed legacy Android SDK tools`,()=>{
+  const source=fs.readFileSync(path.join(root,'.github/workflows',name),'utf8');
+  const setup=source.match(/- name: Set up Android SDK[\s\S]*?(?=\n\s*- name:)/)?.[0]??'';
+  assert.match(setup,/with:\s*\n\s*packages:\s*platform-tools\s*$/m);
+  assert.doesNotMatch(setup,/packages:\s*tools(?:\s|$)/);
+ });
+}
