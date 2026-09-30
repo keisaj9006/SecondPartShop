@@ -50,8 +50,8 @@ Product Excellence evidence (2026-09-12): corrected `1a34457` passed301 tests, l
 - [ ] competing checkout race proven
 - [ ] declined -> retry -> success proven
 - [ ] cancellation proven
-- [ ] refund proven
-- [ ] return/case proven
+- [x] refund proven — fresh GBP 5 Stripe sandbox refund succeeded through the normal administrator UI; exact provider and database correlation recorded in `docs/test-runs/2026-09-21-sandbox-checkout.md`.
+- [x] return/case proven — buyer request, authorization, simulated shipment, seller receipt and administrator resolution completed through normal role-specific UI; this does not claim physical-carrier evidence.
 - [ ] payment dispute proven
 - [x] payout eligibility proven
 - [ ] payout transfer/reversal/recovery proven
