@@ -268,6 +268,7 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
   }
  };
 
+ const searchAgain=()=>{setRegistration("");setRegistrationVehicle(null);setLookup({kind:"idle"});setMake("");setModel("");setModels([]);setYear("");setVariantId("");setCatalogueEngine("");setYears([]);setVariants([]);setEngines([]);setLoadingModels(false);setLoadingYears(false);setLoadingVariants(false);setLoadingEngines(false);setCatalogueError("");setManualOpen(false);};
  const resetAfterMake=(value:string)=>{setMake(value);setModel("");setModels([]);setYear("");setVariantId("");setCatalogueEngine("");setYears([]);setVariants([]);setEngines([]);setLoadingModels(Boolean(value));setLoadingYears(false);setLoadingVariants(false);setLoadingEngines(false);setCatalogueError("");};
  const resetAfterModel=(value:string)=>{setModel(value);setYear("");setVariantId("");setCatalogueEngine("");setYears([]);setVariants([]);setEngines([]);setLoadingYears(Boolean(value));setLoadingVariants(false);setLoadingEngines(false);setCatalogueError("");};
  const resetAfterYear=(value:string)=>{setYear(value);setVariantId("");setCatalogueEngine("");setVariants([]);setEngines([]);setLoadingVariants(Boolean(value));setLoadingEngines(false);setCatalogueError("");};
@@ -291,7 +292,8 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
     <input type="checkbox" checked={fitOnly} onChange={event=>setFitOnly(event.target.checked)} className="mt-1 h-5 w-5 accent-[#173c31]"/>
     <span><strong className="block text-sm text-[#173c31]">Show only parts that fit this vehicle</strong><small className="mt-1 block leading-5 text-[#63706a]">{freshSelection?"Choose this before adding the new vehicle. The previous vehicle is not used here.":"Recommended: keep this on to show compatibility-filtered results as soon as you select a vehicle."}</small></span>
    </label>}
-   {registrationVehicle&&variantId&&year&&<div className="mt-3 rounded-2xl border border-[#173c31]/15 bg-white p-4"><button type="button" disabled={!canApply} onClick={applyCatalogue} className="w-full rounded-xl bg-[#d4f44d] px-5 py-3 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50">{isApplying?"Applying vehicle…":"Use this vehicle"}</button></div>}
+   {registrationVehicle&&<button type="button" onClick={searchAgain} disabled={isApplying} className="mt-3 rounded-xl border border-black/15 px-5 py-3 text-sm font-bold">Search again</button>}
+   {registrationVehicle&&variantId&&year&&<div className="mt-3 rounded-2xl border border-[#173c31]/15 bg-white p-4"><button type="button" disabled={!canApply} onClick={applyCatalogue} className="w-full rounded-xl bg-[#d4f44d] px-5 py-3 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50">{isApplying?"Applying vehicle…":"Use this vehicle"}</button><p className="mt-2 text-xs text-[#4f5e57]">Confirm this vehicle, then save it to Garage from the selected vehicle card.</p></div>}
   </div>
 
   <button type="button" onClick={()=>{const next=!manualOpen;if(next){setLoadingMakes(true);if(make)setLoadingModels(true);}setManualOpen(next);}} className="mt-4 inline-flex items-center gap-2 text-sm font-black underline">{manualOpen?"Hide manual selection":"I don't know my registration / Select vehicle manually"}<ChevronDown size={15} className={manualOpen?"rotate-180 transition":"transition"}/></button>
