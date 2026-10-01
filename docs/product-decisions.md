@@ -38,7 +38,7 @@ Payments, payouts, disputes, refunds, and settlement are a **final commerce laye
 
 ## Vehicle identification strategy
 
-**Status:** Provider-gated vehicle identification strategy. DVSA activation remains explicitly blocked pending official access; manual selection stays available.
+**Status:** Official DVSA access approved, as confirmed by the owner on 1 October 2026. Server integration supports the five canonical DVSA environment variables. Activation and real-provider verification remain gated on credentials configured in the existing Preview environment; manual selection stays available. See [integration evidence](test-runs/2026-10-01-dvsa-integration.md).
 
 SecondPart should not depend on a paid VRM lookup for its core buyer flow while the marketplace is pre-revenue.
 

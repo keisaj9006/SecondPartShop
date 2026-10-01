@@ -122,8 +122,18 @@ async function renderResolvedLookup({registration,vehicle,catalogue,engines,base
  runner.flushEffects();
  await settle();
  tree=render();
- return {tree,pushes};
+ return {tree,pushes,render};
 }
+
+test("search again clears the returned vehicle without applying or saving it",async()=>{
+ const {tree,pushes,render}=await renderResolvedLookup({registration:"AB12CDE",vehicle:{make:"FORD",model:"FOCUS",year:2020},catalogue:{make:"FORD",modelFamily:"FOCUS",variants:[{id:"variant-focus",variant:"Titanium"}]},engines:[]});
+ control(tree,{type:"button",text:"Search again"}).props.onClick();
+ const fresh=render();
+ assert.equal(control(fresh,{type:"input"}).props.value,"");
+ assert.doesNotMatch(textContent(fresh),/AB12CDE|Confirm this vehicle/);
+ assert.equal(nodes(fresh).some(node=>node.type==="button"&&textContent(node)==="Use this vehicle"),false);
+ assert.equal(pushes.length,0);
+});
 
 test("a resolved variant with several unmatched engines reveals a required chooser without losing lookup context",async()=>{
  const requests=new Map([
