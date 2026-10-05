@@ -28,14 +28,15 @@
     "validate:production-origin": "node scripts/validate-production-origin-preflight.mjs",
     "validate:production-env": "node scripts/validate-production-environment.mjs",
     "validate:beta-feedback": "node scripts/validate-beta-feedback.mjs",
-    "validate:seller-read-policy": "node scripts/validate-seller-read-policy.mjs"
+    "validate:seller-read-policy": "node scripts/validate-seller-read-policy.mjs",
+    "validate:dependencies": "npm audit --omit=dev --audit-level=high"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.5",
     "@supabase/supabase-js": "2.114.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.40.0",
-    "next": "16.3.4",
+    "next": "16.3.8",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "tailwind-merge": "^3.6.0"
@@ -47,7 +48,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.4",
+    "eslint-config-next": "16.3.8",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
