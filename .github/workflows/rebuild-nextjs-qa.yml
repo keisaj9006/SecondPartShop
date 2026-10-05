@@ -26,6 +26,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npm run validate:dependencies
       - run: git diff --check HEAD^ HEAD
       - run: npm run lint
       - run: npm run typecheck
