@@ -59,8 +59,8 @@ Migration history includes the 21 September dispute-reversal recovery and case-e
 | Gate | Status/severity | Evidence/action | Owner | Codex can execute now |
 |---|---|---|---|---|
 | New DVSA Preview and environment names | VERIFIED scoped activation | New deployment above; no provider success claim | Codex | Completed |
-| DVSA live integration | MANUAL fixture input; P1 DVSA sign-off | One legitimate registration needed; then minimal backend/UI checks | Owner → Codex | Pending input |
-| DVSA → authenticated Garage | P1, not verified | Natural authenticated persistence/reload/switch/ownership tests after lookup | Codex | After fixture/auth prerequisites |
+| DVSA live integration | VERIFIED scoped provider lookup | Authorized real lookup HTTP 200; hashed cache and browser correlation below | Codex | Completed |
+| DVSA → authenticated Garage | P1, not verified | Natural authenticated persistence/reload/switch tests and known derivative still required; automated ownership tests pass | Owner → Codex | Owner session/derivative prerequisite |
 | PR #10 merge | P1 gate held | Only after live/regression evidence; remains open | Codex | Not yet authorised by the conditional gate |
 | Vulnerable production Next dependency | VERIFIED scoped P1 repair | #11 merged after audit GREEN, local/CI/Preview/Android gates | Codex | Completed |
 | Development-only glob advisories | P2 | Trusted build patterns; upstream remediation, no forced major downgrade | Codex/upstream | No safe full fix assumed |
@@ -75,4 +75,25 @@ Migration history includes the 21 September dispute-reversal recovery and case-e
 
 Internal controlled technical testing can continue in Preview. Closed beta/public launch are **not signed off**. Android's CI AAB path works, but the production artifact is not ready for Play submission without real signing/Firebase/domain/Play configuration and physical evidence. Public marketing remains gated by the canonical provider, legal and liquidity requirements.
 
-No defensible complete release-gate denominator or total P0/P1 count exists until the requested post-DVSA audit is executed. The exact immediate owner action is one legitimate UK registration for the controlled test, without any credential values. Continue automatically through the DVSA gate and subsequent phases when that input is available.
+No defensible complete release-gate denominator or total P0/P1 count exists until the requested post-DVSA audit is executed. Continue automatically through the DVSA gate and subsequent phases when the prerequisites below are available.
+
+## Authorized live DVSA checkpoint — 5 October, 12:13 UTC
+
+The owner supplied one legitimate registration and authorized its controlled lookup. The registration itself is deliberately omitted from this committed report.
+
+- Exact deployed application head: `98e8d85c59f94f29e98997ff1aaf41ca4e446e6f`, branch `codex/dvsa-integration`, Preview/READY, deployment `dpl_AunC6aWjABBLWJzTMurdD813MRJG`.
+- Preview: https://second-part-shop-iwp7fz30z-joannakwapis11-5369.vercel.app.
+- All five canonical DVSA environment-variable names were confirmed from deployment metadata; no values were retrieved.
+- One authorized API request using lowercase/spaced input returned HTTP 200 and normalized registration. Safe vehicle projection: Vauxhall Astra, petrol, 1399 cc, white, first-used year 2017. `strategy=dvsa_to_dft`, `engineMatched=false`, `resolution=choose_variant`.
+- Read-only cache correlation found the hashed lookup with provider `dvsa_mot_history`, status `found`, fetched at `2026-10-05 12:13:13.389+00`, expiry one day later. No cache row was manually inserted or invalidated. This is real provider success evidence through the OAuth-protected application path; raw OAuth credentials/tokens and provider bodies were not inspected or recorded.
+- The browser returned the same vehicle and explicit exact-version chooser. No derivative was guessed. Use this vehicle remains disabled until sufficient catalogue selection is supplied. This does not prove compatibility with any listing.
+- Search again cleared registration, lookup result and manual catalogue context; inspected input was empty. Fresh Add vehicle also started empty.
+- Malformed punctuation input returned controlled HTTP 400. Unknown/404, OAuth failure, 429, 5xx and malformed upstream handling were exercised by existing deterministic tests, not induced against the live provider. No fabricated registration was submitted to DVSA. Real timeout injection and live unknown-registration evidence are not claimed.
+- All 44 focused DVSA/Garage/guidance/filter/rate-limit tests passed again, zero failures. QA run `37305244492` passed all five jobs (717 tests); Android run `37305248731` succeeded on the tested application head.
+- Ten JavaScript chunks referenced by the public Home page were scanned: zero matches for canonical DVSA credential names, `client_credentials` or `access_token`. Safe response projection and browser text were inspected. This marker scan is not a value-by-value secret scan or a complete audit of runtime logs; those broader claims remain unsigned.
+
+The live DVSA fixture blocker is now closed. **Authenticated Garage persistence and the exact known derivative remain unverified.** The shared-browser tool failed with a kernel error; the independent automated browser has no owner session. No password, authentication token or manual database/auth bypass was requested or used. Owner action: sign in normally on this Preview, select only the vehicle's known derivative if required, save through Garage, reload and confirm persistence. PR #10 remains open until the complete conditional gate passes.
+
+Current Google Play policy was rechecked against official sources on 5 October: new submissions require API 36, already enforced by `patch-android-production.mjs` and both Android CI workflows. Current page-size guidance still requires 16 KB support for applicable 64-bit/native code; exact submitted-artifact and device checks remain mandatory. This checkpoint did not build a Production artifact or publish anything.
+
+Sources: https://support.google.com/googleplay/android-developer/answer/11926878?hl=en-EN and https://developer.android.com/guide/practices/page-sizes.
