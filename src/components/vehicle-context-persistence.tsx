@@ -23,11 +23,12 @@ export function VehicleContextPersistence({viewerId,garageContextValid=true}:{vi
    ...(hasUrlGarage?{garageValid:garageContextValid}:{}),
    addVehicleMode:current.get("addVehicle")==="1"
   });
+  const canonicalQuery=resolved.params.toString();
+  const canonicalDestination=canonicalQuery?`/?${canonicalQuery}#marketplace`:"/#marketplace";
+  if(!resolved.needsReplace&&normalizedRef.current===canonicalDestination)normalizedRef.current="";
   if(resolved.clearStored||(raw!==null&&!stored))clearStoredVehicleContext();
   if(resolved.needsReplace){
-   const query=resolved.params.toString();
-   const destination=query?`/?${query}#marketplace`:"/#marketplace";
-   if(normalizedRef.current!==destination){normalizedRef.current=destination;router.replace(destination,{scroll:false});}
+   if(normalizedRef.current!==canonicalDestination){normalizedRef.current=canonicalDestination;router.replace(canonicalDestination,{scroll:false});}
    return;
   }
   if(resolved.source==="url"&&resolved.selection.kind!=="none"&&resolved.selection.kind!=="invalid-garage"&&viewerId){
@@ -35,9 +36,7 @@ export function VehicleContextPersistence({viewerId,garageContextValid=true}:{vi
    try{window.localStorage.setItem(VEHICLE_CONTEXT_STORAGE_KEY,JSON.stringify(envelope));}catch{}
   }
   if(resolved.source==="storage"){
-   const query=resolved.params.toString();
-   const destination=query?`/?${query}#marketplace`:"/#marketplace";
-   if(normalizedRef.current!==destination){normalizedRef.current=destination;router.replace(destination,{scroll:false});}
+   if(normalizedRef.current!==canonicalDestination){normalizedRef.current=canonicalDestination;router.replace(canonicalDestination,{scroll:false});}
   }
  },[pathname,router,searchParams,viewerId,garageContextValid]);
 

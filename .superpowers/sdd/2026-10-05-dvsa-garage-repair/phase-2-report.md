@@ -44,7 +44,8 @@ Regressions now cover conflicting `gv` plus `cv/cy/cf/ce` and legacy parameters 
 
 Follow-up validation: focused context/Garage tests 23/23; typecheck passed; lint passed with the same 4 warnings and no errors; production build passed; diff check passed. The earlier full suite on the base Phase 2 commit was 796/796. Follow-up commit SHA is supplied to the lead with this report.
 
-## Residual risks / limits
+
+A third review finding was fixed: URL normalization now clears its in-flight destination marker after that canonical URL is observed. The integration regression simulates stale/conflicting URL → canonical replace → canonical landing → Back to the identical stale URL, and verifies the same canonical replace happens again. Focused Phase 2 suite after this fix: 87/87 passed; typecheck passed; diff check passed. No product or server contract changed.## Residual risks / limits
 
 - Viewer persistence is browser-local and scoped by authenticated viewer ID; it does not claim cross-device synchronization or introduce a Garage default column.
 - Hosted schema changes, deployment, and production behavior were not exercised or changed.

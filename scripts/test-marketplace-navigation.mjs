@@ -370,6 +370,27 @@ test("vehicle persistence stores only a viewer-scoped Garage ID and rejects a pr
  assert.deepEqual(replacements,[]);
 });
 
+test("URL normalization can repeat after canonical landing and Back restores the same stale URL",async()=>{
+ const garage="11111111-1111-4111-8111-111111111111";
+ const stale=`q=brake&gv=${garage}&cv=22222222-2222-4222-8222-222222222222&cy=2020&cf=petrol&ce=1984&fit=0`;
+ const canonical=`/?q=brake&gv=${garage}&fit=0#marketplace`;
+ const replacements=[];
+ const runner=hookRunner({router:{replace:value=>replacements.push(value)},searchParams:stale});
+ const api=moduleFrom("src/components/vehicle-context-persistence.tsx",{
+  react:runner.react,"next/navigation":runner.navigation,"@/lib/vehicle-context":loadVehicleContext(runner.window)
+ },{window:runner.window});
+ runner.render(api.VehicleContextPersistence,{viewerId:"viewer-a",garageContextValid:true});
+ await runner.flushEffects();
+ assert.deepEqual(replacements,[canonical]);
+ runner.setSearchParams(`q=brake&gv=${garage}&fit=0`);
+ runner.render(api.VehicleContextPersistence,{viewerId:"viewer-a",garageContextValid:true});
+ await runner.flushEffects();
+ assert.deepEqual(replacements,[canonical],"the canonical landing should not cause a redundant replace");
+ runner.setSearchParams(stale);
+ runner.render(api.VehicleContextPersistence,{viewerId:"viewer-a",garageContextValid:true});
+ await runner.flushEffects();
+ assert.deepEqual(replacements,[canonical,canonical],"Back to the same stale URL should normalize again");
+});
 test("same-viewer Garage state restores through canonical gv; add mode suppresses it without erasing the saved selection",async()=>{
  const GARAGE="11111111-1111-4111-8111-111111111111";
  const entries=new Map([["secondpart.web.vehicle-context.v1",JSON.stringify({viewerId:"viewer-a",selection:{kind:"garage",garageVehicleId:GARAGE,fitOnly:false}})]]);
