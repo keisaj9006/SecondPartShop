@@ -8,7 +8,7 @@ Consumers should use `src/lib/vehicle-context.ts`:
 
 - `setVehicleContext(params, selection)` is the single transition helper. Garage selection sets `gv` and clears `cv/cy/cf/ce`, legacy `vehicle/vr/vc`, and fitment state. Manual catalogue selection clears `gv` and legacy context. Clearing removes all competing vehicle state.
 - `resolveVehicleContext` applies URL precedence deterministically: explicit Garage selection wins over conflicting manual fields; invalid/unowned Garage IDs fail closed; an explicit manual catalogue URL wins over stored Garage context; stale/partial context is normalized away.
-- `readStoredVehicleContext` accepts only the viewer-bound Garage-ID envelope. It rejects malformed, unscoped, and other-viewer state. The persisted context contains no vehicle identity/profile copy.
+- `readStoredVehicleContext` accepts a schema-checked, viewer-bound selection envelope. A Garage selection persists only `garageVehicleId` and the fit toggle; identity and fitment details are reloaded from the owner-scoped Garage row. Explicit catalogue and legacy selections remain supported under existing browser-persistence semantics.
 
 Home resolves a Garage ID with the Phase 1 owner-scoped `getGarageVehicleById(profileId, garageVehicleId)` and uses the Garage row's nullable `catalogueVariantId`. Identity-only rows remain selectable and are not promoted to catalogue fitment. Garage links and filter transitions preserve only `gv`; manual selection and removal use the canonical helper. The add-vehicle flow suppresses stale stored selection without deleting the viewer's saved context.
 
@@ -50,6 +50,22 @@ A third review finding was fixed: URL normalization now clears its in-flight des
 - Viewer persistence is browser-local and scoped by authenticated viewer ID; it does not claim cross-device synchronization or introduce a Garage default column.
 - Hosted schema changes, deployment, and production behavior were not exercised or changed.
 - Full integrated adversarial checkout, mobile, and visual QA belongs to later gated phases and has not started.
-- Lead review is required before dependent phases consume this contract.
+- Lead review was required before dependent phases consumed this contract; final sign-off is recorded below.
 
 Commit SHA: supplied to the lead with the final review handoff.
+
+## Final lead verification
+
+- Lead-reviewed the complete Phase 2 changes and three narrow follow-up fixes at exact head `65e9f598c3cd11806eb628c9fd4f5fc419939b12`.
+- Fresh full `npm test`: **798/798 passed**, exit 0.
+- Fresh focused context/Garage/navigation/ownership/accessibility set: **73/73 passed**, exit 0.
+- `npm run typecheck`: passed, exit 0.
+- `npm run lint`: passed, 0 errors and the same 4 pre-existing warnings.
+- `npm run build`: passed with locally installed Next.js 16.3.4; exact lockfile-aligned Preview CI remains an integrated release gate.
+- `git diff --check db04aac..HEAD`: passed; worktree clean before this report update.
+- Lead verdict: Phase 2 contract accepted; Phase 3 may consume it. The branch is still unpushed and PR #10 remains open.
+
+Phase 2 commits:
+- `f791030a4abeed33be4ba40fb1193b7accb58524` — canonical vehicle context and selected Garage persistence
+- `8c7b6d698613baac3181752b136d3e4bf9c978d3` — fit toggle and deletion cleanup
+- `65e9f598c3cd11806eb628c9fd4f5fc419939b12` — repeat URL normalization after Back/Forward
