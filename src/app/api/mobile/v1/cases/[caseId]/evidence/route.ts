@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { cleanupFailedCaseEvidenceUpload } from "@/lib/case-evidence-cleanup";
 import { isUuid } from "@/lib/identifiers";
+import { validateImageUpload, type ValidatedImageUpload } from "@/lib/image-upload";
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
 
 export const dynamic="force-dynamic";
@@ -95,10 +96,15 @@ export async function POST(request:Request,{params}:{params:Promise<{caseId:stri
  if(countError)return mobileJson(request,{ok:false,error:"evidence_unavailable"},503);
  if((count??0)>=10)return mobileJson(request,{ok:false,error:"evidence_limit"},409);
 
+ let validated:ValidatedImageUpload;
+ try{validated=await validateImageUpload(file);}catch(error){
+  return mobileJson(request,{ok:false,error:"invalid_image",message:error instanceof Error?error.message:"Choose a valid evidence image."},400);
+ }
+
  const storagePath=`${caseId}/${user.id}/${randomUUID()}.${extension}`;
  const bytes=new Uint8Array(await file.arrayBuffer());
  const {error:uploadError}=await supabase.storage.from("case-evidence").upload(storagePath,bytes,{
-  contentType:file.type,
+  contentType:validated.mimeType,
   cacheControl:"3600",
   upsert:false
  });
@@ -108,7 +114,7 @@ export async function POST(request:Request,{params}:{params:Promise<{caseId:stri
   p_case_id:caseId,
   p_storage_path:storagePath,
   p_original_name:(file.name||("evidence."+extension)).slice(0,255),
-  p_mime_type:file.type
+  p_mime_type:validated.mimeType
  });
  if(registerError){
   await cleanupFailedCaseEvidenceUpload(user.id,caseId,storagePath);

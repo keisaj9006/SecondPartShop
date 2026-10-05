@@ -166,6 +166,7 @@ function webUploadHarness(){
    :{data:null,error:null}
  };
  const api=load("src/app/cases/evidence-actions.ts",{
+  "@/lib/image-upload":{validateImageUpload:async()=>({extension:"jpg",mimeType:"image/jpeg"})},
   "node:crypto":{randomUUID:()=>generated},
   "next/cache":{revalidatePath(){}},
   "@/lib/auth":{requireUser:async()=>({id:userId})},
@@ -214,6 +215,7 @@ function mobileUploadHarness(){
    :{data:null,error:null}
  };
  const api=load("src/app/api/mobile/v1/cases/[caseId]/evidence/route.ts",{
+  "@/lib/image-upload":{validateImageUpload:async()=>({extension:"jpg",mimeType:"image/jpeg"})},
   "node:crypto":{randomUUID:()=>generated},
   "@/lib/identifiers":{isUuid:()=>true},
   "@/lib/mobile-api":{

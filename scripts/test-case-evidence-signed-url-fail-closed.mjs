@@ -137,6 +137,7 @@ function mobileHarness({signedUrlFailure=true}={}){
    };
    if(name==="@/lib/supabase/admin")return {createSupabaseAdminClient(){throw new Error("admin not expected in GET");}};
    if(name==="@/lib/case-evidence-cleanup")return {cleanupFailedCaseEvidenceUpload:async()=>true};
+   if(name==="@/lib/image-upload")return {validateImageUpload:async()=>{throw new Error("decoder not expected in GET");}};
    throw new Error("Unexpected dependency "+name);
   }
  });
