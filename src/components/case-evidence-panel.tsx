@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { Camera,ExternalLink,LockKeyhole,Upload } from "lucide-react";
 import { uploadCaseEvidence } from "@/app/cases/evidence-actions";
 import type { ActionState,TransactionCaseEvidence } from "@/lib/types";
+import { multipartFileBudgetError } from "@/lib/upload-transport";
 
 const initial:ActionState={status:"idle"};
 
@@ -44,9 +45,9 @@ export function CaseEvidencePanel({
   {canUpload&&evidence.length<10&&<form action={action} className="mt-4 rounded-xl bg-white p-3">
    <input type="hidden" name="caseId" value={caseId}/>
    <label className="text-xs font-black">Add photos
-    <input required multiple name="evidence" type="file" accept="image/jpeg,image/png,image/webp" className="mt-2 block w-full rounded-lg border border-black/15 px-3 py-2 text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-[#eef1eb] file:px-3 file:py-2 file:font-bold"/>
+    <input required multiple name="evidence" type="file" accept="image/jpeg,image/png,image/webp" onChange={event=>event.currentTarget.setCustomValidity(multipartFileBudgetError(Array.from(event.currentTarget.files??[]))??"")} className="mt-2 block w-full rounded-lg border border-black/15 px-3 py-2 text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-[#eef1eb] file:px-3 file:py-2 file:font-bold"/>
    </label>
-   <p className="mt-2 text-[11px] leading-5 text-[#63706a]">Up to 5 images per upload, 10 per case, maximum 5 MB each. Useful evidence includes packaging, labels, damage, connectors, part numbers and condition on arrival.</p>
+   <p className="mt-2 text-[11px] leading-5 text-[#63706a]">Up to 5 images per upload, 10 per case, maximum 4 MiB in total per upload. Upload smaller batches if needed. Useful evidence includes packaging, labels, damage, connectors, part numbers and condition on arrival.</p>
    {state.message&&<p className={"mt-2 text-xs font-bold "+(state.status==="error"?"text-red-700":"text-emerald-700")}>{state.message}</p>}
    <button disabled={pending} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-[#173c31] px-3 py-2 text-xs font-black text-white disabled:opacity-50"><Upload size={14}/>{pending?"Uploading…":"Upload evidence"}</button>
   </form>}

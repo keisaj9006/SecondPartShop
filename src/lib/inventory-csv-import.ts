@@ -36,7 +36,13 @@ const TESTING=new Set(["tested_working","removed_from_running_vehicle","visually
 
 const text=(value:string|undefined,max=500)=>value?.trim().slice(0,max)??"";
 const nullable=(value:string|undefined,max=500)=>{const result=text(value,max);return result||null;};
-const moneyPence=(value:string|undefined)=>{if(value===undefined||value.trim()==="")return null;const parsed=Number(value);return Number.isFinite(parsed)&&parsed>=0?Math.round(parsed*100):null;};
+const moneyPence=(value:string|undefined)=>{
+ if(value===undefined||value.trim()==="")return null;
+ const parsed=Number(value);
+ const pence=Math.round(parsed*100);
+ // Match the non-negative PostgreSQL integer column before attempting any writes.
+ return Number.isFinite(parsed)&&parsed>=0&&Number.isSafeInteger(pence)&&pence<=2147483647?pence:null;
+};
 const integer=(value:string|undefined,defaultValue:number)=>{if(value===undefined||value.trim()==="")return defaultValue;const parsed=Number(value);return Number.isInteger(parsed)?parsed:null;};
 const slugify=(value:string)=>value.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,80);
 const chunks=<T,>(items:T[],size:number)=>{const result:T[][]=[];for(let start=0;start<items.length;start+=size)result.push(items.slice(start,start+size));return result;};
@@ -69,7 +75,7 @@ type ValidatedRow={
 
 async function validateCsv(file:File,sellerId:string,supabase:SupabaseClient<Database>){
  if(!file.size)return {fatal:"Choose a CSV file.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:0};
- if(file.size>BULK_IMPORT_MAX_FILE_BYTES)return {fatal:"CSV files can be up to 20 MiB.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:0};
+ if(file.size>BULK_IMPORT_MAX_FILE_BYTES)return {fatal:"CSV files can be up to "+(BULK_IMPORT_MAX_FILE_BYTES/(1024*1024))+" MiB. Split larger inventory into separate CSV files, keeping the header and stable seller references in each file.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:0};
  if(!file.name.toLowerCase().endsWith(".csv"))return {fatal:"Choose a .csv file.",rows:[] as ValidatedRow[],issues:[] as BulkImportIssue[],sample:[] as BulkImportPreviewRow[],received:0};
 
  const parsed=parseCsv(await file.text());
@@ -148,7 +154,7 @@ async function validateCsv(file:File,sellerId:string,supabase:SupabaseClient<Dat
 
   if(title.length<5)rowIssues.push("Title must contain at least 5 characters.");
   if(description.length<20)rowIssues.push("Description must contain at least 20 characters.");
-  if(pricePence===null)rowIssues.push("price_gbp must be a valid non-negative amount.");
+  if(pricePence===null)rowIssues.push("price_gbp must be a valid amount between £0 and £21,474,836.47.");
   if(shippingPence===null||shippingPence>1000000)rowIssues.push("shipping_gbp must be between £0 and £10,000.");
   if(stock===null||stock<0||stock>100000)rowIssues.push("stock must be a whole number between 0 and 100,000.");
   if(dispatchDays===null||dispatchDays<0||dispatchDays>30)rowIssues.push("dispatch_days must be a whole number between 0 and 30.");
@@ -168,7 +174,7 @@ async function validateCsv(file:File,sellerId:string,supabase:SupabaseClient<Dat
    seenRefs.add(key);
   }
 
-  sample.push({row:rowNumber,title:title||"(missing title)",category:categoryInput||"(missing category)",priceGbp:row.price_gbp??"",sellerReference,donorRegistration});
+  sample.push({row:rowNumber,title:title||"(missing title)",category:categoryInput||"(missing category)",priceGbp:pricePence===null?text(row.price_gbp,32):(pricePence/100).toFixed(2),sellerReference,donorRegistration});
   if(rowIssues.length){
    for(const message of rowIssues)issues.push({row:rowNumber,message});
    continue;

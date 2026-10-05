@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect,useRef,useState } from "react";
+import { multipartFileBudgetError } from "@/lib/upload-transport";
 
 type Props={
  name:string;
@@ -122,6 +123,9 @@ export function OptimizedImageInput({name,existingCount=0,className,onProcessing
     if(resetCompletion)await resetCompletion;
     if(generation!==optimizationGeneration.current)return;
    }
+
+   const budgetError=multipartFileBudgetError(optimized);
+   if(budgetError)throw new Error(budgetError);
 
    const transfer=new DataTransfer();
    for(const file of optimized)transfer.items.add(file);

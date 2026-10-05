@@ -29,6 +29,24 @@ One real Stripe sandbox full-refund flow after payout release, including payout 
 
 Recent RC hardening also verifies that selected-vehicle checkout fails closed when compatibility cannot be checked, transaction pages no longer turn backend failures into false empty/404 states, mobile buyer orders retain sold-item identity after public listing RLS hides the part, case-evidence reads fail closed rather than silently returning a partial evidence set, and failed evidence attachment now has a source-controlled durable cleanup path with a safe staged-rollout fallback.
 
+## Application hardening checkpoint — 5 October 2026
+
+Canonical code boundary `f4f6b2f6eaf72aa53281a62a229d96091b6136d0` includes the verified Next.js security repair (#11) and malformed CSV repair (#12). PR #12 passed 698 tests, lint (zero errors/four existing warnings), typecheck, web build, production dependency audit (zero vulnerabilities), independent review, all five QA jobs (`37313965163`), Android dry run (`37313707921`) and exact-head Preview smoke. Evidence: [CSV integrity report](test-runs/2026-10-05-csv-hardening.md).
+
+This subsection is the current scoped engineering gap register, supplementing the release gates below rather than replacing them. It is not a full RC audit denominator; untested areas remain unsigned.
+
+| Finding | Classification/status | Reproduction, cause, repair and regression evidence |
+|---|---|---|
+| Malformed CSV silently alters inventory content | VERIFIED, P1 fixed in #12 | Extra cells and malformed quotes imported successfully before the parser repair; three import-level RED/GREEN tests now prove zero writes. Exact code `ad24f863776c4f7b0817aa45d7f3053290cdc202`; report above. |
+| CSV exceeds hosted request ceiling | VERIFIED, P1 fixed in #13 | 5 MiB synthetic Preview request returned Vercel 413 before app code; a 4 MiB synthetic request reaches the application auth boundary (401). Shared 4 MiB file guard/pre-submit guidance, unchanged 5,000-row/chunked drafts. [Transport report](test-runs/2026-10-05-csv-transport.md). |
+| Preview state exceeds retry transport budget | VERIFIED, P1 fixed in #13 | Bounded normalized sample with real 3 MiB RED/GREEN fixture; same report. |
+| Price preflight exceeds database integer contract | VERIFIED, P1 fixed in #13 | Match existing DB range before any write; two RED/GREEN fixtures. Code `f86414ab314adc46dee74dbe30020bd508c0a7d0` passed 702 tests, baseline/build, independent review, QA `37315003789`, Android `37315021832` and exact Preview. Same report. |
+| Photo multipart exceeds hosted request ceiling | VERIFIED, P1 fixed in #14 | Compressed aggregate and case-evidence pre-submit checks plus bounded listing text. Independent review, 719 tests, QA `37316807833`, Android `37316813119` and exact Preview passed. [Photo transport report](test-runs/2026-10-05-photo-transport.md). Actual authenticated Storage upload remains unsigned. |
+| Corrupt image passes signature-only/MIME validator | VERIFIED, P1 fixed in #15 | Shared all-frame server decoding, aggregate 50M pixel bound and web/mobile evidence preflight; 732 tests, five QA jobs, Android dry run, exact Preview and independent review passed on code `0b9c5e3b31ef2aab0a3df8022eecd7b38441a0f4`. [Image decoding report](test-runs/2026-10-05-image-decoding.md). |
+| Authenticated DVSA → Garage/compatibility journey | MANUAL prerequisite, P1 unsigned | Live provider lookup is proven in PR #10; natural authenticated save/reload/switch and correct owner-known derivative remain required. Preserve conditional merge gate. |
+
+Business formation, banking, seller acquisition and organisational administration are handled separately by the owner. They are not substitutes for closing application-engineering defects. No Production deployment or main change is authorised by this checkpoint.
+
 ## Current verified engineering baseline
 
 Product Excellence update (2026-09-12): accessibility, mobile navigation, vehicle-selection clarity, saved-state viewer boundaries, CSV retry/report handling, responsive navigation and safe Preview metadata have passed scoped engineering checks and independent review. Corrected `1a34457` passed301 tests, lint/typecheck/build,14 validators and CI; representative Preview checks passed. QA Seller CSV Preview/file retention and seller-form viewport checks subsequently passed on `a54f205`; actual import/provider recovery and native zoom remain unsigned. See [full evidence/checkpoint](test-runs/2026-09-12-product-excellence.md). This does not close provider, physical-device, production-domain or marketplace-liquidity gates.

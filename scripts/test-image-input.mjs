@@ -7,11 +7,13 @@ import ts from "typescript";
 const compiled=ts.transpileModule(fs.readFileSync("src/components/optimized-image-input.tsx","utf8"),{
  compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}
 }).outputText;
+const transport={};
+vm.runInNewContext(ts.transpileModule(fs.readFileSync("src/lib/upload-transport.ts","utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports:transport});
 
-function mount({createImageBitmap}={}){
+function mount({createImageBitmap,files}={}){
  const form=new EventTarget();
  const selectedFile={name:"qa.png",type:"image/png",size:1200};
- const input={form,files:[selectedFile],value:"qa.png"};
+ const input={form,files:files??[selectedFile],value:"qa.png"};
  const document={createElement:()=>({
   getContext:()=>({drawImage(){}}),
   toBlob:callback=>callback(new Blob([new Uint8Array(1300)],{type:"image/webp"}))
@@ -24,6 +26,7 @@ function mount({createImageBitmap}={}){
   ...(createImageBitmap?{createImageBitmap}:{}),
   DataTransfer:class{files=[];items={add:file=>this.files.push(file)};},
   require(name){
+   if(name==="@/lib/upload-transport")return transport;
    if(name==="react/jsx-runtime")return {jsx,jsxs:jsx};
    if(name==="react")return {
     useState(value){const i=stateIndex++;if(!(i in states))states[i]=value;return [states[i],v=>states[i]=v];},
@@ -116,4 +119,21 @@ test("a genuine reset invalidates stale asynchronous optimization feedback",asyn
  assert.doesNotMatch(rendered,/ready to upload/);
  assert.doesNotMatch(rendered,/Optimizing photos/);
  for(const cleanup of view.cleanup)cleanup?.();
+});
+
+test("individually valid photos cannot be declared upload-ready above the aggregate transport budget",async()=>{
+ const view=mount({files:[{name:"a.png",type:"image/png",size:3*1024*1024},{name:"b.png",type:"image/png",size:2*1024*1024}]});
+ await view.tree.props.children[0].props.onChange();
+ const rendered=JSON.stringify(view.render());
+ assert.match(rendered,/4 MiB.*fewer|fewer.*4 MiB/i);
+ assert.doesNotMatch(rendered,/ready to upload|saved before upload/);
+ assert.equal(view.input.value,"");
+});
+
+test("photos at the aggregate boundary are ready and retain their files",async()=>{
+ const files=[{name:"a.png",type:"image/png",size:2*1024*1024},{name:"b.png",type:"image/png",size:2*1024*1024}];
+ const view=mount({files});
+ await view.tree.props.children[0].props.onChange();
+ assert.match(JSON.stringify(view.render()),/2 photos ready to upload/);
+ assert.equal(view.input.files.length,2);
 });

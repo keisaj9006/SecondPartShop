@@ -13,6 +13,8 @@ function compile(relativePath,{jsx=false}={}){
 
 const csvExports={};
 vm.runInNewContext(compile("src/lib/csv.ts"),{exports:csvExports,require(name){throw new Error(name);}});
+const limitExports={};
+vm.runInNewContext(compile("src/lib/inventory-import-constants.ts"),{exports:limitExports});
 
 const importerExports={};
 vm.runInNewContext(compile("src/lib/inventory-csv-import.ts"),{
@@ -21,12 +23,34 @@ vm.runInNewContext(compile("src/lib/inventory-csv-import.ts"),{
   if(name==="server-only")return {};
   if(name==="@/lib/csv")return csvExports;
   if(name==="@/lib/vehicle-registration")return {normalizeRegistration:value=>value.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8)};
-  if(name==="@/lib/inventory-import-constants")return {BULK_IMPORT_MAX_ROWS:5000,BULK_IMPORT_MAX_FILE_BYTES:20*1024*1024};
+  if(name==="@/lib/inventory-import-constants")return limitExports;
   throw new Error(name);
  }
 });
 
 const {processSellerInventoryCsv}=importerExports;
+
+for(const [name,contents] of [
+ ["extra unquoted cell",'title,description,category,price_gbp,seller_reference\nFord Focus headlight,A tested used headlight with mounting points intact.,headlights,49.95,stock-a,unexpected'],
+ ["quote inside an unquoted field",'title,description,category,price_gbp,seller_reference\nFord "Focus" headlight,A tested used headlight with mounting points intact.,headlights,49.95,stock-a'],
+ ["text after a closing quote",'title,description,category,price_gbp,seller_reference\n"Ford Focus" headlight,A tested used headlight with mounting points intact.,headlights,49.95,stock-a']
+])test(`malformed CSV (${name}) fails before creating any inventory or batch`,async()=>{
+ const harness=fakeSupabase();
+ const result=await processSellerInventoryCsv({file:new File([contents],"inventory.csv"),sellerId,supabase:harness.client,mode:"import"});
+ assert.equal(result.status,"error");
+ assert.equal(result.fileReset,"retain");
+ assert.equal(harness.state.parts.length,0);
+ assert.equal(harness.state.batches.length,0);
+});
+
+test("CSV preserves quoted commas, escaped quotes, Unicode, BOM and multiline CRLF values",()=>{
+ const parsed=csvExports.parseCsv('\uFEFFtitle,description,extra\r\n"Astra, lamp","Joanna\u2019s \"\"tested\"\" lamp\r\nsecond line",optional\r\n');
+ assert.equal(parsed.error,null);
+ assert.equal(parsed.rows.length,1);
+ assert.equal(parsed.rows[0].title,"Astra, lamp");
+ assert.equal(parsed.rows[0].description,'Joanna\u2019s "tested" lamp\r\nsecond line');
+ assert.equal(parsed.rows[0].extra,"optional");
+});
 const sellerId="seller-1";
 const category={id:"category-1",name:"Headlights",slug:"headlights",is_selectable:true,is_transmission_related:false};
 
@@ -190,19 +214,22 @@ test("the exact 5,000-row boundary previews and 5,001 rows are rejected",async()
  assert.equal(rejected.fileReset,"retain");
 });
 
-test("the exact 20 MiB boundary is accepted and one byte more is rejected",async()=>{
+test("the hosted-safe 4 MiB boundary is accepted and one byte more is rejected before reading or queries",async()=>{
  const harness=fakeSupabase();
  const prefix="title,description,category,price_gbp,seller_reference\nFord Focus headlight,\"";
  const suffix="\",headlights,49.95,stock-a";
- const exactContents=prefix+"x".repeat(20*1024*1024-prefix.length-suffix.length)+suffix;
+ const exactContents=prefix+"x".repeat(4*1024*1024-prefix.length-suffix.length)+suffix;
  const accepted=await processSellerInventoryCsv({file:new File([exactContents],"inventory.csv"),sellerId,supabase:harness.client,mode:"preview"});
  assert.equal(accepted.status,"preview");
  assert.equal(accepted.validRows,1);
  assert.equal(accepted.fileReset,"retain");
 
- const rejected=await processSellerInventoryCsv({file:new File([exactContents,"x"],"inventory.csv"),sellerId,supabase:harness.client,mode:"preview"});
+ const overLimit=new File([exactContents,"x"],"inventory.csv");
+ overLimit.text=async()=>{throw new Error("Oversized files must not be read.");};
+ const noQueries={from(){throw new Error("Oversized files must not query the database.");},rpc(){throw new Error("Oversized files must not query the database.");}};
+ const rejected=await processSellerInventoryCsv({file:overLimit,sellerId,supabase:noQueries,mode:"preview"});
  assert.equal(rejected.status,"error");
- assert.match(rejected.message,/20 MiB/i);
+ assert.match(rejected.message,/4 MiB/i);
  assert.equal(rejected.fileReset,"retain");
 });
 
@@ -224,7 +251,7 @@ function mountComponent(actionState){
    if(name==="next/link")return {__esModule:true,default:"a"};
    if(name==="lucide-react")return new Proxy({},{get:()=>()=>null});
    if(name==="@/app/dashboard/import/actions")return {bulkImportCsv(){}};
-   if(name==="@/lib/inventory-import-constants")return {BULK_IMPORT_MAX_ROWS:5000,BULK_IMPORT_MAX_FILE_BYTES:20*1024*1024};
+   if(name==="@/lib/inventory-import-constants")return limitExports;
    throw new Error(name);
   }
  });
@@ -276,11 +303,43 @@ test("a recovery after writes clears the selected file and renders report and dr
  assert.match(renderedText(view.tree),/do not upload/i);
 });
 
-test("the component presents the shared 5,000-row and 20 MiB limits",()=>{
+test("the component presents the shared 5,000-row and hosted-safe 4 MiB limits",()=>{
  const text=renderedText(mountComponent({status:"idle"}).tree);
  assert.match(text,/5,000 rows/);
- assert.match(text,/20 MiB/);
+ assert.match(text,/4 MiB/);
 });
+
+test("oversize selection is invalid before submitting and a corrected file clears the error without resetting it",()=>{
+ const input=descendants(mountComponent({status:"idle"}).tree).find(node=>node.type==="input"&&node.props.name==="file");
+ let validity="";
+ const target={files:[{size:4*1024*1024+1}],value:"inventory.csv",setCustomValidity:message=>{validity=message;}};
+ input.props.onChange({currentTarget:target});
+ assert.match(validity,/4 MiB/);
+ assert.equal(target.value,"inventory.csv");
+ target.files=[{size:4*1024*1024}];
+ input.props.onChange({currentTarget:target});
+ assert.equal(validity,"");
+});
+
+test("preview state stays bounded so a supported CSV can be submitted again for import",async()=>{
+ const file=new File(['title,description,category,price_gbp,seller_reference\nFord Focus headlight,A tested used headlight with mounting points intact.,headlights,'+'0'.repeat(3*1024*1024)+'1,stock-large'],"inventory.csv");
+ const harness=fakeSupabase();
+ const result=await processSellerInventoryCsv({file,sellerId,supabase:harness.client,mode:"preview"});
+ assert.equal(result.validRows,1);
+ assert.ok(result.sample[0].priceGbp==="1.00","preview uses the bounded normalized amount");
+ assert.ok(file.size+Buffer.byteLength(JSON.stringify(result))<4500000,"file plus previous action state must retain multipart headroom");
+});
+
+for(const price of ["1e308","21474836.48"])
+ test(`price ${price} is rejected before creating a database-invalid draft`,async()=>{
+  const harness=fakeSupabase();
+  const file=csvFile([row("stock-price").replace("49.95",price)]);
+  const result=await processSellerInventoryCsv({file,sellerId,supabase:harness.client,mode:"import"});
+  assert.equal(result.status,"error");
+  assert.equal(result.validRows,0);
+  assert.equal(harness.state.parts.length,0);
+  assert.equal(harness.state.batches.length,0);
+ });
 
 test("the server action revalidates imported drafts when report finalization needs recovery",async()=>{
  const exports={};
