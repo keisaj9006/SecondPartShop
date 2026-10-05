@@ -4,14 +4,9 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { cleanupFailedCaseEvidenceUpload } from "@/lib/case-evidence-cleanup";
+import { validateImageUpload, type ValidatedImageUpload } from "@/lib/image-upload";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
-
-const allowed=new Map([
- ["image/jpeg","jpg"],
- ["image/png","png"],
- ["image/webp","webp"]
-]);
 
 export async function uploadCaseEvidence(_previous:ActionState,formData:FormData):Promise<ActionState>{
  const user=await requireUser("/account");
@@ -20,16 +15,22 @@ export async function uploadCaseEvidence(_previous:ActionState,formData:FormData
  if(!files.length)return {status:"error",message:"Choose at least one evidence image."};
  if(files.length>5)return {status:"error",message:"Upload up to 5 evidence images at a time."};
 
+ const validated:ValidatedImageUpload[]=[];
+ try{
+  // Validate the entire batch before creating any Storage objects.
+  for(const file of files)validated.push(await validateImageUpload(file));
+ }catch(error){
+  return {status:"error",message:error instanceof Error?error.message:"Choose a valid evidence image."};
+ }
+
  const supabase=await createSupabaseServerClient();
- for(const file of files){
-  const extension=allowed.get(file.type);
-  if(!extension)return {status:"error",message:"Evidence must be JPG, PNG or WebP."};
-  if(file.size>5*1024*1024)return {status:"error",message:"Each evidence image must be 5 MB or smaller."};
+ for(const [index,file] of files.entries()){
+  const {extension,mimeType}=validated[index];
 
   const path=`${caseId}/${user.id}/${randomUUID()}.${extension}`;
   const bytes=new Uint8Array(await file.arrayBuffer());
   const {error:uploadError}=await supabase.storage.from("case-evidence").upload(path,bytes,{
-   contentType:file.type,
+   contentType:mimeType,
    cacheControl:"3600",
    upsert:false
   });
@@ -39,7 +40,7 @@ export async function uploadCaseEvidence(_previous:ActionState,formData:FormData
    p_case_id:caseId,
    p_storage_path:path,
    p_original_name:file.name.slice(0,255)||("evidence."+extension),
-   p_mime_type:file.type
+   p_mime_type:mimeType
   });
   if(registerError){
    await cleanupFailedCaseEvidenceUpload(user.id,caseId,path);

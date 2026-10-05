@@ -1,6 +1,9 @@
 import "server-only";
+import sharp from "sharp";
 
 const MAX_IMAGE_BYTES=5*1024*1024;
+// Includes typical 48 MP camera photos, but bounds decompression of tiny files.
+const MAX_IMAGE_PIXELS=50_000_000;
 
 const MIME_EXTENSION={
  "image/jpeg":"jpg",
@@ -35,6 +38,20 @@ export async function validateImageUpload(file:File):Promise<ValidatedImageUploa
     :ascii(bytes,0,4)==="RIFF"&&ascii(bytes,8,4)==="WEBP";
 
  if(!matches)throw new Error("The selected file does not contain a valid "+(mime==="image/jpeg"?"JPG":mime==="image/png"?"PNG":"WebP")+" image.");
+
+ const input=Buffer.from(await file.arrayBuffer());
+ const image=sharp(input,{failOn:"warning",limitInputPixels:MAX_IMAGE_PIXELS,pages:-1});
+ try{
+  const metadata=await image.metadata();
+  if(!metadata.width||!metadata.height||metadata.width*metadata.height>MAX_IMAGE_PIXELS){
+   throw new Error("Image dimensions exceed the supported limit.");
+  }
+  // Metadata alone can accept an image whose pixel stream is truncated.
+  // stats decodes that stream without creating a second encoded upload.
+  await image.stats();
+ }catch{
+  throw new Error("The selected file does not contain a valid image within the 50 megapixel limit. Choose a smaller, undamaged JPG, PNG or WebP photo.");
+ }
 
  return {extension,mimeType:mime};
 }
