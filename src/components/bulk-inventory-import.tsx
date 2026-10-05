@@ -24,9 +24,12 @@ export function BulkInventoryImport(){
    </div>
 
    <label className="mt-5 block text-sm font-black">CSV file
-    <input ref={fileInputRef} required type="file" name="file" accept=".csv,text/csv" className="mt-2 block w-full rounded-xl border border-black/15 bg-[#f8f7f2] p-3 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[#173c31] file:px-4 file:py-2 file:font-black file:text-white"/>
+    <input ref={fileInputRef} required type="file" name="file" accept=".csv,text/csv" onChange={event=>{
+     const file=event.currentTarget.files?.[0];
+     event.currentTarget.setCustomValidity(file&&file.size>BULK_IMPORT_MAX_FILE_BYTES?"CSV files can be up to "+(BULK_IMPORT_MAX_FILE_BYTES/(1024*1024))+" MiB. Split larger files and include the header in each file.":"");
+    }} className="mt-2 block w-full rounded-xl border border-black/15 bg-[#f8f7f2] p-3 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[#173c31] file:px-4 file:py-2 file:font-black file:text-white"/>
    </label>
-   <p className="mt-2 text-xs leading-5 text-[#63706a]">Maximum {BULK_IMPORT_MAX_FILE_BYTES/(1024*1024)} MiB. Preview is recommended before importing. Each row needs a stable seller_reference; reuse it when retrying a corrected row so existing stock is never overwritten.</p>
+   <p className="mt-2 text-xs leading-5 text-[#63706a]">Maximum {BULK_IMPORT_MAX_FILE_BYTES/(1024*1024)} MiB. Split larger inventory into separate files with the header in each file. Preview is recommended before importing. Each row needs a stable seller_reference; reuse it when retrying a corrected row so existing stock is never overwritten.</p>
 
    <div className="mt-5 grid gap-2 sm:grid-cols-2">
     <button name="mode" value="preview" disabled={pending} className="min-h-12 rounded-xl border border-[#173c31] bg-white px-5 py-3 text-sm font-black text-[#173c31] disabled:opacity-50">{pending?"Checking…":"Preview CSV"}</button>
