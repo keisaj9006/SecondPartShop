@@ -224,7 +224,10 @@ test("the hosted-safe 4 MiB boundary is accepted and one byte more is rejected b
  assert.equal(accepted.validRows,1);
  assert.equal(accepted.fileReset,"retain");
 
- const rejected=await processSellerInventoryCsv({file:new File([exactContents,"x"],"inventory.csv"),sellerId,supabase:harness.client,mode:"preview"});
+ const overLimit=new File([exactContents,"x"],"inventory.csv");
+ overLimit.text=async()=>{throw new Error("Oversized files must not be read.");};
+ const noQueries={from(){throw new Error("Oversized files must not query the database.");},rpc(){throw new Error("Oversized files must not query the database.");}};
+ const rejected=await processSellerInventoryCsv({file:overLimit,sellerId,supabase:noQueries,mode:"preview"});
  assert.equal(rejected.status,"error");
  assert.match(rejected.message,/4 MiB/i);
  assert.equal(rejected.fileReset,"retain");
