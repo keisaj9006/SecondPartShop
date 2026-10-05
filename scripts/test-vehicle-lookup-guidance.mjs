@@ -27,10 +27,12 @@ function moduleFrom(react,{fetchImpl,router={push(){}}}={}){
   require(name){
    if(name==="react/jsx-runtime")return jsxRuntime;
    if(name==="react")return react;
+   if(name==="next/link")return "a";
    if(name==="next/navigation")return {useRouter:()=>router};
    if(name==="lucide-react")return new Proxy({},{get:()=>()=>null});
    if(name==="@/components/vehicle-visual")return {VehicleVisual:()=>null};
    if(name==="@/lib/vehicle-context")return vehicleContext();
+   if(name==="@/app/garage/actions")return {saveGarageVehicle:async()=>({ok:false,code:"unused",message:"unused",retryable:false})};
    throw new Error(`Unexpected dependency ${name}`);
   },
   URL,URLSearchParams,AbortController,console,
@@ -59,6 +61,7 @@ function hookRunner(){
    if(changed)pendingEffects.push({index,effect});
   },
   useTransition(){hookIndex++;return [false,callback=>callback()];}
+  ,useActionState(_action,initial){const index=hookIndex++;if(!(index in state))state[index]=initial;return [state[index],async()=>{},false];}
  };
  return {
   react,

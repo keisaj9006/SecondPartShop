@@ -106,6 +106,7 @@ test("Home route exports the route-specific canonical and Open Graph metadata",(
  const dependencies={
   "next/server":{after(){}},"@/components/header":{Header:()=>null},"@/components/marketplace-home":{MarketplaceHome:()=>null},
   "@/lib/data/marketplace":{getCategories(){},getMarketplacePage(){},getSavedPartIdsForParts(){},getVehicleById(){}},
+  "@/lib/data/compatibility":{compatibilityInfo:level=>({level})},
   "@/lib/data/garage":{getGarageVehicleById(){},getGarageVehicleMatch(){},getGarageVehiclesPage(){}},"@/lib/data/buyer-account":{getRecentlyViewedListings(){}},
   "@/lib/data/vehicle-catalogue":{getCatalogueSelection(){}},"@/lib/auth":{getCurrentUser(){}},
   "@/lib/vehicle-registration":{normalizeRegistration:value=>value},"@/lib/postcode":{normalizePostcode:value=>value},

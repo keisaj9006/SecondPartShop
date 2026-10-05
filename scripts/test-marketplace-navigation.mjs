@@ -26,7 +26,9 @@ function moduleFrom(relativePath,dependencies={},globals={}){
   require(name){
    if(name==="react/jsx-runtime")return jsxRuntime;
    if(name==="lucide-react")return icons;
+   if(name==="next/link")return "a";
    if(name in dependencies)return dependencies[name];
+   if(name==="@/app/garage/actions")return {saveGarageVehicle:async()=>({ok:false,code:"unused",message:"unused",retryable:false})};
    throw new Error(`Unexpected dependency ${name} in ${relativePath}`);
   },
   URL,URLSearchParams,Request,Response,AbortController,console,...globals

@@ -6,6 +6,7 @@ import { getCategories,getMarketplacePage,getSavedPartIdsForParts,getVehicleById
 import { getGarageVehicleById,getGarageVehicleMatch,getGarageVehiclesPage } from "@/lib/data/garage";
 import { getRecentlyViewedListings } from "@/lib/data/buyer-account";
 import { getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
+import { compatibilityInfo } from "@/lib/data/compatibility";
 import { getCurrentUser } from "@/lib/auth";
 import { normalizeRegistration } from "@/lib/vehicle-registration";
 import { normalizePostcode } from "@/lib/postcode";
@@ -37,6 +38,9 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
  });
  const activeParams=activeContext.params;
  const selectedGarageVehicle=activeContext.selection.kind==="garage"?requestedGarageVehicle:null;
+ const identityOnlyFitmentUnresolved=Boolean(selectedGarageVehicle&&!selectedGarageVehicle.catalogueVariantId&&activeParams.get("fit")!=="0");
+ const garageSaveParam=first(params.garageSave);
+ const garageSaveOutcome=requestedGarageId&&selectedGarageVehicle&&(garageSaveParam==="created"||garageSaveParam==="already_exists")?garageSaveParam:undefined;
  const condition=activeParams.get("condition")??undefined;
  const requestedSort=first(params.sort);
  const sort=(["best","price_asc","price_desc","distance","delivery","warranty"] as string[]).includes(requestedSort??"")?requestedSort as MarketplaceSort:"best";
@@ -82,12 +86,16 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
  const [result,legacyVehicle,garagePage,matchedGarageVehicle,recentlyViewed]=await Promise.all([
   invalidGarageContext?Promise.resolve({data:[],error:"This Garage vehicle is unavailable. Select a vehicle again.",configured:true,pagination:{offset:(requestedPage-1)*pageSize,limit:pageSize,returned:0,total:null,hasMore:false,mode:"offset" as const,nextCursor:null}})
    :invalidSearchVehicle?Promise.resolve({data:[],error:"Compatibility data is temporarily unavailable.",configured:true,pagination:{offset:(requestedPage-1)*pageSize,limit:pageSize,returned:0,total:null,hasMore:false,mode:"offset" as const,nextCursor:null}})
+   :identityOnlyFitmentUnresolved?Promise.resolve({data:[],error:null,configured:true,pagination:{offset:(requestedPage-1)*pageSize,limit:pageSize,returned:0,total:0,hasMore:false,mode:"offset" as const,nextCursor:null}})
    :getMarketplacePage(filters,{offset:(requestedPage-1)*pageSize,limit:pageSize,cursor:marketplaceCursor,lean:true}),
   legacyVehicleId?getVehicleById(legacyVehicleId):Promise.resolve(null),
   user?getGarageVehiclesPage(user.id,{limit:4}).catch(()=>({items:[],hasMore:false,offset:0,limit:4})):Promise.resolve({items:[],hasMore:false,offset:0,limit:4}),
   user&&selectedCatalogue&&!selectedGarageVehicle?getGarageVehicleMatch(user.id,{catalogueVariantId:selectedCatalogue.variantId,year:selectedCatalogue.year,fuelType:selectedCatalogue.fuelType,engineSizeSimple:selectedCatalogue.engineSizeSimple,registration:vehicleRegistration??null}).catch(()=>null):Promise.resolve(null),
   user?getRecentlyViewedListings(user.id,3):Promise.resolve([])
  ]);
+ const marketplaceListings=selectedGarageVehicle&&!selectedGarageVehicle.catalogueVariantId&&filters.compatibleOnly===false
+  ?result.data.map(listing=>({...listing,compatibility:compatibilityInfo("unverified")}))
+  :result.data;
  if(!result.error&&requestedPage===1&&!marketplaceCursor&&filters.query?.trim()){
   const count=result.pagination.total??(result.pagination.returned+(result.pagination.hasMore?1:0));
   after(()=>recordMarketplaceSearch({source:"web",query:filters.query,resultCount:count,vehicleContext:Boolean(filters.vehicle||filters.catalogueVariant||selectedGarageVehicle),compatibleOnly:filters.compatibleOnly!==false,categoryId:filters.category}));
@@ -95,7 +103,7 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
  const vehicles=legacyVehicle?[legacyVehicle]:[];
  const garageVehicleForCard=selectedGarageVehicle??matchedGarageVehicle;
  const garageVehicles=garageVehicleForCard&&!garagePage.items.some(vehicle=>vehicle.id===garageVehicleForCard.id)?[garageVehicleForCard,...garagePage.items]:garagePage.items;
- const visiblePartIds=[...result.data.map(item=>item.id),...recentlyViewed.map(item=>item.id)];
+ const visiblePartIds=[...marketplaceListings.map(item=>item.id),...recentlyViewed.map(item=>item.id)];
  const savedIds=user?await getSavedPartIdsForParts(user.id,visiblePartIds):[];
- return <><Header/><MarketplaceHome freshVehicleSelection={addVehicleMode} activeGarageVehicleId={selectedGarageVehicle?.id} garageContextValid={!requestedGarageId||Boolean(requestedGarageVehicle)} listings={result.data} categories={categories} vehicles={vehicles} garageVehicles={garageVehicles} recentlyViewed={recentlyViewed} signedIn={Boolean(user)} viewerId={user?.id??null} filters={filters} selectedCatalogue={selectedCatalogue} savedIds={savedIds} error={result.error} configured={result.configured} pagination={result.pagination} currentPage={requestedPage} currentCursor={marketplaceCursor}/></>;
+ return <><Header/><MarketplaceHome freshVehicleSelection={addVehicleMode} activeGarageVehicleId={selectedGarageVehicle?.id} garageContextValid={!requestedGarageId||Boolean(requestedGarageVehicle)} identityOnlyFitmentUnresolved={identityOnlyFitmentUnresolved} garageSaveOutcome={garageSaveOutcome} listings={marketplaceListings} categories={categories} vehicles={vehicles} garageVehicles={garageVehicles} recentlyViewed={recentlyViewed} signedIn={Boolean(user)} viewerId={user?.id??null} filters={filters} selectedCatalogue={selectedCatalogue} savedIds={savedIds} error={result.error} configured={result.configured} pagination={result.pagination} currentPage={requestedPage} currentCursor={marketplaceCursor}/></>;
 }
