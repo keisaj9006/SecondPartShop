@@ -347,11 +347,12 @@ test("part detail empty fitments render context-aware guidance with and without 
   "@/components/part-passport":{PartPassport:component},"@/components/save-button":{SaveButton:component},
   "@/components/recently-viewed-tracker":{RecentlyViewedTracker:component},"@/lib/auth":{getCurrentUser:async()=>null},
   "@/lib/data/compatibility":{getPartCompatibility:async()=>compatibility},"@/lib/data/checkout":{isSellerCheckoutReady:async()=>false},
+  "@/lib/data/garage":{getGarageVehicleById:async()=>null},
   "@/lib/data/marketplace":{getSavedPartIdsForParts:async()=>[],getVehicleById:async()=>null},
   "@/lib/data/public-metadata":{getPublicListingBySlug:async()=>({configured:true,data:listing,error:null})},
   "@/lib/data/vehicle-catalogue":{getCatalogueSelection:async()=>catalogueSelection},"@/lib/data/reputation":{getPublicMemberProfileById:async()=>null},
   "@/lib/data/part-passport":{getPartPassportEvidence:async()=>null},"@/lib/listing-trust":{conditionLabel:value=>value},
-  "@/lib/identifiers":{isUuid:value=>value==="11111111-1111-4111-8111-111111111111"},"@/lib/stripe-payments":{isStripeCheckoutConfigured:()=>false},
+  "@/lib/identifiers":{isUuid:value=>value==="11111111-1111-4111-8111-111111111111"},"@/lib/vehicle-context":moduleFrom("src/lib/vehicle-context.ts"),"@/lib/stripe-payments":{isStripeCheckoutConfigured:()=>false},
   "@/lib/marketplace-policy":{isMarketplaceUserBlocked:async()=>false},"@/lib/seller-geo":{getSellerDistanceFromPostcode:async()=>null},
   "@/lib/metadata":{buildListingJsonLd:()=>null,buildListingResultMetadata:()=>({}),serializeJsonLd:JSON.stringify}
  });

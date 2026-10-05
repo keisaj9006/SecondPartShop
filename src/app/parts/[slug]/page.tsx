@@ -32,7 +32,6 @@ import { buildListingJsonLd,buildListingResultMetadata,serializeJsonLd } from "@
 export const dynamic="force-dynamic";
 
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
-const integer=(value:string|undefined)=>{if(!value)return undefined;const parsed=Number(value);return Number.isInteger(parsed)?parsed:undefined;};
 const contextKeys=["q","category","condition","sort","min","max","pc","collection","gv","vehicle","vr","vc","cv","cy","cf","ce","fit","page","cursor"] as const;
 
 export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
