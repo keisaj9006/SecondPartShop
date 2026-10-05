@@ -125,6 +125,59 @@ try{
  await save(a,{registration:'ZZ16PQR',fuel:'Petrol'});
  assert.equal((await setup.query('select fuel_type from garage_vehicles where id=$1',[providerFuel.garage_vehicle_id])).rows[0].fuel_type,'PETROL');
  console.log('PASS explicit enrichment stores catalogue fuel spelling and identity retry preserves it');
+ await setup.query("insert into vehicle_catalogue_variants values($1,'dft','Cars','HONDA','JAZZ','MIXED')",[id(13)]);
+ await setup.query('insert into vehicle_catalogue_years values($1,2016)',[id(13)]);
+ await setup.query("insert into vehicle_catalogue_engines values($1,'PETROL',1300),($1,'DIESEL',1600)",[id(13)]);
+ const partial=await save(a,{registration:'ZZ16STU',fuel:null,engine:1300});
+ const beforePartial=(await setup.query('select * from garage_vehicles where id=$1',[partial.garage_vehicle_id])).rows[0];
+ assert.equal((await save(a,{registration:'ZZ16STU',garage:partial.garage_vehicle_id,operation:'enrich_exact',variant:id(13),fuel:'DIESEL',engine:null})).outcome,'reselect_required');
+ assert.deepEqual((await setup.query('select * from garage_vehicles where id=$1',[partial.garage_vehicle_id])).rows[0],beforePartial);
+ const retained=await save(a,{registration:'ZZ16VWX',operation:'enrich_exact',variant:id(10),fuel:null,engine:null});
+ const beforeRetained=(await setup.query('select * from garage_vehicles where id=$1',[retained.garage_vehicle_id])).rows[0];
+ assert.equal((await save(a,{registration:'ZZ16VWX',fuel:'DIESEL',engine:1600})).outcome,'reselect_required');
+ assert.deepEqual((await setup.query('select * from garage_vehicles where id=$1',[retained.garage_vehicle_id])).rows[0],beforeRetained);
+ console.log('PASS merged fuel/capacity requires one engine row; conflicting provider retry leaves confirmed identity unchanged');
+
+ const supported=async(garage,variant)=>(await setup.query(`
+  select exists(select 1 from garage_vehicles g join vehicle_catalogue_engines e on e.variant_id=$2
+   where g.id=$1 and (g.fuel_type is null or e.fuel_type=g.fuel_type)
+     and (g.engine_size_simple is null or e.engine_size_simple=g.engine_size_simple)) supported`,[garage,variant])).rows[0].supported;
+ // Initially missing optional evidence: identity capacity and explicit fuel
+ // are individually possible, but the merged DIESEL/1300 tuple is unsupported.
+ for(const [registration,identityFirst] of [['ZZ16BCD',true],['ZZ16EFG',false]]){
+  const initial=await save(a,{registration,fuel:null,engine:null});
+  const identityOptions={registration,fuel:null,engine:1300};
+  const exactOptions={registration,garage:initial.garage_vehicle_id,operation:'enrich_exact',variant:id(13),fuel:'DIESEL',engine:null};
+  await a.query('begin');
+  const firstResult=await save(a,identityFirst?identityOptions:exactOptions);
+  const secondPending=save(b,identityFirst?exactOptions:identityOptions);
+  await waitForLock(pid);await a.query('commit');
+  assert.equal((await secondPending).outcome,'reselect_required');
+  const final=(await setup.query('select * from garage_vehicles where id=$1',[initial.garage_vehicle_id])).rows[0];
+  assert.equal(final.catalogue_variant_id,identityFirst?null:id(13));
+  assert.equal(final.fuel_type,identityFirst?null:'DIESEL');
+  assert.equal(final.engine_size_simple,identityFirst?1300:null);
+  assert.equal(await supported(initial.garage_vehicle_id,id(13)),true);
+  if(!identityFirst){assert.equal(firstResult.outcome,'enriched');assert.equal((await save(a,identityOptions)).outcome,'reselect_required');}
+ }
+ console.log('PASS both identity/enrichment lock orders with missing optional evidence refuse cross-row tuple and preserve committed exact choice');
+
+ // Repeat the complementary evidence race against an already confirmed exact
+ // profile with both optional fields missing. Both identities are owner-scoped.
+ for(const [registration,fuelFirst] of [['ZZ16HIJ',true],['ZZ16KLM',false]]){
+  const initial=await save(a,{registration,operation:'enrich_exact',variant:id(13),fuel:null,engine:null});
+  const fuelOptions={registration,fuel:'DIESEL',engine:null};
+  const capacityOptions={registration,fuel:null,engine:1300};
+  await a.query('begin');assert.equal((await save(a,fuelFirst?fuelOptions:capacityOptions)).outcome,'already_exists');
+  const secondPending=save(b,fuelFirst?capacityOptions:fuelOptions);
+  await waitForLock(pid);await a.query('commit');assert.equal((await secondPending).outcome,'reselect_required');
+  const final=(await setup.query('select * from garage_vehicles where id=$1',[initial.garage_vehicle_id])).rows[0];
+  assert.equal(final.catalogue_variant_id,id(13));assert.equal(final.fuel_type,fuelFirst?'DIESEL':null);assert.equal(final.engine_size_simple,fuelFirst?null:1300);
+  assert.equal(await supported(initial.garage_vehicle_id,id(13)),true);
+ }
+ console.log('PASS both provider-retry lock orders retain exact profile and one-row engine evidence');
+ for(const column of ['identity_make','identity_model'])for(const value of ['\t\n','\u00a0\ufeff',' '.repeat(200)+'X'])await assert.rejects(a.query(`insert into garage_vehicles(profile_id,catalogue_variant_id,year,${column}) values($1,$2,2016,$3)`,[id(1),id(10),value]),/check constraint/i);
+ console.log('PASS raw identity length and full-whitespace constraints');
 }finally{
  await Promise.all(clients.map(async c=>{await c.query('rollback').catch(()=>{});await c.end().catch(()=>{});}));
 }

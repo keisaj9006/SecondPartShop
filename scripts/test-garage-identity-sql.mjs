@@ -17,6 +17,9 @@ test('real Garage migration and atomic save run on a reduced PostgreSQL schema',
   await db.query("insert into vehicle_catalogue_variants values($1,'dft','Cars','HONDA','JAZZ','SE'),($2,'dft','Cars','HONDA','JAZZ','ALT'),($3,'dft','Cars','HONDA','CIVIC','SE')",[id(10),id(11),id(12)]);
   await db.query('insert into vehicle_catalogue_years values($1,2016),($2,2016),($3,2016)',[id(10),id(11),id(12)]);
   await db.query("insert into vehicle_catalogue_engines values($1,'PETROL',1300),($2,'DIESEL',1600),($3,'PETROL',1300)",[id(10),id(11),id(12)]);
+  await db.query("insert into vehicle_catalogue_variants values($1,'dft','Cars','HONDA','JAZZ','MIXED')",[id(13)]);
+  await db.query('insert into vehicle_catalogue_years values($1,2016)',[id(13)]);
+  await db.query("insert into vehicle_catalogue_engines values($1,'PETROL',1300),($1,'DIESEL',1600)",[id(13)]);
   await db.exec(read('20260905115601_secondpart_garage.sql'));
   await db.exec(read('20260906133500_garage_vehicle_colour.sql'));
   await db.query("insert into garage_vehicles(profile_id,catalogue_variant_id,year,registration) values($1,$2,2016,'ZZ99ZZZ')",[id(1),id(10)]);
@@ -82,6 +85,35 @@ test('real Garage migration and atomic save run on a reduced PostgreSQL schema',
   await t.test('SQL rejects invalid identity bounds and anonymous execute permission',async()=>{
    await assert.rejects(save({make:'x'.repeat(81)}),/Invalid vehicle identity/);
    await db.exec('set role anon');try{await assert.rejects(db.query("select * from save_garage_vehicle_v1('identity_save')"),/permission denied/i);}finally{await db.exec('reset role');}
+  });
+  await t.test('enrichment validates the merged fuel and capacity against one engine row',async()=>{
+   const saved=await save({registration:'ZZ16STU',fuel:null,engine:1300});
+   const before=(await db.query('select * from garage_vehicles where id=$1',[saved.garage_vehicle_id])).rows[0];
+   const result=await save({registration:'ZZ16STU',garage:saved.garage_vehicle_id,operation:'enrich_exact',variant:id(13),fuel:'DIESEL',engine:null});
+   assert.equal(result.outcome,'reselect_required');
+   assert.deepEqual((await db.query('select * from garage_vehicles where id=$1',[saved.garage_vehicle_id])).rows[0],before);
+  });
+  await t.test('provider retry validates new optional evidence against retained confirmed variant without modifying it',async()=>{
+   const confirmed=await save({registration:'ZZ16VWX',operation:'enrich_exact',variant:id(10),fuel:null,engine:null});
+   const before=(await db.query('select * from garage_vehicles where id=$1',[confirmed.garage_vehicle_id])).rows[0];
+   const result=await save({registration:'ZZ16VWX',fuel:'DIESEL',engine:1600});
+   assert.equal(result.outcome,'reselect_required');
+   assert.deepEqual((await db.query('select * from garage_vehicles where id=$1',[confirmed.garage_vehicle_id])).rows[0],before);
+  });
+  await t.test('provider retries cannot cross-combine individually valid partial optional evidence',async()=>{
+   const confirmed=await save({registration:'ZZ16YZA',operation:'enrich_exact',variant:id(13),fuel:null,engine:null});
+   assert.equal((await save({registration:'ZZ16YZA',fuel:null,engine:1300})).outcome,'already_exists');
+   const before=(await db.query('select * from garage_vehicles where id=$1',[confirmed.garage_vehicle_id])).rows[0];
+   const result=await save({registration:'ZZ16YZA',fuel:'DIESEL',engine:null});
+   assert.equal(result.outcome,'reselect_required');
+   assert.deepEqual((await db.query('select * from garage_vehicles where id=$1',[confirmed.garage_vehicle_id])).rows[0],before);
+  });
+  await t.test('raw identity constraints reject overlength padding and every all-whitespace snapshot',async()=>{
+   for(const field of ['identity_make','identity_model']){
+    for(const value of ['\t\n','\u00a0\ufeff',' '.repeat(200)+'X']){
+     await assert.rejects(owner(1,`insert into garage_vehicles(profile_id,catalogue_variant_id,year,${field}) values($1,$2,2016,$3)`,[id(1),id(10),value]),/check constraint/i);
+    }
+   }
   });
   t.diagnostic('PGlite is reduced PostgreSQL 18; PostgreSQL 17 independent-connection race proof remains a separate CI gate.');
  }finally{await db.close();}

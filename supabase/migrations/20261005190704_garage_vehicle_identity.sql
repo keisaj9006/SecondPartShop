@@ -23,9 +23,11 @@ alter table public.garage_vehicles
   add column identity_make text,
   add column identity_model text,
   add constraint garage_vehicle_identity_make_bound
-    check (identity_make is null or char_length(btrim(identity_make)) between 1 and 80),
+    check (identity_make is null or (char_length(identity_make) between 1 and 80
+      and regexp_replace(identity_make,U&'[\0009-\000D\0020\00A0\1680\2000-\200A\2028\2029\202F\205F\3000\FEFF]','','g')<>'')),
   add constraint garage_vehicle_identity_model_bound
-    check (identity_model is null or char_length(btrim(identity_model)) between 1 and 120),
+    check (identity_model is null or (char_length(identity_model) between 1 and 120
+      and regexp_replace(identity_model,U&'[\0009-\000D\0020\00A0\1680\2000-\200A\2028\2029\202F\205F\3000\FEFF]','','g')<>'')),
   add constraint garage_vehicle_fuel_bound
     check (fuel_type is null or char_length(btrim(fuel_type)) between 1 and 80),
   add constraint garage_vehicle_identity_required
@@ -71,12 +73,18 @@ declare
  v_key text;
  v_profile_fuel text;
  v_fuel_count integer;
+ v_final_variant uuid;
+ v_final_fuel text;
+ v_final_engine integer;
+ v_canonical_fuel text;
 begin
  if v_owner is null then raise exception 'Authentication required' using errcode='42501'; end if;
  if p_operation is null or p_operation not in ('identity_save','enrich_exact')
     or p_year is null or p_year not between 1900 and 2100
     or v_make is null or char_length(v_make)>80
+    or regexp_replace(v_make,U&'[\0009-\000D\0020\00A0\1680\2000-\200A\2028\2029\202F\205F\3000\FEFF]','','g')=''
     or v_model is null or char_length(v_model)>120
+    or regexp_replace(v_model,U&'[\0009-\000D\0020\00A0\1680\2000-\200A\2028\2029\202F\205F\3000\FEFF]','','g')=''
     or (v_registration is not null and (v_registration !~ '^[A-Z0-9]{2,8}$' or v_registration !~ '[A-Z]' or v_registration !~ '[0-9]'))
     or (v_fuel is not null and char_length(v_fuel)>80)
     or (p_engine is not null and p_engine not between 100 and 10000)
@@ -172,30 +180,37 @@ begin
  if p_operation='enrich_exact' and v_existing.catalogue_variant_id is not null and v_existing.catalogue_variant_id<>p_catalogue_variant_id then
    return query select v_existing.id,'reselect_required'::text,v_existing.catalogue_variant_id;return;
  end if;
- -- An omitted optional value cannot sidestep reliable saved fuel/capacity.
- if p_operation='enrich_exact' and (v_existing.fuel_type is not null or v_existing.engine_size_simple is not null) and not exists(
-   select 1 from public.vehicle_catalogue_engines e where e.variant_id=p_catalogue_variant_id
-    and (v_existing.fuel_type is null or
-     replace(replace(btrim(regexp_replace(upper(e.fuel_type),'[^A-Z0-9]+',' ','g')),'BATTERY ELECTRIC','ELECTRIC'),'HYBRID ELECTRIC','HYBRID')=
-     replace(replace(btrim(regexp_replace(upper(v_existing.fuel_type),'[^A-Z0-9]+',' ','g')),'BATTERY ELECTRIC','ELECTRIC'),'HYBRID ELECTRIC','HYBRID'))
-    and (v_existing.engine_size_simple is null or e.engine_size_simple=v_existing.engine_size_simple)
- ) then
-   return query select v_existing.id,'reselect_required'::text,v_existing.catalogue_variant_id;return;
- end if;
-
- if p_operation='enrich_exact' and v_profile_fuel is null and v_existing.fuel_type is not null then
-   select count(distinct e.fuel_type),min(e.fuel_type) into v_fuel_count,v_profile_fuel
-   from public.vehicle_catalogue_engines e where e.variant_id=p_catalogue_variant_id
-    and replace(replace(btrim(regexp_replace(upper(e.fuel_type),'[^A-Z0-9]+',' ','g')),'BATTERY ELECTRIC','ELECTRIC'),'HYBRID ELECTRIC','HYBRID')=
-        replace(replace(btrim(regexp_replace(upper(v_existing.fuel_type),'[^A-Z0-9]+',' ','g')),'BATTERY ELECTRIC','ELECTRIC'),'HYBRID ELECTRIC','HYBRID')
-    and (coalesce(v_existing.engine_size_simple,p_engine) is null or e.engine_size_simple=coalesce(v_existing.engine_size_simple,p_engine));
-   if v_fuel_count<>1 then return query select v_existing.id,'reselect_required'::text,v_existing.catalogue_variant_id;return;end if;
+ -- Validate exactly the tuple that will be written, against the same engine
+ -- row. Separate submitted/saved checks cannot establish merged evidence.
+ -- This also protects identity retries that add newly available provider
+ -- evidence to a previously confirmed derivative with missing optional data.
+ v_final_variant:=coalesce(v_existing.catalogue_variant_id,p_catalogue_variant_id);
+ v_final_fuel:=coalesce(v_existing.fuel_type,v_fuel);
+ v_final_engine:=coalesce(v_existing.engine_size_simple,p_engine);
+ if v_final_variant is not null and (v_final_fuel is not null or v_final_engine is not null) then
+   select count(distinct e.fuel_type),min(e.fuel_type) into v_fuel_count,v_canonical_fuel
+   from public.vehicle_catalogue_engines e where e.variant_id=v_final_variant
+    and (v_final_fuel is null or
+      replace(replace(btrim(regexp_replace(upper(e.fuel_type),'[^A-Z0-9]+',' ','g')),'BATTERY ELECTRIC','ELECTRIC'),'HYBRID ELECTRIC','HYBRID')=
+      replace(replace(btrim(regexp_replace(upper(v_final_fuel),'[^A-Z0-9]+',' ','g')),'BATTERY ELECTRIC','ELECTRIC'),'HYBRID ELECTRIC','HYBRID'))
+    and (v_final_engine is null or e.engine_size_simple=v_final_engine);
+   if v_fuel_count=0 then return query select v_existing.id,'reselect_required'::text,v_existing.catalogue_variant_id;return;end if;
+   if v_final_fuel is not null then
+     if v_profile_fuel is not null and exists(select 1 from public.vehicle_catalogue_engines e where e.variant_id=v_final_variant and e.fuel_type=v_profile_fuel and (v_final_engine is null or e.engine_size_simple=v_final_engine)) then
+       v_final_fuel:=v_profile_fuel;
+     elsif exists(select 1 from public.vehicle_catalogue_engines e where e.variant_id=v_final_variant and e.fuel_type=v_final_fuel and (v_final_engine is null or e.engine_size_simple=v_final_engine)) then
+       null; -- Preserve an already explicit canonical label.
+     elsif v_fuel_count=1 then
+       v_final_fuel:=v_canonical_fuel;
+     else
+       return query select v_existing.id,'reselect_required'::text,v_existing.catalogue_variant_id;return;
+     end if;
+   end if;
  end if;
  update public.garage_vehicles g set
   catalogue_variant_id=coalesce(g.catalogue_variant_id,p_catalogue_variant_id),
   identity_make=coalesce(g.identity_make,v_make),identity_model=coalesce(g.identity_model,v_model),
-  fuel_type=case when p_operation='enrich_exact' then coalesce(v_profile_fuel,g.fuel_type,v_fuel) else coalesce(g.fuel_type,v_fuel) end,
-  engine_size_simple=coalesce(g.engine_size_simple,p_engine),
+  fuel_type=v_final_fuel,engine_size_simple=v_final_engine,
   colour=coalesce(g.colour,nullif(btrim(p_colour),'')),nickname=coalesce(g.nickname,nullif(btrim(p_nickname),'')),updated_at=now()
   where g.id=v_existing.id and g.profile_id=v_owner;
  return query select v_existing.id,

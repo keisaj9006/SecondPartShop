@@ -40,3 +40,10 @@ test('mobile rate guard fails safely before provider/database writes',async()=>{
  const s=subject({rate:{status:'available',allowed:false}}),r=await s.mobile.POST(new Request('https://example.test/garage',{method:'POST',body:JSON.stringify({operation:'identity_save',registration:'AB16CDE'})}));
  assert.equal(r.status,429);assert.equal(r.data.error,'lookup_rate_limited');assert.equal(s.writes.length,0);assert.equal(s.lookups.length,0);
 });
+test('merged-evidence rejection is actionable through both web and mobile outcomes',async()=>{
+ const s=subject({outcome:'reselect_required'});
+ const web=await s.save({operation:'identity_save',registration:'AB16CDE'});
+ assert.equal(web.ok,false);assert.equal(web.code,'reselect_required');assert.equal(web.retryable,false);
+ const mobile=await s.mobile.POST(new Request('https://example.test/garage',{method:'POST',body:JSON.stringify({operation:'identity_save',registration:'AB16CDE'})}));
+ assert.equal(mobile.status,400);assert.equal(mobile.data.error,'reselect_required');assert.ok(mobile.data.message);assert.equal(mobile.data.id,undefined);
+});
