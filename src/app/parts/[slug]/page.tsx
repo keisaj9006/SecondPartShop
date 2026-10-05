@@ -15,6 +15,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getPartCompatibility } from "@/lib/data/compatibility";
 import { isSellerCheckoutReady } from "@/lib/data/checkout";
 import { getSavedPartIdsForParts,getVehicleById } from "@/lib/data/marketplace";
+import { getGarageVehicleById } from "@/lib/data/garage";
 import { getPublicListingBySlug } from "@/lib/data/public-metadata";
 import { getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
 import { getPublicMemberProfileById } from "@/lib/data/reputation";
@@ -22,6 +23,7 @@ import { getPartPassportEvidence } from "@/lib/data/part-passport";
 import type { MarketplaceFilters } from "@/lib/types";
 import { conditionLabel } from "@/lib/listing-trust";
 import { isUuid } from "@/lib/identifiers";
+import { resolveVehicleContext } from "@/lib/vehicle-context";
 import { isStripeCheckoutConfigured } from "@/lib/stripe-payments";
 import { isMarketplaceUserBlocked } from "@/lib/marketplace-policy";
 import { getSellerDistanceFromPostcode } from "@/lib/seller-geo";
@@ -31,7 +33,7 @@ export const dynamic="force-dynamic";
 
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 const integer=(value:string|undefined)=>{if(!value)return undefined;const parsed=Number(value);return Number.isInteger(parsed)?parsed:undefined;};
-const contextKeys=["q","category","condition","sort","min","max","pc","collection","vehicle","vr","vc","cv","cy","cf","ce","fit","page","cursor"] as const;
+const contextKeys=["q","category","condition","sort","min","max","pc","collection","gv","vehicle","vr","vc","cv","cy","cf","ce","fit","page","cursor"] as const;
 
 export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
  try{return buildListingResultMetadata(await getPublicListingBySlug((await params).slug));}
@@ -47,35 +49,56 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
 
  const context=new URLSearchParams();
  for(const key of contextKeys){const value=first(rawSearch[key]);if(value)context.set(key,value);}
+ const requestedGarageId=first(rawSearch.gv)??"";
+ const requestedGarageVehicle=requestedGarageId&&user&&isUuid(requestedGarageId)
+  ?await getGarageVehicleById(user.id,requestedGarageId).catch(()=>null)
+  :null;
+ const activeVehicleContext=resolveVehicleContext(context,{
+  viewerId:user?.id??null,
+  ...(requestedGarageId?{garageValid:Boolean(requestedGarageVehicle)}:{})
+ });
+ const canonicalContext=activeVehicleContext.params;
+ const selectedGarage=activeVehicleContext.selection.kind==="garage"?requestedGarageVehicle:null;
+ const selectedCatalogue=activeVehicleContext.selection.kind==="catalogue"?activeVehicleContext.selection:null;
  const filters:MarketplaceFilters={
   query:first(rawSearch.q),
   category:first(rawSearch.category),
   postcode:first(rawSearch.pc),
   collectionOnly:first(rawSearch.collection)==="1",
-  vehicle:isUuid(first(rawSearch.vehicle))?first(rawSearch.vehicle):undefined,
-  vehicleRegistration:first(rawSearch.vr),
-  vehicleColour:first(rawSearch.vc),
-  catalogueVariant:isUuid(first(rawSearch.cv))?first(rawSearch.cv):undefined,
-  catalogueYear:integer(first(rawSearch.cy)),
-  catalogueFuel:first(rawSearch.cf),
-  catalogueEngineSize:integer(first(rawSearch.ce))
+  vehicle:activeVehicleContext.selection.kind==="legacy"&&isUuid(activeVehicleContext.selection.vehicleId)?activeVehicleContext.selection.vehicleId:undefined,
+  vehicleRegistration:selectedGarage?.registration??selectedCatalogue?.registration??(activeVehicleContext.selection.kind==="legacy"?activeVehicleContext.selection.registration:undefined),
+  vehicleColour:selectedCatalogue?.colour??(activeVehicleContext.selection.kind==="legacy"?activeVehicleContext.selection.colour:undefined),
+  catalogueVariant:selectedGarage?.catalogueVariantId??selectedCatalogue?.variantId,
+  catalogueYear:selectedGarage?.year??selectedCatalogue?.year,
+  catalogueFuel:selectedGarage?.fuelType??selectedCatalogue?.fuel,
+  catalogueEngineSize:selectedGarage?.engineSizeSimple??selectedCatalogue?.engine
  };
  const compatibility=await getPartCompatibility(item.id,filters).catch(()=>null);
  let vehicleLabel:string|null=null;
  let checkoutVehicleContext:{variantId:string;year:number;fuel?:string;engine?:number;registration?:string}|undefined;
- if(filters.catalogueVariant&&filters.catalogueYear!==undefined){
+ const checkoutGarageVehicleId=activeVehicleContext.selection.kind==="garage"||activeVehicleContext.selection.kind==="invalid-garage"?requestedGarageId:undefined;
+ const garageVehicleIncomplete=Boolean(checkoutGarageVehicleId&&!selectedGarage?.catalogueVariantId);
+ if(activeVehicleContext.selection.kind==="garage"&&selectedGarage){
+  vehicleLabel=`${selectedGarage.make} ${selectedGarage.model} · ${selectedGarage.year}${selectedGarage.engineSizeSimple?` · ${selectedGarage.engineSizeSimple}cc`:""}${selectedGarage.fuelType?` · ${selectedGarage.fuelType}`:""}`;
+  if(selectedGarage.catalogueVariantId){
+   checkoutVehicleContext={variantId:selectedGarage.catalogueVariantId,year:selectedGarage.year,fuel:selectedGarage.fuelType??undefined,engine:selectedGarage.engineSizeSimple??undefined,registration:selectedGarage.registration??undefined};
+  }
+ }else if(activeVehicleContext.selection.kind==="invalid-garage"){
+  vehicleLabel="Your selected Garage vehicle could not be verified. Re-select it before checkout.";
+ }else if(selectedCatalogue){
+  const selected=await getCatalogueSelection(selectedCatalogue.variantId,selectedCatalogue.year,selectedCatalogue.fuel,selectedCatalogue.engine).catch(()=>null);
+  if(selected){
+   vehicleLabel=`${selected.make} ${selected.modelFamily} · ${selected.year}${selected.engineSizeSimple?` · ${selected.engineSizeSimple}cc`:""}${selected.fuelType?` · ${selected.fuelType}`:""}`;
+   checkoutVehicleContext={variantId:selected.variantId,year:selected.year,fuel:selected.fuelType??undefined,engine:selected.engineSizeSimple??undefined,registration:selectedCatalogue.registration};
+  }
+ }else if(filters.catalogueVariant&&filters.catalogueYear!==undefined){
   const selected=await getCatalogueSelection(filters.catalogueVariant,filters.catalogueYear,filters.catalogueFuel,filters.catalogueEngineSize).catch(()=>null);
   if(selected){
    vehicleLabel=`${selected.make} ${selected.modelFamily} · ${selected.year}${selected.engineSizeSimple?` · ${selected.engineSizeSimple}cc`:""}${selected.fuelType?` · ${selected.fuelType}`:""}`;
-   checkoutVehicleContext={
-    variantId:selected.variantId,
-    year:selected.year,
-    fuel:selected.fuelType??undefined,
-    engine:selected.engineSizeSimple??undefined,
-    registration:filters.vehicleRegistration
-   };
+   checkoutVehicleContext={variantId:selected.variantId,year:selected.year,fuel:selected.fuelType??undefined,engine:selected.engineSizeSimple??undefined,registration:filters.vehicleRegistration};
   }
- }else if(filters.vehicle){
+ }
+ if(!vehicleLabel&&filters.vehicle){
   const selected=await getVehicleById(filters.vehicle).catch(()=>null);
   if(selected)vehicleLabel=`${selected.make} ${selected.model} ${selected.generation} · ${selected.year} · ${selected.engine}`;
  }
@@ -91,8 +114,8 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
   getSellerDistanceFromPostcode(item.sellerId,filters.postcode).catch(()=>null),
   user&&!ownListing&&sellerOwnerId?isMarketplaceUserBlocked(sellerOwnerId).catch(()=>false):Promise.resolve(false)
  ]);
- const backHref=context.toString()?`/?${context.toString()}#marketplace`:"/#marketplace";
- const currentHref=context.toString()?`/parts/${slug}?${context.toString()}`:`/parts/${slug}`;
+ const backHref=canonicalContext.toString()?`/?${canonicalContext.toString()}#marketplace`:"/#marketplace";
+ const currentHref=canonicalContext.toString()?`/parts/${slug}?${canonicalContext.toString()}`:`/parts/${slug}`;
  const reportHref=`/report?part=${encodeURIComponent(item.id)}&returnTo=${encodeURIComponent(currentHref)}`;
  const reportUserHref=sellerOwnerId?`/report-user?profile=${encodeURIComponent(sellerOwnerId)}&returnTo=${encodeURIComponent(currentHref)}`:null;
  const fitParams=new URLSearchParams();
@@ -141,6 +164,8 @@ export default async function PartPage({params,searchParams}:{params:Promise<{sl
       checkoutReady={isStripeCheckoutConfigured()&&sellerCheckoutReady}
       returnTo={currentHref}
       vehicleContext={checkoutVehicleContext}
+      garageVehicleId={checkoutGarageVehicleId}
+      garageVehicleIncomplete={garageVehicleIncomplete}
       compatibility={compatibility}
     />
     {sellerOwnerId&&!blockedSeller&&<div className="mt-3"><AskSellerForm partId={item.id} signedIn={Boolean(user)} ownListing={ownListing} returnTo={currentHref}/></div>}

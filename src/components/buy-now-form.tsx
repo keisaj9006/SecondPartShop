@@ -18,6 +18,8 @@ export function BuyNowForm({
  checkoutReady,
  returnTo,
  vehicleContext,
+ garageVehicleId,
+ garageVehicleIncomplete=false,
  compatibility
 }:{
  partId:string;
@@ -29,6 +31,8 @@ export function BuyNowForm({
  checkoutReady:boolean;
  returnTo:string;
  vehicleContext?:{variantId:string;year:number;fuel?:string;engine?:number;registration?:string};
+ garageVehicleId?:string;
+ garageVehicleIncomplete?:boolean;
  compatibility?:CompatibilityInfo|null;
 }){
  const [state,action,pending]=useActionState(startCheckout,initial);
@@ -44,6 +48,7 @@ export function BuyNowForm({
  return <form action={action} className="mt-5 rounded-2xl border border-black/10 bg-white p-4">
   <input type="hidden" name="partId" value={partId}/>
   <input type="hidden" name="returnTo" value={returnTo}/>
+  {garageVehicleId&&<input type="hidden" name="garageVehicleId" value={garageVehicleId}/>}
   {vehicleContext&&<><input type="hidden" name="vehicleVariantId" value={vehicleContext.variantId}/><input type="hidden" name="vehicleYear" value={vehicleContext.year}/>{vehicleContext.fuel&&<input type="hidden" name="vehicleFuel" value={vehicleContext.fuel}/>} {vehicleContext.engine!==undefined&&<input type="hidden" name="vehicleEngine" value={vehicleContext.engine}/>} {vehicleContext.registration&&<input type="hidden" name="vehicleRegistration" value={vehicleContext.registration}/>}</>}
   <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
    <label className="text-sm font-bold">Quantity
@@ -64,12 +69,13 @@ export function BuyNowForm({
    <div className="flex items-start gap-2">{compatibility.level==="confirmed"?<CheckCircle2 size={18} className="mt-0.5 shrink-0"/>:compatibility.level==="buyer_verified"?<UsersRound size={18} className="mt-0.5 shrink-0"/>:<AlertTriangle size={18} className="mt-0.5 shrink-0"/>}<div><p className="text-sm font-black">{compatibility.label}</p><p className="mt-1 text-xs leading-5">{compatibility.detail}</p>{fitEvidenceCount>0&&<p className="mt-1 text-[11px] leading-5">{verifiedCounts?.exactFitCount??0} exact fit · {verifiedCounts?.modifiedFitCount??0} modified fit · {verifiedCounts?.didNotFitCount??0} did not fit from completed SecondPart purchases.</p>}</div></div>
   </div>}
   {uncertainFit&&<label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm font-bold text-amber-950"><input required type="checkbox" name="compatibilityAcknowledged" value="1" className="mt-1 h-5 w-5 accent-[#173c31]"/><span>I understand that compatibility with my selected vehicle is not confirmed and I will verify OE/OEM number and seller evidence before ordering.</span></label>}
-  {!vehicleContext&&<div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold leading-5 text-amber-950"><AlertTriangle size={16} className="mr-1 inline"/>No vehicle is linked to this checkout, so SecondPart cannot show vehicle-specific compatibility confidence or collect verified fitment evidence for this purchase.</div>}
-  {vehicleContext&&<p className="mt-3 rounded-xl bg-[#eef1eb] p-3 text-xs font-bold text-[#56625d]">This purchase will be linked to your selected vehicle so SecondPart can ask for verified fitment feedback after the transaction.</p>}
+  {!vehicleContext&&!garageVehicleId&&<div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold leading-5 text-amber-950"><AlertTriangle size={16} className="mr-1 inline"/>No vehicle is linked to this checkout, so SecondPart cannot show vehicle-specific compatibility confidence or collect verified fitment evidence for this purchase.</div>}
+  {garageVehicleId&&garageVehicleIncomplete&&<div role="status" className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm font-bold leading-5 text-amber-950"><AlertTriangle size={16} className="mr-1 inline"/>Your selected Garage vehicle needs an exact catalogue version before checkout. Choose its engine/version in Garage, then return to this part.</div>}
+  {(vehicleContext||garageVehicleId&&!garageVehicleIncomplete)&&<p className="mt-3 rounded-xl bg-[#eef1eb] p-3 text-xs font-bold text-[#56625d]">This purchase will be linked to your selected vehicle so SecondPart can ask for verified fitment feedback after the transaction.</p>}
   {!checkoutReady&&<p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm font-bold text-amber-900">Checkout is not available for this seller yet.</p>}
   {state.message&&<p role="status" className={"mt-3 rounded-xl p-3 text-sm font-bold "+(state.status==="error"?"bg-red-50 text-red-800":"bg-emerald-50 text-emerald-800")}>{state.message}</p>}
 
-  <button disabled={!checkoutReady||pending||stock<1} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#d4f44d] px-5 py-3.5 font-black text-[#173c31] disabled:cursor-not-allowed disabled:opacity-50"><CreditCard size={18}/>{pending?"Opening secure checkout…":"Buy now"}</button>
+  <button disabled={!checkoutReady||pending||stock<1||garageVehicleIncomplete} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#d4f44d] px-5 py-3.5 font-black text-[#173c31] disabled:cursor-not-allowed disabled:opacity-50"><CreditCard size={18}/>{pending?"Opening secure checkout…":garageVehicleIncomplete?"Choose exact vehicle version":"Buy now"}</button>
   <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-[#63706a]"><LockKeyhole size={13}/>Secure marketplace checkout. Seller transfer is released through the SecondPart transaction flow.</p>
  </form>;
 }
