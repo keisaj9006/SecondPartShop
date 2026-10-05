@@ -11,18 +11,26 @@ export function parseCsv(text:string):ParsedCsv{
  let row:string[]=[];
  let cell="";
  let quoted=false;
+ let closedQuote=false;
 
  for(let i=0;i<text.length;i+=1){
   const char=text[i];
   if(quoted){
    if(char==='"'&&text[i+1]==='"'){cell+='"';i+=1;continue;}
-   if(char==='"'){quoted=false;continue;}
+   if(char==='"'){quoted=false;closedQuote=true;continue;}
    cell+=char;
    continue;
   }
-  if(char==='"'){quoted=true;continue;}
-  if(char===","){row.push(cell);cell="";continue;}
-  if(char==="\n"){row.push(cell);matrix.push(row);row=[];cell="";continue;}
+  if(closedQuote&&char!==","&&char!=="\n"&&char!=="\r"){
+   if(char===" "||char==="\t")continue;
+   return {headers:[],rows:[],error:"The CSV contains text after a closing quote. Separate fields with a comma."};
+  }
+  if(char==='"'){
+   if(cell.trim())return {headers:[],rows:[],error:"The CSV contains a quote inside an unquoted field. Quote the whole field and escape quotes by doubling them."};
+   cell="";quoted=true;continue;
+  }
+  if(char===","){row.push(cell);cell="";closedQuote=false;continue;}
+  if(char==="\n"){row.push(cell);matrix.push(row);row=[];cell="";closedQuote=false;continue;}
   if(char==="\r")continue;
   cell+=char;
  }
@@ -38,6 +46,9 @@ export function parseCsv(text:string):ParsedCsv{
 
  const duplicates=[...new Set(headers.filter((header,index)=>headers.indexOf(header)!==index))];
  if(duplicates.length)return {headers:[],rows:[],error:"Duplicate CSV columns: "+duplicates.join(", ")+"."};
+
+ const extraColumns=matrix.findIndex((values,index)=>index>0&&values.length>headers.length);
+ if(extraColumns>=0)return {headers:[],rows:[],error:"CSV record "+(extraColumns+1)+" contains more fields than the header. Check commas and quote fields containing commas."};
 
  const rows=matrix.slice(1)
   .filter(values=>values.some(value=>value.trim().length>0))

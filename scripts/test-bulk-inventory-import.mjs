@@ -27,6 +27,28 @@ vm.runInNewContext(compile("src/lib/inventory-csv-import.ts"),{
 });
 
 const {processSellerInventoryCsv}=importerExports;
+
+for(const [name,contents] of [
+ ["extra unquoted cell",'title,description,category,price_gbp,seller_reference\nFord Focus headlight,A tested used headlight with mounting points intact.,headlights,49.95,stock-a,unexpected'],
+ ["quote inside an unquoted field",'title,description,category,price_gbp,seller_reference\nFord "Focus" headlight,A tested used headlight with mounting points intact.,headlights,49.95,stock-a'],
+ ["text after a closing quote",'title,description,category,price_gbp,seller_reference\n"Ford Focus" headlight,A tested used headlight with mounting points intact.,headlights,49.95,stock-a']
+])test(`malformed CSV (${name}) fails before creating any inventory or batch`,async()=>{
+ const harness=fakeSupabase();
+ const result=await processSellerInventoryCsv({file:new File([contents],"inventory.csv"),sellerId,supabase:harness.client,mode:"import"});
+ assert.equal(result.status,"error");
+ assert.equal(result.fileReset,"retain");
+ assert.equal(harness.state.parts.length,0);
+ assert.equal(harness.state.batches.length,0);
+});
+
+test("CSV preserves quoted commas, escaped quotes, Unicode, BOM and multiline CRLF values",()=>{
+ const parsed=csvExports.parseCsv('\uFEFFtitle,description,extra\r\n"Astra, lamp","Joanna\u2019s \"\"tested\"\" lamp\r\nsecond line",optional\r\n');
+ assert.equal(parsed.error,null);
+ assert.equal(parsed.rows.length,1);
+ assert.equal(parsed.rows[0].title,"Astra, lamp");
+ assert.equal(parsed.rows[0].description,'Joanna\u2019s "tested" lamp\r\nsecond line');
+ assert.equal(parsed.rows[0].extra,"optional");
+});
 const sellerId="seller-1";
 const category={id:"category-1",name:"Headlights",slug:"headlights",is_selectable:true,is_transmission_related:false};
 
