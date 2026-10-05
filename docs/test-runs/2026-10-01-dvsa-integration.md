@@ -29,6 +29,27 @@ Final full suite: **717 passed, zero failed**. `npm run lint`, `npm run typechec
 
 ## External gates
 
+### Activation checkpoint — 5 October 2026
+
+Supersedes the local-tool limitation below: official Vercel CLI 61.1.0 renewed the existing session. REST metadata (`decrypt=false`) confirms all five canonical variables are configured only for Preview, with no branch restriction. The values were not printed or pulled into a local environment file. No DVSA `NEXT_PUBLIC_` key was found in deployment environment names.
+
+Fresh deployment from the unchanged PR #10 source SHA `8956e1b81d857abbf7b278455262a31e9d6e5643`:
+
+- ID `dpl_DjMVuEkkuNKu97iCYrCYoovnUWdP`
+- https://second-part-shop-krwydzwsg-joannakwapis11-5369.vercel.app
+- branch `codex/dvsa-integration`, target Preview (`target=null`), READY
+- deployment environment name list includes all five required DVSA names
+- Home, Garage entry and `/api/mobile/v1/health`: HTTP 200; health `ok=true`, `backendReady=true`
+- invalid `AB12!CDE` rejected by API HTTP 400 and actual UI with controlled guidance
+- `agent-browser` restored real public UI testing; no horizontal overflow measured at 320/390/768/1440 px; Add vehicle opens an empty registration input and no inherited manual catalogue selection
+- fresh focused tests: 44 passed; fresh [full QA](https://github.com/keisaj9006/SecondPartShop/actions/runs/37302662382) and [Android dry-run](https://github.com/keisaj9006/SecondPartShop/actions/runs/37302667530) succeeded
+
+Live OAuth/vehicle response and signed-in DVSA → Garage remain **not verified**. Existing designated QA accounts have zero saved Garage registrations. A legitimate registration was requested from the owner; no value was invented and no valid-looking fake lookup was sent upstream. Keep PR #10 open until the provider and actual Garage regression gates pass. Repeated cached responses alone will not establish live token reuse.
+
+[DVSA operations note](../dvsa-operations.md) covers caching, provider inactivity, rotation and safe outage handling. A separate Next.js patch repair (#11) merged into rebuild-nextjs as `d90c6122a5697fd84c6b2569984cfb2c10630f25` because the dependency audit found GHSA-vcvr-r3jv-pc5j. Bring that safe baseline into this PR and rerun regression before live verification; do not treat the older deployment/code boundary as public-launch approval.
+
+### Historical 1 October boundary
+
 All five canonical variables are absent from this local process. No secret values were inspected or invented. Remote Preview variable presence has not been verified in this run. No working authenticated Vercel deployment tool is available here. No real DVSA request, responsive browser smoke or deployment of these changes is claimed.
 
 Required next configuration in the existing project's **Preview** environment for `rebuild-nextjs`:
