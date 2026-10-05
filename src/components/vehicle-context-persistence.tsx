@@ -2,36 +2,44 @@
 
 import { useEffect,useRef } from "react";
 import { usePathname,useRouter,useSearchParams } from "next/navigation";
-import { VEHICLE_CONTEXT_PARAMS,VEHICLE_CONTEXT_STORAGE_KEY } from "@/lib/vehicle-context";
+import { clearStoredVehicleContext,readStoredVehicleContext,resolveVehicleContext,VEHICLE_CONTEXT_STORAGE_KEY,type StoredVehicleContext } from "@/lib/vehicle-context";
 
-export function VehicleContextPersistence(){
+export function VehicleContextPersistence({viewerId,garageContextValid=true}:{viewerId:string|null;garageContextValid?:boolean}){
  const pathname=usePathname();
  const router=useRouter();
  const searchParams=useSearchParams();
- const restored=useRef(false);
+ const normalizedRef=useRef("");
 
  useEffect(()=>{
   if(pathname!=="/")return;
   const current=new URLSearchParams(searchParams.toString());
-  if(current.get("cv")&&current.get("cy")){
-   const saved:Record<string,string>={};
-   for(const key of VEHICLE_CONTEXT_PARAMS){const value=current.get(key);if(value)saved[key]=value;}
-   try{window.localStorage.setItem(VEHICLE_CONTEXT_STORAGE_KEY,JSON.stringify(saved));}catch{}
-   restored.current=true;
+  let raw:string|null=null;
+  try{raw=window.localStorage.getItem(VEHICLE_CONTEXT_STORAGE_KEY);}catch{}
+  const stored=readStoredVehicleContext(raw,viewerId);
+  const hasUrlGarage=current.has("gv");
+  const resolved=resolveVehicleContext(current,{
+   viewerId,
+   stored,
+   ...(hasUrlGarage?{garageValid:garageContextValid}:{}),
+   addVehicleMode:current.get("addVehicle")==="1"
+  });
+  if(resolved.clearStored||(raw!==null&&!stored))clearStoredVehicleContext();
+  if(resolved.needsReplace){
+   const query=resolved.params.toString();
+   const destination=query?`/?${query}#marketplace`:"/#marketplace";
+   if(normalizedRef.current!==destination){normalizedRef.current=destination;router.replace(destination,{scroll:false});}
    return;
   }
-  if(restored.current||current.get("vehicle")||current.get("addVehicle")==="1")return;
-  restored.current=true;
-  try{
-   const raw=window.localStorage.getItem(VEHICLE_CONTEXT_STORAGE_KEY);
-   if(!raw)return;
-   const saved=JSON.parse(raw) as Record<string,string>;
-   if(!saved.cv||!saved.cy)return;
-   for(const key of VEHICLE_CONTEXT_PARAMS){if(saved[key]&&!current.has(key))current.set(key,saved[key]);}
-   const query=current.toString();
-   router.replace(query?"/?"+query+"#marketplace":"/",{scroll:false});
-  }catch{}
- },[pathname,router,searchParams]);
+  if(resolved.source==="url"&&resolved.selection.kind!=="none"&&resolved.selection.kind!=="invalid-garage"&&viewerId){
+   const envelope:StoredVehicleContext={viewerId,selection:resolved.selection};
+   try{window.localStorage.setItem(VEHICLE_CONTEXT_STORAGE_KEY,JSON.stringify(envelope));}catch{}
+  }
+  if(resolved.source==="storage"){
+   const query=resolved.params.toString();
+   const destination=query?`/?${query}#marketplace`:"/#marketplace";
+   if(normalizedRef.current!==destination){normalizedRef.current=destination;router.replace(destination,{scroll:false});}
+  }
+ },[pathname,router,searchParams,viewerId,garageContextValid]);
 
  return null;
 }

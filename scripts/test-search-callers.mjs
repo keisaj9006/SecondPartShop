@@ -14,7 +14,7 @@ function caller(kind,selection='valid'){
  '@/lib/postcode':{normalizePostcode:value=>value},'@/lib/public-listing':{toPublicListing:item=>item},'@/lib/analytics/search':{recordMarketplaceSearch:()=>{}},
  '@/lib/mobile-api':{mobileJson:(_request,body,status)=>({body,status}),mobilePublicJson:(_request,body,status)=>({body,status})},'@/lib/mobile-image':{mobileThumbnailUrl:()=>null},
  '@/components/header':{Header:'Header'},'@/components/marketplace-home':{MarketplaceHome:'MarketplaceHome'},'@/lib/data/garage':{},'@/lib/data/buyer-account':{},'@/lib/auth':{getCurrentUser:async()=>null},'@/lib/vehicle-registration':{normalizeRegistration:value=>value},
- '@/lib/metadata':{buildHomeMetadata:()=>({})}
+ '@/lib/metadata':{buildHomeMetadata:()=>({})},'@/lib/vehicle-context':load('src/lib/vehicle-context.ts',{})
  };
  const entry=load(kind==='mobile'?'src/app/api/mobile/v1/marketplace/route.ts':'src/app/page.tsx',deps);
  return {calls,async run(params){if(kind==='mobile')return entry.GET({url:'https://fixture.invalid/?'+new URLSearchParams(params)});const result=await entry.default({searchParams:Promise.resolve(params)});return result.props.children.find(node=>node.type==='MarketplaceHome').props;}};

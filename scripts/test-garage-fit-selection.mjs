@@ -46,7 +46,7 @@ function nodes(tree){
 }
 
 const vehicle={
- id:"garage-1",
+ id:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
  catalogueVariantId:"11111111-1111-4111-8111-111111111111",
  year:2020,
  fuelType:"petrol",
@@ -68,6 +68,7 @@ test("web Garage gives each saved vehicle both fit-only and browse-all destinati
   "@/components/garage-vehicle-use-control":{GarageVehicleUseControl},
   "@/lib/auth":{requireUser:async()=>({id:"buyer-1"})},
   "@/lib/data/garage":{getGarageVehiclesPage:async()=>({items:[vehicle],hasMore:false,offset:0,limit:20})},
+  "@/lib/vehicle-context":moduleFrom("src/lib/vehicle-context.ts"),
   "./actions":{removeGarageVehicle(){} }
  });
  const tree=await GaragePage({searchParams:Promise.resolve({})});
@@ -75,8 +76,8 @@ test("web Garage gives each saved vehicle both fit-only and browse-all destinati
  assert.ok(control,"Expected Garage vehicle compatibility control");
  assert.match(control.props.fitHref,/(?:\?|&)fit=1(?:&|#)/);
  assert.match(control.props.allHref,/(?:\?|&)fit=0(?:&|#)/);
- assert.match(control.props.fitHref,/(?:\?|&)vr=AB12CDE(?:&|#)/);
- assert.match(control.props.fitHref,/(?:\?|&)vc=blue(?:&|#)/);
+ assert.match(control.props.fitHref,/(?:\?|&)gv=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa(?:&|#)/);
+ assert.doesNotMatch(control.props.fitHref,/(?:\?|&)(?:cv|cy|cf|ce|vr|vc)=/);
 });
 
 test("web Garage compatibility checkbox switches the Use vehicle destination",()=>{
@@ -110,7 +111,7 @@ function mobileGarageHarness(){
  const checkbox={checked:false};
  const article={querySelector:selector=>selector==="[data-garage-fit]"?checkbox:null};
  const useButton={
-  dataset:{useGarage:"garage-1"},disabled:false,textContent:"",
+  dataset:{useGarage:vehicle.id},disabled:false,textContent:"",
   closest:()=>article,
   addEventListener(type,callback){if(type==="click")useClick=callback;}
  };

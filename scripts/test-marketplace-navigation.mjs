@@ -308,12 +308,77 @@ test("clear then reload does not restore vehicle context and addVehicle mode nev
   const runner=hookRunner({router:{replace:value=>replacements.push(value)},searchParams,windowOverrides:{localStorage:storage}});
   const {VehicleContextPersistence}=moduleFrom("src/components/vehicle-context-persistence.tsx",{
    react:runner.react,"next/navigation":runner.navigation,
-   "@/lib/vehicle-context":{VEHICLE_CONTEXT_STORAGE_KEY:"secondpart.web.vehicle-context.v1",VEHICLE_CONTEXT_PARAMS:["cv","cy","cf","ce","vr","vc","fit"]}
+   "@/lib/vehicle-context":loadVehicleContext(runner.window)
   },{window:runner.window});
-  runner.render(VehicleContextPersistence,{});
+  runner.render(VehicleContextPersistence,{viewerId:"viewer-a",garageContextValid:true});
   await runner.flushEffects();
  }
  assert.deepEqual(replacements,[]);
+});
+
+test("vehicle persistence stores only a viewer-scoped Garage ID and rejects a previous viewer's context",async()=>{
+ const GARAGE="11111111-1111-4111-8111-111111111111";
+ const entries=new Map();
+ const storage={getItem:key=>entries.get(key)??null,setItem:(key,value)=>entries.set(key,value),removeItem:key=>entries.delete(key)};
+ const writer=hookRunner({router:{replace(){}},searchParams:`gv=${GARAGE}&fit=1`,windowOverrides:{localStorage:storage}});
+ const {VehicleContextPersistence}=moduleFrom("src/components/vehicle-context-persistence.tsx",{
+  react:writer.react,"next/navigation":writer.navigation,"@/lib/vehicle-context":loadVehicleContext(writer.window)
+ },{window:writer.window});
+ writer.render(VehicleContextPersistence,{viewerId:"viewer-a",garageContextValid:true});
+ await writer.flushEffects();
+ assert.deepEqual(JSON.parse(entries.get("secondpart.web.vehicle-context.v1")),{viewerId:"viewer-a",selection:{kind:"garage",garageVehicleId:GARAGE,fitOnly:true}});
+
+ const replacements=[];
+ const reader=hookRunner({router:{replace:value=>replacements.push(value)},searchParams:"q=brake",windowOverrides:{localStorage:storage}});
+ const readerModule=moduleFrom("src/components/vehicle-context-persistence.tsx",{
+  react:reader.react,"next/navigation":reader.navigation,"@/lib/vehicle-context":loadVehicleContext(reader.window)
+ },{window:reader.window});
+ reader.render(readerModule.VehicleContextPersistence,{viewerId:"viewer-b",garageContextValid:true});
+ await reader.flushEffects();
+ assert.equal(entries.has("secondpart.web.vehicle-context.v1"),false);
+ assert.deepEqual(replacements,[]);
+});
+
+test("same-viewer Garage state restores through canonical gv; add mode suppresses it without erasing the saved selection",async()=>{
+ const GARAGE="11111111-1111-4111-8111-111111111111";
+ const entries=new Map([["secondpart.web.vehicle-context.v1",JSON.stringify({viewerId:"viewer-a",selection:{kind:"garage",garageVehicleId:GARAGE,fitOnly:false}})]]);
+ const storage={getItem:key=>entries.get(key)??null,setItem:(key,value)=>entries.set(key,value),removeItem:key=>entries.delete(key)};
+ const replacements=[];
+ const runner=hookRunner({router:{replace:value=>replacements.push(value)},searchParams:"q=brake",windowOverrides:{localStorage:storage}});
+ const api=moduleFrom("src/components/vehicle-context-persistence.tsx",{
+  react:runner.react,"next/navigation":runner.navigation,"@/lib/vehicle-context":loadVehicleContext(runner.window)
+ },{window:runner.window});
+ runner.render(api.VehicleContextPersistence,{viewerId:"viewer-a",garageContextValid:true});
+ await runner.flushEffects();
+ assert.equal(replacements[0],`/?q=brake&gv=${GARAGE}&fit=0#marketplace`);
+
+ const addMode=hookRunner({router:{replace:value=>replacements.push(value)},searchParams:"addVehicle=1",windowOverrides:{localStorage:storage}});
+ const addApi=moduleFrom("src/components/vehicle-context-persistence.tsx",{
+  react:addMode.react,"next/navigation":addMode.navigation,"@/lib/vehicle-context":loadVehicleContext(addMode.window)
+ },{window:addMode.window});
+ addMode.render(addApi.VehicleContextPersistence,{viewerId:"viewer-a",garageContextValid:true});
+ await addMode.flushEffects();
+ assert.equal(replacements.length,1);
+ assert.equal(entries.has("secondpart.web.vehicle-context.v1"),true);
+});
+
+test("Home Garage links select an identity-only Garage row without converting it to catalogue context",()=>{
+ const ProductCard=function ProductCard(){return null;};
+ const dependencies={
+  "next/link":"a","@/app/garage/actions":{saveGarageVehicleForm(){}},
+  "./product-card":{ProductCard},"./vehicle-selector":{VehicleSelector:()=>null},"./vehicle-visual":{VehicleVisual:()=>null},
+  "./marketplace-filters":{MarketplaceFiltersPanel:()=>null},"./marketplace-search":{MarketplaceSearch:()=>null},"./part-request-card":{PartRequestCard:()=>null},
+  "./postcode-distance-filter":{PostcodeDistanceFilter:()=>null},"./offer-group-card":{OfferGroupCard:()=>null},"@/lib/offer-groups":{groupListingsForOffers:()=>[]},
+  "./save-search-control":{SaveSearchControl:()=>null},"./vehicle-compatibility-toggle":{VehicleCompatibilityToggle:()=>null},"./vehicle-context-persistence":{VehicleContextPersistence:()=>null},"@/lib/vehicle-context":loadVehicleContext()
+ };
+ const api=moduleFrom("src/components/marketplace-home.tsx",dependencies);
+ const garage={id:"11111111-1111-4111-8111-111111111111",catalogueVariantId:null,year:2018,fuelType:null,engineSizeSimple:null,registration:"AB12CDE",colour:"grey",nickname:null,make:"Ford",model:"Transit",modelFamily:"Transit",variant:null,createdAt:"2026-01-01"};
+ const tree=api.MarketplaceHome({listings:[],categories:[],vehicles:[],garageVehicles:[garage],recentlyViewed:[],signedIn:true,viewerId:"viewer-a",filters:{...filters,query:"alternator"},selectedCatalogue:null,savedIds:[],error:null,configured:true,pagination:{offset:0,limit:24,returned:0,total:0,hasMore:false,mode:"offset",nextCursor:null},currentPage:1,activeGarageVehicleId:garage.id});
+ const link=findNode(tree,node=>String(node.props?.href).includes("gv="));
+ assert.equal(link.props.href,`/?q=alternator&category=cat-a&condition=used&sort=price_asc&min=10&max=200&pc=EH25+9BE&collection=1&gv=${garage.id}&fit=1#marketplace`);
+ assert.equal(link.props.href.includes("cv="),false);
+ const search=findNode(tree,node=>node.props?.filters&&node.props?.activeVehicleLabel!==undefined);
+ assert.equal(search.props.activeVehicleLabel,"AB12CDE · Ford Transit 2018");
 });
 
 test("marketplace cards retain page and cursor context and selector identity includes fuel and engine",()=>{
@@ -327,7 +392,8 @@ test("marketplace cards retain page and cursor context and selector identity inc
   "./postcode-distance-filter":{PostcodeDistanceFilter:()=>null},"./offer-group-card":{OfferGroupCard:()=>null},
   "@/lib/offer-groups":{groupListingsForOffers:listings=>listings.map(item=>({key:item.id,listings:[item]}))},
   "./save-search-control":{SaveSearchControl:()=>null},"./vehicle-compatibility-toggle":{VehicleCompatibilityToggle:()=>null},
-  "./vehicle-context-persistence":{VehicleContextPersistence:()=>null}
+  "./vehicle-context-persistence":{VehicleContextPersistence:()=>null},
+  "@/lib/vehicle-context":loadVehicleContext()
  };
  const {MarketplaceHome}=moduleFrom("src/components/marketplace-home.tsx",dependencies);
  const listing={id:"part-1"};

@@ -6,19 +6,15 @@ import { VehicleVisual } from "@/components/vehicle-visual";
 import { requireUser } from "@/lib/auth";
 import { getGarageVehiclesPage } from "@/lib/data/garage";
 import { removeGarageVehicle } from "./actions";
+import { setVehicleContext } from "@/lib/vehicle-context";
 
 export const dynamic="force-dynamic";
 
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 const pageNumber=(value:string|undefined)=>{const parsed=Number(value);return Number.isInteger(parsed)&&parsed>0?parsed:1;};
 
-const vehicleHref=(vehicle:{catalogueVariantId:string|null;year:number;fuelType:string|null;engineSizeSimple:number|null;registration:string|null;colour:string|null},compatibleOnly:boolean)=>{
- if(!vehicle.catalogueVariantId)return "/?addVehicle=1#vehicle-picker";
- const params=new URLSearchParams({cv:vehicle.catalogueVariantId,cy:String(vehicle.year),fit:compatibleOnly?"1":"0"});
- if(vehicle.fuelType)params.set("cf",vehicle.fuelType);
- if(vehicle.engineSizeSimple!==null)params.set("ce",String(vehicle.engineSizeSimple));
- if(vehicle.registration)params.set("vr",vehicle.registration);
- if(vehicle.colour)params.set("vc",vehicle.colour);
+const vehicleHref=(vehicle:{id:string},compatibleOnly:boolean)=>{
+ const params=setVehicleContext(new URLSearchParams(),{kind:"garage",garageVehicleId:vehicle.id,fitOnly:compatibleOnly});
  return `/?${params.toString()}#marketplace`;
 };
 

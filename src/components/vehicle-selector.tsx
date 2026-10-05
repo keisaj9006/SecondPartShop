@@ -4,7 +4,7 @@ import { useEffect,useId,useRef,useState,useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CarFront,ChevronDown,Search,X } from "lucide-react";
 import { VehicleVisual } from "@/components/vehicle-visual";
-import { clearStoredVehicleContext } from "@/lib/vehicle-context";
+import { clearStoredVehicleContext,setVehicleContext } from "@/lib/vehicle-context";
 import type { Vehicle,VehicleCatalogueSelection } from "@/lib/types";
 
 type LookupState={kind:"idle"|"loading"|"error"|"info";message?:string};
@@ -190,31 +190,22 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
  },[variantId,registrationVehicle]);
 
  const pushVehicleParams=(params:URLSearchParams)=>{
-  for(const key of ["vehicle","cv","cy","cf","ce","vr","vc"])params.delete(key);
   const qs=params.toString();
   router.push(`/${qs?`?${qs}`:""}#marketplace`);
  };
 
  const clearVehicle=()=>{
   clearStoredVehicleContext();
-  const params=new URLSearchParams(baseParams);
-  pushVehicleParams(params);
+  pushVehicleParams(setVehicleContext(new URLSearchParams(baseParams),{kind:"none"}));
  };
 
  const applyCatalogue=()=>{
   if(!variantId||!year)return;
-  const params=new URLSearchParams(baseParams);
-  params.set("cv",variantId);
-  params.set("cy",year);
   const engine=engines.find(item=>engineKey(item)===catalogueEngine);
-  if(engine){
-   params.set("cf",engine.fuelType);
-   if(engine.engineSizeSimple!==null)params.set("ce",String(engine.engineSizeSimple));
-  }
-  params.delete("vehicle");
-  params.set("fit",fitOnly?"1":"0");
-  if(registrationVehicle?.registration)params.set("vr",registrationVehicle.registration);else params.delete("vr");
-  if(registrationVehicle?.colour)params.set("vc",registrationVehicle.colour);else params.delete("vc");
+  const params=setVehicleContext(new URLSearchParams(baseParams),{
+   kind:"catalogue",variantId,year:Number(year),...(engine?{fuel:engine.fuelType}:{}),...(engine?.engineSizeSimple!==null&&engine?.engineSizeSimple!==undefined?{engine:engine.engineSizeSimple}:{}),
+   ...(registrationVehicle?.registration?{registration:registrationVehicle.registration}:{}),...(registrationVehicle?.colour?{colour:registrationVehicle.colour}:{}),fitOnly
+  });
   const qs=params.toString();
   startTransition(()=>router.push(`/?${qs}#marketplace`));
  };

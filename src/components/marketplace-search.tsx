@@ -7,7 +7,7 @@ import { CategoryBrowser } from "@/components/category-browser";
 import { PartCodeScanner } from "@/components/part-code-scanner";
 import { getCategoryPath } from "@/lib/category-tree";
 import { resetMarketplacePagination } from "@/lib/marketplace-navigation";
-import { clearStoredVehicleContext } from "@/lib/vehicle-context";
+import { clearStoredVehicleContext,setVehicleContext } from "@/lib/vehicle-context";
 import type { Category,MarketplaceFilters,MarketplaceSuggestion,SearchSuggestionGroups } from "@/lib/types";
 
 const emptyGroups:SearchSuggestionGroups={categories:[],listings:[],numbers:[],brands:[]};
@@ -55,12 +55,12 @@ export function MarketplaceSearch({categories,filters,activeVehicleLabel}:{categ
   return()=>{document.removeEventListener("pointerdown",onPointerDown);document.removeEventListener("keydown",onKeyDown);};
  },[]);
 
- const pushParams=(mutate:(params:URLSearchParams)=>void)=>{
+ const pushParams=(mutate:(params:URLSearchParams)=>void|URLSearchParams)=>{
   const params=new URLSearchParams(window.location.search);
   params.delete("family");params.delete("code");
   resetMarketplacePagination(params);
-  mutate(params);
-  const qs=params.toString();
+  const updated=mutate(params);
+  const qs=(updated??params).toString();
   startNavigation(()=>router.push(`/${qs?`?${qs}`:""}#marketplace`,{scroll:false}));
  };
 
@@ -88,7 +88,7 @@ export function MarketplaceSearch({categories,filters,activeVehicleLabel}:{categ
 
  const clearCategory=()=>pushParams(params=>params.delete("category"));
  const clearSearchAndCategory=()=>{setQuery("");setOpen(false);setCategoryOpen(false);pushParams(params=>{params.delete("q");params.delete("category");});};
- const clearVehicle=()=>{clearStoredVehicleContext();pushParams(params=>{for(const key of ["vehicle","cv","cy","cf","ce","vr","vc","fit"])params.delete(key);});};
+ const clearVehicle=()=>{clearStoredVehicleContext();pushParams(params=>setVehicleContext(params,{kind:"none"}));};
  const hasSuggestions=items.length>0&&query.trim().length>=2;
 
  const onKeyDown=(event:ReactKeyboardEvent<HTMLInputElement>)=>{
