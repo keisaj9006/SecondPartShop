@@ -1,6 +1,6 @@
 # DVSA → Garage repair and representative vehicle previews
 
-Status: written design for owner review. The owner approved the conversational direction on 5 October 2026; implementation and hosted migration have not started.
+Status: FINAL APPROVED by the owner on 5 October 2026 after the vehicle-context, exact-profile concurrency and migration recovery rules were added. Implementation and hosted migration have not started.
 
 ## Outcome and scope
 
@@ -39,6 +39,14 @@ Add a partial unique index on owner and normalized non-null registration. Inspec
 
 Use an atomic owner-scoped save operation (security invoker, fixed search path, authenticated role, RLS preserved) or equivalent unique-conflict recovery. Concurrent submissions must converge on the same Garage ID. Never accept a client-supplied owner ID. A duplicate lookup returns `already_exists`, selects the existing vehicle and says “Vehicle already in your Garage”. It must not overwrite an already confirmed fitment profile with a NULL variant. Attaching/updating an exact profile requires explicit confirmation and validated catalogue data for the same vehicle; never choose the first derivative arbitrarily.
 
+“Same vehicle” enrichment requires a validated match for normalized make, normalized model and year. When reliable values are available on both the verified identity and candidate profile, fuel and engine capacity must also match. A conflict in make, model, year, fuel or capacity rejects enrichment; missing reliable optional fuel/capacity evidence is not a conflict, but must not be invented. If more than one candidate remains after these comparisons, leave the row identity-only and ask the user to choose; do not choose the first candidate or silently attach a derivative.
+
+The write path must prevent a lost-update race between identity-only save and exact-profile enrichment. Identity upsert/retry may update permitted identity fields but must never write `catalogue_variant_id = NULL` over an existing non-NULL variant. Enrichment is conditional on a still-NULL variant and a still-matching identity, or uses an equivalent row-lock/version guard. Concurrent identity save plus exact-profile enrichment must preserve the confirmed exact profile; concurrent conflicting enrichment must yield one validated profile or a retry/error, never a downgrade or arbitrary winner.
+
+Before and after the migration, inspect every web, server-action, mobile API and SQL/RPC Garage read/write path for the old non-null assumption. Update every row mapper and read to retain identity-only rows; remove/replace any `!inner` catalogue join that would hide them. Keep the join optional and derive make/model from the identity snapshot when no variant exists. Audit all direct `catalogue_variant_id` dereferences and fitment/checkout consumers; guard nullable values and route incomplete selected profiles through the explicit safe state. Tests must prove catalogue-backed legacy rows and identity-only rows are both returned and rendered.
+
+Recovery is forward/corrective migration only. If the change partially deploys or needs correction after identity-only rows exist, add a new migration that repairs constraints/indexes/functions while preserving every row. Never automatically restore `NOT NULL`, delete/merge identity-only rows to satisfy an old constraint, or run a destructive rollback. Retain the hosted-database STOP gate if the target database also serves Production.
+
 Do not update global catalogue definitions or compatibility evidence to make the save succeed. Do not create a parallel vehicle table, artificial catalogue variant, new default-vehicle database concept or broad new vehicle settings system.
 
 ## Save and selection journey
@@ -48,6 +56,14 @@ Successful lookup displays its textual registration/make/model/year/fuel/capacit
 Return a saved Garage ID and navigate to the originating vehicle context. Home's existing add-vehicle entry and Garage's add link both use this result. Make/model/year/fuel/capacity/colour are not retyped after a successful lookup. The derivative chooser is optional for saving identity, required for checking exact fitment. Replace “Engine data unavailable” with context-aware wording such as “Choose an exact version to see catalogue engine options”; preserve DVSA capacity in the summary.
 
 Use a private `gv` Garage ID in active context rather than placing a new private identity snapshot in a public query contract. Resolve it through the authenticated user's RLS-scoped read. Both Home and Garage derive the current selection through the same context helper. Invalid, removed or another owner's `gv` yields an explicit reselect state and never exposes registration/details or silently substitutes another vehicle.
+
+### Vehicle context precedence invariant
+
+The saved Garage context (`gv`) and manual catalogue context (`cv/cy/cf/ce`) are mutually exclusive. Activating/selecting a Garage vehicle sets `gv` and clears `cv`, `cy`, `cf` and `ce`. Selecting a manual catalogue vehicle clears `gv`. Applying the legacy `vehicle` selection or clearing the vehicle context also clears both modern contexts. One canonical helper in `src/lib/vehicle-context.ts` owns all selection, clearing and normalization transitions; pages and components must not hand-edit subsets of vehicle parameters.
+
+Home, Garage, search, listing/detail and checkout consume one resolved active vehicle context and may never independently resolve competing Garage and catalogue selections. A valid, explicitly present `gv` in the current URL takes precedence over coexisting catalogue parameters; the context helper removes the losing parameters before navigation, and server resolution validates the Garage ID against the signed-in owner before using it. If that `gv` is malformed, stale, unavailable, or belongs to another user, fail closed with a reselect state and discard competing vehicle parameters rather than silently falling back. If the current URL has a manual catalogue selection and no `gv`, it takes precedence over saved browser state and clears stored `gv`. A URL with no vehicle context may restore only the same viewer's stored, valid context; add-vehicle mode suppresses restoration. Conflicting legacy `vehicle` parameters are resolved only when both modern contexts are absent, then normalized by the same helper. Back/forward and stale storage must converge to the explicit current URL state. No page, search, listing or checkout layer may implement its own alternate precedence rule.
+
+Add regression coverage for URLs and browser storage containing conflicting `gv` + `cv/cy/cf/ce`, including valid Garage precedence, invalid/other-owner `gv` fail-closed behavior, explicit manual URL clearing stale stored `gv`, account/viewer changes and add-vehicle mode. Assert every transition emits exactly one canonical context, not both.
 
 Extend existing browser persistence for this ID, scoped to viewer identity. Do not restore an owner's private vehicle for another account or a signed-out viewer. Existing catalogue/manual `cv/cy/cf/ce` context remains supported. Public manually selected catalogue context can still be used without saving a Garage vehicle.
 
