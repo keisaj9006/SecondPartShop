@@ -224,6 +224,35 @@ function listingFormData({status="active",withFile=true}={}){
  return data;
 }
 
+test("listing text controls bound ordinary multipart content before upload",()=>{
+ const nodes=descendants(mount().render());
+ for(const [name,limit] of [["title",200],["description",5000],["manufacturer",160],["partNumber",160],["oemNumber",160]]){
+  assert.equal(nodes.find(node=>node.props?.name===name).props.maxLength,limit,name);
+ }
+});
+
+for(const actionName of ["createListing","updateListing"])
+ test(`${actionName} preserves a successful draft at the exact text limits`,async()=>{
+  const harness=loadActions();
+  const data=listingFormData({status:"draft",withFile:false});
+  for(const [field,limit] of [["title",200],["description",5000],["manufacturer",160],["partNumber",160],["oemNumber",160]])data.set(field,"x".repeat(limit));
+  await assert.rejects(harness.actions[actionName]({status:"idle"},data),error=>error===harness.redirectError);
+  assert.equal(harness.mutations.filter(row=>row.table==="parts").length,1);
+ });
+
+for(const actionName of ["createListing","updateListing"])
+ for(const [field,limit] of [["title",200],["description",5000],["manufacturer",160],["partNumber",160],["oemNumber",160]])
+  test(`${actionName} rejects oversized ${field} before inventory or Storage writes`,async()=>{
+   const harness=loadActions();
+   const data=listingFormData({status:"draft",withFile:false});
+   data.set(field,"x".repeat(limit+1));
+   const result=await harness.actions[actionName]({status:"idle"},data);
+   assert.equal(result.status,"error");
+   assert.match(result.message,/characters.*fewer|fewer.*characters/i);
+   assert.deepEqual(harness.mutations,[]);
+   assert.deepEqual(harness.uploads,[]);
+  });
+
 for(const actionName of ["createListing","updateListing"]){
  test(`${actionName} rejects unsupported active publication before uploads or database mutation`,async()=>{
   const harness=loadActions();
