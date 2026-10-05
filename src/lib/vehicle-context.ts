@@ -116,3 +116,21 @@ export function clearStoredVehicleContext(storage?:Pick<Storage,"removeItem">){
   resolvedStorage?.removeItem(VEHICLE_CONTEXT_STORAGE_KEY);
  }catch{}
 }
+
+export function setVehicleContextFit(params:URLSearchParams,fitOnlyValue:boolean):URLSearchParams{
+ const resolved=resolveVehicleContext(params,{viewerId:null});
+ const selection=resolved.selection.kind==="garage"||resolved.selection.kind==="catalogue"||resolved.selection.kind==="legacy"
+  ?{...resolved.selection,fitOnly:fitOnlyValue}
+  :{kind:"none" as const};
+ return setVehicleContext(resolved.params,selection);
+}
+
+export function clearStoredGarageVehicleSelection(viewerId:string,garageVehicleId:string,storage?:Pick<Storage,"getItem"|"removeItem">):boolean{
+ try{
+  const resolvedStorage=storage??(typeof window==="undefined"?undefined:window.localStorage);
+  const stored=readStoredVehicleContext(resolvedStorage?.getItem(VEHICLE_CONTEXT_STORAGE_KEY)??null,viewerId);
+  if(stored?.selection.kind!=="garage"||stored.selection.garageVehicleId!==garageVehicleId)return false;
+  resolvedStorage?.removeItem(VEHICLE_CONTEXT_STORAGE_KEY);
+  return Boolean(resolvedStorage);
+ }catch{return false;}
+}

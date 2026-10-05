@@ -183,23 +183,54 @@ test("header category selection resets both pagination keys and keeps unrelated 
  assert.equal(pushes[0][0],"/?q=alternator&min=10&cv=11111111-1111-4111-8111-111111111111&category=cat-b#marketplace");
 });
 
-test("fit toggle resets both pagination keys and renders checkbox, icon and copy from one visual state",()=>{
+test("fit toggle canonicalizes conflicting vehicle contexts for both ON and OFF transitions",()=>{
  const pushes=[];
- const runner=hookRunner({router:{push:(...args)=>pushes.push(args)},searchParams:"q=alternator&cv=11111111-1111-4111-8111-111111111111&cy=2020&page=4&cursor=old"});
+ const garage="11111111-1111-4111-8111-111111111111";
+ const runner=hookRunner({router:{push:(...args)=>pushes.push(args)},searchParams:`q=alternator&gv=${garage}&cv=22222222-2222-4222-8222-222222222222&cy=2020&cf=petrol&ce=1984&vehicle=legacy&page=4&cursor=old`});
  const {VehicleCompatibilityToggle}=moduleFrom("src/components/vehicle-compatibility-toggle.tsx",{
-  react:runner.react,"next/navigation":runner.navigation,"@/lib/marketplace-navigation":marketplaceNavigation
+  react:runner.react,"next/navigation":runner.navigation,"@/lib/marketplace-navigation":marketplaceNavigation,
+  "@/lib/vehicle-context":loadVehicleContext(runner.window)
  });
  let tree=runner.render(VehicleCompatibilityToggle,{vehicleLabel:"Audi A3",checked:false});
  findNode(tree,node=>node.type==="input").props.onChange({target:{checked:true}});
- assert.equal(pushes[0][0],"/?q=alternator&cv=11111111-1111-4111-8111-111111111111&cy=2020&fit=1#marketplace");
-
+ assert.equal(pushes[0][0],`/?q=alternator&gv=${garage}&fit=1#marketplace`);
  runner.setPending(false);
- tree=runner.render(VehicleCompatibilityToggle,{vehicleLabel:"Audi A3",checked:false});
- assert.equal(findNode(tree,node=>node.type==="input").props.checked,false);
- assert.match(textContent(tree),/Showing the full marketplace/);
- assert.doesNotMatch(textContent(tree),/Only confirmed or same-family matches/);
+ runner.setSearchParams(`q=alternator&gv=${garage}&fit=1`);
+ tree=runner.render(VehicleCompatibilityToggle,{vehicleLabel:"Audi A3",checked:true});
+ findNode(tree,node=>node.type==="input").props.onChange({target:{checked:false}});
+ assert.equal(pushes[1][0],`/?q=alternator&gv=${garage}&fit=0#marketplace`);
 });
 
+test("Garage deletion clears persisted selection only after success and only for the matching viewer and Garage ID",async()=>{
+ const selected="11111111-1111-4111-8111-111111111111";
+ const other="22222222-2222-4222-8222-222222222222";
+ const entries=new Map([["secondpart.web.vehicle-context.v1",JSON.stringify({viewerId:"viewer-a",selection:{kind:"garage",garageVehicleId:selected,fitOnly:true}})]]);
+ const storage={getItem:key=>entries.get(key)??null,setItem:(key,value)=>entries.set(key,value),removeItem:key=>entries.delete(key)};
+ let result={ok:true};const submitted=[];
+ const api=moduleFrom("src/components/garage-vehicle-remove-form.tsx",{
+  react:{useState:initial=>[initial,()=>{}]},
+  "@/app/garage/actions":{removeGarageVehicle:async data=>{submitted.push(data);return result;}},
+  "@/lib/vehicle-context":loadVehicleContext({localStorage:storage})
+ });
+ const invoke=async garageVehicleId=>{
+  const tree=api.GarageVehicleRemoveForm({garageVehicleId,viewerId:"viewer-a",label:"Remove vehicle"});
+  const form=findNode(tree,node=>node.type==="form");
+  await form.props.action({id:garageVehicleId});
+ };
+ await invoke(other);
+ assert.equal(entries.has("secondpart.web.vehicle-context.v1"),true,"deleting a different row preserves selection");
+ await invoke(selected);
+ assert.equal(entries.has("secondpart.web.vehicle-context.v1"),false,"deleting the selected row clears its saved context");
+ assert.equal(submitted.length,2,"both deletes remain routed through the server action");
+ entries.set("secondpart.web.vehicle-context.v1",JSON.stringify({viewerId:"viewer-a",selection:{kind:"garage",garageVehicleId:selected,fitOnly:true}}));
+ result={ok:false};
+ await invoke(selected);
+ assert.equal(entries.has("secondpart.web.vehicle-context.v1"),true,"failed deletion preserves selection");
+ entries.set("secondpart.web.vehicle-context.v1",JSON.stringify({viewerId:"viewer-b",selection:{kind:"garage",garageVehicleId:selected,fitOnly:true}}));
+ result={ok:true};
+ await invoke(selected);
+ assert.equal(entries.has("secondpart.web.vehicle-context.v1"),true,"another viewer's stored selection is never cleared");
+});
 test("part-code and postcode searches reset both pagination keys",async()=>{
  const scannerPushes=[];
  const scannerRunner=hookRunner({router:{push:value=>scannerPushes.push(value)},searchParams:"q=alternator&category=cat-a&min=10&page=4&cursor=old"});

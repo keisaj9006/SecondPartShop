@@ -6,7 +6,7 @@ import ts from "typescript";
 
 function actions({authenticated=true}={}){
  const writes=[],filters=[],revalidated=[];
- const query={eq(key,value){filters.push([key,value]);return this;},then(resolve){return Promise.resolve({data:[]}).then(resolve);},delete(){writes.push("delete");return this;}};
+ const query={eq(key,value){filters.push([key,value]);return this;},select(){return this;},maybeSingle:async()=>({data:{id:"other-users-vehicle"},error:null}),then(resolve){return Promise.resolve({data:[]}).then(resolve);},delete(){writes.push("delete");return this;}};
  const database={from:()=>query,rpc:async(name,args)=>{assert.equal(name,'save_garage_vehicle_v1');writes.push(args);return {data:[{garage_vehicle_id:'saved',outcome:'created',catalogue_variant_id:args.p_catalogue_variant_id}],error:null};}};
  function load(path){const exports={};const source=fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');vm.runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports,Request,FormData,require(name){
   if(name==='server-only')return {};
@@ -37,7 +37,7 @@ test("Garage save uses authenticated owner and catalogue fields after explicit s
 
 test("deleting a supplied Garage id is scoped to the authenticated owner",async()=>{
  const subject=actions(),form=new FormData();form.set("id","other-users-vehicle");
- await subject.removeGarageVehicle(form);
+ assert.equal((await subject.removeGarageVehicle(form)).ok,true);
  assert.deepEqual(subject.filters,[["id","other-users-vehicle"],["profile_id","current-user"]]);
 });
 

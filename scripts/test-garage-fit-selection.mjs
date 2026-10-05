@@ -66,6 +66,7 @@ test("web Garage gives each saved vehicle both fit-only and browse-all destinati
   "@/components/header":{Header:()=>null},
   "@/components/vehicle-visual":{VehicleVisual:()=>null},
   "@/components/garage-vehicle-use-control":{GarageVehicleUseControl},
+  "@/components/garage-vehicle-remove-form":{GarageVehicleRemoveForm:()=>null},
   "@/lib/auth":{requireUser:async()=>({id:"buyer-1"})},
   "@/lib/data/garage":{getGarageVehiclesPage:async()=>({items:[vehicle],hasMore:false,offset:0,limit:20})},
   "@/lib/vehicle-context":moduleFrom("src/lib/vehicle-context.ts"),

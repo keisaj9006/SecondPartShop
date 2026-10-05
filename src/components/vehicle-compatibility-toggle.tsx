@@ -4,6 +4,7 @@ import { usePathname,useRouter,useSearchParams } from "next/navigation";
 import { useState,useTransition } from "react";
 import { Check,CheckCircle2,Layers3 } from "lucide-react";
 import { resetMarketplacePagination } from "@/lib/marketplace-navigation";
+import { setVehicleContextFit } from "@/lib/vehicle-context";
 
 export function VehicleCompatibilityToggle({vehicleLabel,checked}:{vehicleLabel:string;checked:boolean}){
  const router=useRouter();
@@ -16,8 +17,7 @@ export function VehicleCompatibilityToggle({vehicleLabel,checked}:{vehicleLabel:
 
  const change=(next:boolean)=>{
   setOptimisticChecked(next);
-  const params=new URLSearchParams(searchParams.toString());
-  params.set("fit",next?"1":"0");
+  const params=setVehicleContextFit(new URLSearchParams(searchParams.toString()),next);
   resetMarketplacePagination(params);
   startTransition(()=>router.push(`${pathname}?${params.toString()}#marketplace`,{scroll:false}));
  };
