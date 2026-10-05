@@ -12,7 +12,8 @@ export const dynamic="force-dynamic";
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 const pageNumber=(value:string|undefined)=>{const parsed=Number(value);return Number.isInteger(parsed)&&parsed>0?parsed:1;};
 
-const vehicleHref=(vehicle:{catalogueVariantId:string;year:number;fuelType:string|null;engineSizeSimple:number|null;registration:string|null;colour:string|null},compatibleOnly:boolean)=>{
+const vehicleHref=(vehicle:{catalogueVariantId:string|null;year:number;fuelType:string|null;engineSizeSimple:number|null;registration:string|null;colour:string|null},compatibleOnly:boolean)=>{
+ if(!vehicle.catalogueVariantId)return "/?addVehicle=1#vehicle-picker";
  const params=new URLSearchParams({cv:vehicle.catalogueVariantId,cy:String(vehicle.year),fit:compatibleOnly?"1":"0"});
  if(vehicle.fuelType)params.set("cf",vehicle.fuelType);
  if(vehicle.engineSizeSimple!==null)params.set("ce",String(vehicle.engineSizeSimple));

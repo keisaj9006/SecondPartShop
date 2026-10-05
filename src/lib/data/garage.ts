@@ -5,7 +5,9 @@ import type { GarageVehicle } from "@/lib/types";
 
 type RawGarageVehicle={
  id:string;
- catalogue_variant_id:string;
+ catalogue_variant_id:string|null;
+ identity_make:string|null;
+ identity_model:string|null;
  registration:string|null;
  year:number;
  fuel_type:string|null;
@@ -21,7 +23,6 @@ const one=<T>(value:T|T[])=>Array.isArray(value)?value[0]:value;
 const mapGarageRows=(rows:unknown[]):GarageVehicle[]=>rows.flatMap(row=>{
  const raw=row as RawGarageVehicle;
  const variant=raw.vehicle_catalogue_variants?one(raw.vehicle_catalogue_variants):null;
- if(!variant)return [];
  return [{
   id:raw.id,
   catalogueVariantId:raw.catalogue_variant_id,
@@ -31,9 +32,10 @@ const mapGarageRows=(rows:unknown[]):GarageVehicle[]=>rows.flatMap(row=>{
   engineSizeSimple:raw.engine_size_simple,
   colour:raw.colour,
   nickname:raw.nickname,
-  make:variant.make,
-  modelFamily:variant.model_family,
-  variant:variant.variant,
+  make:variant?.make??raw.identity_make??"",
+  model:variant?.model_family??raw.identity_model??"",
+  modelFamily:variant?.model_family??raw.identity_model??"",
+  variant:variant?.variant??null,
   createdAt:raw.created_at
  }];
 });
@@ -45,7 +47,7 @@ export async function getGarageVehiclesPage(profileId:string,options:{offset?:nu
  const supabase=await createSupabaseServerClient();
  const {data,error}=await supabase
   .from("garage_vehicles")
-  .select("id,catalogue_variant_id,registration,year,fuel_type,engine_size_simple,colour,nickname,created_at,vehicle_catalogue_variants!inner(make,model_family,variant)")
+  .select("id,catalogue_variant_id,identity_make,identity_model,registration,year,fuel_type,engine_size_simple,colour,nickname,created_at,vehicle_catalogue_variants(make,model_family,variant)")
   .eq("profile_id",profileId)
   .order("created_at",{ascending:false})
   .order("id",{ascending:false})
@@ -60,7 +62,7 @@ export async function getGarageVehicleMatch(profileId:string,selection:{catalogu
  const supabase=await createSupabaseServerClient();
  let query=supabase
   .from("garage_vehicles")
-  .select("id,catalogue_variant_id,registration,year,fuel_type,engine_size_simple,colour,nickname,created_at,vehicle_catalogue_variants!inner(make,model_family,variant)")
+  .select("id,catalogue_variant_id,identity_make,identity_model,registration,year,fuel_type,engine_size_simple,colour,nickname,created_at,vehicle_catalogue_variants(make,model_family,variant)")
   .eq("profile_id",profileId)
   .eq("catalogue_variant_id",selection.catalogueVariantId)
   .eq("year",selection.year);
@@ -74,4 +76,14 @@ export async function getGarageVehicleMatch(profileId:string,selection:{catalogu
 
 export async function getGarageVehicles(profileId:string):Promise<GarageVehicle[]>{
  return (await getGarageVehiclesPage(profileId,{limit:60})).items;
+}
+
+export async function getGarageVehicleById(profileId:string,garageVehicleId:string):Promise<GarageVehicle|null>{
+ if(!isSupabaseConfigured())return null;
+ const supabase=await createSupabaseServerClient();
+ const {data,error}=await supabase.from("garage_vehicles")
+  .select("id,catalogue_variant_id,identity_make,identity_model,registration,year,fuel_type,engine_size_simple,colour,nickname,created_at,vehicle_catalogue_variants(make,model_family,variant)")
+  .eq("profile_id",profileId).eq("id",garageVehicleId).maybeSingle();
+ if(error||!data)return null;
+ return mapGarageRows([data])[0]??null;
 }

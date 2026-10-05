@@ -22,7 +22,7 @@ export async function GET(request:Request){
 
  const {data,error}=await supabase
   .from("garage_vehicles")
-  .select("id,catalogue_variant_id,registration,year,fuel_type,engine_size_simple,colour,nickname,created_at,vehicle_catalogue_variants!inner(make,model_family,variant)")
+  .select("id,catalogue_variant_id,identity_make,identity_model,registration,year,fuel_type,engine_size_simple,colour,nickname,created_at,vehicle_catalogue_variants(make,model_family,variant)")
   .eq("profile_id",user.id)
   .order("created_at",{ascending:false})
   .order("id",{ascending:false})
@@ -34,7 +34,6 @@ export async function GET(request:Request){
 
  const items=page.flatMap(row=>{
   const variant=one(row.vehicle_catalogue_variants);
-  if(!variant)return [];
   return [{
    id:row.id,
    catalogueVariantId:row.catalogue_variant_id,
@@ -44,9 +43,10 @@ export async function GET(request:Request){
    engineSizeSimple:row.engine_size_simple,
    colour:row.colour,
    nickname:row.nickname,
-   make:variant.make,
-   modelFamily:variant.model_family,
-   variant:variant.variant,
+   make:variant?.make??row.identity_make??"",
+   model:variant?.model_family??row.identity_model??"",
+   modelFamily:variant?.model_family??row.identity_model??"",
+   variant:variant?.variant??null,
    createdAt:row.created_at
   }];
  });

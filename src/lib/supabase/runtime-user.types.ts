@@ -87,7 +87,16 @@ type RuntimeUserFunctions={
  };
 };
 
-type RuntimeUserTables=Database["public"]["Tables"]&{
+type ExistingGarage=Database["public"]["Tables"]["garage_vehicles"];
+type GarageIdentityTable={
+ Row:Omit<ExistingGarage["Row"],"catalogue_variant_id">&{catalogue_variant_id:string|null;identity_make:string|null;identity_model:string|null};
+ Insert:Omit<ExistingGarage["Insert"],"catalogue_variant_id">&{catalogue_variant_id?:string|null;identity_make?:string|null;identity_model?:string|null};
+ Update:Omit<ExistingGarage["Update"],"catalogue_variant_id">&{catalogue_variant_id?:string|null;identity_make?:string|null;identity_model?:string|null};
+ Relationships:ExistingGarage["Relationships"];
+};
+
+type RuntimeUserTables=Omit<Database["public"]["Tables"],"garage_vehicles">&{
+ garage_vehicles:GarageIdentityTable;
  support_request_messages:SupportRequestMessageTable;
  support_request_internal_notes:SupportRequestInternalNoteTable;
 };

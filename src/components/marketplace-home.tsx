@@ -37,6 +37,7 @@ const vehicleParams=(filters:MarketplaceFilters)=>{
 };
 
 const savedVehicleHref=(vehicle:GarageVehicle,baseParams:Record<string,string>)=>{
+ if(!vehicle.catalogueVariantId)return "/garage";
  const params=new URLSearchParams(baseParams);
  params.set("cv",vehicle.catalogueVariantId);
  params.set("cy",String(vehicle.year));
