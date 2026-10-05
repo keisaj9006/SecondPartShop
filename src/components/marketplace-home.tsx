@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BadgeCheck,CarFront,Check,Search,ShieldCheck,Sparkles,Truck } from "lucide-react";
-import { saveGarageVehicle } from "@/app/garage/actions";
+import { saveGarageVehicleForm } from "@/app/garage/actions";
 import type { Category,GarageVehicle,Listing,MarketplaceFilters,Vehicle,VehicleCatalogueSelection } from "@/lib/types";
 import { ProductCard } from "./product-card";
 import { VehicleSelector } from "./vehicle-selector";
@@ -112,7 +112,7 @@ export function MarketplaceHome({listings,categories,vehicles,garageVehicles,rec
      </div>}
 
      {selectedCatalogue&&<div className="mt-4 flex flex-wrap items-center gap-3 border-t border-black/10 pt-4">
-      {selectedSaved?<><span className="inline-flex items-center gap-2 text-sm font-black text-[#287154]"><Check size={16}/>Saved in your Garage</span><Link href="/garage" className="text-xs font-bold underline">Manage</Link></>:signedIn?<form action={saveGarageVehicle}>
+      {selectedSaved?<><span className="inline-flex items-center gap-2 text-sm font-black text-[#287154]"><Check size={16}/>Saved in your Garage</span><Link href="/garage" className="text-xs font-bold underline">Manage</Link></>:signedIn?<form action={saveGarageVehicleForm}>
        <input type="hidden" name="variantId" value={selectedCatalogue.variantId}/>
        <input type="hidden" name="year" value={selectedCatalogue.year}/>
        {selectedCatalogue.fuelType&&<input type="hidden" name="fuel" value={selectedCatalogue.fuelType}/>}

@@ -25,7 +25,7 @@ test('web Garage page retains both legacy and identity-only rows with truthful n
  assert.equal(vehicle.id,'identity');assert.ok(database.filters.some(([k,v])=>k==='profile_id'&&v==='owner'));assert.ok(database.filters.some(([k,v])=>k==='id'&&v==='identity'));
 });
 test('mobile Garage projection retains identity-only snapshots',async()=>{
- const database=db(),subject=load('src/app/api/mobile/v1/garage/route.ts',{'@/lib/data/vehicle-catalogue':{},'@/lib/identifiers':{},'@/lib/vehicle-registration':{},'@/lib/mobile-api':{requireMobileUser:async()=>({context:{user:{id:'owner'},supabase:database}}),mobileJson:(_r,data)=>data}});
+ const database=db(),subject=load('src/app/api/mobile/v1/garage/route.ts',{'@/lib/garage-save':{},'@/lib/identifiers':{},'@/lib/mobile-api':{requireMobileUser:async()=>({context:{user:{id:'owner'},supabase:database}}),mobileJson:(_r,data)=>data}});
  const result=await subject.GET(new Request('https://example.test/api/mobile/v1/garage'));
  assert.equal(result.items.length,2);assert.equal(result.items[1].make,'RENAULT');assert.equal(result.items[1].model,'TRAFIC');assert.equal(result.items[1].variant,null);
 });

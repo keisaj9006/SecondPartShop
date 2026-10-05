@@ -6,29 +6,32 @@ import ts from "typescript";
 
 function actions({authenticated=true}={}){
  const writes=[],filters=[],revalidated=[];
- const query={select(){return this;},eq(key,value){filters.push([key,value]);return this;},then(resolve){return Promise.resolve({data:[]}).then(resolve);},insert(value){writes.push(value);return Promise.resolve({error:null});},delete(){writes.push("delete");return this;}};
- const exports={};
- const source=fs.readFileSync(new URL("../src/app/garage/actions.ts",import.meta.url),"utf8");
- vm.runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports,require(name){
+ const query={eq(key,value){filters.push([key,value]);return this;},then(resolve){return Promise.resolve({data:[]}).then(resolve);},delete(){writes.push("delete");return this;}};
+ const database={from:()=>query,rpc:async(name,args)=>{assert.equal(name,'save_garage_vehicle_v1');writes.push(args);return {data:[{garage_vehicle_id:'saved',outcome:'created',catalogue_variant_id:args.p_catalogue_variant_id}],error:null};}};
+ function load(path){const exports={};const source=fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');vm.runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports,Request,FormData,require(name){
+  if(name==='server-only')return {};
+  if(name==='next/headers')return {headers:async()=>new Headers()};
+  if(name==='@/lib/garage-save')return load('src/lib/garage-save.ts');
+  if(name==='@/lib/identifiers')return {isUuid:value=>/^[0-9a-f-]{36}$/.test(value)};
+  if(name==='@/lib/vehicle-lookup-operational')return {consumeVehicleLookupRateLimit:async()=>({status:'available',allowed:true})};
   if(name==="next/cache")return {revalidatePath:value=>revalidated.push(value)};
   if(name==="@/lib/auth")return {requireUser:async()=>{if(!authenticated)throw Error("Sign in required");return {id:"current-user"};}};
-  if(name==="@/lib/data/vehicle-catalogue")return {getCatalogueSelection:async()=>({fuelType:"PETROL",engineSizeSimple:1596})};
-  if(name==="@/lib/supabase/server")return {createSupabaseServerClient:async()=>({from:()=>query})};
+  if(name==="@/lib/data/vehicle-catalogue")return {getCatalogueSelection:async()=>({make:'FORD',modelFamily:'FOCUS',fuelType:"PETROL",engineSizeSimple:1596})};
+  if(name==="@/lib/supabase/server")return {createSupabaseServerClient:async()=>database};
   if(name==="@/lib/vehicle-registration")return {normalizeRegistration:value=>value.trim().toUpperCase().replace(/\s/g,""),isPlausibleUkRegistration:value=>/^[A-Z0-9]{2,8}$/.test(value)};
   throw Error(name);
- }});
- return {...exports,writes,filters,revalidated};
+ }});return exports;}
+ return {...load('src/app/garage/actions.ts'),writes,filters,revalidated};
 }
 
 test("Garage save uses authenticated owner and catalogue fields after explicit submission",async()=>{
  const subject=actions(),form=new FormData();
- for(const [key,value] of Object.entries({variantId:"variant-focus",year:"2012",registration:"ab12 cde",profile_id:"another-user",fuel:"PETROL",engine:"1596"}))form.set(key,value);
+ for(const [key,value] of Object.entries({variantId:"72000000-0000-4000-8000-000000000010",year:"2012",registration:"ab12 cde",profile_id:"another-user",fuel:"PETROL",engine:"1596"}))form.set(key,value);
  await subject.saveGarageVehicle(form);
  assert.equal(subject.writes.length,1);
- assert.equal(subject.writes[0].profile_id,"current-user");
- assert.equal(subject.writes[0].registration,"AB12CDE");
- assert.equal(subject.writes[0].engine_size_simple,1596);
- assert.ok(subject.filters.some(([key,value])=>key==="profile_id"&&value==="current-user"));
+ assert.ok(!('p_profile_id' in subject.writes[0]),'owner is derived inside the authenticated RPC');
+ assert.equal(subject.writes[0].p_registration,"AB12CDE");
+ assert.equal(subject.writes[0].p_engine,1596);
  assert.ok(subject.revalidated.includes("/garage"));
 });
 

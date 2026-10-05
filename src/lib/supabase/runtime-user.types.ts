@@ -54,6 +54,10 @@ type SupportRequestInternalNoteTable={
 };
 
 type RuntimeUserFunctions={
+ save_garage_vehicle_v1:{
+  Args:{p_operation:string;p_registration?:string|null;p_make?:string|null;p_model?:string|null;p_year?:number|null;p_fuel?:string|null;p_engine?:number|null;p_colour?:string|null;p_nickname?:string|null;p_catalogue_variant_id?:string|null;p_garage_vehicle_id?:string|null};
+  Returns:{garage_vehicle_id:string;outcome:string;catalogue_variant_id:string|null}[];
+ };
  get_own_seller_profile_private:{
   Args:never;
   Returns:{
@@ -87,16 +91,7 @@ type RuntimeUserFunctions={
  };
 };
 
-type ExistingGarage=Database["public"]["Tables"]["garage_vehicles"];
-type GarageIdentityTable={
- Row:Omit<ExistingGarage["Row"],"catalogue_variant_id">&{catalogue_variant_id:string|null;identity_make:string|null;identity_model:string|null};
- Insert:Omit<ExistingGarage["Insert"],"catalogue_variant_id">&{catalogue_variant_id?:string|null;identity_make?:string|null;identity_model?:string|null};
- Update:Omit<ExistingGarage["Update"],"catalogue_variant_id">&{catalogue_variant_id?:string|null;identity_make?:string|null;identity_model?:string|null};
- Relationships:ExistingGarage["Relationships"];
-};
-
-type RuntimeUserTables=Omit<Database["public"]["Tables"],"garage_vehicles">&{
- garage_vehicles:GarageIdentityTable;
+type RuntimeUserTables=Database["public"]["Tables"]&{
  support_request_messages:SupportRequestMessageTable;
  support_request_internal_notes:SupportRequestInternalNoteTable;
 };
