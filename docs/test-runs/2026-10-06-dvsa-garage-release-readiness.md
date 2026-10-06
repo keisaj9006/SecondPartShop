@@ -2,12 +2,12 @@
 
 Date: 2026-10-06
 Branch: `codex/dvsa-integration`
-Code/test head verified: `842847961d89205c63cdb41b51c8909c16c51176`  
+Code/test head verified: `c5edcd1b859e3e9905734b782cf453f63b1c934c`
 Pull request: [#10](https://github.com/keisaj9006/SecondPartShop/pull/10), targeting `rebuild-nextjs` (open; not merged)
 
 ## Changes integrated
 
-- Garage now supports bounded DVSA-backed identity-only records, normalized registration uniqueness, owner-scoped atomic save/enrichment, nullable catalogue profile and NULL-safe reads. Migration recovery is forward/corrective; it has not been applied to a hosted database.
+- Garage supports bounded DVSA-backed identity-only records, normalized registration uniqueness, owner-scoped atomic save/enrichment, nullable catalogue profiles and NULL-safe reads. The hosted Preview migration is applied; recovery remains forward/corrective and non-destructive.
 - Vehicle context transitions through one helper. A selected Garage vehicle wins over conflicting manual catalogue parameters; account-scoped state, stale URL normalization, Back/Forward and removal behavior are covered.
 - Successful DVSA identity results can be saved to Garage without forcing an exact derivative. Fit ON for identity-only vehicles fails closed; fit OFF browses with explicitly unverified labels.
 - Vehicle visuals use controlled local SVGs and deterministic body/colour resolution; Renault Trafic resolves to a representative van.
@@ -16,21 +16,22 @@ Pull request: [#10](https://github.com/keisaj9006/SecondPartShop/pull/10), targe
 
 ## Verification on the code/test head
 
-- `npm test`: 816 passed, 0 failed.
+- `npm test`: 817 passed, 0 failed.
 - `npm run lint`: 0 errors, 4 existing warnings in mobile shell and `test-mobile-buyer-orders.mjs`.
 - `npm run typecheck`: passed.
 - `npm run build`: passed.
 - `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities after a clean `npm ci` from the committed lockfile.
 - Full `npm audit --audit-level=high` still reports five high-severity developer-tool findings in the single `eslint-config-next@16.3.8` → `@next/eslint-plugin-next` → pinned `fast-glob@3.3.1` / `micromatch` / `braces@3.0.3` chain. The current Next lint package has no newer registry release, and `braces@3.0.4` is not available; npm's suggested `eslint-config-next@14.2.35` would be a major downgrade incompatible with this Next 16 app, so it was not applied. Track this upstream remediation before relying on untrusted patterns in development tooling.
 - Repository validators passed: notifications, mobile performance, launch baseline, monitoring, commerce E2E harness, checkout-expiry race, payout recovery, Android RC, public contact, account-deletion E2E baseline, production-origin, production-env inventory, beta feedback and seller-read policy. Launch baseline still reports the documented external launch prerequisites.
-- Exact-head GitHub QA run [37439387316](https://github.com/keisaj9006/SecondPartShop/actions/runs/37439387316): success on `842847961d89205c63cdb41b51c8909c16c51176`, including isolated PostgreSQL 17 Garage ownership/save serialization, stock concurrency, commerce/security validators and full CI checks.
-- Exact-head Android production-style AAB run [37439392450](https://github.com/keisaj9006/SecondPartShop/actions/runs/37439392450): success on the same SHA using an ephemeral CI signing key and CI Firebase placeholder. This artifact is a dry-run proof, not a Play-uploadable production AAB.
+- Exact-head GitHub QA run [37440469823](https://github.com/keisaj9006/SecondPartShop/actions/runs/37440469823): success on `c5edcd1b859e3e9905734b782cf453f63b1c934c`, including isolated PostgreSQL 17 Garage ownership/save serialization, stock concurrency, commerce/security validators and full CI checks.
+- Exact-head Android production-style AAB run [37440475612](https://github.com/keisaj9006/SecondPartShop/actions/runs/37440475612): success on the same SHA using an ephemeral CI signing key and CI Firebase placeholder. This artifact is a dry-run proof, not a Play-uploadable production AAB.
 - Independent code review found no actionable defects in the Garage, context, vehicle visual or checkout changes.
 
 ## Remaining release gates
 
-- The hosted Garage migration is still unapplied. If the target Supabase database also serves Production, stop until its scope/backup/rollout gate is explicitly confirmed; do not restore `NOT NULL` or delete identity-only rows.
-- Exact-head Preview deployment [842847961d89205c63cdb41b51c8909c16c51176](https://second-part-shop-l5owbljne-joannakwapis11-5369.vercel.app) is Ready. GitHub records the Preview deployment against this SHA; public GETs to `/`, `/garage` and `/account` returned HTTP 200, and `/` included the new identity-fit guidance with the old message absent. This is public route/render verification, not authenticated interaction testing.
+- Hosted Preview migration `20261006093220_garage_vehicle_identity` is applied to the owner-confirmed Preview-only Supabase project `etkupijfdznljimrfyct` (eu-west-2). Preflight: 205 migrations through `20260921133420`; Garage row count 0, registrations 0/null and 0/non-null, normalized collisions 0; previous variant constraint was NOT NULL. Postflight: this migration's exact version/name pair matches the hosted history; nullable variant, bounded identity columns, normalized owner-registration unique index and RPC behavior verified: anon EXECUTE denied, authenticated allowed, service_role EXECUTE remains effective; function runs SECURITY INVOKER; the four Garage RLS policies remain unchanged and Garage still has 0 rows. No row was deleted or profile downgraded. Do not restore `NOT NULL`, delete or merge identity-only rows, or deploy this schema to Production.
+- **Migration-ledger gate remains unresolved:** read-only comparison found 208 local files vs 206 hosted entries. The Garage migration pair matches exactly, but 162 shared migration names have different version numbers; 4 local names have no hosted-name match and 3 hosted names have no local-name match. The Supabase CLI is unavailable in this workspace, so no CLI dry-run was possible. Do not run `supabase db push` or apply any further DDL until the historical filename/version drift is reconciled and a safe dry-run shows no unexpected pending SQL. This ledger issue does not change the verified applied Garage schema, but it prevents claiming that the overall local/hosted migration ledgers are aligned.
+- A fresh exact-head post-migration Preview and authenticated smoke are required before owner QA. Prior Preview success for this branch predates the hosted migration and is not the release URL for manual testing. Deploying application code to the owner-confirmed Preview-only Vercel environment does not run database migrations; no Production deployment or environment change is authorized.
 - Browser QA remains: authenticated `SE66 PPO` lookup/save/reload/selection, unresolved fitment guidance, fit ON/OFF, duplicate, Search again/manual fallback; `MT71 JZG` with a representative grey van; responsive widths 320/390/768/1440 and short height; accessibility and no external image requests.
-- No physical Android device/Play test, real Stripe transaction, production signing, Production deployment, or hosted migration was performed as part of this checkpoint.
+- Hosted transactional QA passed identity-only save/read, normalized duplicate, exact-profile enrichment, no-downgrade retry and cross-owner denial; all test writes rolled back. Hosted duplicate race and identity-save→exact-enrichment overlap passed with independent sessions. Reverse exact-enrichment→identity-retry overlap was attempted once more but could not be confirmed from the hosted MCP run; record as `HOSTED REVERSE INTERLEAVING: NOT DETERMINISTICALLY REPRODUCIBLE`. Compensating evidence: identical owner/normalized-registration advisory-lock key, row lock and COALESCE/no-downgrade write; isolated PostgreSQL concurrency regression passes on this HEAD; opposite hosted overlap and hosted duplicate race passed. QA cleanup left 0 Garage rows. No physical Android device/Play test, real Stripe transaction, production signing, or Production deployment was performed.
 - Do not merge PR #10 until the owner’s authenticated Preview retest is recorded. PRs #12–15 are currently merged and were not modified by this task.

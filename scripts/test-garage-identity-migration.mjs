@@ -18,3 +18,6 @@ test('owner-normalized registration uniqueness fails on collisions and preserves
  assert.match(sql,/create unique index[\s\S]*profile_id[\s\S]*regexp_replace[\s\S]*where registration is not null/i);
  assert.match(sql,/forward[\s\S]*corrective/i);
 });
+test('hosted Garage migration filename matches the applied Supabase history version',()=>{
+ assert.equal(migration,'20261006093220_garage_vehicle_identity.sql');
+});

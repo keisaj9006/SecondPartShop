@@ -1,6 +1,6 @@
 # DVSA → Garage repair and representative vehicle previews
 
-Status: FINAL APPROVED by the owner on 5 October 2026 after the vehicle-context, exact-profile concurrency and migration recovery rules were added. Implementation and hosted migration have not started.
+Status: FINAL APPROVED by the owner on 5 October 2026. Implementation is on `codex/dvsa-integration`; the Preview-only hosted migration is applied and verified. See `docs/test-runs/2026-10-06-dvsa-garage-release-readiness.md` for operational evidence and remaining release gates.
 
 ## Outcome and scope
 
