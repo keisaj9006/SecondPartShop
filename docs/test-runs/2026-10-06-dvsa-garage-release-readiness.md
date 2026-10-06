@@ -1,7 +1,7 @@
 # DVSA Garage repair — integrated QA checkpoint
 
-Date: 2026-10-06  
-Branch: `codex/dvsa-integration`  
+Date: 2026-10-06
+Branch: `codex/dvsa-integration`
 Code/test head verified: `842847961d89205c63cdb41b51c8909c16c51176`  
 Pull request: [#10](https://github.com/keisaj9006/SecondPartShop/pull/10), targeting `rebuild-nextjs` (open; not merged)
 
@@ -33,4 +33,4 @@ Pull request: [#10](https://github.com/keisaj9006/SecondPartShop/pull/10), targe
 - Exact-head Preview deployment [842847961d89205c63cdb41b51c8909c16c51176](https://second-part-shop-l5owbljne-joannakwapis11-5369.vercel.app) is Ready. GitHub records the Preview deployment against this SHA; public GETs to `/`, `/garage` and `/account` returned HTTP 200, and `/` included the new identity-fit guidance with the old message absent. This is public route/render verification, not authenticated interaction testing.
 - Browser QA remains: authenticated `SE66 PPO` lookup/save/reload/selection, unresolved fitment guidance, fit ON/OFF, duplicate, Search again/manual fallback; `MT71 JZG` with a representative grey van; responsive widths 320/390/768/1440 and short height; accessibility and no external image requests.
 - No physical Android device/Play test, real Stripe transaction, production signing, Production deployment, or hosted migration was performed as part of this checkpoint.
-- Do not merge PR #10 until the owner’s authenticated Preview retest is recorded. Preserve PRs #12–15.
+- Do not merge PR #10 until the owner’s authenticated Preview retest is recorded. PRs #12–15 are currently merged and were not modified by this task.
