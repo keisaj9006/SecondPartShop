@@ -2,7 +2,7 @@
 
 import { useEffect,useRef } from "react";
 import { usePathname,useRouter,useSearchParams } from "next/navigation";
-import { clearStoredVehicleContext,readStoredVehicleContext,resolveVehicleContext,VEHICLE_CONTEXT_STORAGE_KEY,type StoredVehicleContext } from "@/lib/vehicle-context";
+import { clearStoredVehicleContext,readStoredVehicleContext,resolveVehicleContext,VEHICLE_CONTEXT_STORAGE_KEY,writeStoredVehicleContext } from "@/lib/vehicle-context";
 
 export function VehicleContextPersistence({viewerId,garageContextValid=true}:{viewerId:string|null;garageContextValid?:boolean}){
  const pathname=usePathname();
@@ -32,8 +32,7 @@ export function VehicleContextPersistence({viewerId,garageContextValid=true}:{vi
    return;
   }
   if(resolved.source==="url"&&resolved.selection.kind!=="none"&&resolved.selection.kind!=="invalid-garage"&&viewerId){
-   const envelope:StoredVehicleContext={viewerId,selection:resolved.selection};
-   try{window.localStorage.setItem(VEHICLE_CONTEXT_STORAGE_KEY,JSON.stringify(envelope));}catch{}
+   writeStoredVehicleContext(viewerId,resolved.selection);
   }
   if(resolved.source==="storage"){
    if(normalizedRef.current!==canonicalDestination){normalizedRef.current=canonicalDestination;router.replace(canonicalDestination,{scroll:false});}

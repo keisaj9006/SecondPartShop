@@ -10,6 +10,25 @@ export type VehicleContextSelection=
  |{kind:"invalid-garage"};
 
 export type StoredVehicleContext={viewerId:string;selection:Exclude<VehicleContextSelection,{kind:"none"|"invalid-garage"}>};
+export const EMPTY_VEHICLE_CONTEXT_SNAPSHOT="\u0000empty-vehicle-context";
+const vehicleContextListeners=new Set<()=>void>();
+
+const notifyVehicleContextChanged=()=>vehicleContextListeners.forEach(listener=>listener());
+
+export function subscribeVehicleContext(listener:()=>void):()=>void{
+ vehicleContextListeners.add(listener);
+ const onStorage=(event:StorageEvent)=>{if(event.key===VEHICLE_CONTEXT_STORAGE_KEY||event.key===null)listener();};
+ if(typeof window!=="undefined")window.addEventListener("storage",onStorage);
+ return ()=>{
+  vehicleContextListeners.delete(listener);
+  if(typeof window!=="undefined")window.removeEventListener("storage",onStorage);
+ };
+}
+
+export function getStoredVehicleContextSnapshot():string{
+ try{return window.localStorage.getItem(VEHICLE_CONTEXT_STORAGE_KEY)??EMPTY_VEHICLE_CONTEXT_SNAPSHOT;}
+ catch{return EMPTY_VEHICLE_CONTEXT_SNAPSHOT;}
+}
 
 export function setVehicleContext(params:URLSearchParams,selection:VehicleContextSelection):URLSearchParams{
  const next=new URLSearchParams(params);
@@ -113,8 +132,21 @@ export function resolveVehicleContext(params:URLSearchParams,options:{viewerId:s
 export function clearStoredVehicleContext(storage?:Pick<Storage,"removeItem">){
  try{
   const resolvedStorage=storage??(typeof window==="undefined"?undefined:window.localStorage);
-  resolvedStorage?.removeItem(VEHICLE_CONTEXT_STORAGE_KEY);
+  if(!resolvedStorage)return;
+  resolvedStorage.removeItem(VEHICLE_CONTEXT_STORAGE_KEY);
+  notifyVehicleContextChanged();
  }catch{}
+}
+
+export function writeStoredVehicleContext(viewerId:string,selection:StoredVehicleContext["selection"],storage?:Pick<Storage,"setItem">):boolean{
+ if(!viewerId)return false;
+ try{
+  const resolvedStorage=storage??(typeof window==="undefined"?undefined:window.localStorage);
+  if(!resolvedStorage)return false;
+  resolvedStorage.setItem(VEHICLE_CONTEXT_STORAGE_KEY,JSON.stringify({viewerId,selection} satisfies StoredVehicleContext));
+  notifyVehicleContextChanged();
+  return true;
+ }catch{return false;}
 }
 
 export function setVehicleContextFit(params:URLSearchParams,fitOnlyValue:boolean):URLSearchParams{
@@ -131,6 +163,7 @@ export function clearStoredGarageVehicleSelection(viewerId:string,garageVehicleI
   const stored=readStoredVehicleContext(resolvedStorage?.getItem(VEHICLE_CONTEXT_STORAGE_KEY)??null,viewerId);
   if(stored?.selection.kind!=="garage"||stored.selection.garageVehicleId!==garageVehicleId)return false;
   resolvedStorage?.removeItem(VEHICLE_CONTEXT_STORAGE_KEY);
+  notifyVehicleContextChanged();
   return Boolean(resolvedStorage);
  }catch{return false;}
 }
