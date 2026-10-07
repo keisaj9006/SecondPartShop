@@ -4,9 +4,11 @@
 
 - Branch: `codex/auth-hardening`
 - Stacked base: `codex/dvsa-integration` at `387fd8045d0a8a643b5fe393fa126e9f978eb192`
-- Auth-hardening baseline SHA before the Preview P1 regression: `ccb0f8af96b1a71949d4978a10b380512c920b91`. The P1 fix and final local gates were tested on commit `ed72cbb8e36ceadd126ea98c1d03ce0d396975f4`; this report update changes documentation only.
+- Auth-hardening baseline SHA before the Preview P1 regression: `ccb0f8af96b1a71949d4978a10b380512c920b91`. The P1 fix and final local gates were tested on code commit `bae100d97d1c0e3d50a53eeb4f2429aac94e5d5c`; the report-only follow-up does not change application code.
 - Pull request: [#16 — Auth hardening stacked on DVSA integration](https://github.com/keisaj9006/SecondPartShop/pull/16), open and unmerged; base is `codex/dvsa-integration`.
-- Vercel Preview alias: <https://second-part-shop-git-codex-auth-hardening-joannakwapis11-5369.vercel.app/>. The prior deployment is recorded below only as historical baseline; the P1 fix needs a new exact-head deployment and smoke check.
+- Vercel Preview: <https://second-part-shop-git-codex-auth-hardening-joannakwapis11-5369.vercel.app/>
+- Exact P1 code deployment: `CP4JnHXS8EGrT9zBpoMtUzuMeAjn`; GitHub Vercel status for code commit `bae100d` is **success — Ready**.
+- Cookie-free smoke checks against that deployment: Home `200`; `/account` `200` with Sign in and Create account; `/account?mode=signup` `200` with Create buyer account; `/api/mobile/v1/health` `200`, `backendReady: true`.
 - Preview Supabase scope: the owner previously confirmed the Vercel project `second-part-shop` Preview environment uses the pre-production Supabase project `secondpart` (`etkupijfdznljimrfyct`, `eu-west-2`). The public health response confirms backend configuration is present but intentionally does not reveal the project reference; this report relies on the owner-confirmed Vercel Preview environment inventory.
 
 ## Automated verification
@@ -26,8 +28,8 @@
 | Gate | Status | Evidence / remaining action |
 | --- | --- | --- |
 | Local automated Auth and integrated suite | PASS | Results above. |
-| Exact-head Vercel Preview | PENDING | Deploy the P1 fix HEAD and verify Home, anonymous Account, and health on its exact SHA. |
-| Clean-incognito anonymous Account | PENDING | Required before resuming new-user signup testing. |
+| Exact-head Vercel Preview | PASS | Exact code commit `bae100d` is Ready; cookie-free Home, Account, signup, and health smoke checks passed. |
+| Clean-incognito anonymous Account | PENDING — manual visual check | Cookie-free HTTP confirms anonymous SSR renders both auth actions. Browser automation was unavailable, so the visual incognito check remains for the owner before any fresh-user signup test. |
 | Preview backend configured | PASS | Health response reports `backendReady: true`. Project ref is based on the owner-confirmed Preview environment inventory above. |
 | Supabase Auth URL Configuration | BLOCKED — owner inspection required | Read the `secondpart` project's Site URL and Additional Redirect URLs; confirm the exact Preview routes below are allowed. No Production Supabase settings were changed. |
 | Fresh external mailbox E2E | BLOCKED — depends on URL gate and owner mailbox | Do not claim Auth E2E pass until a never-before-confirmed mailbox completes the fresh flow. |
