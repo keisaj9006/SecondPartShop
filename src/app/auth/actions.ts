@@ -26,7 +26,9 @@ export async function signIn(_previous:ActionState,formData:FormData):Promise<Ac
  const password=String(formData.get("password")??"");
  if(!email||!password)return {status:"error",message:"Enter your email and password."};
  const supabase=await createSupabaseServerClient();
- const {error}=await supabase.auth.signInWithPassword({email,password});
+ const response=await supabase.auth.signInWithPassword({email,password}).catch(()=>null);
+ if(!response)return {status:"error",message:authErrorMessage({},"signin")};
+ const {error}=response;
  if(error)return {status:"error",message:authErrorMessage(error,"signin")};
  revalidatePath("/","layout");
  redirect(safeInternalPath(formData.get("returnTo"),"/account"));
@@ -50,10 +52,12 @@ export async function signUp(_previous:ActionState,formData:FormData):Promise<Ac
  if(!termsAccepted)return {status:"error",message:"You need to accept the Terms of Use and Privacy Policy to create an account."};
  const supabase=await createSupabaseServerClient();
  const returnOrigin=await authReturnOrigin();
- const {data,error}=await supabase.auth.signUp({
+ const response=await supabase.auth.signUp({
   email,password,
   options:{emailRedirectTo:`${returnOrigin}/auth/confirm?next=${encodeURIComponent(returnTo)}`,data:{display_name:displayName,role,terms_accepted:"true",terms_version:CURRENT_MARKETPLACE_TERMS_VERSION}}
- });
+ }).catch(()=>null);
+ if(!response)return {status:"error",message:authErrorMessage({},"signup")};
+ const {data,error}=response;
  if(error&&isDuplicateSignupError(error))return {status:"success",message:"Check your email to confirm your account. If the message does not arrive, use the resend confirmation link below."};
  if(error)return {status:"error",message:authErrorMessage(error,"signup")};
  if(data.session){
@@ -69,7 +73,9 @@ export async function requestPasswordReset(_previous:ActionState,formData:FormDa
  if(!email.includes("@"))return {status:"error",message:"Enter a valid email address."};
  const supabase=await createSupabaseServerClient();
  const returnOrigin=await authReturnOrigin();
- const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:`${returnOrigin}/auth/confirm?next=${encodeURIComponent("/auth/reset-password")}`});
+ const response=await supabase.auth.resetPasswordForEmail(email,{redirectTo:`${returnOrigin}/auth/confirm?next=${encodeURIComponent("/auth/reset-password")}`}).catch(()=>null);
+ if(!response)return {status:"error",message:authErrorMessage({},"password-reset")};
+ const {error}=response;
  if(error)return {status:"error",message:authErrorMessage(error,"password-reset")};
  return {status:"success",message:"If an account exists for that email, you can use a password-reset email if it arrives. Check your inbox and spam folder."};
 }
@@ -81,7 +87,9 @@ export async function resendConfirmation(_previous:ActionState,formData:FormData
  const returnTo=safeInternalPath(formData.get("returnTo"),"/account");
  const supabase=await createSupabaseServerClient();
  const returnOrigin=await authReturnOrigin();
- const {error}=await supabase.auth.resend({type:"signup",email,options:{emailRedirectTo:`${returnOrigin}/auth/confirm?next=${encodeURIComponent(returnTo)}`}});
+ const response=await supabase.auth.resend({type:"signup",email,options:{emailRedirectTo:`${returnOrigin}/auth/confirm?next=${encodeURIComponent(returnTo)}`}}).catch(()=>null);
+ if(!response)return {status:"error",message:authErrorMessage({},"resend-confirmation")};
+ const {error}=response;
  if(error)return {status:"error",message:authErrorMessage(error,"resend-confirmation")};
  return {status:"success",message:"If this address is eligible for confirmation, a confirmation email request was accepted. Check your inbox and spam folder."};
 }
@@ -93,9 +101,13 @@ export async function updatePassword(_previous:ActionState,formData:FormData):Pr
  if(password.length<8)return {status:"error",message:"Use at least 8 characters for your new password."};
  if(password!==confirmPassword)return {status:"error",message:"The passwords do not match."};
  const supabase=await createSupabaseServerClient();
- const {data:{user}}=await supabase.auth.getUser();
+ const session=await supabase.auth.getUser().catch(()=>null);
+ if(!session)return {status:"error",message:authErrorMessage({},"update-password")};
+ const {data:{user}}=session;
  if(!user)return {status:"error",message:"This reset session has expired. Request a new password reset link."};
- const {error}=await supabase.auth.updateUser({password});
+ const response=await supabase.auth.updateUser({password}).catch(()=>null);
+ if(!response)return {status:"error",message:authErrorMessage({},"update-password")};
+ const {error}=response;
  if(error)return {status:"error",message:authErrorMessage(error,"update-password")};
  revalidatePath("/","layout");
  if(String(formData.get("mobileReturn")??"")==="1")redirect("/auth/mobile-complete?state=password-updated");
