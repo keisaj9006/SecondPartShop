@@ -1,13 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState,useState } from "react";
+import { useActionState,useEffect,useRef,useState } from "react";
 import { ShoppingBag,Store } from "lucide-react";
 import { signIn,signUp } from "@/app/auth/actions";
 import type { ActionState } from "@/lib/types";
 import { safeInternalPath } from "@/lib/navigation";
 
 const initial:ActionState={status:"idle"};
+
+function maskEmail(value:string){
+ const [local,...domain]=value.trim().split("@");
+ if(!local||domain.length===0)return "your email address";
+ return `${local.slice(0,1)}${"*".repeat(Math.max(3,local.length-1))}@${domain.join("@")}`;
+}
 
 export function AuthForm({
  defaultMode="signin",
@@ -24,14 +30,36 @@ export function AuthForm({
 }){
  const [mode,setMode]=useState(defaultMode);
  const [signupRole,setSignupRole]=useState<"buyer"|"seller">(defaultRole);
+ const [signupEmail,setSignupEmail]=useState("");
+ const [passwordMismatch,setPasswordMismatch]=useState(false);
  const [signInState,signInAction,signInPending]=useActionState(signIn,initial);
  const [signUpState,signUpAction,signUpPending]=useActionState(signUp,initial);
+ const signupSubmitting=useRef(false);
+ useEffect(()=>{
+  if(!signUpPending)signupSubmitting.current=false;
+ },[signUpPending,signUpState]);
  const state=mode==="signin"?signInState:signUpState;
  const action=mode==="signin"?signInAction:signUpAction;
  const pending=mode==="signin"?signInPending:signUpPending;
  const input="mt-2 w-full rounded-xl border border-black/15 px-4 py-3 outline-none focus:ring-2 focus:ring-[#173c31]";
  const safeReturnTo=returnTo===undefined?undefined:safeInternalPath(returnTo,"")||undefined;
  const verificationHref=safeReturnTo?`/auth/verify-email?returnTo=${encodeURIComponent(safeReturnTo)}`:"/auth/verify-email";
+ const signInHref=`/account?mode=signin&role=${signupRole}${safeReturnTo?`&returnTo=${encodeURIComponent(safeReturnTo)}`:""}`;
+ const handleSubmit=(event:React.FormEvent<HTMLFormElement>)=>{
+  if(mode!=="signup")return;
+  if(signUpPending||signupSubmitting.current){event.preventDefault();return;}
+  const inputValue=(name:string)=>String((event.currentTarget.elements.namedItem(name) as HTMLInputElement|null)?.value??"");
+  setSignupEmail(inputValue("email"));
+  const password=inputValue("password");
+  const confirmation=inputValue("confirmPassword");
+  if(password!==confirmation){
+   event.preventDefault();
+   setPasswordMismatch(true);
+   return;
+  }
+  setPasswordMismatch(false);
+  signupSubmitting.current=true;
+ };
 
  return <div className="w-full max-w-xl rounded-3xl border border-black/10 bg-white p-6 shadow-xl sm:p-8">
   <div className="grid grid-cols-2 rounded-xl bg-[#eef1eb] p-1">
@@ -48,6 +76,15 @@ export function AuthForm({
 
   {notice&&<p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm font-bold text-amber-900">{notice}</p>}
 
+  {mode==="signup"&&state.status==="success"?<section className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-6" aria-labelledby="signup-confirmation-title">
+   <h2 id="signup-confirmation-title" className="text-2xl font-black">Check your email</h2>
+   <p className="mt-3 text-sm leading-6">If <strong>{maskEmail(signupEmail)}</strong> can receive a confirmation message, follow its link to finish creating your account. Check your spam folder too.</p>
+   <p className="mt-2 text-sm leading-6">If no message arrives, you can request another confirmation email.</p>
+   <div className="mt-5 flex flex-wrap gap-4 text-sm font-black">
+    <Link href={signInHref} className="underline">Sign in to your account</Link>
+    <Link href={verificationHref} className="underline">Resend confirmation email</Link>
+   </div>
+  </section>:<>
   {mode==="signup"&&<div className="mt-6 grid gap-3 sm:grid-cols-2">
    <button
     type="button"
@@ -69,14 +106,18 @@ export function AuthForm({
    </button>
   </div>}
 
-  <form action={action} className="mt-6">
+  <form action={action} onSubmit={handleSubmit} className="mt-6">
    {safeReturnTo&&<input type="hidden" name="returnTo" value={safeReturnTo}/>}
    {mode==="signup"&&<>
     <input type="hidden" name="role" value={signupRole}/>
     <label className="block text-sm font-bold">Your name / contact name<input name="displayName" required minLength={2} className={input}/></label>
    </>}
-   <label className={`${mode==="signup"?"mt-4":""} block text-sm font-bold`}>Email address<input name="email" type="email" required autoComplete="email" className={input} placeholder="you@example.co.uk"/></label>
+   <label className={`${mode==="signup"?"mt-4":""} block text-sm font-bold`}>Email address<input name="email" type="email" required autoComplete="email" className={input} placeholder="you@example.co.uk" onChange={event=>setSignupEmail(event.target.value)}/></label>
    <label className="mt-4 block text-sm font-bold">Password<input name="password" type="password" required minLength={8} autoComplete={mode==="signin"?"current-password":"new-password"} className={input} placeholder="At least 8 characters"/></label>
+   {mode==="signup"&&<>
+    <label className="mt-4 block text-sm font-bold">Confirm password<input name="confirmPassword" type="password" required minLength={8} autoComplete="new-password" aria-invalid={passwordMismatch} aria-describedby={passwordMismatch?"signup-password-mismatch":undefined} className={input} placeholder="Enter your password again"/></label>
+    {passwordMismatch&&<p id="signup-password-mismatch" role="alert" className="mt-2 text-sm font-bold text-red-800">Your passwords do not match.</p>}
+   </>}
    {mode==="signup"&&<label className="mt-5 flex items-start gap-3 rounded-2xl border border-black/10 bg-[#f8f7f2] p-4 text-sm leading-6">
     <input name="termsAccepted" value="1" type="checkbox" required className="mt-1 h-4 w-4 shrink-0 accent-[#173c31]"/>
     <span>I agree to the <Link href="/terms" target="_blank" className="font-black underline">SecondPart Terms of Use</Link> and acknowledge the <Link href="/privacy" target="_blank" className="font-black underline">Privacy Policy</Link>. These rules apply to listings, photos, reviews and messages I submit.</span>
@@ -88,13 +129,13 @@ export function AuthForm({
    </div>}
 
    {state.message&&<p role="status" className={`mt-4 rounded-xl p-3 text-sm ${state.status==="error"?"bg-red-50 text-red-800":"bg-emerald-50 text-emerald-800"}`}>{state.message}</p>}
-   {mode==="signup"&&state.status==="success"&&<Link href={verificationHref} className="mt-3 inline-block text-sm font-black underline">Resend confirmation email</Link>}
 
    <button disabled={pending||!configured} className="mt-6 w-full rounded-xl bg-[#173c31] py-3.5 font-black text-white disabled:opacity-50">
     {pending?"Please wait…":mode==="signin"?"Sign in":signupRole==="seller"?"Create seller account":"Create buyer account"}
    </button>
    {!configured&&<p className="mt-3 text-sm text-amber-800">Configure Supabase environment variables to activate authentication.</p>}
   </form>
+  </>}
 
   {mode==="signin"&&<p className="mt-5 text-center text-xs text-[#63706a]">Already have a buyer account? You can enable selling later without creating another login.</p>}
  </div>;
