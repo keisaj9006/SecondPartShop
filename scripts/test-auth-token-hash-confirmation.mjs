@@ -45,7 +45,8 @@ function loadAuthActions(requestOrigin=null){
   "@/lib/supabase/env":{isSupabaseConfigured:()=>true},
   "@/lib/navigation":moduleFrom("src/lib/navigation.ts"),
   "@/lib/policy-versions":{CURRENT_MARKETPLACE_TERMS_VERSION:"2026-09-01"},
-  "@/lib/auth-email-origin":moduleFrom("src/lib/auth-email-origin.ts")
+  "@/lib/auth-email-origin":moduleFrom("src/lib/auth-email-origin.ts"),
+  "@/lib/auth-error-messages":moduleFrom("src/lib/auth-error-messages.ts")
  });
  return {actions,calls};
 }
@@ -53,6 +54,7 @@ function loadAuthActions(requestOrigin=null){
 const signupValues={
  email:"buyer@example.test",
  password:"password123",
+ confirmPassword:"password123",
  displayName:"Test Buyer",
  role:"buyer",
  termsAccepted:"1"
@@ -98,10 +100,13 @@ test("token-hash confirmation verifies OTP and redirects only to a safe internal
  const target="/saved?view=parts#latest";
  const response=await GET(new Request(`https://secondpart.test/auth/confirm?token_hash=abc123&type=email&next=${encodeURIComponent(target)}`));
  assert.deepEqual(JSON.parse(JSON.stringify(calls[0])),{token_hash:"abc123",type:"email"});
- assert.equal(String(response.url),`https://secondpart.test${target}`);
+ assert.equal(String(response.url),`https://secondpart.test/auth/confirmation-status?state=confirmed&returnTo=${encodeURIComponent(target)}`);
 
  const unsafe=await GET(new Request("https://secondpart.test/auth/confirm?token_hash=def456&type=email&next=https%3A%2F%2Fattacker.example%2Fsteal"));
- assert.equal(String(unsafe.url),"https://secondpart.test/account");
+ assert.equal(String(unsafe.url),"https://secondpart.test/auth/confirmation-status?state=confirmed&returnTo=%2Faccount");
+
+ const recovery=await GET(new Request("https://secondpart.test/auth/confirm?token_hash=reset&type=recovery&next=%2Faccount"));
+ assert.equal(String(recovery.url),"https://secondpart.test/auth/reset-password");
 });
 
 test("token-hash confirmation preserves recovery and signup failure UX",async()=>{
@@ -120,18 +125,20 @@ test("token-hash confirmation preserves recovery and signup failure UX",async()=
  const target="/parts/used-alternator?cv=variant#fitment";
  const signup=await GET(new Request(`https://secondpart.test/auth/confirm?token_hash=expired&type=email&next=${encodeURIComponent(target)}`));
  const signupUrl=new URL(String(signup.url));
- assert.equal(signupUrl.pathname,"/account");
- assert.equal(signupUrl.searchParams.get("error"),"confirmation-failed");
+ assert.equal(signupUrl.pathname,"/auth/confirmation-status");
+ assert.equal(signupUrl.searchParams.get("state"),"invalid");
  assert.equal(signupUrl.searchParams.get("returnTo"),target);
+ assert.equal(String(signup.url).includes("expired"),false);
 });
 
-function confirmationHarness({exchangeError=null,otpError=null}={}){
+function confirmationHarness({exchangeError=null,otpError=null,confirmedUser=null,throwCode=false,throwOtp=false}={}){
  const calls={code:[],otp:[]};
  const {GET}=moduleFrom('src/app/auth/confirm/route.ts',{
   'next/server':{NextResponse:{redirect:url=>({url})}},
   '@/lib/supabase/server':{createSupabaseServerClient:async()=>({auth:{
-   exchangeCodeForSession:async code=>{calls.code.push(code);return {error:exchangeError};},
-   verifyOtp:async payload=>{calls.otp.push(payload);return {error:otpError};}
+   exchangeCodeForSession:async code=>{calls.code.push(code);if(throwCode)throw new Error('private exchange diagnostic');return {error:exchangeError};},
+   verifyOtp:async payload=>{calls.otp.push(payload);if(throwOtp)throw new Error('private otp diagnostic');return {error:otpError};},
+   getUser:async()=>({data:{user:confirmedUser},error:null})
   }})},
   '@/lib/navigation':moduleFrom('src/lib/navigation.ts')
  });
@@ -141,7 +148,7 @@ function confirmationHarness({exchangeError=null,otpError=null}={}){
 test('default-template PKCE confirmation exchanges code and preserves safe return context',async()=>{
  const h=confirmationHarness();
  const response=await h.GET(new Request('https://secondpart.test/auth/confirm?code=qa-code&next=%2Fsaved'));
- assert.equal(String(response.url),'https://secondpart.test/saved');
+ assert.equal(String(response.url),'https://secondpart.test/auth/confirmation-status?state=confirmed&returnTo=%2Fsaved');
  assert.deepEqual(h.calls.code,['qa-code']); assert.equal(h.calls.otp.length,0);
 });
 
@@ -157,7 +164,8 @@ test('PKCE failure keeps signup context and never exposes provider details',asyn
  const response=await h.GET(new Request('https://secondpart.test/auth/confirm?code=bad&next=%2Fsaved'));
  const url=new URL(response.url);
  assert.equal(h.calls.code.length,1);
- assert.equal(url.searchParams.get('error'),'confirmation-failed');
+ assert.equal(url.pathname,'/auth/confirmation-status');
+ assert.equal(url.searchParams.get('state'),'invalid');
  assert.equal(url.searchParams.get('returnTo'),'/saved');
  assert.equal(String(url).includes('private'),false);
 });
@@ -172,7 +180,7 @@ test('PKCE recovery failure uses expired-link UX',async()=>{
 test('PKCE confirmation rejects external return destinations',async()=>{
  const h=confirmationHarness();
  const response=await h.GET(new Request('https://secondpart.test/auth/confirm?code=qa-code&next=https%3A%2F%2Fevil.test'));
- assert.equal(String(response.url),'https://secondpart.test/account');
+ assert.equal(String(response.url),'https://secondpart.test/auth/confirmation-status?state=confirmed&returnTo=%2Faccount');
  assert.equal(h.calls.code.length,1);
 });
 
@@ -180,7 +188,86 @@ test('provider error prevents either credential exchange',async()=>{
  const h=confirmationHarness();
  const response=await h.GET(new Request('https://secondpart.test/auth/confirm?error=access_denied&token_hash=qa&type=email&code=qa-code'));
  assert.equal(h.calls.otp.length,0); assert.equal(h.calls.code.length,0);
- assert.equal(String(response.url),'https://secondpart.test/account?error=confirmation-failed');
+ assert.equal(String(response.url),'https://secondpart.test/auth/confirmation-status?state=invalid&returnTo=%2Faccount');
+});
+
+test('a failed signup confirmation is already-confirmed only when Auth confirms the current session',async()=>{
+ const confirmed=confirmationHarness({otpError:{message:'token already used'},confirmedUser:{email_confirmed_at:'2026-10-07T10:00:00Z'}});
+ const confirmedResponse=await confirmed.GET(new Request('https://secondpart.test/auth/confirm?token_hash=used&type=email&next=%2Fparts'));
+ assert.equal(String(confirmedResponse.url),'https://secondpart.test/auth/confirmation-status?state=already-confirmed&returnTo=%2Fparts');
+
+ const unconfirmed=confirmationHarness({otpError:{message:'token already used'}});
+ const invalidResponse=await unconfirmed.GET(new Request('https://secondpart.test/auth/confirm?token_hash=used&type=email&next=%2Fparts'));
+ assert.equal(String(invalidResponse.url),'https://secondpart.test/auth/confirmation-status?state=invalid&returnTo=%2Fparts');
+ assert.equal(String(invalidResponse.url).includes('used'),false);
+});
+
+test('confirmation status return paths cannot smuggle token or provider fields',async()=>{
+ const h=confirmationHarness();
+ const nested="/parts?view=front&token_hash=secret&error_description=private#fitment";
+ const response=await h.GET(new Request(`https://secondpart.test/auth/confirm?code=qa-code&next=${encodeURIComponent(nested)}`));
+ assert.equal(String(response.url),'https://secondpart.test/auth/confirmation-status?state=confirmed&returnTo=%2Fparts%3Fview%3Dfront%23fitment');
+});
+
+test('provider network exceptions become bounded invalid state without exposing diagnostics',async()=>{
+ const otp=confirmationHarness({throwOtp:true});
+ const otpResponse=await otp.GET(new Request('https://secondpart.test/auth/confirm?token_hash=secret&type=email&next=%2Fsaved'));
+ assert.equal(String(otpResponse.url),'https://secondpart.test/auth/confirmation-status?state=invalid&returnTo=%2Fsaved');
+ assert.equal(String(otpResponse.url).includes('secret'),false);
+
+ const pkce=confirmationHarness({throwCode:true});
+ const codeResponse=await pkce.GET(new Request('https://secondpart.test/auth/confirm?code=secret&next=%2Fsaved'));
+ assert.equal(String(codeResponse.url),'https://secondpart.test/auth/confirmation-status?state=invalid&returnTo=%2Fsaved');
+ assert.equal(String(codeResponse.url).includes('secret'),false);
+});
+
+function callbackHarness({exchangeError=null,confirmedUser=null,authError=null,throwCode=false}={}){
+ const calls={code:[]};
+ const {GET}=moduleFrom('src/app/auth/callback/route.ts',{
+  'next/server':{NextResponse:{redirect:url=>({url})}},
+  '@/lib/supabase/server':{createSupabaseServerClient:async()=>({auth:{
+   exchangeCodeForSession:async code=>{calls.code.push(code);if(throwCode)throw new Error('private callback network error');return {error:exchangeError};},
+   getUser:async()=>({data:{user:confirmedUser},error:authError})
+  }})},
+  '@/lib/navigation':moduleFrom('src/lib/navigation.ts')
+ });
+ return {GET,calls};
+}
+
+test('PKCE callback gives explicit confirmed, invalid and already-confirmed states',async()=>{
+ const confirmed=callbackHarness();
+ const success=await confirmed.GET(new Request('https://secondpart.test/auth/callback?code=valid&next=%2Fsaved'));
+ assert.equal(String(success.url),'https://secondpart.test/auth/confirmation-status?state=confirmed&returnTo=%2Fsaved');
+ assert.deepEqual(confirmed.calls.code,['valid']);
+
+ const invalid=callbackHarness({exchangeError:{message:'private callback diagnostic'}});
+ const failed=await invalid.GET(new Request('https://secondpart.test/auth/callback?code=expired&next=%2Fsaved'));
+ assert.equal(String(failed.url),'https://secondpart.test/auth/confirmation-status?state=invalid&returnTo=%2Fsaved');
+ assert.equal(String(failed.url).includes('private'),false);
+
+ const already=callbackHarness({exchangeError:{message:'used'},confirmedUser:{email_confirmed_at:'2026-10-07T10:00:00Z'}});
+ const consumed=await already.GET(new Request('https://secondpart.test/auth/callback?code=used&next=%2Fsaved'));
+ assert.equal(String(consumed.url),'https://secondpart.test/auth/confirmation-status?state=already-confirmed&returnTo=%2Fsaved');
+
+ const authFailure=callbackHarness({exchangeError:{message:'used'},confirmedUser:{email_confirmed_at:'2026-10-07T10:00:00Z'},authError:{message:'session unavailable'}});
+ const unverified=await authFailure.GET(new Request('https://secondpart.test/auth/callback?code=used&next=%2Fsaved'));
+ assert.equal(String(unverified.url),'https://secondpart.test/auth/confirmation-status?state=invalid&returnTo=%2Fsaved');
+});
+
+test('PKCE callback preserves recovery failure guidance and recovery success',async()=>{
+ const failed=callbackHarness({exchangeError:{message:'expired recovery'}});
+ const failure=await failed.GET(new Request('https://secondpart.test/auth/callback?code=expired&next=%2Fauth%2Freset-password'));
+ assert.equal(String(failure.url),'https://secondpart.test/auth/forgot-password?error=expired-link');
+ const success=callbackHarness();
+ const reset=await success.GET(new Request('https://secondpart.test/auth/callback?code=valid&next=%2Fauth%2Freset-password'));
+ assert.equal(String(reset.url),'https://secondpart.test/auth/reset-password');
+});
+
+test('PKCE network exception is a bounded invalid state without credentials in the redirect',async()=>{
+ const failed=callbackHarness({throwCode:true});
+ const response=await failed.GET(new Request('https://secondpart.test/auth/callback?code=secret&next=%2Fauth%2Fmobile-complete%3Fstate%3Dconfirmed'));
+ assert.equal(String(response.url),'https://secondpart.test/auth/confirmation-status?state=invalid&returnTo=%2Fauth%2Fmobile-complete%3Fstate%3Dconfirmed');
+ assert.equal(String(response.url).includes('secret'),false);
 });
 
 test('token-hash inputs never fall back to a supplied PKCE code',async()=>{
