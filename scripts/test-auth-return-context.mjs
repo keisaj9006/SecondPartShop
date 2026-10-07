@@ -241,7 +241,7 @@ test("verification page and resend form round-trip safe returnTo with a no-conte
  assert.equal(findNode(plainPage,node=>node.type===ResendVerificationForm).props.returnTo,undefined);
 
  const {ResendVerificationForm:Form}=moduleFrom("src/components/resend-verification-form.tsx",{
-  "next/link":"a",react:{useActionState:()=>[{status:"idle"},()=>{},false]},"@/app/auth/actions":{resendConfirmation(){}},
+  "next/link":"a",react:{useActionState:()=>[{status:"idle"},()=>{},false],useState:value=>[value,()=>{}],useRef:()=>({current:false}),useEffect(){}},"@/app/auth/actions":{resendConfirmation(){}},
   "@/lib/navigation":moduleFrom("src/lib/navigation.ts")
  });
  const contextual=Form({returnTo:target});
@@ -260,6 +260,5 @@ test("confirmation callback failure retains safe retry context without changing 
  });
  const request=new Request("https://secondpart.test/auth/callback?code=bad&next=%2Fsaved%3Fview%3Dparts%23latest");
  const response=await GET(request);
- assert.match(String(response.url),/\/account\?error=confirmation-failed/);
- assert.match(String(response.url),/returnTo=%2Fsaved%3Fview%3Dparts%23latest/);
+ assert.match(String(response.url),/\/auth\/confirmation-status\?state=invalid&returnTo=%2Fsaved%3Fview%3Dparts%23latest/);
 });
