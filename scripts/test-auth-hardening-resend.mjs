@@ -214,6 +214,7 @@ test("cooldown remains active after provider failure and while the action is pen
 });
 
 test("confirmation status page accepts only bounded states and safe internal returnTo",async()=>{
+ let authState={kind:"unauthenticated"};
  const confirmationModule=moduleFrom("src/components/auth-confirmation-status.tsx",{
   "next/link":"a",
   "lucide-react":new Proxy({},{get:()=>()=>null}),
@@ -222,12 +223,26 @@ test("confirmation status page accepts only bounded states and safe internal ret
  const ConfirmationStatus=confirmationModule.AuthConfirmationStatus;
  const {default:Page}=moduleFrom("src/app/auth/confirmation-status/page.tsx",{
   "@/components/header":{Header:()=>null},
-  "@/components/auth-confirmation-status":confirmationModule
+  "@/components/auth-confirmation-status":confirmationModule,
+  "@/lib/auth":{getCurrentUserState:async()=>authState}
  });
  const confirmed=await Page({searchParams:Promise.resolve({state:"confirmed",returnTo:"/parts/used-alternator?cv=variant#fitment"})});
  const confirmedProps=findNode(confirmed,node=>node.type===ConfirmationStatus).props;
- assert.equal(confirmedProps.state,"confirmed");
+ assert.equal(confirmedProps.state,"invalid","a public query parameter cannot assert successful confirmation");
  assert.equal(confirmedProps.returnTo,"/parts/used-alternator?cv=variant#fitment");
+
+ authState={kind:"authenticated",user:{email_confirmed_at:"2026-10-07T12:00:00Z"}};
+ const verified=await Page({searchParams:Promise.resolve({state:"confirmed",returnTo:"/parts/used-alternator?cv=variant#fitment"})});
+ assert.equal(findNode(verified,node=>node.type===ConfirmationStatus).props.state,"confirmed");
+ const alreadyConfirmed=await Page({searchParams:Promise.resolve({state:"already-confirmed"})});
+ assert.equal(findNode(alreadyConfirmed,node=>node.type===ConfirmationStatus).props.state,"already-confirmed");
+
+ authState={kind:"authenticated",user:{email_confirmed_at:null}};
+ const unverified=await Page({searchParams:Promise.resolve({state:"confirmed"})});
+ assert.equal(findNode(unverified,node=>node.type===ConfirmationStatus).props.state,"invalid");
+ authState={kind:"error"};
+ const authError=await Page({searchParams:Promise.resolve({state:"confirmed"})});
+ assert.equal(findNode(authError,node=>node.type===ConfirmationStatus).props.state,"invalid");
 
  const invalid=await Page({searchParams:Promise.resolve({state:"provider-error",returnTo:"https://attacker.example"})});
  const invalidProps=findNode(invalid,node=>node.type===ConfirmationStatus).props;
