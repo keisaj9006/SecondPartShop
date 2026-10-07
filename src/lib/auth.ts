@@ -1,8 +1,9 @@
 import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { isAuthSessionMissingError } from "@supabase/supabase-js";
 import { isSupabaseConfigured } from "./supabase/env";
-import { createSupabaseServerClient } from "./supabase/server";
+import { createSupabaseServerClient, hasSupabaseAuthCookie } from "./supabase/server";
 import type { User } from "@supabase/supabase-js";
 import type { Profile } from "./types";
 
@@ -19,10 +20,15 @@ export type CurrentProfileState=
 export const getCurrentUserState=cache(async():Promise<CurrentUserState>=>{
  if(!isSupabaseConfigured())return {kind:"error"};
  try{
+  const hasAuthCookie=await hasSupabaseAuthCookie();
   const supabase=await createSupabaseServerClient();
   const {data,error}=await supabase.auth.getUser();
-  if(error)return {kind:"error"};
-  return data.user?{kind:"authenticated",user:data.user}:{kind:"unauthenticated"};
+  if(error){
+   if(isAuthSessionMissingError(error)&&!hasAuthCookie)return {kind:"unauthenticated"};
+   return {kind:"error"};
+  }
+  if(data.user)return {kind:"authenticated",user:data.user};
+  return hasAuthCookie?{kind:"error"}:{kind:"unauthenticated"};
  }catch{
   return {kind:"error"};
  }

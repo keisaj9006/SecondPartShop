@@ -4,33 +4,30 @@
 
 - Branch: `codex/auth-hardening`
 - Stacked base: `codex/dvsa-integration` at `387fd8045d0a8a643b5fe393fa126e9f978eb192`
-- Auth/application code SHA tested: `ccb0f8af96b1a71949d4978a10b380512c920b91`
+- Auth-hardening baseline SHA before the Preview P1 regression: `ccb0f8af96b1a71949d4978a10b380512c920b91`. The P1 fix and final local gates were tested on commit `ed72cbb8e36ceadd126ea98c1d03ce0d396975f4`; this report update changes documentation only.
 - Pull request: [#16 — Auth hardening stacked on DVSA integration](https://github.com/keisaj9006/SecondPartShop/pull/16), open and unmerged; base is `codex/dvsa-integration`.
-- Vercel Preview: <https://second-part-shop-git-codex-auth-hardening-joannakwapis11-5369.vercel.app/>
-- Vercel deployment ID: `5o4es5ausnaZPXEDnxoYfQiYCe29`
-- GitHub Vercel deployment status for the tested SHA: **success — Deployment has completed**. The Vercel Preview Comments check also completed successfully. No GitHub Actions workflow runs were returned for this SHA.
-- Smoke checks on the Preview: Home `200`; `/api/mobile/v1/health` `200`, `backendReady: true`.
+- Vercel Preview alias: <https://second-part-shop-git-codex-auth-hardening-joannakwapis11-5369.vercel.app/>. The prior deployment is recorded below only as historical baseline; the P1 fix needs a new exact-head deployment and smoke check.
 - Preview Supabase scope: the owner previously confirmed the Vercel project `second-part-shop` Preview environment uses the pre-production Supabase project `secondpart` (`etkupijfdznljimrfyct`, `eu-west-2`). The public health response confirms backend configuration is present but intentionally does not reveal the project reference; this report relies on the owner-confirmed Vercel Preview environment inventory.
 
 ## Automated verification
 
+- A real Preview QA report found a P1: the installed Supabase SSR client returns `AuthSessionMissingError` for a normal request with no auth cookie, while `getCurrentUserState()` treated every Auth error as an outage. The fix maps only the SDK's `isAuthSessionMissingError` result with no Supabase auth cookie to `unauthenticated`; the same error when an auth cookie is present, arbitrary Auth errors, and thrown network errors stay `error`.
+- Regression coverage uses the installed `@supabase/ssr` client to reproduce the no-session response and a malformed persisted-session cookie. It runs the malformed cookie through the real proxy source and confirms that, even after the proxy clears it, a proxy-set request marker preserves fail-closed handling. It also verifies storage-cookie and chunk naming, anonymous `/account` sign-in and `/account?mode=signup`, outage recovery, and fail-closed seller/admin guards.
+- Final focused Auth/Account tests: **16/16 passed**. Final full `npm test`: **882/882 passed**, 0 failed; `npm run lint`: passed with 0 errors and 4 existing warnings; `npm run typecheck`: passed; `npm run build`: passed.
 - Focused Auth callback, confirmation status, and return-context scripts after the review fix: **37/37 passed**. Independent review also reran callback, confirmation-status, return-context, and account-state tests: **43/43 passed**.
-- Full `npm test`: **876/876 passed**, 0 failed.
-- `npm run lint`: passed with 0 errors and 4 pre-existing warnings in mobile shell/test files.
-- `npm run typecheck`: passed.
-- `npm run build`: passed on Next.js 16.3.8.
 - `npm run validate:dependencies`: passed; production dependency audit found 0 vulnerabilities after updating `sharp` from 0.35.4 to 0.35.5.
 - `npm run validate:launch-baseline`: passed all code-level checks. It continues to report manual/external Play, legal, Production domain/Firebase, physical-device, FCM, checkout, camera, and deep-link launch inputs.
 - `npm run validate:android-rc`: passed; 44 required physical/manual scenarios remain documented.
 - `git diff --check`: passed.
-- Independent code review found one P2 issue: confirmation success was selected directly from `state=confirmed`. The page now requires `getCurrentUserState()` to return an authenticated user with `email_confirmed_at`; unauthenticated, unconfirmed, and Auth-read-error states render invalid-link recovery. Regression coverage passed, and the reviewer confirmed the fix with no remaining actionable findings.
+- Independent review of the P1 fix found no remaining actionable issue. The review specifically verified proxy marker spoof resistance, malformed cookie clearing, cookie-name anchoring, and Account behavior. An additional regression proves an anonymous request with a forged marker still reaches the unauthenticated sign-in path.
 
 ## Gate status
 
 | Gate | Status | Evidence / remaining action |
 | --- | --- | --- |
 | Local automated Auth and integrated suite | PASS | Results above. |
-| Exact-head Vercel Preview | PASS | Vercel reports deployment complete for SHA `ccb0f8a`; Home and health return 200. |
+| Exact-head Vercel Preview | PENDING | Deploy the P1 fix HEAD and verify Home, anonymous Account, and health on its exact SHA. |
+| Clean-incognito anonymous Account | PENDING | Required before resuming new-user signup testing. |
 | Preview backend configured | PASS | Health response reports `backendReady: true`. Project ref is based on the owner-confirmed Preview environment inventory above. |
 | Supabase Auth URL Configuration | BLOCKED — owner inspection required | Read the `secondpart` project's Site URL and Additional Redirect URLs; confirm the exact Preview routes below are allowed. No Production Supabase settings were changed. |
 | Fresh external mailbox E2E | BLOCKED — depends on URL gate and owner mailbox | Do not claim Auth E2E pass until a never-before-confirmed mailbox completes the fresh flow. |

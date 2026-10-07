@@ -20,7 +20,7 @@ async function page(authState,profileState,params={}){
  const api=load('src/app/account/page.tsx',{
   'react/jsx-runtime':runtime,'react':React,'next/link':link,
   '@/components/header':{Header:()=>React.createElement('header',null,'Header')},
-  '@/components/auth-form':{AuthForm:()=>React.createElement('div',null,'Sign-in form')},
+  '@/components/auth-form':{AuthForm:({defaultMode})=>React.createElement('div',null,defaultMode==='signup'?'Create account form':'Sign-in form')},
   '@/components/account-profile-unavailable':{AccountProfileUnavailable:Unavailable},
   '@/components/account-dashboard-content':{AccountDashboardContent:()=>React.createElement('div',null,'Dashboard'),AccountDashboardFallback:()=>null,AccountTrustSummary:()=>null},
   '@/lib/auth':{
@@ -33,6 +33,9 @@ async function page(authState,profileState,params={}){
 }
 test('only a verified unauthenticated state renders the sign-in form without reading a profile',async()=>{
  const result=await page({kind:'unauthenticated'},null);assert.match(result.html,/Sign-in form/);assert.equal(result.profileReads,0);
+});
+test('anonymous signup URL renders the signup form without reading a profile',async()=>{
+ const result=await page({kind:'unauthenticated'},null,{mode:'signup'});assert.match(result.html,/Create account form/);assert.doesNotMatch(result.html,/Sign-in form/);assert.equal(result.profileReads,0);
 });
 test('Auth-read failure shows recoverable status without signed-out form or protected dashboard',async()=>{
  const result=await page({kind:'error'},null);assert.match(result.html,/Recovery auth-error/);assert.doesNotMatch(result.html,/Sign-in form|Dashboard|Test Member/);assert.equal(result.profileReads,0);
