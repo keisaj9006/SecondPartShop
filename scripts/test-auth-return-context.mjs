@@ -83,7 +83,8 @@ function loadAuthActions({session=null}={}){
   "@/lib/supabase/env":{isSupabaseConfigured:()=>true},
   "@/lib/navigation":moduleFrom("src/lib/navigation.ts"),
   "@/lib/policy-versions":{CURRENT_MARKETPLACE_TERMS_VERSION:"2026-09-01"},
-  "@/lib/auth-email-origin":moduleFrom("src/lib/auth-email-origin.ts")
+  "@/lib/auth-email-origin":moduleFrom("src/lib/auth-email-origin.ts"),
+  "@/lib/auth-error-messages":moduleFrom("src/lib/auth-error-messages.ts")
  });
  return {actions,calls};
 }
@@ -113,6 +114,7 @@ test("Preview auth email origin falls back to the deployment URL when the branch
 const signupValues={
  email:"buyer@example.test",
  password:"password123",
+ confirmPassword:"password123",
  displayName:"Test Buyer",
  role:"buyer",
  termsAccepted:"1"
@@ -183,7 +185,7 @@ test("resendConfirmation preserves safe context and falls back without context",
 function loadAuthForm(){
  return moduleFrom("src/components/auth-form.tsx",{
   "next/link":"a",
-  react:{useState:value=>[value,()=>{}],useActionState:()=>[{status:"idle"},()=>{},false]},
+  react:{useState:value=>[value,()=>{}],useRef:()=>({current:false}),useEffect(){},useActionState:()=>[{status:"idle"},()=>{},false]},
   "lucide-react":new Proxy({},{get:()=>()=>null}),
   "@/app/auth/actions":{signIn(){},signUp(){}},
   "@/lib/navigation":moduleFrom("src/lib/navigation.ts")
@@ -201,7 +203,7 @@ test("AuthForm preserves absence for seller signup and carries safe explicit int
  const resend=findNode(contextual,node=>textContent(node)==="Resend confirmation"&&typeof node.props?.href==="string");
  assert.equal(resend.props.href,`/auth/verify-email?returnTo=${encodeURIComponent(target)}`);
 
- const signupSuccessRuntime={useState:value=>[value,()=>{}],useActionState:action=>[action.name==="signUp"?{status:"success",message:"sent"}:{status:"idle"},()=>{},false]};
+ const signupSuccessRuntime={useState:value=>[value,()=>{}],useRef:()=>({current:false}),useEffect(){},useActionState:action=>[action.name==="signUp"?{status:"success",message:"sent"}:{status:"idle"},()=>{},false]};
  const {AuthForm:SuccessfulAuthForm}=moduleFrom("src/components/auth-form.tsx",{
   "next/link":"a",react:signupSuccessRuntime,"lucide-react":new Proxy({},{get:()=>()=>null}),
   "@/app/auth/actions":{signIn(){},signUp(){}},"@/lib/navigation":moduleFrom("src/lib/navigation.ts")
@@ -216,7 +218,8 @@ test("AccountPage preserves missing returnTo and explicit account intent at the 
  const {default:AccountPage}=moduleFrom("src/app/account/page.tsx",{
   "next/link":"a",react:{Suspense:"Suspense"},"@/components/header":{Header:()=>null},"@/components/auth-form":{AuthForm},
   "@/components/account-dashboard-content":{AccountDashboardContent:()=>null,AccountDashboardFallback:()=>null,AccountTrustSummary:()=>null},
-  "@/lib/auth":{getCurrentUser:async()=>null,getCurrentProfile:async()=>null},"@/lib/supabase/env":{isSupabaseConfigured:()=>true},
+  "@/components/account-profile-unavailable":{AccountProfileUnavailable:()=>null},
+  "@/lib/auth":{getCurrentUserState:async()=>({kind:"unauthenticated"}),getCurrentProfileState:async()=>({kind:"missing"})},"@/lib/supabase/env":{isSupabaseConfigured:()=>true},
   "@/lib/navigation":moduleFrom("src/lib/navigation.ts")
  });
  const plain=await AccountPage({searchParams:Promise.resolve({mode:"signup",role:"seller"})});
