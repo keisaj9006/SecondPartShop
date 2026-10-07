@@ -32,6 +32,7 @@ export function AuthForm({
  const [signupRole,setSignupRole]=useState<"buyer"|"seller">(defaultRole);
  const [signupEmail,setSignupEmail]=useState("");
  const [passwordMismatch,setPasswordMismatch]=useState(false);
+ const [submittedSignup,setSubmittedSignup]=useState<{email:string;role:"buyer"|"seller"}|null>(null);
  const [signInState,signInAction,signInPending]=useActionState(signIn,initial);
  const [signUpState,signUpAction,signUpPending]=useActionState(signUp,initial);
  const signupSubmitting=useRef(false);
@@ -44,12 +45,14 @@ export function AuthForm({
  const input="mt-2 w-full rounded-xl border border-black/15 px-4 py-3 outline-none focus:ring-2 focus:ring-[#173c31]";
  const safeReturnTo=returnTo===undefined?undefined:safeInternalPath(returnTo,"")||undefined;
  const verificationHref=safeReturnTo?`/auth/verify-email?returnTo=${encodeURIComponent(safeReturnTo)}`:"/auth/verify-email";
- const signInHref=`/account?mode=signin&role=${signupRole}${safeReturnTo?`&returnTo=${encodeURIComponent(safeReturnTo)}`:""}`;
+ const confirmationRole=submittedSignup?.role??signupRole;
+ const confirmationEmail=submittedSignup?.email??signupEmail;
+ const signInHref=`/account?mode=signin&role=${confirmationRole}${safeReturnTo?`&returnTo=${encodeURIComponent(safeReturnTo)}`:""}`;
  const handleSubmit=(event:React.FormEvent<HTMLFormElement>)=>{
   if(mode!=="signup")return;
   if(signUpPending||signupSubmitting.current){event.preventDefault();return;}
   const inputValue=(name:string)=>String((event.currentTarget.elements.namedItem(name) as HTMLInputElement|null)?.value??"");
-  setSignupEmail(inputValue("email"));
+  const submittedEmail=inputValue("email");
   const password=inputValue("password");
   const confirmation=inputValue("confirmPassword");
   if(password!==confirmation){
@@ -58,6 +61,8 @@ export function AuthForm({
    return;
   }
   setPasswordMismatch(false);
+  setSubmittedSignup({email:submittedEmail,role:signupRole});
+  setSignupEmail(submittedEmail);
   signupSubmitting.current=true;
  };
 
@@ -78,7 +83,7 @@ export function AuthForm({
 
   {mode==="signup"&&state.status==="success"?<section className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-6" aria-labelledby="signup-confirmation-title">
    <h2 id="signup-confirmation-title" className="text-2xl font-black">Check your email</h2>
-   <p className="mt-3 text-sm leading-6">If <strong>{maskEmail(signupEmail)}</strong> can receive a confirmation message, follow its link to finish creating your account. Check your spam folder too.</p>
+   <p className="mt-3 text-sm leading-6">If <strong>{maskEmail(confirmationEmail)}</strong> can receive a confirmation message, follow its link to finish creating your account. Check your spam folder too.</p>
    <p className="mt-2 text-sm leading-6">If no message arrives, you can request another confirmation email.</p>
    <div className="mt-5 flex flex-wrap gap-4 text-sm font-black">
     <Link href={signInHref} className="underline">Sign in to your account</Link>

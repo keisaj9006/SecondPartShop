@@ -60,6 +60,7 @@ function loadAuthForm({signupState={status:"idle"},signinState={status:"idle"},p
  const state=[];
  const refs=[];
  let currentSignupState=signupState;
+ let currentPending=pending;
  let stateIndex=0;
  let refIndex=0;
  const useState=initial=>{
@@ -75,7 +76,7 @@ function loadAuthForm({signupState={status:"idle"},signinState={status:"idle"},p
  const useActionState=(action)=>[
   action.name==="signUp"?currentSignupState:signinState,
   ()=>{},
-  pending
+  currentPending
  ];
  function signIn(){}
  function signUp(){}
@@ -89,6 +90,7 @@ function loadAuthForm({signupState={status:"idle"},signinState={status:"idle"},p
  return {
   AuthForm,
   setSignupState:value=>{currentSignupState=value;},
+  setPending:value=>{currentPending=value;},
   render:props=>{stateIndex=0;refIndex=0;return AuthForm(props);}
  };
 }
@@ -98,7 +100,9 @@ function submitEvent(password,confirmPassword){
  return {
   event:{
    preventDefault(){prevented=true;},
-   currentTarget:{elements:{namedItem(name){return {value:name==="password"?password:confirmPassword};}}}
+   currentTarget:{elements:{namedItem(name){
+    return {value:{email:"buyer@example.test",password,confirmPassword,"role":"buyer"}[name]};
+   }}}
   },
   wasPrevented:()=>prevented
  };
@@ -165,4 +169,29 @@ test("confirmation state preserves safe sign-in and resend context",()=>{
  assert.equal(textContent(resend),"Resend confirmation email");
  assert.equal(signin.props.href,`/account?mode=signin&role=seller&returnTo=${encodeURIComponent(target)}`);
  assert.equal(resend.props.href,`/auth/verify-email?returnTo=${encodeURIComponent(target)}`);
+});
+
+test("confirmation state uses the submitted email and role when fields change while pending",()=>{
+ const harness=loadAuthForm();
+ const props={defaultMode:"signup",defaultRole:"buyer",returnTo:"/saved"};
+ const initial=harness.render(props);
+ const form=findNode(initial,node=>node.type==="form");
+ const submission=submitEvent("correct-horse-battery","correct-horse-battery");
+ form.props.onSubmit(submission.event);
+ assert.equal(submission.wasPrevented(),false);
+
+ harness.setPending(true);
+ const pending=harness.render(props);
+ const sellerChoice=findNode(pending,node=>node.type==="button"&&textContent(node).includes("I want to sell parts"));
+ sellerChoice.props.onClick();
+ const email=findNode(pending,node=>node.type==="input"&&node.props.name==="email");
+ email.props.onChange({target:{value:"edited@example.test"}});
+
+ harness.setPending(false);
+ harness.setSignupState({status:"success",message:"Check your email."});
+ const success=harness.render(props);
+ assert.match(textContent(success),/b\*+@example\.test/);
+ assert.equal(textContent(success).includes("edited@example.test"),false);
+ const signin=findNode(success,node=>node.props?.href==="/account?mode=signin&role=buyer&returnTo=%2Fsaved");
+ assert.equal(textContent(signin),"Sign in to your account");
 });
