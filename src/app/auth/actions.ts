@@ -10,6 +10,12 @@ import { CURRENT_MARKETPLACE_TERMS_VERSION } from "@/lib/policy-versions";
 import { resolveAuthEmailOrigin } from "@/lib/auth-email-origin";
 import { authErrorMessage,isDuplicateSignupError } from "@/lib/auth-error-messages";
 
+const clearPreviousPushBinding=async()=>{
+ if(!/(?:^|;\s*)secondpart_push_device=/.test((await headers()).get("cookie")??""))return true;
+ const {detachHostedPushDevice}=await import("@/lib/push/hosted-device");
+ return detachHostedPushDevice();
+};
+
 const siteUrl=()=>String(process.env.NEXT_PUBLIC_SITE_URL??"http://localhost:3000").replace(/\/$/,"");
 const authReturnOrigin=async()=>resolveAuthEmailOrigin({
  requestOrigin:(await headers()).get("origin"),
@@ -25,6 +31,7 @@ export async function signIn(_previous:ActionState,formData:FormData):Promise<Ac
  const email=emailValue(formData);
  const password=String(formData.get("password")??"");
  if(!email||!password)return {status:"error",message:"Enter your email and password."};
+ if(!await clearPreviousPushBinding())return {status:"error",message:"Could not clear notifications on this device. Check your connection and try again."};
  const supabase=await createSupabaseServerClient();
  const response=await supabase.auth.signInWithPassword({email,password}).catch(()=>null);
  if(!response)return {status:"error",message:authErrorMessage({},"signin")};
@@ -50,6 +57,7 @@ export async function signUp(_previous:ActionState,formData:FormData):Promise<Ac
  if(password.length<8)return {status:"error",message:"Use at least 8 characters for your password."};
  if(!confirmPassword||password!==confirmPassword)return {status:"error",message:"The passwords do not match. Confirm your password and try again."};
  if(!termsAccepted)return {status:"error",message:"You need to accept the Terms of Use and Privacy Policy to create an account."};
+ if(!await clearPreviousPushBinding())return {status:"error",message:"Could not clear notifications on this device. Check your connection and try again."};
  const supabase=await createSupabaseServerClient();
  const returnOrigin=await authReturnOrigin();
  const response=await supabase.auth.signUp({
@@ -115,7 +123,11 @@ export async function updatePassword(_previous:ActionState,formData:FormData):Pr
 }
 
 export async function signOut(){
- if(isSupabaseConfigured()){const supabase=await createSupabaseServerClient();await supabase.auth.signOut();}
+ if(isSupabaseConfigured()){
+  const {detachHostedPushDevice}=await import("@/lib/push/hosted-device");
+  if(!await detachHostedPushDevice())redirect("/account?error=push-detach-failed");
+  const supabase=await createSupabaseServerClient();await supabase.auth.signOut();
+ }
  revalidatePath("/","layout");
  redirect("/");
 }
