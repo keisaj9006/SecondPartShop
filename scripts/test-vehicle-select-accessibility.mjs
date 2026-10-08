@@ -12,6 +12,12 @@ const jsxRuntime={
  jsxs:(type,props,key)=>({type,props:props??{},key:key??null})
 };
 
+function vehicleContext(){
+ const source=fs.readFileSync(path.join(root,"src/lib/vehicle-context.ts"),"utf8");
+ const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+ const exports={};vm.runInNewContext(compiled,{exports,URLSearchParams,URL});return exports;
+}
+
 function moduleFrom(relativePath,react,globals={}){
  const source=fs.readFileSync(path.join(root,relativePath),"utf8");
  const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
@@ -21,10 +27,12 @@ function moduleFrom(relativePath,react,globals={}){
   require(name){
    if(name==="react/jsx-runtime")return jsxRuntime;
    if(name==="react")return react;
+   if(name==="next/link")return "a";
    if(name==="next/navigation")return {useRouter:()=>({push(){}})};
    if(name==="lucide-react")return new Proxy({},{get:()=>()=>null});
    if(name==="@/components/vehicle-visual")return {VehicleVisual:()=>null};
-   if(name==="@/lib/vehicle-context")return {clearStoredVehicleContext(){}};
+   if(name==="@/lib/vehicle-context")return vehicleContext();
+   if(name==="@/app/garage/actions")return {saveGarageVehicle:async()=>({ok:false,code:"unused",message:"unused",retryable:false})};
    throw new Error(`Unexpected dependency ${name}`);
   },
   URL,URLSearchParams,AbortController,console,window:{setTimeout,clearTimeout},document:globals.document??{},fetch:async()=>({ok:true,json:async()=>({items:[]})})

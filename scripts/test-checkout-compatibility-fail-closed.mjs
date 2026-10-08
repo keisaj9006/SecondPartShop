@@ -88,6 +88,9 @@ function webHarness(){
    if(name==="@/lib/data/compatibility")return {
     async getPartCompatibility(){throw new Error("compatibility backend unavailable");}
    };
+   if(name==="@/lib/checkout-vehicle")return {
+    async resolveOwnedGarageVehicleForCheckout(){throw new Error("unexpected Garage vehicle lookup");}
+   };
    if(name==="@/lib/seller-payment-sync")return {
     async syncSellerPaymentAccount(){return {active:true,status:"active"};}
    };
@@ -176,6 +179,9 @@ function mobileHarness(){
    };
    if(name==="@/lib/data/compatibility")return {
     async getPartCompatibility(){throw new Error("compatibility backend unavailable");}
+   };
+   if(name==="@/lib/checkout-vehicle")return {
+    async resolveOwnedGarageVehicleForCheckout(){throw new Error("unexpected Garage vehicle lookup");}
    };
    if(name==="@/lib/seller-payment-sync")return {
     async syncSellerPaymentAccount(){return {active:true,status:"active"};}

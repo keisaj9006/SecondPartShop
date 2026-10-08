@@ -106,11 +106,13 @@ test("Home route exports the route-specific canonical and Open Graph metadata",(
  const dependencies={
   "next/server":{after(){}},"@/components/header":{Header:()=>null},"@/components/marketplace-home":{MarketplaceHome:()=>null},
   "@/lib/data/marketplace":{getCategories(){},getMarketplacePage(){},getSavedPartIdsForParts(){},getVehicleById(){}},
-  "@/lib/data/garage":{getGarageVehicleMatch(){},getGarageVehiclesPage(){}},"@/lib/data/buyer-account":{getRecentlyViewedListings(){}},
+  "@/lib/data/compatibility":{compatibilityInfo:level=>({level})},
+  "@/lib/data/garage":{getGarageVehicleById(){},getGarageVehicleMatch(){},getGarageVehiclesPage(){}},"@/lib/data/buyer-account":{getRecentlyViewedListings(){}},
   "@/lib/data/vehicle-catalogue":{getCatalogueSelection(){}},"@/lib/auth":{getCurrentUser(){}},
   "@/lib/vehicle-registration":{normalizeRegistration:value=>value},"@/lib/postcode":{normalizePostcode:value=>value},
   "@/lib/identifiers":{isUuid:()=>false},"@/lib/analytics/search":{recordMarketplaceSearch(){}},
-  "@/lib/metadata":{buildHomeMetadata:()=>metadata.buildHomeMetadata({vercelEnv:"production",siteUrl:"https://secondpart.co.uk"})}
+  "@/lib/metadata":{buildHomeMetadata:()=>metadata.buildHomeMetadata({vercelEnv:"production",siteUrl:"https://secondpart.co.uk"})},
+  "@/lib/vehicle-context":moduleFrom("src/lib/vehicle-context.ts")
  };
  const home=moduleFrom("src/app/page.tsx",dependencies);
  assert.equal(home.metadata.alternates.canonical,"https://secondpart.co.uk/");
@@ -238,10 +240,12 @@ test("product metadata and page share the same cached route loader",async()=>{
   "@/components/part-passport":{PartPassport:component},"@/components/save-button":{SaveButton:component},
   "@/components/recently-viewed-tracker":{RecentlyViewedTracker:component},"@/lib/auth":{getCurrentUser:async()=>null},
   "@/lib/data/compatibility":{getPartCompatibility:async()=>null},"@/lib/data/checkout":{isSellerCheckoutReady:async()=>false},
+  "@/lib/data/garage":{getGarageVehicleById:async()=>null},
   "@/lib/data/marketplace":{getSavedPartIdsForParts:async()=>[],getVehicleById:async()=>null},
   "@/lib/data/public-metadata":{getPublicListingBySlug},"@/lib/data/vehicle-catalogue":{getCatalogueSelection:async()=>null},
   "@/lib/data/reputation":{getPublicMemberProfileById:async()=>null},"@/lib/data/part-passport":{getPartPassportEvidence:async()=>null},
   "@/lib/metadata":metadata,"@/lib/listing-trust":{conditionLabel:value=>value},"@/lib/identifiers":{isUuid:()=>false},
+  "@/lib/vehicle-context":moduleFrom("src/lib/vehicle-context.ts"),
   "@/lib/stripe-payments":{isStripeCheckoutConfigured:()=>false},"@/lib/marketplace-policy":{isMarketplaceUserBlocked:async()=>false},
   "@/lib/seller-geo":{getSellerDistanceFromPostcode:async()=>null}
  });

@@ -26,7 +26,9 @@ function moduleFrom(relativePath,dependencies={},globals={}){
   require(name){
    if(name==="react/jsx-runtime")return jsxRuntime;
    if(name==="lucide-react")return icons;
+   if(name==="next/link")return "a";
    if(name in dependencies)return dependencies[name];
+   if(name==="@/app/garage/actions")return {saveGarageVehicle:async()=>({ok:false,code:"unused",message:"unused",retryable:false})};
    throw new Error(`Unexpected dependency ${name} in ${relativePath}`);
   },
   URL,URLSearchParams,Request,Response,AbortController,console,...globals
@@ -183,23 +185,54 @@ test("header category selection resets both pagination keys and keeps unrelated 
  assert.equal(pushes[0][0],"/?q=alternator&min=10&cv=11111111-1111-4111-8111-111111111111&category=cat-b#marketplace");
 });
 
-test("fit toggle resets both pagination keys and renders checkbox, icon and copy from one visual state",()=>{
+test("fit toggle canonicalizes conflicting vehicle contexts for both ON and OFF transitions",()=>{
  const pushes=[];
- const runner=hookRunner({router:{push:(...args)=>pushes.push(args)},searchParams:"q=alternator&cv=11111111-1111-4111-8111-111111111111&cy=2020&page=4&cursor=old"});
+ const garage="11111111-1111-4111-8111-111111111111";
+ const runner=hookRunner({router:{push:(...args)=>pushes.push(args)},searchParams:`q=alternator&gv=${garage}&cv=22222222-2222-4222-8222-222222222222&cy=2020&cf=petrol&ce=1984&vehicle=legacy&page=4&cursor=old`});
  const {VehicleCompatibilityToggle}=moduleFrom("src/components/vehicle-compatibility-toggle.tsx",{
-  react:runner.react,"next/navigation":runner.navigation,"@/lib/marketplace-navigation":marketplaceNavigation
+  react:runner.react,"next/navigation":runner.navigation,"@/lib/marketplace-navigation":marketplaceNavigation,
+  "@/lib/vehicle-context":loadVehicleContext(runner.window)
  });
  let tree=runner.render(VehicleCompatibilityToggle,{vehicleLabel:"Audi A3",checked:false});
  findNode(tree,node=>node.type==="input").props.onChange({target:{checked:true}});
- assert.equal(pushes[0][0],"/?q=alternator&cv=11111111-1111-4111-8111-111111111111&cy=2020&fit=1#marketplace");
-
+ assert.equal(pushes[0][0],`/?q=alternator&gv=${garage}&fit=1#marketplace`);
  runner.setPending(false);
- tree=runner.render(VehicleCompatibilityToggle,{vehicleLabel:"Audi A3",checked:false});
- assert.equal(findNode(tree,node=>node.type==="input").props.checked,false);
- assert.match(textContent(tree),/Showing the full marketplace/);
- assert.doesNotMatch(textContent(tree),/Only confirmed or same-family matches/);
+ runner.setSearchParams(`q=alternator&gv=${garage}&fit=1`);
+ tree=runner.render(VehicleCompatibilityToggle,{vehicleLabel:"Audi A3",checked:true});
+ findNode(tree,node=>node.type==="input").props.onChange({target:{checked:false}});
+ assert.equal(pushes[1][0],`/?q=alternator&gv=${garage}&fit=0#marketplace`);
 });
 
+test("Garage deletion clears persisted selection only after success and only for the matching viewer and Garage ID",async()=>{
+ const selected="11111111-1111-4111-8111-111111111111";
+ const other="22222222-2222-4222-8222-222222222222";
+ const entries=new Map([["secondpart.web.vehicle-context.v1",JSON.stringify({viewerId:"viewer-a",selection:{kind:"garage",garageVehicleId:selected,fitOnly:true}})]]);
+ const storage={getItem:key=>entries.get(key)??null,setItem:(key,value)=>entries.set(key,value),removeItem:key=>entries.delete(key)};
+ let result={ok:true};const submitted=[];
+ const api=moduleFrom("src/components/garage-vehicle-remove-form.tsx",{
+  react:{useState:initial=>[initial,()=>{}]},
+  "@/app/garage/actions":{removeGarageVehicle:async data=>{submitted.push(data);return result;}},
+  "@/lib/vehicle-context":loadVehicleContext({localStorage:storage})
+ });
+ const invoke=async garageVehicleId=>{
+  const tree=api.GarageVehicleRemoveForm({garageVehicleId,viewerId:"viewer-a",label:"Remove vehicle"});
+  const form=findNode(tree,node=>node.type==="form");
+  await form.props.action({id:garageVehicleId});
+ };
+ await invoke(other);
+ assert.equal(entries.has("secondpart.web.vehicle-context.v1"),true,"deleting a different row preserves selection");
+ await invoke(selected);
+ assert.equal(entries.has("secondpart.web.vehicle-context.v1"),false,"deleting the selected row clears its saved context");
+ assert.equal(submitted.length,2,"both deletes remain routed through the server action");
+ entries.set("secondpart.web.vehicle-context.v1",JSON.stringify({viewerId:"viewer-a",selection:{kind:"garage",garageVehicleId:selected,fitOnly:true}}));
+ result={ok:false};
+ await invoke(selected);
+ assert.equal(entries.has("secondpart.web.vehicle-context.v1"),true,"failed deletion preserves selection");
+ entries.set("secondpart.web.vehicle-context.v1",JSON.stringify({viewerId:"viewer-b",selection:{kind:"garage",garageVehicleId:selected,fitOnly:true}}));
+ result={ok:true};
+ await invoke(selected);
+ assert.equal(entries.has("secondpart.web.vehicle-context.v1"),true,"another viewer's stored selection is never cleared");
+});
 test("part-code and postcode searches reset both pagination keys",async()=>{
  const scannerPushes=[];
  const scannerRunner=hookRunner({router:{push:value=>scannerPushes.push(value)},searchParams:"q=alternator&category=cat-a&min=10&page=4&cursor=old"});
@@ -308,12 +341,98 @@ test("clear then reload does not restore vehicle context and addVehicle mode nev
   const runner=hookRunner({router:{replace:value=>replacements.push(value)},searchParams,windowOverrides:{localStorage:storage}});
   const {VehicleContextPersistence}=moduleFrom("src/components/vehicle-context-persistence.tsx",{
    react:runner.react,"next/navigation":runner.navigation,
-   "@/lib/vehicle-context":{VEHICLE_CONTEXT_STORAGE_KEY:"secondpart.web.vehicle-context.v1",VEHICLE_CONTEXT_PARAMS:["cv","cy","cf","ce","vr","vc","fit"]}
+   "@/lib/vehicle-context":loadVehicleContext(runner.window)
   },{window:runner.window});
-  runner.render(VehicleContextPersistence,{});
+  runner.render(VehicleContextPersistence,{viewerId:"viewer-a",garageContextValid:true});
   await runner.flushEffects();
  }
  assert.deepEqual(replacements,[]);
+});
+
+test("vehicle persistence stores only a viewer-scoped Garage ID and rejects a previous viewer's context",async()=>{
+ const GARAGE="11111111-1111-4111-8111-111111111111";
+ const entries=new Map();
+ const storage={getItem:key=>entries.get(key)??null,setItem:(key,value)=>entries.set(key,value),removeItem:key=>entries.delete(key)};
+ const writer=hookRunner({router:{replace(){}},searchParams:`gv=${GARAGE}&fit=1`,windowOverrides:{localStorage:storage}});
+ const {VehicleContextPersistence}=moduleFrom("src/components/vehicle-context-persistence.tsx",{
+  react:writer.react,"next/navigation":writer.navigation,"@/lib/vehicle-context":loadVehicleContext(writer.window)
+ },{window:writer.window});
+ writer.render(VehicleContextPersistence,{viewerId:"viewer-a",garageContextValid:true});
+ await writer.flushEffects();
+ assert.deepEqual(JSON.parse(entries.get("secondpart.web.vehicle-context.v1")),{viewerId:"viewer-a",selection:{kind:"garage",garageVehicleId:GARAGE,fitOnly:true}});
+
+ const replacements=[];
+ const reader=hookRunner({router:{replace:value=>replacements.push(value)},searchParams:"q=brake",windowOverrides:{localStorage:storage}});
+ const readerModule=moduleFrom("src/components/vehicle-context-persistence.tsx",{
+  react:reader.react,"next/navigation":reader.navigation,"@/lib/vehicle-context":loadVehicleContext(reader.window)
+ },{window:reader.window});
+ reader.render(readerModule.VehicleContextPersistence,{viewerId:"viewer-b",garageContextValid:true});
+ await reader.flushEffects();
+ assert.equal(entries.has("secondpart.web.vehicle-context.v1"),false);
+ assert.deepEqual(replacements,[]);
+});
+
+test("URL normalization can repeat after canonical landing and Back restores the same stale URL",async()=>{
+ const garage="11111111-1111-4111-8111-111111111111";
+ const stale=`q=brake&gv=${garage}&cv=22222222-2222-4222-8222-222222222222&cy=2020&cf=petrol&ce=1984&fit=0`;
+ const canonical=`/?q=brake&gv=${garage}&fit=0#marketplace`;
+ const replacements=[];
+ const runner=hookRunner({router:{replace:value=>replacements.push(value)},searchParams:stale});
+ const api=moduleFrom("src/components/vehicle-context-persistence.tsx",{
+  react:runner.react,"next/navigation":runner.navigation,"@/lib/vehicle-context":loadVehicleContext(runner.window)
+ },{window:runner.window});
+ runner.render(api.VehicleContextPersistence,{viewerId:"viewer-a",garageContextValid:true});
+ await runner.flushEffects();
+ assert.deepEqual(replacements,[canonical]);
+ runner.setSearchParams(`q=brake&gv=${garage}&fit=0`);
+ runner.render(api.VehicleContextPersistence,{viewerId:"viewer-a",garageContextValid:true});
+ await runner.flushEffects();
+ assert.deepEqual(replacements,[canonical],"the canonical landing should not cause a redundant replace");
+ runner.setSearchParams(stale);
+ runner.render(api.VehicleContextPersistence,{viewerId:"viewer-a",garageContextValid:true});
+ await runner.flushEffects();
+ assert.deepEqual(replacements,[canonical,canonical],"Back to the same stale URL should normalize again");
+});
+test("same-viewer Garage state restores through canonical gv; add mode suppresses it without erasing the saved selection",async()=>{
+ const GARAGE="11111111-1111-4111-8111-111111111111";
+ const entries=new Map([["secondpart.web.vehicle-context.v1",JSON.stringify({viewerId:"viewer-a",selection:{kind:"garage",garageVehicleId:GARAGE,fitOnly:false}})]]);
+ const storage={getItem:key=>entries.get(key)??null,setItem:(key,value)=>entries.set(key,value),removeItem:key=>entries.delete(key)};
+ const replacements=[];
+ const runner=hookRunner({router:{replace:value=>replacements.push(value)},searchParams:"q=brake",windowOverrides:{localStorage:storage}});
+ const api=moduleFrom("src/components/vehicle-context-persistence.tsx",{
+  react:runner.react,"next/navigation":runner.navigation,"@/lib/vehicle-context":loadVehicleContext(runner.window)
+ },{window:runner.window});
+ runner.render(api.VehicleContextPersistence,{viewerId:"viewer-a",garageContextValid:true});
+ await runner.flushEffects();
+ assert.equal(replacements[0],`/?q=brake&gv=${GARAGE}&fit=0#marketplace`);
+
+ const addMode=hookRunner({router:{replace:value=>replacements.push(value)},searchParams:"addVehicle=1",windowOverrides:{localStorage:storage}});
+ const addApi=moduleFrom("src/components/vehicle-context-persistence.tsx",{
+  react:addMode.react,"next/navigation":addMode.navigation,"@/lib/vehicle-context":loadVehicleContext(addMode.window)
+ },{window:addMode.window});
+ addMode.render(addApi.VehicleContextPersistence,{viewerId:"viewer-a",garageContextValid:true});
+ await addMode.flushEffects();
+ assert.equal(replacements.length,1);
+ assert.equal(entries.has("secondpart.web.vehicle-context.v1"),true);
+});
+
+test("Home Garage links select an identity-only Garage row without converting it to catalogue context",()=>{
+ const ProductCard=function ProductCard(){return null;};
+ const dependencies={
+  "next/link":"a","@/app/garage/actions":{saveGarageVehicleForm(){}},
+  "./product-card":{ProductCard},"./vehicle-selector":{VehicleSelector:()=>null},"./vehicle-visual":{VehicleVisual:()=>null},
+  "./marketplace-filters":{MarketplaceFiltersPanel:()=>null},"./marketplace-search":{MarketplaceSearch:()=>null},"./part-request-card":{PartRequestCard:()=>null},
+  "./postcode-distance-filter":{PostcodeDistanceFilter:()=>null},"./offer-group-card":{OfferGroupCard:()=>null},"@/lib/offer-groups":{groupListingsForOffers:()=>[]},
+  "./save-search-control":{SaveSearchControl:()=>null},"./vehicle-compatibility-toggle":{VehicleCompatibilityToggle:()=>null},"./vehicle-context-persistence":{VehicleContextPersistence:()=>null},"@/lib/vehicle-context":loadVehicleContext()
+ };
+ const api=moduleFrom("src/components/marketplace-home.tsx",dependencies);
+ const garage={id:"11111111-1111-4111-8111-111111111111",catalogueVariantId:null,year:2018,fuelType:null,engineSizeSimple:null,registration:"AB12CDE",colour:"grey",nickname:null,make:"Ford",model:"Transit",modelFamily:"Transit",variant:null,createdAt:"2026-01-01"};
+ const tree=api.MarketplaceHome({listings:[],categories:[],vehicles:[],garageVehicles:[garage],recentlyViewed:[],signedIn:true,viewerId:"viewer-a",filters:{...filters,query:"alternator"},selectedCatalogue:null,savedIds:[],error:null,configured:true,pagination:{offset:0,limit:24,returned:0,total:0,hasMore:false,mode:"offset",nextCursor:null},currentPage:1,activeGarageVehicleId:garage.id});
+ const link=findNode(tree,node=>String(node.props?.href).includes("gv="));
+ assert.equal(link.props.href,`/?q=alternator&category=cat-a&condition=used&sort=price_asc&min=10&max=200&pc=EH25+9BE&collection=1&gv=${garage.id}&fit=1#marketplace`);
+ assert.equal(link.props.href.includes("cv="),false);
+ const search=findNode(tree,node=>node.props?.filters&&node.props?.activeVehicleLabel!==undefined);
+ assert.equal(search.props.activeVehicleLabel,"AB12CDE · Ford Transit 2018");
 });
 
 test("marketplace cards retain page and cursor context and selector identity includes fuel and engine",()=>{
@@ -327,7 +446,8 @@ test("marketplace cards retain page and cursor context and selector identity inc
   "./postcode-distance-filter":{PostcodeDistanceFilter:()=>null},"./offer-group-card":{OfferGroupCard:()=>null},
   "@/lib/offer-groups":{groupListingsForOffers:listings=>listings.map(item=>({key:item.id,listings:[item]}))},
   "./save-search-control":{SaveSearchControl:()=>null},"./vehicle-compatibility-toggle":{VehicleCompatibilityToggle:()=>null},
-  "./vehicle-context-persistence":{VehicleContextPersistence:()=>null}
+  "./vehicle-context-persistence":{VehicleContextPersistence:()=>null},
+  "@/lib/vehicle-context":loadVehicleContext()
  };
  const {MarketplaceHome}=moduleFrom("src/components/marketplace-home.tsx",dependencies);
  const listing={id:"part-1"};
@@ -356,11 +476,12 @@ test("product Back to results includes the incoming cursor",async()=>{
   "@/components/part-passport":{PartPassport:()=>null},"@/components/save-button":{SaveButton:()=>null},
   "@/components/recently-viewed-tracker":{RecentlyViewedTracker:()=>null},"@/lib/auth":{getCurrentUser:async()=>null},
   "@/lib/data/compatibility":{getPartCompatibility:async()=>null},"@/lib/data/checkout":{isSellerCheckoutReady:async()=>false},
+  "@/lib/data/garage":{getGarageVehicleById:async()=>null},
   "@/lib/data/marketplace":{getSavedPartIdsForParts:async()=>[],getVehicleById:async()=>null},
   "@/lib/data/public-metadata":{getPublicListingBySlug:async()=>({data:listing,configured:true,error:null})},
   "@/lib/data/vehicle-catalogue":{getCatalogueSelection:async()=>null},"@/lib/data/reputation":{getPublicMemberProfileById:async()=>null},
   "@/lib/data/part-passport":{getPartPassportEvidence:async()=>null},"@/lib/listing-trust":{conditionLabel:()=>"Used"},
-  "@/lib/identifiers":{isUuid:()=>false},"@/lib/stripe-payments":{isStripeCheckoutConfigured:()=>false},
+  "@/lib/identifiers":{isUuid:()=>false},"@/lib/vehicle-context":moduleFrom("src/lib/vehicle-context.ts"),"@/lib/stripe-payments":{isStripeCheckoutConfigured:()=>false},
   "@/lib/marketplace-policy":{isMarketplaceUserBlocked:async()=>false},"@/lib/seller-geo":{getSellerDistanceFromPostcode:async()=>null},
   "@/lib/metadata":{buildListingJsonLd:()=>null,buildListingResultMetadata:()=>({}),serializeJsonLd:JSON.stringify}
  });

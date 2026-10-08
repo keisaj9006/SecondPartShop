@@ -1,0 +1,211 @@
+{
+  "account": "acct_1UOKMWKAOBtWLkgp",
+  "livemode": false,
+  "runId": "rc26-stripe-20261008-isolated",
+  "completed_at": "2026-10-08T17:36:24.950Z",
+  "records": [
+    {
+      "name": "test-mode-zero-endpoints-anchor",
+      "status": "passed",
+      "provider": {
+        "id": "prod_VP9RBYWEgVkE3T",
+        "object": "product",
+        "livemode": false,
+        "metadata": {
+          "qa_run_id": "rc26-stripe-20261008-isolated"
+        }
+      }
+    },
+    {
+      "name": "fresh-unpaid-payment-intent",
+      "status": "passed",
+      "provider": {
+        "id": "pi_3UOL8yKAOBtWLkgp1MlGs2Bs",
+        "object": "payment_intent",
+        "livemode": false,
+        "status": "requires_payment_method",
+        "amount": 500,
+        "amount_received": 0,
+        "currency": "gbp",
+        "latest_charge": null,
+        "metadata": {
+          "qa_run_id": "rc26-stripe-20261008-isolated"
+        }
+      }
+    },
+    {
+      "name": "decline",
+      "status": "passed",
+      "provider": {
+        "id": "pi_3UOL8yKAOBtWLkgp1MlGs2Bs",
+        "object": "payment_intent",
+        "livemode": false,
+        "status": "requires_payment_method",
+        "amount": 500,
+        "amount_received": 0,
+        "currency": "gbp",
+        "latest_charge": "ch_3UOL8yKAOBtWLkgp1SDDvL9j",
+        "metadata": {
+          "qa_run_id": "rc26-stripe-20261008-isolated"
+        }
+      },
+      "error": {
+        "type": "card_error",
+        "code": "card_declined",
+        "decline_code": "generic_decline"
+      }
+    },
+    {
+      "name": "retry-decline",
+      "status": "passed",
+      "provider": {
+        "id": "pi_3UOL8yKAOBtWLkgp1MlGs2Bs",
+        "object": "payment_intent",
+        "livemode": false,
+        "status": "requires_payment_method",
+        "amount": 500,
+        "amount_received": 0,
+        "currency": "gbp",
+        "latest_charge": "ch_3UOL8yKAOBtWLkgp1O6CVUOn",
+        "metadata": {
+          "qa_run_id": "rc26-stripe-20261008-isolated"
+        }
+      },
+      "error": {
+        "type": "card_error",
+        "code": "card_declined",
+        "decline_code": "generic_decline"
+      }
+    },
+    {
+      "name": "success-retry",
+      "status": "passed",
+      "provider": {
+        "id": "pi_3UOL8yKAOBtWLkgp1MlGs2Bs",
+        "object": "payment_intent",
+        "livemode": false,
+        "status": "succeeded",
+        "amount": 500,
+        "amount_received": 500,
+        "currency": "gbp",
+        "latest_charge": "ch_3UOL8yKAOBtWLkgp1CofhpS6",
+        "metadata": {
+          "qa_run_id": "rc26-stripe-20261008-isolated"
+        }
+      }
+    },
+    {
+      "name": "payment-create-idempotency",
+      "status": "passed",
+      "provider": {
+        "id": "pi_3UOL8yKAOBtWLkgp1MlGs2Bs",
+        "object": "payment_intent",
+        "livemode": false,
+        "status": "requires_payment_method",
+        "amount": 500,
+        "amount_received": 0,
+        "currency": "gbp",
+        "latest_charge": null,
+        "metadata": {
+          "qa_run_id": "rc26-stripe-20261008-isolated"
+        }
+      }
+    },
+    {
+      "name": "refund-idempotency",
+      "status": "blocked-or-failed",
+      "error": "Provider mutation returned live/unknown mode\n+ actual - expected\n\n+ undefined\n- false\n"
+    },
+    {
+      "name": "cancelled-checkout-provider-close",
+      "status": "passed",
+      "provider": {
+        "id": "cs_test_a1QlMx3PCjN0tcu7AJzmGXHSUcA6251mf95JGz3nI5YYxuAn9SzSnFovA1",
+        "object": "checkout.session",
+        "livemode": false,
+        "status": "expired",
+        "payment_status": "unpaid",
+        "currency": "gbp",
+        "expires_at": 1791482737,
+        "metadata": {
+          "qa_run_id": "rc26-stripe-20261008-isolated"
+        }
+      }
+    },
+    {
+      "name": "expired-checkout",
+      "status": "passed",
+      "provider": {
+        "id": "cs_test_a1vzT2ipX87l00kRrAm0EVd0pB8k9IMTz7z9XSmfwhoqKiHOAkuU5dt60r",
+        "object": "checkout.session",
+        "livemode": false,
+        "status": "expired",
+        "payment_status": "unpaid",
+        "currency": "gbp",
+        "expires_at": 1791482788,
+        "metadata": {
+          "qa_run_id": "rc26-stripe-20261008-isolated"
+        }
+      }
+    },
+    {
+      "name": "checkout-create-idempotency",
+      "status": "passed",
+      "provider": {
+        "id": "cs_test_a1t4qCPdT7hldxZ4LgYCYNuXR9IDWqCzKSkl6gggD6COtJNBf8cyL9shSD",
+        "object": "checkout.session",
+        "livemode": false,
+        "status": "open",
+        "payment_status": "unpaid",
+        "currency": "gbp",
+        "expires_at": 1791482827,
+        "metadata": {
+          "qa_run_id": "rc26-stripe-20261008-isolated"
+        }
+      }
+    },
+    {
+      "name": "duplicate-checkout-request",
+      "status": "passed",
+      "provider": {
+        "id": "cs_test_a1t4qCPdT7hldxZ4LgYCYNuXR9IDWqCzKSkl6gggD6COtJNBf8cyL9shSD",
+        "object": "checkout.session",
+        "livemode": false,
+        "status": "expired",
+        "payment_status": "unpaid",
+        "currency": "gbp",
+        "expires_at": 1791482827,
+        "metadata": {
+          "qa_run_id": "rc26-stripe-20261008-isolated"
+        }
+      }
+    },
+    {
+      "name": "transfer-reversal-capability",
+      "status": "blocked-or-failed",
+      "error": "Provider scope/error: {\"type\":\"invalid_request_error\"}"
+    },
+    {
+      "name": "dispute-source-payment",
+      "status": "passed",
+      "provider": {
+        "id": "pi_3UOLEuKAOBtWLkgp1uQIiCeN",
+        "object": "payment_intent",
+        "livemode": false,
+        "status": "succeeded",
+        "amount": 500,
+        "amount_received": 500,
+        "currency": "gbp",
+        "latest_charge": "ch_3UOLEuKAOBtWLkgp1BLJqS5o",
+        "metadata": {
+          "qa_run_id": "rc26-stripe-20261008-isolated"
+        }
+      }
+    },
+    {
+      "name": "dispute-lifecycle-capability",
+      "status": "blocked-or-failed",
+      "error": "Provider scope/error: {\"type\":\"invalid_request_error\"}"
+    }
+  ]
+}

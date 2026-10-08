@@ -4,8 +4,9 @@ import { usePathname,useRouter,useSearchParams } from "next/navigation";
 import { useState,useTransition } from "react";
 import { Check,CheckCircle2,Layers3 } from "lucide-react";
 import { resetMarketplacePagination } from "@/lib/marketplace-navigation";
+import { setVehicleContextFit } from "@/lib/vehicle-context";
 
-export function VehicleCompatibilityToggle({vehicleLabel,checked}:{vehicleLabel:string;checked:boolean}){
+export function VehicleCompatibilityToggle({vehicleLabel,checked,fitmentUnresolved=false}:{vehicleLabel:string;checked:boolean;fitmentUnresolved?:boolean}){
  const router=useRouter();
  const pathname=usePathname();
  const searchParams=useSearchParams();
@@ -16,8 +17,7 @@ export function VehicleCompatibilityToggle({vehicleLabel,checked}:{vehicleLabel:
 
  const change=(next:boolean)=>{
   setOptimisticChecked(next);
-  const params=new URLSearchParams(searchParams.toString());
-  params.set("fit",next?"1":"0");
+  const params=setVehicleContextFit(new URLSearchParams(searchParams.toString()),next);
   resetMarketplacePagination(params);
   startTransition(()=>router.push(`${pathname}?${params.toString()}#marketplace`,{scroll:false}));
  };
@@ -38,9 +38,11 @@ export function VehicleCompatibilityToggle({vehicleLabel,checked}:{vehicleLabel:
     Show only parts that fit this vehicle
    </span>
    <span className="mt-1 block text-xs leading-5 text-[#63706a]">
-    {visualChecked
-     ?`Only confirmed or same-family matches for ${vehicleLabel} are shown.`
-     :`Showing the full marketplace, including unverified parts that may not fit ${vehicleLabel}. Compatibility labels stay visible.`}
+    {fitmentUnresolved
+     ?visualChecked?`Choose the exact version and engine before compatibility can be checked for ${vehicleLabel}. No parts are shown as fitting yet.`:`Showing the full marketplace. Fit has not been verified for ${vehicleLabel}; compatibility labels stay visible.`
+     :visualChecked
+      ?`Only confirmed or same-family matches for ${vehicleLabel} are shown.`
+      :`Showing the full marketplace, including unverified parts that may not fit ${vehicleLabel}. Compatibility labels stay visible.`}
    </span>
   </span>
  </label>;

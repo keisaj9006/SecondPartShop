@@ -12,6 +12,12 @@ const jsxRuntime={
  jsxs:(type,props,key)=>({type,props:props??{},key:key??null})
 };
 
+function vehicleContext(){
+ const source=fs.readFileSync(path.join(root,"src/lib/vehicle-context.ts"),"utf8");
+ const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+ const exports={};vm.runInNewContext(compiled,{exports,URLSearchParams,URL});return exports;
+}
+
 function moduleFrom(react,{fetchImpl,router={push(){}}}={}){
  const source=fs.readFileSync(path.join(root,"src/components/vehicle-selector.tsx"),"utf8");
  const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
@@ -21,10 +27,12 @@ function moduleFrom(react,{fetchImpl,router={push(){}}}={}){
   require(name){
    if(name==="react/jsx-runtime")return jsxRuntime;
    if(name==="react")return react;
+   if(name==="next/link")return "a";
    if(name==="next/navigation")return {useRouter:()=>router};
    if(name==="lucide-react")return new Proxy({},{get:()=>()=>null});
    if(name==="@/components/vehicle-visual")return {VehicleVisual:()=>null};
-   if(name==="@/lib/vehicle-context")return {clearStoredVehicleContext(){}};
+   if(name==="@/lib/vehicle-context")return vehicleContext();
+   if(name==="@/app/garage/actions")return {saveGarageVehicle:async()=>({ok:false,code:"unused",message:"unused",retryable:false})};
    throw new Error(`Unexpected dependency ${name}`);
   },
   URL,URLSearchParams,AbortController,console,
@@ -53,6 +61,7 @@ function hookRunner(){
    if(changed)pendingEffects.push({index,effect});
   },
   useTransition(){hookIndex++;return [false,callback=>callback()];}
+  ,useActionState(_action,initial){const index=hookIndex++;if(!(index in state))state[index]=initial;return [state[index],async()=>{},false];}
  };
  return {
   react,
@@ -122,8 +131,18 @@ async function renderResolvedLookup({registration,vehicle,catalogue,engines,base
  runner.flushEffects();
  await settle();
  tree=render();
- return {tree,pushes};
+ return {tree,pushes,render};
 }
+
+test("search again clears the returned vehicle without applying or saving it",async()=>{
+ const {tree,pushes,render}=await renderResolvedLookup({registration:"AB12CDE",vehicle:{make:"FORD",model:"FOCUS",year:2020},catalogue:{make:"FORD",modelFamily:"FOCUS",variants:[{id:"variant-focus",variant:"Titanium"}]},engines:[]});
+ control(tree,{type:"button",text:"Search again"}).props.onClick();
+ const fresh=render();
+ assert.equal(control(fresh,{type:"input"}).props.value,"");
+ assert.doesNotMatch(textContent(fresh),/AB12CDE|Confirm this vehicle/);
+ assert.equal(nodes(fresh).some(node=>node.type==="button"&&textContent(node)==="Use this vehicle"),false);
+ assert.equal(pushes.length,0);
+});
 
 test("a resolved variant with several unmatched engines reveals a required chooser without losing lookup context",async()=>{
  const requests=new Map([

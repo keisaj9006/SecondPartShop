@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BadgeCheck,CarFront,Check,Search,ShieldCheck,Sparkles,Truck } from "lucide-react";
-import { saveGarageVehicle } from "@/app/garage/actions";
+import { saveGarageVehicleForm } from "@/app/garage/actions";
 import type { Category,GarageVehicle,Listing,MarketplaceFilters,Vehicle,VehicleCatalogueSelection } from "@/lib/types";
 import { ProductCard } from "./product-card";
 import { VehicleSelector } from "./vehicle-selector";
@@ -14,8 +14,9 @@ import { groupListingsForOffers } from "@/lib/offer-groups";
 import { SaveSearchControl } from "./save-search-control";
 import { VehicleCompatibilityToggle } from "./vehicle-compatibility-toggle";
 import { VehicleContextPersistence } from "./vehicle-context-persistence";
+import { setVehicleContext } from "@/lib/vehicle-context";
 
-const vehicleParams=(filters:MarketplaceFilters)=>{
+const vehicleParams=(filters:MarketplaceFilters,garageVehicleId?:string)=>{
  const params=new URLSearchParams();
  if(filters.query)params.set("q",filters.query);
  if(filters.category)params.set("category",filters.category);
@@ -33,49 +34,52 @@ const vehicleParams=(filters:MarketplaceFilters)=>{
  if(filters.catalogueFuel)params.set("cf",filters.catalogueFuel);
  if(filters.catalogueEngineSize!==undefined)params.set("ce",String(filters.catalogueEngineSize));
  if(filters.vehicle||filters.catalogueVariant)params.set("fit",filters.compatibleOnly===false?"0":"1");
- return params;
+ const selection=garageVehicleId
+  ?{kind:"garage" as const,garageVehicleId,fitOnly:filters.compatibleOnly!==false}
+  :filters.catalogueVariant&&filters.catalogueYear!==undefined
+   ?{kind:"catalogue" as const,variantId:filters.catalogueVariant,year:filters.catalogueYear,...(filters.catalogueFuel?{fuel:filters.catalogueFuel}:{}),...(filters.catalogueEngineSize!==undefined?{engine:filters.catalogueEngineSize}:{}),...(filters.vehicleRegistration?{registration:filters.vehicleRegistration}:{}),...(filters.vehicleColour?{colour:filters.vehicleColour}:{}),fitOnly:filters.compatibleOnly!==false}
+   :filters.vehicle
+    ?{kind:"legacy" as const,vehicleId:filters.vehicle,...(filters.vehicleRegistration?{registration:filters.vehicleRegistration}:{}),...(filters.vehicleColour?{colour:filters.vehicleColour}:{}),fitOnly:filters.compatibleOnly!==false}
+    :{kind:"none" as const};
+ return setVehicleContext(params,selection);
 };
 
 const savedVehicleHref=(vehicle:GarageVehicle,baseParams:Record<string,string>)=>{
- const params=new URLSearchParams(baseParams);
- params.set("cv",vehicle.catalogueVariantId);
- params.set("cy",String(vehicle.year));
- if(vehicle.fuelType)params.set("cf",vehicle.fuelType);else params.delete("cf");
- if(vehicle.engineSizeSimple!==null)params.set("ce",String(vehicle.engineSizeSimple));else params.delete("ce");
- if(vehicle.registration)params.set("vr",vehicle.registration);else params.delete("vr");
- if(vehicle.colour)params.set("vc",vehicle.colour);else params.delete("vc");
- params.delete("vehicle");
+ const params=setVehicleContext(new URLSearchParams(baseParams),{kind:"garage",garageVehicleId:vehicle.id,fitOnly:true});
  return `/?${params.toString()}#marketplace`;
 };
 
-export function MarketplaceHome({listings,categories,vehicles,garageVehicles,recentlyViewed,signedIn,viewerId,filters,selectedCatalogue,savedIds,error,configured,pagination,currentPage,currentCursor,freshVehicleSelection=false}:{listings:Listing[];categories:Category[];vehicles:Vehicle[];garageVehicles:GarageVehicle[];recentlyViewed:Listing[];signedIn:boolean;viewerId:string|null;filters:MarketplaceFilters;selectedCatalogue:VehicleCatalogueSelection|null;savedIds:string[];error:string|null;configured:boolean;pagination:{offset:number;limit:number;returned:number;total:number|null;hasMore:boolean;mode:"offset"|"cursor";nextCursor:string|null};currentPage:number;currentCursor?:string;freshVehicleSelection?:boolean}){
+export function MarketplaceHome({listings,categories,vehicles,garageVehicles,recentlyViewed,signedIn,viewerId,filters,selectedCatalogue,savedIds,error,configured,pagination,currentPage,currentCursor,freshVehicleSelection=false,activeGarageVehicleId,garageContextValid=true,identityOnlyFitmentUnresolved=false,garageSaveOutcome}:{listings:Listing[];categories:Category[];vehicles:Vehicle[];garageVehicles:GarageVehicle[];recentlyViewed:Listing[];signedIn:boolean;viewerId:string|null;filters:MarketplaceFilters;selectedCatalogue:VehicleCatalogueSelection|null;savedIds:string[];error:string|null;configured:boolean;pagination:{offset:number;limit:number;returned:number;total:number|null;hasMore:boolean;mode:"offset"|"cursor";nextCursor:string|null};currentPage:number;currentCursor?:string;freshVehicleSelection?:boolean;activeGarageVehicleId?:string;garageContextValid?:boolean;identityOnlyFitmentUnresolved?:boolean;garageSaveOutcome?:"created"|"already_exists"}){
  const selectedLegacy=vehicles.find(v=>v.id===filters.vehicle);
+ const activeGarageVehicle=garageVehicles.find(vehicle=>vehicle.id===activeGarageVehicleId);
  const selectedCategory=categories.find(category=>category.id===filters.category);
- const hasActiveVehicle=Boolean(selectedCatalogue||selectedLegacy);
+ const hasActiveVehicle=Boolean(selectedCatalogue||selectedLegacy||activeGarageVehicle);
  const baseParams=Object.fromEntries(Object.entries({q:filters.query,category:filters.category,condition:filters.condition,sort:filters.sort,min:filters.minPrice?.toString(),max:filters.maxPrice?.toString(),pc:filters.postcode,collection:filters.collectionOnly?"1":undefined,fit:hasActiveVehicle&&filters.compatibleOnly===false?"0":undefined}).filter((entry):entry is [string,string]=>Boolean(entry[1])));
  const activeVehicleLabel=selectedCatalogue
   ?`${filters.vehicleRegistration?`${filters.vehicleRegistration} · `:""}${selectedCatalogue.make} ${selectedCatalogue.modelFamily} ${selectedCatalogue.year}${filters.vehicleColour?` · ${filters.vehicleColour}`:""}`
-  :selectedLegacy?`${selectedLegacy.make} ${selectedLegacy.model} ${selectedLegacy.year}`:undefined;
- const contextParams=vehicleParams(filters);
+  :selectedLegacy?`${selectedLegacy.make} ${selectedLegacy.model} ${selectedLegacy.year}`
+   :activeGarageVehicle?`${activeGarageVehicle.registration?`${activeGarageVehicle.registration} · `:""}${activeGarageVehicle.make} ${activeGarageVehicle.modelFamily} ${activeGarageVehicle.year}`:undefined;
+ const contextParams=vehicleParams(filters,activeGarageVehicleId);
  if(currentPage>1)contextParams.set("page",String(currentPage));
  if(currentCursor)contextParams.set("cursor",currentCursor);
  const contextQuery=contextParams.toString();
  const marketplaceReturnTo=contextQuery?`/?${contextQuery}#marketplace`:"/#marketplace";
  const pageHref=(page:number)=>{
-  const params=vehicleParams(filters);
+  const params=vehicleParams(filters,activeGarageVehicleId);
   if(page>1)params.set("page",String(page));else params.delete("page");
   params.delete("cursor");
   const query=params.toString();
   return query?"/?"+query+"#marketplace":"/#marketplace";
  };
  const cursorHref=(cursor:string)=>{
-  const params=vehicleParams(filters);
+  const params=vehicleParams(filters,activeGarageVehicleId);
   params.delete("page");
   params.set("cursor",cursor);
   const query=params.toString();
   return query?"/?"+query+"#marketplace":"/#marketplace";
  };
- const offerGroups=groupListingsForOffers(listings,{preserveOrder:Boolean(filters.query?.trim())});
+ const visibleListings=identityOnlyFitmentUnresolved?[]:listings;
+ const offerGroups=groupListingsForOffers(visibleListings,{preserveOrder:Boolean(filters.query?.trim())});
  const selectedSaved=Boolean(selectedCatalogue&&garageVehicles.some(vehicle=>
   vehicle.catalogueVariantId===selectedCatalogue.variantId&&
   vehicle.year===selectedCatalogue.year&&
@@ -85,7 +89,7 @@ export function MarketplaceHome({listings,categories,vehicles,garageVehicles,rec
  ));
 
  return <main>
-  <VehicleContextPersistence/>
+  <VehicleContextPersistence viewerId={viewerId} garageContextValid={garageContextValid}/>
   <section className="dot-grid overflow-hidden bg-[#173c31] text-white">
    <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:gap-10 sm:px-6 sm:py-14 lg:grid-cols-[.9fr_1.1fr] lg:py-20">
     <div className="animate-in">
@@ -103,15 +107,17 @@ export function MarketplaceHome({listings,categories,vehicles,garageVehicles,rec
       <div className="mt-2 flex gap-2 overflow-x-auto pb-1">{garageVehicles.slice(0,4).map(vehicle=><Link key={vehicle.id} href={savedVehicleHref(vehicle,baseParams)} className="min-w-fit rounded-xl border border-black/10 bg-[#f8f7f2] px-3 py-2 text-xs font-bold hover:bg-[#eef1eb]">{vehicle.registration?<span className="mr-2 font-mono text-[#287154]">{vehicle.registration}</span>:null}{vehicle.make} {vehicle.modelFamily} · {vehicle.year}</Link>)}</div>
      </div>}
 
-     <VehicleSelector key={`${freshVehicleSelection?"fresh":selectedCatalogue?.variantId??filters.vehicle??"none"}-${selectedCatalogue?.year??"none"}-${selectedCatalogue?.fuelType??"none"}-${selectedCatalogue?.engineSizeSimple??"none"}-${hasActiveVehicle&&filters.compatibleOnly===false?"all":"fit"}`} vehicles={vehicles} selectedId={freshVehicleSelection?undefined:filters.vehicle} selectedCatalogue={freshVehicleSelection?null:selectedCatalogue} baseParams={baseParams} compatibleOnly={hasActiveVehicle?filters.compatibleOnly!==false:true} freshSelection={freshVehicleSelection}/>
+     <VehicleSelector key={`${freshVehicleSelection?"fresh":activeGarageVehicleId??selectedCatalogue?.variantId??filters.vehicle??"none"}-${selectedCatalogue?.year??activeGarageVehicle?.year??"none"}-${selectedCatalogue?.fuelType??activeGarageVehicle?.fuelType??"none"}-${selectedCatalogue?.engineSizeSimple??activeGarageVehicle?.engineSizeSimple??"none"}-${hasActiveVehicle&&filters.compatibleOnly===false?"all":"fit"}`} vehicles={vehicles} selectedId={freshVehicleSelection?undefined:filters.vehicle} selectedCatalogue={freshVehicleSelection?null:selectedCatalogue} baseParams={baseParams} compatibleOnly={hasActiveVehicle?filters.compatibleOnly!==false:true} freshSelection={freshVehicleSelection} signedIn={signedIn}/>
 
-     {selectedCatalogue&&<div className="mt-4 grid gap-3">
-      <VehicleVisual make={selectedCatalogue.make} model={selectedCatalogue.modelFamily} year={selectedCatalogue.year} colour={filters.vehicleColour} variant={selectedCatalogue.variant} registration={filters.vehicleRegistration} engine={selectedCatalogue.engineSizeSimple?selectedCatalogue.engineSizeSimple+"cc":null} fuel={selectedCatalogue.fuelType}/>
-      <VehicleCompatibilityToggle vehicleLabel={activeVehicleLabel??`${selectedCatalogue.make} ${selectedCatalogue.modelFamily} ${selectedCatalogue.year}`} checked={filters.compatibleOnly!==false}/>
+     {garageSaveOutcome&&activeGarageVehicle&&<p role="status" className="mt-3 rounded-xl bg-[#eef1eb] px-3 py-2 text-sm font-bold text-[#173c31]">{garageSaveOutcome==="already_exists"?"Vehicle already in your Garage. It is now selected.":"Vehicle added to your Garage and selected."}</p>}
+
+     {(selectedCatalogue||activeGarageVehicle)&&<div className="mt-4 grid gap-3">
+      {selectedCatalogue&&<VehicleVisual make={selectedCatalogue.make} model={selectedCatalogue.modelFamily} year={selectedCatalogue.year} colour={filters.vehicleColour} variant={selectedCatalogue.variant} registration={filters.vehicleRegistration} engine={selectedCatalogue.engineSizeSimple?selectedCatalogue.engineSizeSimple+"cc":null} fuel={selectedCatalogue.fuelType}/>}
+      <VehicleCompatibilityToggle vehicleLabel={activeVehicleLabel??`${selectedCatalogue?.make??activeGarageVehicle?.make} ${selectedCatalogue?.modelFamily??activeGarageVehicle?.modelFamily} ${selectedCatalogue?.year??activeGarageVehicle?.year}`} checked={filters.compatibleOnly!==false} fitmentUnresolved={Boolean(activeGarageVehicle&&!activeGarageVehicle.catalogueVariantId)}/>
      </div>}
 
      {selectedCatalogue&&<div className="mt-4 flex flex-wrap items-center gap-3 border-t border-black/10 pt-4">
-      {selectedSaved?<><span className="inline-flex items-center gap-2 text-sm font-black text-[#287154]"><Check size={16}/>Saved in your Garage</span><Link href="/garage" className="text-xs font-bold underline">Manage</Link></>:signedIn?<form action={saveGarageVehicle}>
+      {selectedSaved?<><span className="inline-flex items-center gap-2 text-sm font-black text-[#287154]"><Check size={16}/>Saved in your Garage</span><Link href="/garage" className="text-xs font-bold underline">Manage</Link></>:signedIn?<form action={saveGarageVehicleForm}>
        <input type="hidden" name="variantId" value={selectedCatalogue.variantId}/>
        <input type="hidden" name="year" value={selectedCatalogue.year}/>
        {selectedCatalogue.fuelType&&<input type="hidden" name="fuel" value={selectedCatalogue.fuelType}/>}
@@ -128,11 +134,11 @@ export function MarketplaceHome({listings,categories,vehicles,garageVehicles,rec
   <section id="marketplace" className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
    <div className="mb-6"><p className="mb-2 text-xs font-black uppercase tracking-[.2em] text-[#287154]">Marketplace</p><h2 className="text-3xl font-black tracking-[-.04em] sm:text-4xl">Find the part you need</h2></div>
    <MarketplaceSearch categories={categories} filters={filters} activeVehicleLabel={activeVehicleLabel}/>
-   <MarketplaceFiltersPanel filters={filters}/>
+   <MarketplaceFiltersPanel filters={filters} activeGarageVehicleId={activeGarageVehicleId}/>
    <PostcodeDistanceFilter initialPostcode={filters.postcode}/>
    <div className="mt-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center"><p className="text-[#63706a]">{pagination.total!==null?`${pagination.total.toLocaleString("en-GB")} listing${pagination.total===1?"":"s"} match the current search`:pagination.hasMore?`Showing ${pagination.returned} results · more available`:`${pagination.returned} listing${pagination.returned===1?"":"s"} match the current search`}</p><SaveSearchControl signedIn={signedIn} filters={filters}/></div>
    {error&&<div className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm"><p className="font-bold">{configured?"Marketplace data is temporarily unavailable":"Supabase setup required"}</p><p className="mt-1 text-amber-900/75">{error}</p></div>}
-   {listings.length?<><div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{offerGroups.map(group=>group.listings.length>1?<OfferGroupCard key={group.key} group={group} contextQuery={contextQuery}/>:<ProductCard key={group.listings[0].id} item={group.listings[0]} viewerId={viewerId} saved={savedIds.includes(group.listings[0].id)} contextQuery={contextQuery}/>)}</div>{pagination.mode==="cursor"
+   {identityOnlyFitmentUnresolved?<div role="status" className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm text-amber-950"><p className="font-black">Exact compatibility is not available yet</p><p className="mt-1">We found your vehicle. To check exact part compatibility, choose the exact version and engine. No parts are shown as fitting this vehicle until that profile is selected.</p></div>:visibleListings.length?<><div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{offerGroups.map(group=>group.listings.length>1?<OfferGroupCard key={group.key} group={group} contextQuery={contextQuery}/>:<ProductCard key={group.listings[0].id} item={group.listings[0]} viewerId={viewerId} saved={savedIds.includes(group.listings[0].id)} contextQuery={contextQuery}/>)}</div>{pagination.mode==="cursor"
  ?pagination.hasMore&&pagination.nextCursor&&<nav aria-label="Marketplace results" className="mt-10 flex items-center justify-center"><Link href={cursorHref(pagination.nextCursor)} className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#173c31] px-6 py-2.5 text-sm font-black text-white">Next 24 parts</Link></nav>
  :(currentPage>1||pagination.hasMore)&&<nav aria-label="Marketplace pages" className="mt-10 flex items-center justify-center gap-3">{currentPage>1&&<Link href={pageHref(currentPage-1)} className="inline-flex min-h-11 items-center justify-center rounded-full border border-black/15 bg-white px-5 py-2.5 text-sm font-black">Previous</Link>}<span className="px-2 text-sm font-bold text-[#63706a]">Page {currentPage}</span>{pagination.hasMore&&<Link href={pageHref(currentPage+1)} className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#173c31] px-5 py-2.5 text-sm font-black text-white">Next</Link>}</nav>}</>:!error&&<><div className="mt-8 rounded-3xl border border-dashed border-black/20 bg-white py-16 text-center"><Search className="mx-auto mb-4 text-[#63706a]"/><h3 className="text-xl font-bold">{activeVehicleLabel&&filters.compatibleOnly!==false?"No compatible matches yet":"No marketplace matches yet"}</h3><p className="mx-auto mt-2 max-w-xl text-[#63706a]">{activeVehicleLabel&&filters.compatibleOnly!==false?"No seller evidence currently provides a confirmed or same-family compatibility match. Untick the vehicle-fit checkbox to browse all parts while keeping compatibility labels visible.":"Try a different part name, category, OE/OEM number or filter."}</p></div><PartRequestCard signedIn={signedIn} filters={filters} defaultText={filters.query??selectedCategory?.name??""} returnTo={marketplaceReturnTo}/></>}
   </section>

@@ -1,35 +1,30 @@
 import Link from "next/link";
 import { SlidersHorizontal } from "lucide-react";
 import type { MarketplaceFilters } from "@/lib/types";
+import { setVehicleContext,VEHICLE_CONTEXT_PARAMS } from "@/lib/vehicle-context";
 
-export function MarketplaceFiltersPanel({filters}:{filters:MarketplaceFilters}){
+export function MarketplaceFiltersPanel({filters,activeGarageVehicleId}:{filters:MarketplaceFilters;activeGarageVehicleId?:string}){
  const input="w-full rounded-xl border border-black/12 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#173c31]";
  const preserved=new URLSearchParams();
  if(filters.query)preserved.set("q",filters.query);
  if(filters.category)preserved.set("category",filters.category);
  if(filters.postcode)preserved.set("pc",filters.postcode);
- if(filters.vehicle)preserved.set("vehicle",filters.vehicle);
- if(filters.vehicleRegistration)preserved.set("vr",filters.vehicleRegistration);
- if(filters.vehicleColour)preserved.set("vc",filters.vehicleColour);
- if(filters.catalogueVariant)preserved.set("cv",filters.catalogueVariant);
- if(filters.catalogueYear!==undefined)preserved.set("cy",String(filters.catalogueYear));
- if(filters.catalogueFuel)preserved.set("cf",filters.catalogueFuel);
- if(filters.catalogueEngineSize!==undefined)preserved.set("ce",String(filters.catalogueEngineSize));
- if((filters.vehicle||filters.catalogueVariant)&&filters.compatibleOnly===false)preserved.set("fit","0");
- const resetHref="/"+(preserved.toString()?"?"+preserved.toString():"")+"#marketplace";
+ const context=activeGarageVehicleId
+  ?{kind:"garage" as const,garageVehicleId:activeGarageVehicleId,fitOnly:filters.compatibleOnly!==false}
+  :filters.catalogueVariant&&filters.catalogueYear!==undefined
+   ?{kind:"catalogue" as const,variantId:filters.catalogueVariant,year:filters.catalogueYear,...(filters.catalogueFuel?{fuel:filters.catalogueFuel}:{}),...(filters.catalogueEngineSize!==undefined?{engine:filters.catalogueEngineSize}:{}),...(filters.vehicleRegistration?{registration:filters.vehicleRegistration}:{}),...(filters.vehicleColour?{colour:filters.vehicleColour}:{}),fitOnly:filters.compatibleOnly!==false}
+   :filters.vehicle
+    ?{kind:"legacy" as const,vehicleId:filters.vehicle,...(filters.vehicleRegistration?{registration:filters.vehicleRegistration}:{}),...(filters.vehicleColour?{colour:filters.vehicleColour}:{}),fitOnly:filters.compatibleOnly!==false}
+    :{kind:"none" as const};
+ const canonicalContext=setVehicleContext(preserved,context);
+ const hiddenContext=Array.from(canonicalContext.entries()).filter(([key])=>(VEHICLE_CONTEXT_PARAMS as readonly string[]).includes(key));
+ const resetHref="/"+(canonicalContext.toString()?"?"+canonicalContext.toString():"")+"#marketplace";
  const advancedActive=Boolean(Number.isFinite(filters.minPrice)||Number.isFinite(filters.maxPrice)||filters.collectionOnly);
  return <form method="get" action="/" className="mt-4 rounded-2xl border border-black/10 bg-white p-4">
   {filters.query&&<input type="hidden" name="q" value={filters.query}/>}
   {filters.category&&<input type="hidden" name="category" value={filters.category}/>}
   {filters.postcode&&<input type="hidden" name="pc" value={filters.postcode}/>}
-  {filters.vehicle&&<input type="hidden" name="vehicle" value={filters.vehicle}/>}
-  {filters.vehicleRegistration&&<input type="hidden" name="vr" value={filters.vehicleRegistration}/>}
-  {filters.vehicleColour&&<input type="hidden" name="vc" value={filters.vehicleColour}/>}
-  {filters.catalogueVariant&&<input type="hidden" name="cv" value={filters.catalogueVariant}/>}
-  {filters.catalogueYear!==undefined&&<input type="hidden" name="cy" value={filters.catalogueYear}/>}
-  {filters.catalogueFuel&&<input type="hidden" name="cf" value={filters.catalogueFuel}/>}
-  {filters.catalogueEngineSize!==undefined&&<input type="hidden" name="ce" value={filters.catalogueEngineSize}/>}
-  {(filters.vehicle||filters.catalogueVariant)&&<input type="hidden" name="fit" value={filters.compatibleOnly===false?"0":"1"}/>} 
+  {hiddenContext.map(([key,value])=><input key={key} type="hidden" name={key} value={value}/>)}
 
   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto_auto]">
    <label className="text-xs font-black uppercase tracking-[.08em] text-[#63706a]">Sort<select name="sort" defaultValue={filters.sort??"best"} className={"mt-1.5 "+input}><option value="best">Best match</option><option value="price_asc">Price: low to high</option><option value="price_desc">Price: high to low</option><option value="distance">Nearest first</option><option value="delivery">Fastest delivery</option><option value="warranty">Longest warranty</option></select></label>

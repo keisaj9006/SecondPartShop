@@ -57,12 +57,12 @@ export function getPlatformReadiness(){
    key:"dvsa-provider",
    label:"DVSA vehicle lookup",
    ready:
-    process.env.VEHICLE_LOOKUP_PROVIDER?.trim()==="dvsa_mot_history"&&
-    present(process.env.DVSA_MOT_CLIENT_ID)&&
-    present(process.env.DVSA_MOT_CLIENT_SECRET)&&
-    present(process.env.DVSA_MOT_TOKEN_URL)&&
-    present(process.env.DVSA_MOT_API_KEY)&&
-    present(process.env.DVSA_MOT_API_BASE_URL),
+    (!process.env.VEHICLE_LOOKUP_PROVIDER?.trim()||["dvsa_mot_history","dvsa"].includes(process.env.VEHICLE_LOOKUP_PROVIDER.trim().toLowerCase()))&&
+    present(process.env.DVSA_CLIENT_ID?.trim()||process.env.DVSA_MOT_CLIENT_ID)&&
+    present(process.env.DVSA_CLIENT_SECRET?.trim()||process.env.DVSA_MOT_CLIENT_SECRET)&&
+    present(process.env.DVSA_SCOPE_URL?.trim()||process.env.DVSA_MOT_SCOPE)&&
+    present(process.env.DVSA_TOKEN_URL?.trim()||process.env.DVSA_MOT_TOKEN_URL)&&
+    present(process.env.DVSA_API_KEY?.trim()||process.env.DVSA_MOT_API_KEY),
    detail:"UK registration lookup. Manual vehicle selection remains the fallback."
   }
  ];

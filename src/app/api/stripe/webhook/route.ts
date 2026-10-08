@@ -79,6 +79,7 @@ export async function POST(request:Request){
 
  const admin=createSupabaseAdminClient();
  const object=event.data.object;
+ let shouldDispatchPush=false;
 
  try{
   if(event.type==="checkout.session.completed"||event.type==="checkout.session.async_payment_succeeded"){
@@ -125,6 +126,7 @@ export async function POST(request:Request){
      p_shipping_address:shipping.address??undefined
     });
     if(error)throw error;
+    shouldDispatchPush=true;
    }
   }
 
@@ -139,6 +141,7 @@ export async function POST(request:Request){
      p_event_type:event.type
     });
     if(error)throw error;
+    if(cancelled===true)shouldDispatchPush=true;
     if(cancelled!==true){
      reportOperationalWarning({
       component:"stripe_webhook",
@@ -157,7 +160,8 @@ export async function POST(request:Request){
     // A failed PaymentIntent can be one attempt inside an otherwise-open
     // Checkout Session. Never release inventory from this event alone. Ask
     // Stripe for the authoritative Checkout Session state instead.
-    await reconcileStripeOrder(orderId);
+    const result=await reconcileStripeOrder(orderId);
+    if(result.state==="paid"||result.state==="expired")shouldDispatchPush=true;
    }
   }
 
@@ -167,7 +171,7 @@ export async function POST(request:Request){
    const status=typeof object.status==="string"?object.status:"unknown";
    const reason=typeof object.reason==="string"?object.reason:undefined;
    if(disputeId&&chargeId){
-    const {error}=await admin.rpc("open_provider_payment_dispute",{
+    const {data:disputeCaseId,error}=await admin.rpc("open_provider_payment_dispute",{
      p_event_id:event.id,
      p_dispute_id:disputeId,
      p_charge_id:chargeId,
@@ -175,6 +179,7 @@ export async function POST(request:Request){
      p_reason:reason
     });
     if(error)throw error;
+    if(disputeCaseId)shouldDispatchPush=true;
    }
   }
 
@@ -187,10 +192,12 @@ export async function POST(request:Request){
      disputeId,
      status
     });
+    shouldDispatchPush=true;
    }
   }
 
-  schedulePushDispatch(50);
+  // Ignored or unlinked Stripe events must not drain unrelated push work.
+  if(shouldDispatchPush)schedulePushDispatch(50);
   return NextResponse.json({received:true});
  }catch(error){
   await reportOperationalError({

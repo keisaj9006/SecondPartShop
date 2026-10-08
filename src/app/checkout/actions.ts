@@ -10,6 +10,7 @@ import { createCheckoutSession,getCreatedCheckoutSessionId,isStripeCheckoutConfi
 import { isUuid } from "@/lib/identifiers";
 import type { ActionState,MarketplaceFilters } from "@/lib/types";
 import { getPartCompatibility } from "@/lib/data/compatibility";
+import { resolveOwnedGarageVehicleForCheckout } from "@/lib/checkout-vehicle";
 import { syncSellerPaymentAccount } from "@/lib/seller-payment-sync";
 import { getAppUrl } from "@/lib/stripe-connect";
 import { reportOperationalError } from "@/lib/ops-monitoring";
@@ -32,23 +33,34 @@ export async function startCheckout(_previous:ActionState,formData:FormData):Pro
  const requestedReturnTo=String(formData.get("returnTo")??"").trim().slice(0,2000);
  const quantity=Math.floor(Number(formData.get("quantity")??1));
  const deliveryMethod=String(formData.get("deliveryMethod")??"shipping");
- const vehicleVariantId=String(formData.get("vehicleVariantId")??"").trim();
+ const garageVehicleId=String(formData.get("garageVehicleId")??"").trim();
+ let vehicleVariantId=String(formData.get("vehicleVariantId")??"").trim();
  const vehicleYearText=String(formData.get("vehicleYear")??"").trim();
- const vehicleFuel=String(formData.get("vehicleFuel")??"").trim();
+ let vehicleFuel=String(formData.get("vehicleFuel")??"").trim();
  const vehicleEngineText=String(formData.get("vehicleEngine")??"").trim();
- const vehicleRegistration=String(formData.get("vehicleRegistration")??"").trim();
+ let vehicleRegistration=String(formData.get("vehicleRegistration")??"").trim();
  const compatibilityAcknowledged=String(formData.get("compatibilityAcknowledged")??"")==="1";
- const vehicleYear=vehicleYearText?Number(vehicleYearText):undefined;
- const vehicleEngine=vehicleEngineText?Number(vehicleEngineText):undefined;
+ let vehicleYear=vehicleYearText?Number(vehicleYearText):undefined;
+ let vehicleEngine=vehicleEngineText?Number(vehicleEngineText):undefined;
  if(!isUuid(partId))return {status:"error",message:"This listing could not be identified."};
  if(!Number.isInteger(quantity)||quantity<1||quantity>10)return {status:"error",message:"Choose a valid quantity."};
  if(!(["shipping","collection"] as string[]).includes(deliveryMethod))return {status:"error",message:"Choose shipping or collection."};
- if(vehicleVariantId&&(!isUuid(vehicleVariantId)||!Number.isInteger(vehicleYear)))return {status:"error",message:"Re-select your vehicle before checkout."};
- if(vehicleEngineText&&!Number.isInteger(vehicleEngine))return {status:"error",message:"The selected vehicle engine is invalid."};
+ if(!garageVehicleId&&vehicleVariantId&&(!isUuid(vehicleVariantId)||!Number.isInteger(vehicleYear)))return {status:"error",message:"Re-select your vehicle before checkout."};
+ if(!garageVehicleId&&vehicleEngineText&&!Number.isInteger(vehicleEngine))return {status:"error",message:"The selected vehicle engine is invalid."};
  if(!isStripeCheckoutConfigured())return {status:"error",message:"Marketplace checkout is not enabled yet."};
 
  const user=await requireUser("/account");
  const supabase=await createSupabaseServerClient();
+
+ if(garageVehicleId){
+  const selected=await resolveOwnedGarageVehicleForCheckout(supabase,user.id,garageVehicleId);
+  if(selected.status!=="valid")return {status:"error",message:"Your selected Garage vehicle could not be verified for checkout. Choose an exact version in Garage and try again."};
+  vehicleVariantId=selected.vehicle.catalogueVariantId;
+  vehicleYear=selected.vehicle.year;
+  vehicleFuel=selected.vehicle.fuelType??"";
+  vehicleEngine=selected.vehicle.engineSizeSimple??undefined;
+  vehicleRegistration=selected.vehicle.registration??"";
+ }
 
  const {data:part}=await supabase.from("parts").select("slug,seller_id").eq("id",partId).maybeSingle();
  if(!part)return {status:"error",message:"This listing is no longer available."};
@@ -67,14 +79,6 @@ export async function startCheckout(_previous:ActionState,formData:FormData):Pro
   vercelBranchUrl:process.env.VERCEL_BRANCH_URL
  });
 
- try{
-  const paymentStatus=await syncSellerPaymentAccount(part.seller_id);
-  if(!paymentStatus.active)return {status:"error",message:"This seller is still completing marketplace payout setup."};
- }catch(error){
-  await reportOperationalError({component:"checkout",event:"seller_payout_status_check_failed",error});
-  return {status:"error",message:"We could not verify the seller payout account right now. Please try again."};
- }
-
  if(vehicleVariantId&&vehicleYear!==undefined){
   const filters:MarketplaceFilters={
    catalogueVariant:vehicleVariantId,
@@ -92,6 +96,14 @@ export async function startCheckout(_previous:ActionState,formData:FormData):Pro
   if(compatibility&&(compatibility.level==="family_match"||compatibility.level==="unverified")&&!compatibilityAcknowledged){
    return {status:"error",message:"Compatibility with your selected vehicle is not confirmed. Please acknowledge the compatibility warning before checkout."};
   }
+ }
+
+ try{
+  const paymentStatus=await syncSellerPaymentAccount(part.seller_id);
+  if(!paymentStatus.active)return {status:"error",message:"This seller is still completing marketplace payout setup."};
+ }catch(error){
+  await reportOperationalError({component:"checkout",event:"seller_payout_status_check_failed",error});
+  return {status:"error",message:"We could not verify the seller payout account right now. Please try again."};
  }
 
  const {data,error}=await supabase.rpc("prepare_checkout_order_v2",{

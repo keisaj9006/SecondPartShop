@@ -9,6 +9,11 @@ import { CategoryBrowser } from "@/components/category-browser";
 import { resetMarketplacePagination } from "@/lib/marketplace-navigation";
 import type { Category } from "@/lib/types";
 
+const signOutSafely=async()=>{
+ const {signOutAfterNativePushWork}=await import("@/lib/native-push");
+ await signOutAfterNativePushWork(signOut);
+};
+
 export function HeaderShell({categories,user,displayName,seller}:{categories:Category[];user:boolean;displayName:string|null;seller:boolean}){
  const router=useRouter();
  const headerRef=useRef<HTMLElement>(null);
@@ -60,7 +65,7 @@ export function HeaderShell({categories,user,displayName,seller}:{categories:Cat
     <Link aria-label="Search" href="/#marketplace" className="native-redundant-action rounded-full p-2.5 hover:bg-black/5"><Search size={19}/></Link>
     <Link aria-label="Saved parts" href="/saved" className="rounded-full p-2.5 hover:bg-black/5"><Heart size={19}/></Link>{user&&<><Link aria-label="Notifications" href="/notifications" className="rounded-full p-2.5 hover:bg-black/5"><Bell size={19}/></Link><Link aria-label="SecondPart Garage" href="/garage" className="native-redundant-action hidden items-center justify-center rounded-full p-2.5 hover:bg-black/5 xl:inline-flex"><CarFront size={19}/></Link></>}
     {seller&&<Link aria-label="Seller dashboard" href="/dashboard" className="hidden items-center justify-center rounded-full p-2.5 hover:bg-black/5 xl:inline-flex"><Wrench size={19}/></Link>}
-    {user?<><Link href="/account" title={displayName??undefined} className="ml-1 hidden items-center gap-2 whitespace-nowrap rounded-full border border-black/15 px-4 py-2 text-sm font-semibold sm:flex"><UserRound size={17}/>Account</Link><form action={signOut}><button className="hidden whitespace-nowrap px-2 text-xs font-bold underline sm:block" type="submit">Sign out</button></form></>:<Link href="/account" className="ml-1 hidden items-center gap-2 whitespace-nowrap rounded-full border border-black/15 px-4 py-2 text-sm font-semibold sm:flex"><UserRound size={17}/>Sign in</Link>}
+    {user?<><Link href="/account" title={displayName??undefined} className="ml-1 hidden items-center gap-2 whitespace-nowrap rounded-full border border-black/15 px-4 py-2 text-sm font-semibold sm:flex"><UserRound size={17}/>Account</Link><form action={signOutSafely}><button className="hidden whitespace-nowrap px-2 text-xs font-bold underline sm:block" type="submit">Sign out</button></form></>:<Link href="/account" className="ml-1 hidden items-center gap-2 whitespace-nowrap rounded-full border border-black/15 px-4 py-2 text-sm font-semibold sm:flex"><UserRound size={17}/>Sign in</Link>}
     <button ref={mobileTriggerRef} type="button" aria-label={mobileOpen?"Close navigation":"Open navigation"} aria-expanded={mobileOpen} aria-controls="header-mobile-navigation" onClick={()=>{setMobileOpen(value=>!value);setCategoriesOpen(false);setMobileCategories(false);}} className="rounded-full p-2.5 xl:hidden">{mobileOpen?<X size={21}/>:<Menu size={21}/>}</button>
    </div>
   </div>
@@ -79,7 +84,7 @@ export function HeaderShell({categories,user,displayName,seller}:{categories:Cat
      <Link className="rounded-xl px-3 py-3 hover:bg-black/5" href={seller?"/dashboard":"/sell"} onClick={()=>setMobileOpen(false)}>{seller?"Seller dashboard":"Sell a part"}</Link>
      <Link className="rounded-xl px-3 py-3 hover:bg-black/5" href="/saved" onClick={()=>setMobileOpen(false)}>Saved parts</Link>{user&&<><Link className="rounded-xl px-3 py-3 hover:bg-black/5" href="/notifications" onClick={()=>setMobileOpen(false)}>Notifications</Link><Link className="rounded-xl px-3 py-3 hover:bg-black/5" href="/garage" onClick={()=>setMobileOpen(false)}>SecondPart Garage</Link><Link className="rounded-xl px-3 py-3 hover:bg-black/5" href="/saved-searches" onClick={()=>setMobileOpen(false)}>Saved searches</Link><Link className="rounded-xl px-3 py-3 hover:bg-black/5" href="/recently-viewed" onClick={()=>setMobileOpen(false)}>Recently viewed</Link><Link className="rounded-xl px-3 py-3 hover:bg-black/5" href="/requests" onClick={()=>setMobileOpen(false)}>Part requests</Link><Link className="rounded-xl px-3 py-3 hover:bg-black/5" href="/account/fitting" onClick={()=>setMobileOpen(false)}>Fitting requests</Link></>}
      <Link className="rounded-xl px-3 py-3 hover:bg-black/5" href="/account" onClick={()=>setMobileOpen(false)}>{user?"Account":"Sign in"}</Link>
-     {user&&<form action={signOut}><button className="w-full rounded-xl px-3 py-3 text-left hover:bg-black/5">Sign out</button></form>}
+     {user&&<form action={signOutSafely}><button className="w-full rounded-xl px-3 py-3 text-left hover:bg-black/5">Sign out</button></form>}
     </>}
    </nav>
   </div>}

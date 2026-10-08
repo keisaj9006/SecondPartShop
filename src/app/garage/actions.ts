@@ -1,69 +1,34 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { requireUser } from "@/lib/auth";
-import { getCatalogueSelection } from "@/lib/data/vehicle-catalogue";
+import { saveGarageVehicleForUser,type GarageSaveResult } from "@/lib/garage-save";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { isPlausibleUkRegistration,normalizeRegistration } from "@/lib/vehicle-registration";
 
 const text=(value:FormDataEntryValue|null)=>String(value??"").trim();
 
-export async function saveGarageVehicle(formData:FormData){
- const user=await requireUser("/");
- const variantId=text(formData.get("variantId"));
- const year=Number(text(formData.get("year")));
- const fuel=text(formData.get("fuel"))||undefined;
- const engineText=text(formData.get("engine"));
- const engine=engineText?Number(engineText):undefined;
- const rawRegistration=text(formData.get("registration"));
- const registration=rawRegistration?normalizeRegistration(rawRegistration):null;
- const nickname=text(formData.get("nickname")).slice(0,50)||null;
- const colour=text(formData.get("colour")).slice(0,40)||null;
- if(!variantId||!Number.isInteger(year))return;
- if(registration&&!isPlausibleUkRegistration(registration))return;
- const selection=await getCatalogueSelection(variantId,year,fuel,Number.isInteger(engine)?engine:undefined);
- if(!selection)return;
+export async function saveGarageVehicle(formData:FormData):Promise<GarageSaveResult>{
+ await requireUser("/");
  const supabase=await createSupabaseServerClient();
- const {data:existing}=await supabase
-  .from("garage_vehicles")
-  .select("id,registration,fuel_type,engine_size_simple,colour,nickname")
-  .eq("profile_id",user.id)
-  .eq("catalogue_variant_id",variantId)
-  .eq("year",year);
- const duplicate=(existing??[]).find(row=>
-  (row.registration??null)===(registration??null)&&
-  (row.fuel_type??null)===(selection.fuelType??null)&&
-  (row.engine_size_simple??null)===(selection.engineSizeSimple??null)
- );
- if(!duplicate){
-  await supabase.from("garage_vehicles").insert({
-   profile_id:user.id,
-   catalogue_variant_id:variantId,
-   registration,
-   year,
-   fuel_type:selection.fuelType,
-   engine_size_simple:selection.engineSizeSimple,
-   colour,
-   nickname
-  });
- }else if((colour&&!duplicate.colour)||(nickname&&!duplicate.nickname)){
-  await supabase.from("garage_vehicles").update({
-   colour:duplicate.colour??colour,
-   nickname:duplicate.nickname??nickname
-  }).eq("id",duplicate.id).eq("profile_id",user.id);
- }
- revalidatePath("/");
- revalidatePath("/garage");
- revalidatePath("/account");
+ const incomingHeaders=await headers();
+ const result=await saveGarageVehicleForUser(supabase,new Request("https://secondpart.invalid/garage",{headers:incomingHeaders}),Object.fromEntries(formData));
+ if(result.ok){revalidatePath("/");revalidatePath("/garage");revalidatePath("/account");}
+ return result;
 }
 
-export async function removeGarageVehicle(formData:FormData){
+/** Legacy catalogue forms use React's void contract; new UI consumes the result. */
+export async function saveGarageVehicleForm(formData:FormData):Promise<void>{await saveGarageVehicle(formData);}
+
+export async function removeGarageVehicle(formData:FormData):Promise<{ok:boolean}>{
  const user=await requireUser("/garage");
  const id=text(formData.get("id"));
- if(!id)return;
+ if(!id)return {ok:false};
  const supabase=await createSupabaseServerClient();
- await supabase.from("garage_vehicles").delete().eq("id",id).eq("profile_id",user.id);
+ const {data,error}=await supabase.from("garage_vehicles").delete().eq("id",id).eq("profile_id",user.id).select("id").maybeSingle();
+ if(error||data?.id!==id)return {ok:false};
  revalidatePath("/");
  revalidatePath("/garage");
  revalidatePath("/account");
+ return {ok:true};
 }

@@ -1,3 +1,4 @@
+import {AccountDashboardRetry} from "@/components/account-dashboard-retry";
 import Link from "next/link";
 import type {ReactNode} from "react";
 import {ArrowRight,Bell,Bookmark,CarFront,Clock3,Heart,MessageSquareText,PackageCheck,RotateCcw,Search,ShieldCheck,Star,UserRound,Wrench} from "lucide-react";
@@ -8,10 +9,19 @@ import {getListingConversationCount} from "@/lib/data/listing-conversations";
 import {getSavedPartIdsForParts,getSellerForOwner} from "@/lib/data/marketplace";
 import {getGaragePartnerForOwner} from "@/lib/data/fitting";
 
-const card=(href:string,label:string,count:number,description:string,icon:ReactNode)=>({href,label,count,description,icon});
+type OptionalRead<T>={available:true;value:T}|{available:false};
+async function optionalRead<T>(read:()=>Promise<T>):Promise<OptionalRead<T>>{
+ try{return {available:true,value:await read()};}catch{return {available:false};}
+}
+function Unavailable({label}:{label:string}){
+ return <div className="mt-3 rounded-xl bg-amber-50 p-3"><p className="text-sm text-amber-950">{label} temporarily unavailable. Your account is still signed in.</p><AccountDashboardRetry/></div>;
+}
+const card=(href:string,label:string,count:number|null,description:string,icon:ReactNode)=>({href,label,count,description,icon});
 
 export async function AccountTrustSummary({userId}:{userId:string}){
- const trust=await getPublicMemberProfileById(userId).catch(()=>null);
+ const result=await optionalRead(()=>getPublicMemberProfileById(userId));
+ if(!result.available)return <Unavailable label="Account reputation"/>;
+ const trust=result.value;
  if(!trust)return null;
  return <p className="mt-3 text-sm font-bold text-white/75">★ {trust.sellerRating?.toFixed(1)??"New"} seller · {trust.soldCount} sold · {trust.boughtCount} bought</p>;
 }
@@ -21,15 +31,22 @@ export async function AccountDashboardContent({
  role,
  view
 }:{userId:string;role:string;view:"buying"|"selling"}){
- const [counts,recent,trust,conversationCount,seller,garagePartner]=await Promise.all([
-  getBuyerAccountCounts(userId),
-  getRecentlyViewedListings(userId,3),
-  getPublicMemberProfileById(userId).catch(()=>null),
-  getListingConversationCount().catch(()=>0),
-  getSellerForOwner(userId).catch(()=>null),
-  getGaragePartnerForOwner(userId).catch(()=>null)
+ const [countRead,recentRead,trustRead,conversationRead,sellerRead,partnerRead]=await Promise.all([
+  optionalRead(()=>getBuyerAccountCounts(userId)),
+  optionalRead(()=>getRecentlyViewedListings(userId,3)),
+  optionalRead(()=>getPublicMemberProfileById(userId)),
+  optionalRead(()=>getListingConversationCount()),
+  optionalRead(()=>getSellerForOwner(userId,{throwOnError:true})),
+  optionalRead(()=>getGaragePartnerForOwner(userId))
  ]);
- const savedIds=recent.length?await getSavedPartIdsForParts(userId,recent.map(item=>item.id)):[];
+ const counts=countRead.available?countRead.value:{orders:null,garage:null,savedParts:null,savedSearches:null,recentlyViewed:null,openRequests:null,unreadNotifications:null};
+ const recent=recentRead.available?recentRead.value:[];
+ const trust=trustRead.available?trustRead.value:null;
+ const conversationCount=conversationRead.available?conversationRead.value:null;
+ const seller=sellerRead.available?sellerRead.value:null;
+ const garagePartner=partnerRead.available?partnerRead.value:null;
+ const savedRead=await optionalRead(()=>recent.length?getSavedPartIdsForParts(userId,recent.map(item=>item.id),{throwOnError:true}):Promise.resolve([]));
+ const savedIds=savedRead.available?savedRead.value:[];
 
  const buyingItems=[
   card("/account/profile","Profile & username",0,"Edit your public name, username, bio and private phone number.",<UserRound size={22}/>),
@@ -37,7 +54,7 @@ export async function AccountDashboardContent({
   card("/inbox","Part questions",conversationCount,"Private pre-purchase questions with buyers and sellers.",<MessageSquareText size={22}/>),
   card("/account/cases","Returns & cases",0,"Return requests, transaction problems and case resolutions.",<RotateCcw size={22}/>),
   card("/account/fitting","Fitting requests",0,"Labour quotes from Buy + Fit garage partners for your selected parts and vehicles.",<Wrench size={22}/>),
-  card("/account/reviews","Reviews",(trust?.sellerReviewCount??0)+(trust?.buyerReviewCount??0),"Verified transaction reviews and reviews waiting for you.",<Star size={22}/>),
+  card("/account/reviews","Reviews",trustRead.available?(trust?.sellerReviewCount??0)+(trust?.buyerReviewCount??0):null,"Verified transaction reviews and reviews waiting for you.",<Star size={22}/>),
   card("/garage","SecondPart Garage",counts.garage,"Saved vehicles and one-click compatibility searches.",<CarFront size={22}/>),
   card("/saved","Saved parts",counts.savedParts,"Parts you want to come back to.",<Heart size={22}/>),
   card("/saved-searches","Saved searches",counts.savedSearches,"Vehicle, part and filter combinations ready to run again.",<Bookmark size={22}/>),
@@ -60,17 +77,19 @@ export async function AccountDashboardContent({
  const items=view==="selling"?sellingItems:buyingItems;
 
  return <>
-  {view==="selling"&&!seller&&<div className="mt-5 flex flex-col justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center"><div><p className="font-black text-amber-950">Finish your seller profile</p><p className="mt-1 text-sm text-amber-900/75">Buying remains enabled. Add seller details before you publish listings.</p></div><Link href="/dashboard" className="w-fit rounded-xl bg-[#173c31] px-4 py-2.5 text-sm font-black text-white">Finish setup</Link></div>}
+  {view==="selling"&&!sellerRead.available&&<Unavailable label="Seller profile"/>}
+  {view==="selling"&&sellerRead.available&&!seller&&<div className="mt-5 flex flex-col justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center"><div><p className="font-black text-amber-950">Finish your seller profile</p><p className="mt-1 text-sm text-amber-900/75">Buying remains enabled. Add seller details before you publish listings.</p></div><Link href="/dashboard" className="w-fit rounded-xl bg-[#173c31] px-4 py-2.5 text-sm font-black text-white">Finish setup</Link></div>}
 
   <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-   {items.map(item=><Link key={item.href} href={item.href} className="group rounded-3xl border border-black/10 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-[0_14px_38px_rgba(18,34,29,.09)]"><div className="flex items-start justify-between gap-4"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#eef1eb] text-[#173c31]">{item.icon}</span><span className="text-3xl font-black tracking-[-.04em]">{item.count}</span></div><h2 className="mt-5 text-lg font-black">{item.label}</h2><p className="mt-1 text-sm leading-6 text-[#63706a]">{item.description}</p><span className="mt-4 inline-flex items-center gap-1 text-sm font-black text-[#287154]">Open <ArrowRight size={15} className="transition group-hover:translate-x-1"/></span></Link>)}
+   {items.map(item=><div key={item.href}><Link href={item.href} className="group block rounded-3xl border border-black/10 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-[0_14px_38px_rgba(18,34,29,.09)]"><div className="flex items-start justify-between gap-4"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#eef1eb] text-[#173c31]">{item.icon}</span><span className="text-3xl font-black tracking-[-.04em]">{item.count??"—"}</span></div><h2 className="mt-5 text-lg font-black">{item.label}</h2><p className="mt-1 text-sm leading-6 text-[#63706a]">{item.description}</p><span className="mt-4 inline-flex items-center gap-1 text-sm font-black text-[#287154]">Open <ArrowRight size={15} className="transition group-hover:translate-x-1"/></span></Link>{item.count===null&&<Unavailable label={item.label}/>}</div>)}
 
-   <Link href="/garage-partner" className="group rounded-3xl border border-[#173c31]/15 bg-[#f4f7f2] p-5 transition hover:-translate-y-0.5"><div className="flex items-start justify-between"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#173c31] text-[#d4f44d]"><Wrench size={22}/></span><span className="rounded-full bg-white px-2.5 py-1 text-xs font-black capitalize">{garagePartner?.status??"Join"}</span></div><h2 className="mt-5 text-lg font-black">Garage partner</h2><p className="mt-1 text-sm leading-6 text-[#63706a]">{garagePartner?"Manage your Buy + Fit workshop profile and quote requests.":"Run a workshop? Apply to quote fitting labour without becoming a parts seller."}</p><span className="mt-4 inline-flex items-center gap-1 text-sm font-black text-[#287154]">Open <ArrowRight size={15}/></span></Link>
+   <div><Link href="/garage-partner" className="group block rounded-3xl border border-[#173c31]/15 bg-[#f4f7f2] p-5 transition hover:-translate-y-0.5"><div className="flex items-start justify-between"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#173c31] text-[#d4f44d]"><Wrench size={22}/></span><span className="rounded-full bg-white px-2.5 py-1 text-xs font-black capitalize">{partnerRead.available?(garagePartner?.status??"Join"):"Unavailable"}</span></div><h2 className="mt-5 text-lg font-black">Garage partner</h2><p className="mt-1 text-sm leading-6 text-[#63706a]">{!partnerRead.available?"Workshop status could not be loaded.":garagePartner?"Manage your Buy + Fit workshop profile and quote requests.":"Run a workshop? Apply to quote fitting labour without becoming a parts seller."}</p><span className="mt-4 inline-flex items-center gap-1 text-sm font-black text-[#287154]">Open <ArrowRight size={15}/></span></Link>{!partnerRead.available&&<Unavailable label="Garage partner"/>}</div>
 
-   {role==="admin"&&<Link href="/admin/moderation" className="group rounded-3xl border border-[#173c31]/20 bg-[#f5f2ea] p-5 transition hover:-translate-y-0.5"><div className="flex items-start justify-between"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#173c31] text-[#d4f44d]"><ShieldCheck size={22}/></span></div><h2 className="mt-5 text-lg font-black">Moderation</h2><p className="mt-1 text-sm leading-6 text-[#63706a]">Review seller verification requests and marketplace reports.</p><span className="mt-4 inline-flex items-center gap-1 text-sm font-black text-[#287154]">Open <ArrowRight size={15}/></span></Link>}
+   {role==="admin"&&<Link href="/admin/moderation" className="group block rounded-3xl border border-[#173c31]/20 bg-[#f5f2ea] p-5 transition hover:-translate-y-0.5"><div className="flex items-start justify-between"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#173c31] text-[#d4f44d]"><ShieldCheck size={22}/></span></div><h2 className="mt-5 text-lg font-black">Moderation</h2><p className="mt-1 text-sm leading-6 text-[#63706a]">Review seller verification requests and marketplace reports.</p><span className="mt-4 inline-flex items-center gap-1 text-sm font-black text-[#287154]">Open <ArrowRight size={15}/></span></Link>}
   </section>
 
-  {recent.length>0&&<section className="mt-12"><div className="flex items-end justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[.2em] text-[#287154]">Continue browsing</p><h2 className="mt-2 text-3xl font-black tracking-[-.04em]">Recently viewed</h2></div><Link href="/recently-viewed" className="text-sm font-black underline">View all</Link></div><div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{recent.map(item=><ProductCard key={item.id} item={item} viewerId={userId} saved={savedIds.includes(item.id)}/>)}</div></section>}
+  {(!recentRead.available||!savedRead.available)&&<section className="mt-12"><h2 className="text-3xl font-black">Recently viewed</h2><Unavailable label={!recentRead.available?"Recently viewed":"Saved-part status"}/></section>}
+  {recentRead.available&&savedRead.available&&recent.length>0&&<section className="mt-12"><div className="flex items-end justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[.2em] text-[#287154]">Continue browsing</p><h2 className="mt-2 text-3xl font-black tracking-[-.04em]">Recently viewed</h2></div><Link href="/recently-viewed" className="text-sm font-black underline">View all</Link></div><div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{recent.map(item=><ProductCard key={item.id} item={item} viewerId={userId} saved={savedIds.includes(item.id)}/>)}</div></section>}
  </>;
 }
 

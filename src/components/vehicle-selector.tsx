@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect,useId,useRef,useState,useTransition } from "react";
+import { useActionState,useEffect,useId,useRef,useState,useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { CarFront,ChevronDown,Search,X } from "lucide-react";
 import { VehicleVisual } from "@/components/vehicle-visual";
-import { clearStoredVehicleContext } from "@/lib/vehicle-context";
+import { clearStoredVehicleContext,setVehicleContext } from "@/lib/vehicle-context";
+import { saveGarageVehicle } from "@/app/garage/actions";
+import type { GarageSaveResult } from "@/lib/garage-save";
 import type { Vehicle,VehicleCatalogueSelection } from "@/lib/types";
 
 type LookupState={kind:"idle"|"loading"|"error"|"info";message?:string};
@@ -103,7 +106,34 @@ export function SearchableVehicleSelect({value,options,placeholder,label,disable
  </div>;
 }
 
-export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParams,compatibleOnly,freshSelection=false}:{vehicles:Vehicle[];selectedId?:string;selectedCatalogue:VehicleCatalogueSelection|null;baseParams:Record<string,string>;compatibleOnly:boolean;freshSelection?:boolean}){
+function IdentityGarageSave({registration,colour,baseParams,fitOnly,signedIn}:{registration:string;colour?:string;baseParams:Record<string,string>;fitOnly:boolean;signedIn:boolean}){
+ const router=useRouter();
+ const [result,submit,isPending]=useActionState(async(_previous:GarageSaveResult|null,formData:FormData)=>saveGarageVehicle(formData),null);
+
+ useEffect(()=>{
+  if(!result?.ok)return;
+  const params=setVehicleContext(new URLSearchParams(baseParams),{kind:"garage",garageVehicleId:result.id,fitOnly});
+  params.set("garageSave",result.outcome==="already_exists"?"already_exists":"created");
+  router.push(`/?${params.toString()}#marketplace`);
+ },[result,fitOnly,baseParams,router]);
+
+ const returnParams=new URLSearchParams(baseParams);
+ returnParams.set("addVehicle","1");
+ const returnTo=`/?${returnParams.toString()}#vehicle-picker`;
+
+ return <div className="mt-3 rounded-2xl border border-[#173c31]/15 bg-white p-4">
+  <p className="text-sm font-bold text-[#173c31]">Your vehicle identity was found. Choose an exact version and engine to check part compatibility.</p>
+  {signedIn?<form action={submit} className="mt-3">
+   <input type="hidden" name="operation" value="identity_save"/>
+   <input type="hidden" name="registration" value={registration}/>
+   {colour&&<input type="hidden" name="colour" value={colour}/>}
+   <button type="submit" disabled={isPending} className="w-full rounded-xl bg-[#d4f44d] px-5 py-3 text-sm font-black text-[#173c31] disabled:cursor-wait disabled:opacity-60">{isPending?"Adding to Garage…":"Add to Garage"}</button>
+  </form>:<Link href={`/account?returnTo=${encodeURIComponent(returnTo)}`} className="mt-3 inline-flex rounded-xl bg-[#d4f44d] px-5 py-3 text-sm font-black text-[#173c31]">Sign in to add to Garage</Link>}
+  {result&&!result.ok&&<p role="alert" className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800">{result.message}{result.retryable?" You can try again.":""}</p>}
+ </div>;
+}
+
+export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParams,compatibleOnly,freshSelection=false,signedIn=false}:{vehicles:Vehicle[];selectedId?:string;selectedCatalogue:VehicleCatalogueSelection|null;baseParams:Record<string,string>;compatibleOnly:boolean;freshSelection?:boolean;signedIn?:boolean}){
  const activeCatalogue=freshSelection?null:selectedCatalogue;
  const selectedLegacy=freshSelection?undefined:vehicles.find(vehicle=>vehicle.id===selectedId);
  const router=useRouter();
@@ -190,31 +220,22 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
  },[variantId,registrationVehicle]);
 
  const pushVehicleParams=(params:URLSearchParams)=>{
-  for(const key of ["vehicle","cv","cy","cf","ce","vr","vc"])params.delete(key);
   const qs=params.toString();
   router.push(`/${qs?`?${qs}`:""}#marketplace`);
  };
 
  const clearVehicle=()=>{
   clearStoredVehicleContext();
-  const params=new URLSearchParams(baseParams);
-  pushVehicleParams(params);
+  pushVehicleParams(setVehicleContext(new URLSearchParams(baseParams),{kind:"none"}));
  };
 
  const applyCatalogue=()=>{
   if(!variantId||!year)return;
-  const params=new URLSearchParams(baseParams);
-  params.set("cv",variantId);
-  params.set("cy",year);
   const engine=engines.find(item=>engineKey(item)===catalogueEngine);
-  if(engine){
-   params.set("cf",engine.fuelType);
-   if(engine.engineSizeSimple!==null)params.set("ce",String(engine.engineSizeSimple));
-  }
-  params.delete("vehicle");
-  params.set("fit",fitOnly?"1":"0");
-  if(registrationVehicle?.registration)params.set("vr",registrationVehicle.registration);else params.delete("vr");
-  if(registrationVehicle?.colour)params.set("vc",registrationVehicle.colour);else params.delete("vc");
+  const params=setVehicleContext(new URLSearchParams(baseParams),{
+   kind:"catalogue",variantId,year:Number(year),...(engine?{fuel:engine.fuelType}:{}),...(engine?.engineSizeSimple!==null&&engine?.engineSizeSimple!==undefined?{engine:engine.engineSizeSimple}:{}),
+   ...(registrationVehicle?.registration?{registration:registrationVehicle.registration}:{}),...(registrationVehicle?.colour?{colour:registrationVehicle.colour}:{}),fitOnly
+  });
   const qs=params.toString();
   startTransition(()=>router.push(`/?${qs}#marketplace`));
  };
@@ -252,22 +273,23 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
      const only=catalogue.variants[0];
      setLoadingEngines(true);
      setVariantId(only.id);
-     setLookup({kind:"info",message:"Vehicle found. Confirm how you want to use it below."});
+     setLookup({kind:"info",message:"Vehicle identity found. Add it to Garage now, or confirm this catalogue version to check compatibility."});
      return;
     }
     setVariantId("");
     setManualOpen(true);
-    setLookup({kind:"info",message:catalogue.variants?.length?"Vehicle found. Choose the exact version below to continue.":"Vehicle found. Select the closest version manually to continue."});
+    setLookup({kind:"info",message:catalogue.variants?.length?"Vehicle identity found. Add it to Garage now, or choose an exact version and engine to check compatibility.":"Vehicle identity found. Add it to Garage now, or use manual selection to choose an exact version for compatibility."});
     return;
    }
    setManualOpen(true);
-   setLookup({kind:"info",message:"Vehicle found. Review the details and complete the manual selection below."});
+   setLookup({kind:"info",message:"Vehicle identity found. Add it to Garage now, or choose an exact catalogue version to check compatibility."});
   }catch{
    setLookup({kind:"error",message:"Vehicle lookup could not be reached. Select the vehicle manually below."});
    setManualOpen(true);
   }
  };
 
+ const searchAgain=()=>{setRegistration("");setRegistrationVehicle(null);setLookup({kind:"idle"});setMake("");setModel("");setModels([]);setYear("");setVariantId("");setCatalogueEngine("");setYears([]);setVariants([]);setEngines([]);setLoadingModels(false);setLoadingYears(false);setLoadingVariants(false);setLoadingEngines(false);setCatalogueError("");setManualOpen(false);};
  const resetAfterMake=(value:string)=>{setMake(value);setModel("");setModels([]);setYear("");setVariantId("");setCatalogueEngine("");setYears([]);setVariants([]);setEngines([]);setLoadingModels(Boolean(value));setLoadingYears(false);setLoadingVariants(false);setLoadingEngines(false);setCatalogueError("");};
  const resetAfterModel=(value:string)=>{setModel(value);setYear("");setVariantId("");setCatalogueEngine("");setYears([]);setVariants([]);setEngines([]);setLoadingYears(Boolean(value));setLoadingVariants(false);setLoadingEngines(false);setCatalogueError("");};
  const resetAfterYear=(value:string)=>{setYear(value);setVariantId("");setCatalogueEngine("");setVariants([]);setEngines([]);setLoadingVariants(Boolean(value));setLoadingEngines(false);setCatalogueError("");};
@@ -287,11 +309,13 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
    <p className="mt-2 text-xs leading-5 text-[#63706a]">Enter a UK registration to look up your vehicle. If lookup is unavailable or the details are unclear, select your vehicle manually below.</p>
    {lookup.message&&<p role="status" className={`mt-3 rounded-xl px-3 py-2 text-sm ${lookup.kind==="error"?"bg-red-50 text-red-800":"bg-[#eef1eb] text-[#173c31]"}`}>{lookup.message}</p>}
    {registrationVehicle&&<div className="mt-3 grid gap-3 rounded-2xl border border-[#173c31]/15 bg-[#f4f7f2] p-4 md:grid-cols-[minmax(0,1fr)_minmax(260px,.9fr)] md:items-center"><div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#173c31] text-white"><CarFront size={19}/></span><div className="min-w-0"><p className="text-xs font-black uppercase tracking-[.12em] text-[#287154]">{registrationVehicle.registration}</p><p className="mt-1 text-lg font-black">{nameLabel(registrationVehicle.make)} {nameLabel(registrationVehicle.model)}</p><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#4f5e57]">{registrationVehicle.year&&<span>Year: <strong>{registrationVehicle.year}</strong></span>}{registrationVehicle.engineSizeSimple&&<span>Engine: <strong>{registrationVehicle.engineSizeSimple}cc</strong></span>}{registrationVehicle.fuelType&&<span>Fuel: <strong>{fuelLabel(registrationVehicle.fuelType)}</strong></span>}{registrationVehicle.colour&&<span>Colour: <strong>{nameLabel(registrationVehicle.colour)}</strong></span>}</div></div></div>{registrationVehicle.year&&<VehicleVisual make={nameLabel(registrationVehicle.make)} model={nameLabel(registrationVehicle.model)} year={registrationVehicle.year} colour={registrationVehicle.colour} registration={registrationVehicle.registration} engine={registrationVehicle.engineSizeSimple?registrationVehicle.engineSizeSimple+"cc":null} fuel={registrationVehicle.fuelType?fuelLabel(registrationVehicle.fuelType):null} compact/>}</div>}
+   {registrationVehicle&&<IdentityGarageSave key={registrationVehicle.registration} registration={registrationVehicle.registration} colour={registrationVehicle.colour} baseParams={baseParams} fitOnly={fitOnly} signedIn={signedIn}/>}
    {!activeCatalogue&&!selectedLegacy&&<label className={`mt-3 flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${fitOnly?"border-[#173c31] bg-[#f7faef] ring-2 ring-[#d4f44d]/50":"border-black/10 bg-white"}`}>
     <input type="checkbox" checked={fitOnly} onChange={event=>setFitOnly(event.target.checked)} className="mt-1 h-5 w-5 accent-[#173c31]"/>
-    <span><strong className="block text-sm text-[#173c31]">Show only parts that fit this vehicle</strong><small className="mt-1 block leading-5 text-[#63706a]">{freshSelection?"Choose this before adding the new vehicle. The previous vehicle is not used here.":"Recommended: keep this on to show compatibility-filtered results as soon as you select a vehicle."}</small></span>
+    <span><strong className="block text-sm text-[#173c31]">Show only parts that fit this vehicle</strong><small className="mt-1 block leading-5 text-[#63706a]">{freshSelection?"Choose this before adding the new vehicle. The previous vehicle is not used here.":"With an exact catalogue version, this shows evidence-based compatibility. Vehicle identity alone does not confirm fit."}</small></span>
    </label>}
-   {registrationVehicle&&variantId&&year&&<div className="mt-3 rounded-2xl border border-[#173c31]/15 bg-white p-4"><button type="button" disabled={!canApply} onClick={applyCatalogue} className="w-full rounded-xl bg-[#d4f44d] px-5 py-3 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50">{isApplying?"Applying vehicle…":"Use this vehicle"}</button></div>}
+   {registrationVehicle&&<button type="button" onClick={searchAgain} disabled={isApplying} className="mt-3 rounded-xl border border-black/15 px-5 py-3 text-sm font-bold">Search again</button>}
+   {registrationVehicle&&variantId&&year&&<div className="mt-3 rounded-2xl border border-[#173c31]/15 bg-white p-4"><button type="button" disabled={!canApply} onClick={applyCatalogue} className="w-full rounded-xl bg-[#d4f44d] px-5 py-3 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50">{isApplying?"Applying vehicle…":"Use this vehicle"}</button><p className="mt-2 text-xs text-[#4f5e57]">Confirm this vehicle, then save it to Garage from the selected vehicle card.</p></div>}
   </div>
 
   <button type="button" onClick={()=>{const next=!manualOpen;if(next){setLoadingMakes(true);if(make)setLoadingModels(true);}setManualOpen(next);}} className="mt-4 inline-flex items-center gap-2 text-sm font-black underline">{manualOpen?"Hide manual selection":"I don't know my registration / Select vehicle manually"}<ChevronDown size={15} className={manualOpen?"rotate-180 transition":"transition"}/></button>
@@ -302,7 +326,7 @@ export function VehicleSelector({vehicles,selectedId,selectedCatalogue,baseParam
     <SearchableVehicleSelect value={model} options={models.map(value=>({value,label:nameLabel(value)}))} placeholder={loadingModels?"Loading models…":"Search model"} label="Model" disabled={!make||loadingModels} onChange={resetAfterModel}/>
     <select aria-label="Year" className={control} value={year} disabled={!model||loadingYears} onChange={event=>resetAfterYear(event.target.value)}><option value="">{loadingYears?"Loading years…":"Year"}</option>{years.map(value=><option key={value} value={value}>{value}</option>)}</select>
     <select aria-label="Version" className={control} value={variantId} disabled={!year||loadingVariants} onChange={event=>resetAfterVariant(event.target.value)}><option value="">{loadingVariants?"Loading versions…":"Version / derivative"}</option>{selectedVariant&&!variants.some(item=>item.id===selectedVariant.id)&&<option value={selectedVariant.id}>{selectedVariant.variant}</option>}{variants.map(item=><option key={item.id} value={item.id}>{item.variant}</option>)}</select>
-    <select aria-label="Engine and fuel" className={`${control} col-span-2 sm:col-span-2`} value={catalogueEngine} disabled={!variantId||loadingEngines||engines.length===0} onChange={event=>setCatalogueEngine(event.target.value)}><option value="">{loadingEngines?"Loading engine…":engines.length?"Engine / fuel":"Engine data unavailable"}</option>{engines.map(item=><option key={engineKey(item)} value={engineKey(item)}>{item.engineSizeSimple?`${item.engineSizeSimple}cc · ${fuelLabel(item.fuelType)}`:fuelLabel(item.fuelType)}</option>)}</select>
+    <select aria-label="Engine and fuel" className={`${control} col-span-2 sm:col-span-2`} value={catalogueEngine} disabled={!variantId||loadingEngines||engines.length===0} onChange={event=>setCatalogueEngine(event.target.value)}><option value="">{loadingEngines?"Loading engine…":engines.length?"Engine / fuel":variantId?"No catalogue engine options for this version":"Choose an exact version to see catalogue engine options"}</option>{engines.map(item=><option key={engineKey(item)} value={engineKey(item)}>{item.engineSizeSimple?`${item.engineSizeSimple}cc · ${fuelLabel(item.fuelType)}`:fuelLabel(item.fuelType)}</option>)}</select>
    </div>
    {engines.length>1&&!catalogueEngine&&<p className="mt-3 text-sm text-[#63706a]">Choose the engine and fuel shown for your vehicle. We have left this blank because an exact engine has not been confirmed.</p>}
    {catalogueError&&<p role="status" className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800">{catalogueError}</p>}

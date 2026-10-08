@@ -78,6 +78,7 @@ test("account recent cards resolve saved state for only the current viewer and v
  const recent=[listing("saved-part"),listing("other-part")];
  const {AccountDashboardContent}=moduleFrom("src/components/account-dashboard-content.tsx",{
   "@/components/product-card":{ProductCard},
+  "@/components/account-dashboard-retry":{AccountDashboardRetry:component},
   "@/lib/data/buyer-account":{getBuyerAccountCounts:async()=>accountCounts,getRecentlyViewedListings:async()=>recent},
   "@/lib/data/reputation":{getPublicMemberProfileById:async()=>null},
   "@/lib/data/listing-conversations":{getListingConversationCount:async()=>0},
@@ -222,13 +223,14 @@ test("part detail keys its local saved control to the authenticated server viewe
   "@/lib/auth":{getCurrentUser:async()=>({id:"viewer-1"})},
   "@/lib/data/compatibility":{getPartCompatibility:async()=>null},
   "@/lib/data/checkout":{isSellerCheckoutReady:async()=>false},
+  "@/lib/data/garage":{getGarageVehicleById:async()=>null},
   "@/lib/data/marketplace":{getSavedPartIdsForParts:async()=>["part-1"],getVehicleById:async()=>null},
   "@/lib/data/public-metadata":{getPublicListingBySlug:async()=>({data:listingItem,configured:true,error:null})},
   "@/lib/data/vehicle-catalogue":{getCatalogueSelection:async()=>null},
   "@/lib/data/reputation":{getPublicMemberProfileById:async()=>null},
   "@/lib/data/part-passport":{getPartPassportEvidence:async()=>null},
   "@/lib/listing-trust":{conditionLabel:value=>value},
-  "@/lib/identifiers":{isUuid:()=>false},
+  "@/lib/identifiers":{isUuid:()=>false},"@/lib/vehicle-context":moduleFrom("src/lib/vehicle-context.ts"),
   "@/lib/stripe-payments":{isStripeCheckoutConfigured:()=>false},
   "@/lib/marketplace-policy":{isMarketplaceUserBlocked:async()=>false},
   "@/lib/seller-geo":{getSellerDistanceFromPostcode:async()=>null},

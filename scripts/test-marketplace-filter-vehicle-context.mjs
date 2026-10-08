@@ -45,7 +45,7 @@ function nodes(tree){
  return found;
 }
 
-const {MarketplaceFiltersPanel}=moduleFrom("src/components/marketplace-filters.tsx");
+const {MarketplaceFiltersPanel}=moduleFrom("src/components/marketplace-filters.tsx",{"@/lib/vehicle-context":moduleFrom("src/lib/vehicle-context.ts")});
 const filters={
  query:"alternator",
  category:"cat-a",
@@ -94,4 +94,16 @@ test("marketplace filter reset clears controls owned by the panel while preservi
  assert.equal(params.has("min"),false);
  assert.equal(params.has("max"),false);
  assert.equal(params.has("collection"),false);
+});
+
+test("Garage-backed filters preserve only canonical gv context and do not leak competing catalogue fields",()=>{
+ const garageId="22222222-2222-4222-8222-222222222222";
+ const tree=MarketplaceFiltersPanel({filters,activeGarageVehicleId:garageId});
+ const params=new URLSearchParams(resetHref(tree).slice(resetHref(tree).indexOf("?")+1,resetHref(tree).indexOf("#")));
+ assert.equal(params.get("gv"),garageId);
+ assert.equal(params.get("fit"),"1");
+ for(const key of ["cv","cy","cf","ce","vehicle","vr","vc"])assert.equal(params.has(key),false,key);
+ const hidden=nodes(tree).filter(node=>node.type==="input"&&node.props.type==="hidden").map(node=>node.props.name);
+ assert.ok(hidden.includes("gv"));
+ for(const key of ["cv","cy","cf","ce","vehicle","vr","vc"])assert.equal(hidden.includes(key),false,key);
 });

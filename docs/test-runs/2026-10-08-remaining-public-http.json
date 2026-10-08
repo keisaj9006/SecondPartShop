@@ -1,0 +1,234 @@
+{
+  "preview": "https://second-part-shop-azfppzb01-joannakwapis11-5369.vercel.app",
+  "head": "63c07a30672df950907e367a66395e9b0f48e6d8",
+  "completedAt": "2026-10-08T17:40:33.953Z",
+  "total": 45,
+  "passed": 45,
+  "results": [
+    {
+      "case": "seller signup",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "case": "anonymous forged confirmation",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "case": "buyer signup",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "case": "forgot password",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "case": "anonymous already confirmed claim",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "case": "expired confirmation",
+      "status": 307,
+      "passed": true
+    },
+    {
+      "case": "reset UI",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "case": "anonymous me",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "anonymous profile",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "unsafe returnTo signup",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "case": "malformed bearer profile",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "malformed bearer garage",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "anonymous garage",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "anonymous saved",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "anonymous saved-searches",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "malformed bearer saved",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "malformed bearer recently-viewed",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "anonymous recently-viewed",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "anonymous orders",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "malformed bearer saved-searches",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "malformed bearer me",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "malformed bearer orders",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "anonymous reviews",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "anonymous fit-feedback",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "malformed bearer reviews",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "malformed bearer fit-feedback",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "anonymous cases",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "anonymous seller/readiness",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "malformed bearer cases",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "malformed bearer seller/readiness",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "anonymous seller/listings",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "malformed bearer seller/profile",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "anonymous seller/profile",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "anonymous seller/sales",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "malformed bearer seller/listings",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "malformed bearer seller/sales",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "anonymous seller/donors",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "anonymous seller/imports",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "malformed bearer seller/donors",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "anonymous security",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "malformed bearer seller/imports",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "anonymous notifications",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "malformed bearer security",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "malformed bearer notifications",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "case": "stale persisted SSR cookie",
+      "status": 200,
+      "passed": true
+    }
+  ]
+}

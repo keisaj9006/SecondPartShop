@@ -17,21 +17,26 @@ Before starting:
 - verify the installed package is `com.secondpart.marketplace`;
 - sign in through the normal SecondPart UI with a disposable QA account;
 - Firebase server credentials must be configured in the tested environment;
-- notification permission must be requested and granted through the normal app flow;
-- the phone must register itself through the normal `/api/mobile/v1/push-devices` path;
+- notification permission must be requested and granted through Account > Notifications on this device > Enable in the hosted Android frontend;
+- the hosted phone must register itself through the cookie-authenticated Account push server actions; `/api/mobile/v1/push-devices` remains the bearer-authenticated mobile API contract;
 - the device must appear as enabled in `/admin/system/push-test`;
 - do **not** paste, seed, copy, screenshot or otherwise expose the FCM token.
 
 If the device does not appear in the admin smoke-test page, stop and record the test as `BLOCKED`. Do not create a device row manually.
 
+Operational note: the server derives the installation-binding signature from its existing service-role secret. Rotating that secret invalidates existing bindings, which fail closed during cleanup. Plan a reviewed recovery procedure to disable affected registrations and reissue their bindings before rotating; do not silently discard an unverifiable binding.
+
 ## 2. RC-FCM-01 — Permission and registration
 
 1. Start with the QA account signed in on the physical RC.
-2. Reach the normal notification opt-in flow.
+2. Open Account > Notifications on this device. Select Enable. The ordinary browser Account page does not expose Android push controls. If asked to update Android System WebView, update it and retry; no permission prompt or registration should occur before that requirement is met.
 3. Grant Android notification permission.
 4. Confirm the device appears in `/admin/system/push-test` as an enabled registration.
-5. Sign out and confirm the app follows its intended device/session cleanup behaviour.
-6. Sign in again and confirm notification registration can be restored without creating uncontrolled duplicate registrations.
+5. Sign out and confirm this installation is disabled before its authenticated session clears. Other devices on the same account remain enabled. If cleanup fails, sign-out must remain retryable with clear guidance instead of leaving an active push association behind.
+6. Sign in again and open Account. A prior opt-in for this same account may restore registration when Android permission is already granted, without prompting again. Confirm repeated restoration and token rotation do not leave duplicate enabled registrations for this installation. A different account must select Enable itself.
+
+7. Test expired-session sign-out, direct replacement-account sign-in, and a confirmation/recovery return during pending Enable. A canceled first registration response must leave only a disabled row; a delayed activation must not restore the preceding account. Native auth returns must preserve the normal verified success/failure and reset-password routes.
+8. Select Disable and confirm this installation is disabled without requesting notification permission. Check denied permission, registration failure, sign-out during Enable, and account switching between two same-origin tabs where available; no wrong-account registration or delivery should remain.
 
 PASS when permission handling is understandable, the real device registers through the application path, and no manual token manipulation is required.
 

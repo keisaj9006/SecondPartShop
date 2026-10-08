@@ -54,6 +54,10 @@ type SupportRequestInternalNoteTable={
 };
 
 type RuntimeUserFunctions={
+ save_garage_vehicle_v1:{
+  Args:{p_operation:string;p_registration?:string|null;p_make?:string|null;p_model?:string|null;p_year?:number|null;p_fuel?:string|null;p_engine?:number|null;p_colour?:string|null;p_nickname?:string|null;p_catalogue_variant_id?:string|null;p_garage_vehicle_id?:string|null};
+  Returns:{garage_vehicle_id:string;outcome:string;catalogue_variant_id:string|null}[];
+ };
  get_own_seller_profile_private:{
   Args:never;
   Returns:{
