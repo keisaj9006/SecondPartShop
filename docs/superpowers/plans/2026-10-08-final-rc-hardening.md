@@ -38,9 +38,24 @@ Provider errors must not imply success; stale sessions must not imply signed-out
 Ruling: owner explicitly requested autonomous execution of this specified hardening loop. No additional plan approval is needed for reproduced defect repairs within these constraints.
 ## Handoff boundary
 
-All safely authorized code tasks, local SQL proposal, independent review, full validation, code Preview and evidence packaging are executed. Hosted application/readback is complete under the subsequent explicit owner approval; one P0 and three P1 remain OPEN pending hosted disposable QA. PR #17 is draft/unmerged; PR #16/#10 remain unmerged. The original dirty checkout is preserved. Code verification is not launch approval.
+All safely authorized code tasks, local SQL proposal, independent review, full validation, code Preview and evidence packaging are executed. Hosted application/readback is complete under the subsequent explicit owner approval; the four SQL defects are subsequently FIXED / VERIFIED by safe hosted rollback and exact deployed-body PG17 evidence. PR #17 is draft/unmerged; PR #16/#10 remain unmerged. The original dirty checkout is preserved. Code verification is not launch approval.
 
 
 ## Owner-approved hosted repair follow-up — 8 October
 
-The exact five-function repair is applied as `20261008130523_account_deletion_checkout_fitting_serialization`. Fresh preflight matched; body/ACL readback passed; only the five intended function objects changed. Historical ledger drift was preserved. Local 56/56 and fresh PG17 63/63 regressions pass. Required hosted disposable race/authorization QA and normal destructive deletion E2E remain blocked on disposable confirmed sessions/fixtures and maintenance authorization; one P0 and three P1 remain OPEN. See [evidence](../../test-runs/2026-10-08-hosted-sql-repair.md).
+The exact five-function repair is applied as `20261008130523_account_deletion_checkout_fitting_serialization`. Fresh preflight matched; body/ACL readback passed; only the five intended function objects changed. Historical ledger drift was preserved. Local 56/56 and fresh PG17 63/63 regressions pass. The later owner-approved safe strategy completed hosted rollback authorization and exact deployed-body PG17 concurrency acceptance; normal mailbox/Auth/Storage deletion remains separate. No known P0/P1 remains in these four repaired SQL defects. See [evidence](../../test-runs/2026-10-08-hosted-sql-repair.md).
+
+## Owner-approved safer acceptance strategy — 8 October
+
+The owner rejected the committed shared-host concurrency/cleanup package and global privacy-worker execution against unrelated work. Retain the rejected harness as evidence and quarantine it behind an explicit isolated-environment guard.
+
+- [x] Rebuild shared-host acceptance as independent BEGIN / fresh UUID fixtures / one behavior / ROLLBACK scenarios, with no cleanup DELETE or COMMIT and no reused fixture rows.
+- [x] Independently review each generated scenario and its hosted trigger, SECURITY DEFINER, queue and provider dependencies before execution.
+- [x] Execute only reviewed rollback-contained hosted scenarios and separately prove every fixture UUID absent afterward.
+- [x] Freshly export all five deployed function definitions, signatures, ACLs and hashes; load exactly those definitions into isolated PostgreSQL 17.
+- [x] Run real overlapping checkout/fitting/deletion schedules, authorization, stock/identity and retry assertions against the exact deployed bodies.
+- [x] Independently reassess RC26-06/08: distinguish known-open defects, fixed/verified repairs and environment acceptance limitations. Do not retain defect severity solely because unsafe shared-host concurrency was rejected.
+- [x] Continue non-destructive product, security, Android/Play and provider-readiness QA; prepare normal-flow Auth/Storage deletion separately.
+- [ ] Update current HEAD, PR #17, evidence and the smallest remaining owner action after verification.
+
+This strategy supersedes earlier instructions requiring committed shared-host race fixtures. Existing three synthetic Auth identities are not evidence of external-mailbox confirmation. No destructive shared-host cleanup, global worker, main change, Production deployment or Stripe Live operation is authorized.

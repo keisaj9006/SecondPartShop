@@ -2,7 +2,7 @@
 
 Date: 2026-10-08. Worktree: `codex/final-rc-hardening`, based on `0c3860dfafabbd22811d7b633d3702543dcfa3b4`.
 
-Status: **owner-approved hosted repair applied and read back; required hosted disposable QA remains blocked.** See [hosted application evidence](2026-10-08-hosted-sql-repair.md). The exact candidate is [2026-10-08-deletion-checkout-guard.sql](2026-10-08-deletion-checkout-guard.sql). It deliberately remains outside the migration directory. No old migration, application source, hosted ledger, RLS policy, provider state or Production deployment was changed by this proposal.
+Status: **repair deployed and independently FIXED / VERIFIED through safe hosted rollback acceptance and exact deployed-body PostgreSQL 17 concurrency proof.** See [closure evidence](2026-10-08-safe-acceptance-independent-review.md). The proposal and pre-application narrative below are historical reproduction evidence; they do not require another shared-host concurrency run or migration approval. Normal mailbox/Auth/Storage deletion remains a separate acceptance gate.
 
 ## Root cause and impact
 

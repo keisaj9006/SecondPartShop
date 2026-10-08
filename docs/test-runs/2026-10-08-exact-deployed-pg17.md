@@ -1,6 +1,6 @@
 # Exact deployed deletion/fitting proof
 
-Status: local quarantine/integrity/regression checks PASS; exact-body PostgreSQL 17 CI execution pending. No shared-host concurrency or cleanup was executed for this proof.
+Status: exact-body isolated PostgreSQL 17 proof PASS, 67/67 tests including seven observed advisory-lock schedules. Local quarantine/integrity/regression checks PASS. No shared-host concurrency or cleanup was executed for this proof.
 
 ## Quarantine
 
@@ -36,4 +36,16 @@ This is a reduced schema, not a hosted database clone. `auth.uid`, `private.is_a
 - Export-integrity RED: missing validator and silently ignored `--deployed` were caught. GREEN: 3/3.
 - Combined local candidate/guard checks: 66/66 PASS (60 candidate SQL cases including suite parent, plus six guard/integrity cases).
 - Focused ESLint: PASS.
-- Exact deployed PG17 result, workflow URL and artifact: pending CI and independent review.
+- Independent review cleared the scoped export/loader/quarantine/workflow and separately reran all six guard/integrity checks successfully.
+
+## Executed PostgreSQL 17 evidence
+
+- Commit: `4e80738817cee87692483aaaec80b6f3854e8be4`, branch `codex/final-rc-hardening`.
+- [Workflow run 37802359979](https://github.com/keisaj9006/SecondPartShop/actions/runs/37802359979); [deletion job 113397587340](https://github.com/keisaj9006/SecondPartShop/actions/runs/37802359979/job/113397587340) completed successfully at `2026-10-08T15:39:44Z`.
+- Runtime: PostgreSQL `17.11 (Debian 17.11-1.pgdg13+2)`, matching hosted major version 17. Hosted export was from 17.6; this is not a claim of identical minor versions.
+- Result: **67 passed, 0 failed, 0 skipped, 0 cancelled** (66 subtests plus suite parent). All seven actual overlap schedules passed, including the reciprocal lock-order schedule. Each schedule required an observed advisory lock wait; no deadlock occurred.
+- The TAP log contains all five signatures, exact definition hashes and ACLs before testing, and `EXACT_HOSTED_FUNCTIONS_UNCHANGED_AFTER_TESTS` after byte-for-byte definition/owner/ACL verification.
+- [Artifact 11560633368](https://github.com/keisaj9006/SecondPartShop/actions/runs/37802359979/artifacts/11560633368), `deletion-exact-hosted-pg17`, contains TAP results and the original exported definitions. GitHub artifact SHA-256: `a25c415244a31c7a1b75da1f1d94c4099fb9a0ed9dc8c416342e3263f66f21d4`.
+- Downloaded export file SHA-256 independently matched the local read-only capture: `7163b1ba10aae8c3146f91bc9cd02d915bba4ac87a12c7a19abe8a7cbea080f2`.
+
+This isolated result supports the repaired implementation's concurrency and authorization invariants. Final defect reclassification also considers the independently reviewed hosted rollback-only acceptance suite. Full Auth/Storage deletion E2E remains a separate acceptance gate.

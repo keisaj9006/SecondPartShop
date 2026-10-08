@@ -52,7 +52,7 @@ export function fixtureReset(m){
  delete from public.orders where id in(select order_id from public.order_items where part_id='${m.part}');
  delete from public.notifications n using public.fitting_requests f where f.part_id='${m.part}' and f.garage_partner_id in('${m.garage}','${m.buyerGarage}') and n.profile_id in('${m.buyer}','${m.garageOwner}') and n.dedupe_key='fitting-request:'||f.id::text||':garage';
  delete from public.fitting_requests where part_id='${m.part}' and garage_partner_id in('${m.garage}','${m.buyerGarage}');
- 
+
  update public.seller_payment_accounts set onboarding_status='not_started',transfers_enabled=false where seller_id='${m.seller}';
  update public.parts set status='active',stock=1 where id='${m.part}';
  update public.garage_partners set status='active' where id in('${m.garage}','${m.buyerGarage}');
@@ -92,7 +92,7 @@ export function fixtureCleanup(m){
  delete from public.fitting_requests where part_id='${m.part}' and garage_partner_id in('${m.garage}','${m.buyerGarage}');
  delete from public.order_events where order_id in(select order_id from public.order_items where part_id='${m.part}');
  delete from public.orders where id in(select order_id from public.order_items where part_id='${m.part}');
- 
+
  delete from public.account_deletion_requests where id in('${m.buyerRequest}','${m.garageRequest}');
  delete from public.garage_partners where id in('${m.garage}','${m.buyerGarage}');
  delete from private.saved_search_match_queue where part_id='${m.part}';

@@ -3,7 +3,7 @@
 Date: 2026-10-08. Project: `etkupijfdznljimrfyct` (current SecondPart Preview).
 
 Status: **APPLIED / READBACK VERIFIED / HOSTED DISPOSABLE ACCEPTANCE BLOCKED**.
-Release severity remains **1 P0 and 3 P1 OPEN**, pending the owner's specified hosted disposable race and authorization evidence. No claim of zero P0/P1 or launch readiness.
+Subsequent safe acceptance closed the four repaired defects as **FIXED / VERIFIED**: zero known P0/P1 among RC26-06 and RC26-08. See [independent closure](2026-10-08-safe-acceptance-independent-review.md). This application report retains the original rollout evidence; it is not launch approval.
 
 ## Exact application
 
@@ -55,16 +55,14 @@ The PG17 tests are isolated CI tests. **They are not hosted disposable race evid
 
 [Machine-readable readback](2026-10-08-hosted-sql-repair.json) records exact signatures, ACLs, hashes and scope.
 
-## Smallest external gate
+## Subsequent safe acceptance and smallest external gate
 
-Required hosted disposable checkout/fitting race and participant authorization QA: **NOT RUN / BLOCKED** on fresh disposable authenticated test sessions and controlled fixtures. Destructive normal deletion E2E: **NOT RUN / BLOCKED** on the same dedicated confirmed QA identity plus configured Preview maintenance authorization.
+The owner rejected committed shared-host race fixtures and destructive cleanup. The replacement strategy completed **32/32 hosted rollback-only scenarios**, with all 448 fixture-count checks zero and restored profile, queue and SQL context state. **67/67 isolated PostgreSQL 17 tests** passed against a fresh export of the exact five deployed function definitions, including seven real overlap schedules. Independent review classifies the checkout P0, fitting P1 and two authorization P1 defects as FIXED / VERIFIED.
 
-The [deletion runbook](../account-deletion-e2e-runbook.md) requires “Create a new account through the normal SecondPart sign-up flow using a dedicated QA mailbox/address” and “Use the normal authenticated maintenance endpoint”. This worktree has no configured disposable session or maintenance credential. The previous Preview inventory showed CRON_SECRET scoped to rebuild-nextjs, without confirmed applicability to PR #17. No secret was decrypted or copied to manufacture that prerequisite.
+See [hosted results](2026-10-08-hosted-deletion-acceptance.md), [exact-body concurrency proof](2026-10-08-exact-deployed-pg17.md) and [independent classification](2026-10-08-safe-acceptance-independent-review.md). No committed shared-host concurrency package or global privacy worker was executed.
 
-The owner has already authorized the repair and fresh disposable deletion test. **No repeat approval is needed.** Supply a dedicated disposable QA mailbox/session through the normal flow and configure scoped maintenance authorization securely; do not paste secrets into the report or use the owner's real account. Use the established environment configuration and normal product flows. Do not bypass confirmation, manually force deletion states or manually hard-delete Auth to obtain a pass.
+Normal-flow Auth/Storage deletion remains a separate external acceptance gate. The Preview maintenance credential is now branch-scoped and stored sensitively; a request-specific route is prepared, and an empty allowed-request map prevents accidental execution until a dedicated disposable request is configured. Three synthetic Auth Admin-created identities do not prove mailbox lifecycle.
 
-Then execute every owner-required hosted checkout/deletion and fitting/deletion ordering (including waits, retries and reciprocal scheduling), retained-participant authorization, followed by request → normal worker → Storage cleanup → identity deletion/detachment → completed audit → second-pass idempotency. Verify failed sign-in, absent Auth identity and retained integrity.
+Smallest owner action: open the current PR #17 Preview, register a fresh disposable email, click its confirmation email and reply DONE. Do not reuse the owner's account or send passwords/secrets. Subsequent normal-flow deletion evidence must verify request, scoped worker, Storage cleanup, hard Auth deletion, retained integrity, failed sign-in and idempotent retry; none is inferred from SQL-only acceptance.
 
-RC26-06, related fitting/deletion P1 and both RC26-08 P1s remain OPEN until hosted disposable acceptance passes. Auth + Storage destructive E2E also remains unchecked. Other unchanged owner gates are fresh email/recovery lifecycle, owner-known DVSA derivative and UX check, Stripe Sandbox adverse/return flows, physical Android/FCM/camera/gallery/test track, signing/App Links/AAB, legal/Data Safety and marketplace supply.
-
-PR #17 remains draft/open/unmerged. The follow-up commit changes release evidence only; the final branch HEAD is recorded in the PR body and task handoff.
+Other external gates remain fresh recovery/session lifecycle, owner-known DVSA derivative, adverse Stripe Sandbox flows, physical Android/FCM/camera/gallery/test track, final signing/App Links/submitted AAB, legal/Data Safety and marketplace supply. PR #17 remains draft/open/unmerged; no main or Production change is authorized.
