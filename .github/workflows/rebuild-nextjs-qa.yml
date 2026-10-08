@@ -199,3 +199,34 @@ jobs:
           TEST_DATABASE_URL: postgresql://postgres:secondpart_evidence_test_password@127.0.0.1:5432/secondpart_evidence_rc
           PG_CLIENT_MODULE: ${{ runner.temp }}/evidence-pg/node_modules/pg/lib/index.js
         run: node scripts/verify-case-evidence-concurrency-postgres.mjs
+  deletion-checkout-concurrency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: secondpart_deletion_fixture_password
+          POSTGRES_DB: secondpart_deletion_rc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d secondpart_deletion_rc"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install locked local regression dependencies
+        run: npm ci
+      - name: Install isolated PostgreSQL test client
+        run: npm install --prefix "$RUNNER_TEMP/deletion-pg" --ignore-scripts --no-audit --no-fund pg@8.16.3
+      - name: Prove proposed deletion and checkout serialization in disposable PostgreSQL
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:secondpart_deletion_fixture_password@127.0.0.1:5432/secondpart_deletion_rc
+          PG_CLIENT_MODULE: ${{ runner.temp }}/deletion-pg/node_modules/pg/lib/index.js
+        run: node scripts/test-account-deletion-checkout-race.mjs --postgres
