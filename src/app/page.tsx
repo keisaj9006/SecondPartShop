@@ -61,9 +61,11 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
   ?getCatalogueSelection(requestedCatalogueVariant,requestedCatalogueYear,requestedCatalogueFuel,requestedCatalogueEngine).catch(()=>null)
   :Promise.resolve(null);
  const selectedCatalogue=await selectedCataloguePromise;
- const invalidSearchVehicle=Boolean(first(params.q)?.trim())&&!addVehicleMode
+ const invalidFitVehicle=!addVehicleMode&&(Boolean(first(params.q)?.trim())||first(params.fit)!=="0")
   &&(((params.cv!==undefined||params.cy!==undefined||params.cf!==undefined||params.ce!==undefined)&&activeContext.selection.kind==="none")
-   ||(activeContext.selection.kind==="catalogue"&&!selectedCatalogue));
+   ||Boolean(requestedCatalogueVariant&&!selectedCatalogue)
+   ||(params.vehicle!==undefined&&activeContext.selection.kind==="none")
+   ||(activeContext.selection.kind==="legacy"&&!legacyVehicleId));
  const invalidGarageContext=activeContext.selection.kind==="invalid-garage";
  const filters:MarketplaceFilters={
   query:first(params.q),
@@ -85,7 +87,7 @@ export default async function Home({searchParams}:{searchParams:Promise<Record<s
  };
  const [result,legacyVehicle,garagePage,matchedGarageVehicle,recentlyViewed]=await Promise.all([
   invalidGarageContext?Promise.resolve({data:[],error:"This Garage vehicle is unavailable. Select a vehicle again.",configured:true,pagination:{offset:(requestedPage-1)*pageSize,limit:pageSize,returned:0,total:null,hasMore:false,mode:"offset" as const,nextCursor:null}})
-   :invalidSearchVehicle?Promise.resolve({data:[],error:"Compatibility data is temporarily unavailable.",configured:true,pagination:{offset:(requestedPage-1)*pageSize,limit:pageSize,returned:0,total:null,hasMore:false,mode:"offset" as const,nextCursor:null}})
+   :invalidFitVehicle?Promise.resolve({data:[],error:"Compatibility data is temporarily unavailable.",configured:true,pagination:{offset:(requestedPage-1)*pageSize,limit:pageSize,returned:0,total:null,hasMore:false,mode:"offset" as const,nextCursor:null}})
    :identityOnlyFitmentUnresolved?Promise.resolve({data:[],error:null,configured:true,pagination:{offset:(requestedPage-1)*pageSize,limit:pageSize,returned:0,total:0,hasMore:false,mode:"offset" as const,nextCursor:null}})
    :getMarketplacePage(filters,{offset:(requestedPage-1)*pageSize,limit:pageSize,cursor:marketplaceCursor,lean:true}),
   legacyVehicleId?getVehicleById(legacyVehicleId):Promise.resolve(null),
