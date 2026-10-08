@@ -55,8 +55,8 @@ test("exact normalized curated identities select representative body shapes", ()
     source: "curated",
   });
   assert.deepEqual(resolveVehicleVisual({ make: "Ford", model: "Transit Custom" }), {
-    bodyType: "generic",
-    source: "generic",
+    bodyType: "van",
+    source: "curated",
   });
   assert.deepEqual(resolveVehicleVisual({ make: "Volkswagen", model: "Transporter" }), {
     bodyType: "van",
@@ -122,17 +122,17 @@ test("VehicleVisual uses local SVG, identity text, and representative accessible
   }
 });
 
-test("Renault Trafic renders a grey representative van with identity and private plate", async () => {
+test("Renault Trafic derivative renders a grey representative van with identity and private plate", async () => {
   const VehicleVisual = await loadVehicleVisual();
   const markup = renderToStaticMarkup(React.createElement(VehicleVisual, {
     make: "RENAULT",
-    model: "Trafic",
+    model: "TRAFIC LH30 B-NESS+ ENERGY DCI",
     year: 2019,
     colour: "grey",
     registration: " ab12 cde ",
   }));
-  assert.match(markup, /aria-label="Representative van preview for grey RENAULT Trafic 2019"/);
-  assert.match(markup, /RENAULT Trafic/);
+  assert.match(markup, /aria-label="Representative van preview for grey RENAULT TRAFIC LH30 B-NESS\+ ENERGY DCI 2019"/);
+  assert.match(markup, /RENAULT TRAFIC LH30 B-NESS\+ ENERGY DCI/);
   assert.match(markup, /2019 · grey/);
   assert.match(markup, /Representative van visual for confirmation only/);
   assert.match(markup, /AB12CDE/);
@@ -151,4 +151,33 @@ test("compact previews retain a representative accessible label", async () => {
   }));
   assert.match(markup, /aria-label="Representative suv preview for Nissan Qashqai 2022"/);
   assert.match(markup, /Illustrative representative vehicle shape/);
+});
+
+for (const [make, model] of [
+  ["RENAULT", "TRAFIC"],
+  ["RENAULT", "TRAFIC LH30"],
+  ["RENAULT", "TRAFIC LH30 B-NESS+ ENERGY DCI"],
+  ["Ford", "Transit 350 L3H2 TREND ECOBLUE"],
+  ["Ford", "Transit Custom 280 LIMITED"],
+  ["Volkswagen", "Transporter T30 STARTLINE TDI"],
+]) test(`curated van family recognizes the bounded derivative ${make} / ${model}`, () => {
+  assert.deepEqual(resolveVehicleVisual({make, model}), {bodyType:"van", source:"curated"});
+});
+
+test("curated derivative matching uses modelFamily as well as model without changing identity", () => {
+  assert.deepEqual(resolveVehicleVisual({make:"Renault", model:"Unspecified derivative", modelFamily:"TRAFIC LH30"}), {bodyType:"van", source:"curated"});
+  assert.deepEqual(resolveVehicleVisual({make:"Renault", model:"TRAFIC LH30", modelFamily:"Commercial vehicles"}), {bodyType:"van", source:"curated"});
+});
+
+test("supported structured body metadata overrides a curated van derivative", () => {
+  assert.deepEqual(resolveVehicleVisual({make:"RENAULT", model:"TRAFIC LH30 B-NESS+ ENERGY DCI", structuredBodyType:"SUV"}), {bodyType:"suv", source:"structured"});
+});
+
+test("unrelated makes, leading text and unbounded lookalike families stay generic", () => {
+  for (const [make,model] of [
+    ["Unknown","Delivery van"], ["Toyota","TRAFIC LH30"], ["Renault Sport","TRAFIC LH30"],
+    ["Renault","TRAFICITY LH30"], ["Renault","XTRAFIC LH30"], ["Renault","New TRAFIC LH30"],
+    ["Ford","TRANSITION 350"], ["Ford","XTRANSIT 350"], ["Ford","Old TRANSIT 350"],
+    ["Volkswagen","TRANSPORTERS T30"], ["Volkswagen","XTRANSPORTER T30"],
+  ]) assert.deepEqual(resolveVehicleVisual({make,model}), {bodyType:"generic",source:"generic"}, `${make}/${model}`);
 });

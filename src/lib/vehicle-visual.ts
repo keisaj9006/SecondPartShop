@@ -32,6 +32,14 @@ const curatedBodies: Readonly<Record<string, VehicleBodyType>> = {
 const normalizeToken = (value: string | null | undefined) =>
   value?.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "") ?? "";
 
+// Only these curated make/family pairs admit derivative labels after a word boundary.
+const curatedVanFamilies: Readonly<Record<string, string>> = {
+  FORD: "TRANSIT",
+  RENAULT: "TRAFIC",
+  VOLKSWAGEN: "TRANSPORTER",
+};
+const normalizeFamilyLabel = (value: string | null | undefined) =>
+  value?.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim() ?? "";
 export function resolveVehicleVisual(input: VehicleVisualInput): VehicleVisualResolution {
   const structured = normalizeToken(input.structuredBodyType).toLowerCase() as VehicleBodyType;
   if (supportedBodyTypes.has(structured)) {
@@ -41,7 +49,12 @@ export function resolveVehicleVisual(input: VehicleVisualInput): VehicleVisualRe
   const make = normalizeToken(input.make);
   const family = normalizeToken(input.modelFamily);
   const model = normalizeToken(input.model);
-  const curated = curatedBodies[`${make}|${family}`] ?? curatedBodies[`${make}|${model}`];
+  const canonicalVanFamily = curatedVanFamilies[make];
+  const isCuratedVanFamily = canonicalVanFamily && [input.modelFamily, input.model].some(value => {
+    const label = normalizeFamilyLabel(value);
+    return label === canonicalVanFamily || label.startsWith(canonicalVanFamily + " ");
+  });
+  const curated = curatedBodies[`${make}|${family}`] ?? curatedBodies[`${make}|${model}`] ?? (isCuratedVanFamily ? "van" : undefined);
   return curated
     ? { bodyType: curated, source: "curated" }
     : { bodyType: "generic", source: "generic" };

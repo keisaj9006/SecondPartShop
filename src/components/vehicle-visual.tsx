@@ -40,9 +40,10 @@ function bodyPaths(bodyType: VehicleBodyType, body: string) {
       </>;
     case "van":
       return <>
-        <path d="M48 137V70c0-13 9-22 22-22h230c18 0 31 7 43 21l51 58 55 9c17 3 27 15 29 32l1 16H45v-29c0-17 1-28 3-38Z" fill={body} />
-        <path d="M72 59h101v69H72Zm116 0h100c12 0 21 5 30 15l45 54H188Z" fill="#bfd1d4" />
-        <path d="M183 57v76M72 132h285M308 136v44" fill="none" />
+        <path d="M45 158V48c0-13 10-23 23-23h228c14 0 26 6 35 17l50 75 61 11c23 4 36 16 39 35l2 17H44v-22Z" fill={body} />
+        <path d="M292 43h12c9 0 16 4 21 12l36 55h-69Z" fill="#bfd1d4" />
+        <rect x="72" y="48" width="192" height="83" rx="5" fill="none" opacity=".5" />
+        <path d="M279 40v122M290 119h82M376 126v40" fill="none" />
       </>;
     case "generic":
       return <>
@@ -72,6 +73,9 @@ export function VehicleVisual({
   const resolved = bodyType && bodySource
     ? { bodyType, source: bodySource }
     : resolveVehicleVisual({ make, model, modelFamily, structuredBodyType });
+  const isVan = resolved.bodyType === "van";
+  const rearWheel = isVan ? 120 : 162;
+  const frontWheel = isVan ? 414 : 403;
   const reg = readable(registration)?.replace(/\s+/g, "").toUpperCase() ?? null;
   const details = [variant, engine, fuel].filter((value): value is string => Boolean(readable(value)));
   const identity = [colour, make, model, String(year)].filter(Boolean).join(" ");
@@ -81,7 +85,7 @@ export function VehicleVisual({
       <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[.12em] text-[#63706a]"><CarFront size={13} />Vehicle preview</span>
       <div className="flex items-center gap-2">
         {colour && <span className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white px-2 py-1 text-[10px] font-black uppercase"><span className="h-2.5 w-2.5 rounded-full border border-black/15" style={{ backgroundColor: paint.body }} />{colour}</span>}
-        {reg && <span className="rounded border border-black/20 bg-[#f6df3e] px-2 py-0.5 font-mono text-[10px] font-black tracking-[.08em] text-black">{reg}</span>}
+        {reg && <span className="rounded border border-black/20 bg-[#f6df3e] px-2 py-0.5 font-mono text-[11px] font-black tracking-[.08em] text-black">{reg}</span>}
       </div>
     </div>
 
@@ -90,13 +94,13 @@ export function VehicleVisual({
       <ellipse cx="258" cy="190" rx="191" ry="18" fill="rgba(15,23,42,.10)" />
       <g stroke="#16211e" strokeWidth="4" strokeLinejoin="round">{bodyPaths(resolved.bodyType, paint.body)}</g>
       <path d="M82 159H439l-6 10H77Z" fill={paint.shade} opacity=".8" />
-      <path d="M104 111c-11 7-20 18-26 34M420 115c22 3 38 11 48 24" stroke={paint.highlight} strokeWidth="4" strokeLinecap="round" opacity=".65" />
-      <path d="M57 143h48" stroke="#f8fafc" strokeWidth="9" strokeLinecap="round" />
+      <path d={isVan ? "M76 34h184M67 151h386" : "M104 111c-11 7-20 18-26 34M420 115c22 3 38 11 48 24"} stroke={paint.highlight} strokeWidth="4" strokeLinecap="round" opacity=".65" />
+      <path d={isVan ? "M51 128v22" : "M57 143h48"} stroke={isVan ? "#c2413d" : "#f8fafc"} strokeWidth="9" strokeLinecap="round" />
       <path d="M432 143h48" stroke="#f4d44d" strokeWidth="9" strokeLinecap="round" />
-      <path d="M171 113h38M293 113h38" stroke="#16211e" strokeWidth="3" strokeLinecap="round" opacity=".5" />
-      <path d="M109 172c4-30 24-49 53-49s50 19 54 49M350 172c4-30 24-49 53-49s50 19 54 49" fill="none" stroke="#16211e" strokeWidth="5" />
-      <circle cx="162" cy="171" r="31" fill="#171c1b" /><circle cx="162" cy="171" r="17" fill="#9aa4aa" /><circle cx="162" cy="171" r="6" fill="#dce2e5" />
-      <circle cx="403" cy="171" r="31" fill="#171c1b" /><circle cx="403" cy="171" r="17" fill="#9aa4aa" /><circle cx="403" cy="171" r="6" fill="#dce2e5" />
+      <path d={isVan ? "M238 119h23M319 123h22" : "M171 113h38M293 113h38"} stroke="#16211e" strokeWidth="3" strokeLinecap="round" opacity=".5" />
+      <path d={`M${rearWheel-53} 172c4-30 24-49 53-49s50 19 54 49M${frontWheel-53} 172c4-30 24-49 53-49s50 19 54 49`} fill="none" stroke="#16211e" strokeWidth="5" />
+      <circle cx={rearWheel} cy="171" r="31" fill="#171c1b" /><circle cx={rearWheel} cy="171" r="17" fill="#9aa4aa" /><circle cx={rearWheel} cy="171" r="6" fill="#dce2e5" />
+      <circle cx={frontWheel} cy="171" r="31" fill="#171c1b" /><circle cx={frontWheel} cy="171" r="17" fill="#9aa4aa" /><circle cx={frontWheel} cy="171" r="6" fill="#dce2e5" />
       {reg && <g><rect x="238" y="148" width="72" height="19" rx="3" fill="#f6df3e" stroke="#17221f" strokeWidth="1.5" /><text x="274" y="161.5" textAnchor="middle" fontSize="9" fontFamily="monospace" fontWeight="800" fill="#111">{reg.slice(0, 8)}</text></g>}
     </svg>
 
