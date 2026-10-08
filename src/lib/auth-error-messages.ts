@@ -40,6 +40,9 @@ export function authErrorMessage(error:AuthProviderError,context:AuthErrorContex
  if(context==="signin"&&(value.code==="invalid_credentials"||value.code==="invalid_login_credentials"||/invalid login credentials/.test(value.message))){
   return "Your email or password is incorrect. Check them and try again.";
  }
+ if(context==="signin"&&value.code==="email_not_confirmed" ){
+  return "Check your confirmation email before signing in, or use Resend confirmation to request a new link.";
+ }
  if(context==="signup")return genericMessages.signup;
  if(context==="resend-confirmation")return genericMessages[context];
  if(context==="password-reset")return genericMessages[context];

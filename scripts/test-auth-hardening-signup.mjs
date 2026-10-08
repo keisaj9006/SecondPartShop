@@ -160,3 +160,24 @@ test("sign-in, resend, reset, and password-update actions never expose provider 
  assert.equal(calls.reset.length,1);
  assert.equal(calls.update.length,1);
 });
+
+test("unconfirmed sign-in gives confirmation guidance without provider diagnostics",async()=>{
+ const diagnostic="Email not confirmed: private auth shard 7f31";
+ const {actions,calls}=loadAuthActions({signInError:{status:400,code:"email_not_confirmed",message:diagnostic}});
+ const result=await actions.signIn({status:"idle"},formData({email:"buyer@example.test",password:"password123"}));
+ assert.equal(result.status,"error");
+ assert.match(result.message,/confirmation email/i);
+ assert.match(result.message,/resend confirmation/i);
+ assert.equal(result.message.includes("7f31"),false);
+ assert.equal(result.message.includes("buyer@example.test"),false);
+ assert.doesNotMatch(result.message,/account exists|registered|is unconfirmed/i);
+ assert.equal(calls.signIn.length,1);
+});
+
+test("confirmation guidance is sign-in scoped and rate limits remain authoritative",()=>{
+ const {authErrorMessage}=moduleFrom("src/lib/auth-error-messages.ts");
+ assert.match(authErrorMessage({code:"EMAIL_NOT_CONFIRMED"},"signin"),/resend confirmation/i);
+ assert.match(authErrorMessage({code:"email_not_confirmed",status:429},"signin"),/too many sign-in attempts/i);
+ assert.equal(authErrorMessage({code:"email_not_confirmed"},"signup"),"We could not create your account right now. Please try again.");
+ assert.equal(authErrorMessage({code:"unknown",message:"Email not confirmed: private 7f31"},"signin"),"We could not sign you in right now. Please try again.");
+});
