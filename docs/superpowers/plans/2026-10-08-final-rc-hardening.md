@@ -38,4 +38,9 @@ Provider errors must not imply success; stale sessions must not imply signed-out
 Ruling: owner explicitly requested autonomous execution of this specified hardening loop. No additional plan approval is needed for reproduced defect repairs within these constraints.
 ## Handoff boundary
 
-All safely authorized code tasks, local SQL proposal, independent review, full validation, code Preview and evidence packaging are executed. Hosted application is NOT executed: one P0 and three P1 database defects remain owner-gated. PR #17 is draft/unmerged; PR #16/#10 remain unmerged. The original dirty checkout is preserved. Code verification is not launch approval.
+All safely authorized code tasks, local SQL proposal, independent review, full validation, code Preview and evidence packaging are executed. Hosted application/readback is complete under the subsequent explicit owner approval; one P0 and three P1 remain OPEN pending hosted disposable QA. PR #17 is draft/unmerged; PR #16/#10 remain unmerged. The original dirty checkout is preserved. Code verification is not launch approval.
+
+
+## Owner-approved hosted repair follow-up — 8 October
+
+The exact five-function repair is applied as `20261008130523_account_deletion_checkout_fitting_serialization`. Fresh preflight matched; body/ACL readback passed; only the five intended function objects changed. Historical ledger drift was preserved. Local 56/56 and fresh PG17 63/63 regressions pass. Required hosted disposable race/authorization QA and normal destructive deletion E2E remain blocked on disposable confirmed sessions/fixtures and maintenance authorization; one P0 and three P1 remain OPEN. See [evidence](../../test-runs/2026-10-08-hosted-sql-repair.md).

@@ -1,6 +1,6 @@
 # Final RC hardening — 8 October 2026
 
-Status: VERIFIED CODE / OWNER-GATED RELEASE. The safely automatable code work is verified; the hardening phase does not satisfy its zero-known-P0/P1 release target while the reviewed hosted SQL remains unapplied.
+Status: VERIFIED CODE / OWNER-GATED RELEASE. The safely automatable code work is verified; the hardening phase does not satisfy its zero-known-P0/P1 release target until the required hosted disposable QA passes. The owner-approved five-function repair was applied as `20261008130523_account_deletion_checkout_fitting_serialization`; see [hosted application evidence](2026-10-08-hosted-sql-repair.md).
 
 ## Verified starting state and scope
 
@@ -23,11 +23,11 @@ Status: VERIFIED CODE / OWNER-GATED RELEASE. The safely automatable code work is
 | RC26-03 | P2 | Saved-search web allowlist dropped `fit=0/1`, changing intent when reopened. RED 2; fixed in `0504546`. |
 | RC26-04 | P1 | Hosted native mode ignored supported HTTPS completion App Links on warm/cold launch. RED 10; narrow same-origin completion routing fixed in `62362de` with regression and final CI verification. |
 | RC26-05 | P1 | Cookie-free mobile-auth return URLs falsely displayed Email confirmed / Password updated. Reproduced on real Preview and page harness; RED 7; provider-backed email status and neutral password-return copy fixed in `ee3aa86`. Actual new Preview confirms neither false success appears. |
-| RC26-06 | P0 / related P1 | Claimed deletion allows a new payable checkout after final blocker check, then deletes buyer identity. Equivalent fitting creation race affects buyer and target garage owner. Actual worker + SQL reproduced both windows. Five-function proposal includes serialized creation/claim; hosted approval/application remains required. |
+| RC26-06 | P0 / related P1 | Claimed deletion allows a new payable checkout after final blocker check, then deletes buyer identity. Equivalent fitting creation race affects buyer and target garage owner. Actual worker + SQL reproduced both windows. Five-function proposal includes serialized creation/claim; hosted repair applied and exact readback passed; disposable hosted race QA remains required. |
 | RC26-07 | P1 | Hosted Android never loads the legacy push adapter or exposes registration, and native Header removal makes existing logout unreachable. Fixed in `62362de`: direct injected plugin listeners, explicit Account opt-in/disable and logout, signed installation binding, disabled staging/CAS activation and coordinated native auth returns. Review caught and repaired stale-account, callback, stage-overwrite and overlapping account-change races before deployment. |
-| RC26-08 | P1 | SQL NULL comparison permits unrelated callers to respond to retained ownerless fitting requests or message requests with a detached participant. Actual-function reproductions; exact null-safe response/message replacements included in unapplied proposal. |
+| RC26-08 | P1 | SQL NULL comparison permits unrelated callers to respond to retained ownerless fitting requests or message requests with a detached participant. Actual-function reproductions; exact null-safe response/message replacements applied in the approved hosted migration; required disposable authorization QA remains pending. |
 
-The SQL candidate and [rollout/preflight evidence](2026-10-08-deletion-checkout-race.md) remain outside migrations. It preserves current grants and RLS and replaces only five named functions. All seven captured hosted bodies match their checked-in bases. Same-day counters found zero detached active-order buyers, zero detached active-fitting buyers, zero requests with detached garage owners, and zero deletion requests processing; this is a point-in-time exposure check, not proof of historical absence.
+The SQL candidate and [rollout/preflight evidence](2026-10-08-deletion-checkout-race.md) remain outside migrations. It preserves current grants and RLS and replaces only five named functions. Before application, all seven captured hosted bodies matched their checked-in bases; after application, all five replacement bodies match the approved repair, while the two control functions are unchanged. Same-day counters found zero detached active-order buyers, zero detached active-fitting buyers, zero requests with detached garage owners, and zero deletion requests processing; this is a point-in-time exposure check, not proof of historical absence.
 
 ## Coverage and honest boundaries
 
@@ -38,14 +38,14 @@ The SQL candidate and [rollout/preflight evidence](2026-10-08-deletion-checkout-
 | Search / product | Six public listings render; quantity-one product exposes stock, provenance, explicit fit evidence and Sign in to buy, without inventing a fit guarantee. Plain search responds. Isolated scale checks below. | No provider-backed purchase inferred from read-only browse. |
 | Seller / CSV / images | Full suite covers existing seller role policy, malformed/5,000-row CSV/price/transport and image decode, dimensions and MIME rejection behavior. | Fresh signed-in listing/import/Storage lifecycle is unsigned without configured disposable fixtures. |
 | Commerce / cases / reviews / messages | 196 focused local commerce/security tests plus isolated real PG17 stock, dispute-reversal and evidence concurrency. No new provider transaction executed. | Adverse Stripe browser flows, replay/dispute/transfer recovery and fresh authenticated cross-role execution remain distinct provider gates. |
-| Security / RLS | Twelve cookie-free private mobile endpoints return 401, unauthorized, no-store. All public base tables have RLS enabled. Retained-fitting authorization bugs reproduced and proposal tested. | Hosted proposal unapplied; advisor warnings and account configuration below remain explicit. |
-| Account deletion | Exact worker/SQL reproduction; 56/56 local proposal tests and 63/63 real PG17 cases including seven overlapping schedules. | Owner approval, refreshed hosted preflight/application, disposable Auth + Storage destructive E2E and retention sign-off. |
+| Security / RLS | Twelve cookie-free private mobile endpoints return 401, unauthorized, no-store. All public base tables have RLS enabled. Retained-fitting authorization bugs reproduced and proposal tested. | Hosted repair applied; disposable participant authorization QA, advisor warnings and account configuration remain explicit. |
+| Account deletion | Exact worker/SQL reproduction; 56/56 local proposal tests and 63/63 real PG17 cases including seven overlapping schedules. | Hosted preflight/application/readback passed. Disposable hosted race QA, Auth + Storage destructive E2E and retention sign-off remain required. |
 | Responsive / accessibility | Signup DOM has no horizontal overflow at measured 320, 360, 390, 430, 768, 1024, 1280 and 1440 widths, height 480. Named controls and buyer/seller selection inspected. | This is a measured page sample, not every screen, screen-reader or physical keyboard/device sign-off. Browser automation had intermittent timeouts. |
 | Android / Play | 44-scenario static validator; HTTPS completion regression; native push/identity repair independently reviewed; [Android dry run](https://github.com/keisaj9006/SecondPartShop/actions/runs/37775293390) passed on `d017345`. | Actual signed device/test track, camera/gallery, app-link returns, FCM delivery and submitted AAB remain owner gates. |
 
 ## Security and performance evidence
 
-Read-only Supabase security advisors: 11 INFO RLS no-policy internal tables (deny by default), 16 anonymous and 68 authenticated SECURITY DEFINER warnings requiring intentional ownership/authorization inspection, and disabled leaked-password protection. No blanket grant revocation or RLS weakening. Free-to-Pro+ leaked-password configuration remains a provider/owner gate. This is not an unconditional security PASS while RC26-06/08 are unapplied.
+Read-only Supabase security advisors: 11 INFO RLS no-policy internal tables (deny by default), 16 anonymous and 68 authenticated SECURITY DEFINER warnings requiring intentional ownership/authorization inspection, and disabled leaked-password protection. No blanket grant revocation or RLS weakening. Free-to-Pro+ leaked-password configuration remains a provider/owner gate. This is not an unconditional security PASS while RC26-06/08 hosted disposable acceptance remains unverified.
 
 Read-only performance advisor reports 66 unused-index INFO findings. Small QA statistics do not justify index deletion. Secret-format scan inspected 936 tracked files and 53 local client bundles; the only match was the explicitly synthetic nonfunctional Supabase key in the monitoring-redaction test. No real secret or private key match appeared; this scan is not proof against every possible secret format.
 
@@ -85,7 +85,7 @@ This evidence document is committed after the verified code. Its documentation-o
 
 ## Remaining severity and files
 
-Hosted remaining: **one P0** (checkout/deletion identity loss) and **three P1 defects** (fitting creation/deletion race, NULL-owner fitting response authority, NULL-participant message authority). All are addressed by the five-function local proposal, all remain open until approved application and hosted verification. Do not execute destructive deletion acceptance before that repair.
+Hosted remaining: **one P0** (checkout/deletion identity loss) and **three P1 defects** (fitting creation/deletion race, NULL-owner fitting response authority, NULL-participant message authority). All five repairs are now applied and read back exactly. These defects remain OPEN pending the owner-required hosted disposable race/authorization QA; destructive Auth + Storage E2E also remains unsigned. See [hosted application evidence](2026-10-08-hosted-sql-repair.md).
 
 P2: malformed native completion order `..` can normalize to the protected Account route rather than an invalid-order page; no payment state mutation or authorization bypass. Four pre-existing lint warnings remain. No unrelated future features were added.
 
@@ -95,7 +95,7 @@ Signing-secret rotation invalidates installation cookies; follow the FCM runbook
 
 ## Exact remaining owner / external gates
 
-1. Approve the exact five-function SQL candidate after final evidence; refresh hosted definitions/ACL/schema/state, apply only its intentional new migration boundary atomically, read back and run disposable deletion/provider QA. No ledger repair or unrelated pending migrations.
+1. Hosted approval, refreshed preflight, atomic application and exact readback are complete. Supply fresh confirmed disposable QA sessions/fixtures and the configured Preview maintenance authorization for required hosted races and normal destructive deletion E2E. No second SQL approval is needed.
 2. One fresh external-mailbox buyer/seller confirmation and recovery lifecycle on the approved Preview allowlist, yielding disposable signed-in sessions for remaining authenticated workflows. Do not reuse or delete the owner's account.
 3. Owner-known DVSA vehicle/derivative confirmation and short critical visual check; no registrations copied into public fixtures or logs.
 4. Stripe Sandbox browser-return/adverse flow and configured test fixtures; real FCM runtime inputs/delivery and physical Android camera/gallery, returns and test-track acceptance.
