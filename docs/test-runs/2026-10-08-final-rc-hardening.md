@@ -2,6 +2,11 @@
 
 Status: VERIFIED RC REPAIRS / EXTERNAL RELEASE GATES. The reviewed RC26 defect register now has zero known P0 and zero known P1 defects. The deployed five-function repair passed 32/32 safe hosted rollback scenarios and 67/67 isolated PostgreSQL 17 tests using exact freshly exported hosted definitions, with independent review. Normal mailbox/Auth/Storage deletion, provider and physical-device acceptance remain separate release gates.
 
+## Remaining automation continuation — 8 October 2026
+
+The owner requested all safe automation before manual QA. Fresh coverage found a new P1, RC26-09: sold-part public RLS hid the part join and silently removed ongoing buyer cases. The caller-authorized page now resolves only missing purchased-part title/slug, with explicit relationship checks and unavailable-data errors. Thirteen actual-handler regressions pass. Saved-search read mapping now preserves fit intent; native dot-segment completion, App Links fingerprint formats and ignored-webhook push scheduling are also repaired. Independent affected-change review passed 95 tests. Final local suite passed 1,225 tests; lint has zero errors/four existing warnings, typecheck/build, all 14 validators and production dependency audit pass. Exact integrated CI passes all seven jobs and 1,246 tests; Preview HTTP checks pass 45/45. [The continuation checkpoint](2026-10-08-remaining-rc-checkpoint.md) records exact code SHA, deployments and final severity.
+
+See [Auth/browser/integration](2026-10-08-remaining-auth-browser-integration.md), [product journey coverage](2026-10-08-remaining-product-automation.md), [independent security/performance review](2026-10-08-remaining-security-performance.md), and [compact owner confirmation pack](2026-10-08-compact-owner-pack.md). Adapter/provider/artifact evidence is distinguished from hosted persistence and physical-device acceptance. No destructive shared-host package or global privacy worker was executed.
 ## Verified starting state and scope
 
 - Original checkout: detached `66b94bf6d1c9b160dacf9e312925a9c1cd2d3c6c` with unrelated dirty changes, preserved untouched.
@@ -87,7 +92,7 @@ This evidence document is committed after the verified code. Its documentation-o
 
 Known remaining defects in the reviewed RC26 scope: **P0: 0; P1: 0**. Independent review classified RC26-06 checkout/fitting serialization and both RC26-08 retained-participant authorization defects as FIXED / VERIFIED. [Independent closure evidence](2026-10-08-safe-acceptance-independent-review.md). Full normal-flow Auth + Storage deletion remains an external acceptance gate, not evidence that these repaired defects are still known-open.
 
-P2: malformed native completion order `..` can normalize to the protected Account route rather than an invalid-order page; no payment state mutation or authorization bypass. Four pre-existing lint warnings remain. No unrelated future features were added.
+The native dot-segment P2 is repaired in the continuation. Four pre-existing lint warnings remain. The latest continuation checkpoint and compact owner pack supersede the historical owner steps below; no unrelated future features were added.
 
 Changed product areas/files: `src/app/page.tsx`, marketplace API, saved-search action and vehicle-context persistence; mobile completion page; native App mode, native push/settings/sign-out/continuation helpers; Account/auth actions and routes; shared `src/lib/auth-return.ts` and signed device-binding helpers. Regression scripts, the QA workflow, Android/FCM runbooks, scale/Preview JSON and release evidence changed alongside them. [Complete file diff](https://github.com/keisaj9006/SecondPartShop/pull/17/files).
 

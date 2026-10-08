@@ -1,0 +1,55 @@
+{
+  "account": "acct_1UOKMWKAOBtWLkgp",
+  "livemode": false,
+  "runId": "rc26-stripe-20261008-isolated",
+  "completed_at": "2026-10-08T17:38:38.126Z",
+  "mutations": [
+    {
+      "resource": "/v1/products",
+      "idempotency": "rc26-stripe-20261008-isolated-anchor",
+      "test_mode_verified": true,
+      "webhook_endpoints": 0
+    },
+    {
+      "resource": "/v1/refunds",
+      "idempotency": "rc26-stripe-20261008-isolated-refund",
+      "test_mode_verified": true,
+      "webhook_endpoints": 0
+    },
+    {
+      "resource": "/v1/refunds",
+      "idempotency": "rc26-stripe-20261008-isolated-refund",
+      "test_mode_verified": true,
+      "webhook_endpoints": 0
+    }
+  ],
+  "records": [
+    {
+      "name": "test-mode-zero-endpoints-anchor",
+      "status": "passed",
+      "provider": {
+        "id": "prod_VP9RBYWEgVkE3T",
+        "object": "product",
+        "livemode": false,
+        "metadata": {
+          "qa_run_id": "rc26-stripe-20261008-isolated"
+        }
+      }
+    },
+    {
+      "name": "refund-idempotency",
+      "status": "passed",
+      "provider": {
+        "id": "re_3UOL8yKAOBtWLkgp1JTwacyC",
+        "object": "refund",
+        "status": "succeeded",
+        "amount": 500,
+        "currency": "gbp",
+        "metadata": {
+          "qa_run_id": "rc26-stripe-20261008-isolated"
+        }
+      },
+      "provider_refund_count": 1
+    }
+  ]
+}
