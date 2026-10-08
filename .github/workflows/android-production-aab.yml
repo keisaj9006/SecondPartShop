@@ -175,6 +175,8 @@ jobs:
           chmod +x gradlew
           ./gradlew bundleRelease --no-daemon
 
+      - name: Audit bundle native libraries and derived APK for 16 KB pages
+        run: bash scripts/audit-android-bundle-16kb.sh android/app/build/outputs/bundle/release/app-release.aab android-16kb-evidence.json
       - name: Verify merged Release permissions
         run: node scripts/verify-android-release-manifest.mjs
 
@@ -218,5 +220,6 @@ jobs:
             android-release-permissions.txt
             android-release-evidence.json
             android-release-evidence.txt
+            android-16kb-evidence.json
           if-no-files-found: error
           retention-days: 30

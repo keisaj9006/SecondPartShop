@@ -15,6 +15,9 @@ on:
       - "scripts/verify-android-brand-assets.mjs"
       - "scripts/verify-android-release-manifest.mjs"
       - "scripts/create-android-release-evidence.mjs"
+      - "scripts/audit-android-bundle-16kb.sh"
+      - "scripts/verify-android-16kb.mjs"
+      - "scripts/test-android-16kb.mjs"
       - "scripts/write-ci-google-services.mjs"
       - ".github/workflows/android-production-aab.yml"
       - ".github/workflows/android-release-check.yml"
@@ -144,6 +147,8 @@ jobs:
           chmod +x gradlew
           ./gradlew bundleRelease --no-daemon
 
+      - name: Audit bundle native libraries and derived APK for 16 KB pages
+        run: bash scripts/audit-android-bundle-16kb.sh android/app/build/outputs/bundle/release/app-release.aab android-16kb-evidence.json
       - name: Verify merged Release permissions
         run: node scripts/verify-android-release-manifest.mjs
 
@@ -185,3 +190,4 @@ jobs:
             android-release-permissions.txt
             android-release-evidence.json
             android-release-evidence.txt
+            android-16kb-evidence.json

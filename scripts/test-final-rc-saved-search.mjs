@@ -25,3 +25,19 @@ test('saving without a fit override retains default fit ON and rejects unrelated
  assert.equal(saved.search_params.fit,undefined);assert.equal(saved.search_params.admin,undefined);assert.equal(saved.search_params.unexpected,undefined);
  assert.equal(context.resolveVehicleContext(new URLSearchParams(saved.search_params),{viewerId:'viewer'}).selection.fitOnly,true);
 });
+
+async function readSavedSearch(saved){
+ const result={data:[{id:'search-fixture',name:saved.name,search_params:saved.search_params,created_at:'2026-10-08T00:00:00Z'}],error:null};
+ const query={select(){return this;},eq(){return this;},order(){return this;},range:async()=>result};
+ const subject=load('src/lib/data/buyer-account.ts',{'server-only':{},'@/lib/supabase/server':{createSupabaseServerClient:async()=>({from:()=>query})},'@/lib/data/marketplace':{getListingCardsByIds:async()=>[]}});
+ return (await subject.getSavedSearchesPage('viewer')).items[0];
+}
+for(const fit of ['0','1'])test(`saved-search database read and Run search URL retain explicit fit=${fit}`,async()=>{
+ const {saved}=await harness().save({q:'alternator',cv:VARIANT,cy:'2020',fit,admin:'true'});
+ const item=await readSavedSearch(saved);
+ const runSearchUrl=new URL('/?'+new URLSearchParams(item.params)+'#marketplace','https://preview.example.test');
+ assert.equal(runSearchUrl.searchParams.get('fit'),fit,'database read must preserve saved fit intent before navigation');
+ assert.equal(runSearchUrl.searchParams.has('admin'),false);
+ const reopened=context.resolveVehicleContext(runSearchUrl.searchParams,{viewerId:'viewer'});
+ assert.equal(reopened.selection.kind,'catalogue');assert.equal(reopened.selection.fitOnly,fit==='1');
+});

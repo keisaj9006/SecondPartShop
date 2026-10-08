@@ -98,3 +98,12 @@ test("custom-scheme completion routing continues to refresh authoritative server
   assert.deepEqual(cold.calls,[["replace",href],["refresh"]]);
  }
 });
+
+for(const order of ['.','..'])test(`native completion rejects dot-segment order ${order} before navigation`,async()=>{
+ for(const prefix of ['secondpart://checkout','https://secondpart.example/checkout/mobile-complete']){
+  const url=prefix+'?order='+encodeURIComponent(order);
+  const warm=await nativeHarness();warm.open(url);
+  assert.deepEqual(warm.calls,[["replace","/account/orders"],["refresh"]]);
+  const cold=await nativeHarness(url);assert.deepEqual(cold.calls,[["replace","/account/orders"],["refresh"]]);
+ }
+});

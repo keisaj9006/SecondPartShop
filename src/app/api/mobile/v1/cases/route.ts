@@ -1,3 +1,4 @@
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isUuid } from "@/lib/identifiers";
 import { mobileJson,mobileOptions,requireMobileUser } from "@/lib/mobile-api";
 import { schedulePushDispatch } from "@/lib/push/schedule";
@@ -23,7 +24,7 @@ export async function GET(request:Request){
 
  let query=supabase
   .from("transaction_cases")
-  .select("id,order_item_id,case_type,reason,details,status,previous_fulfilment_status,seller_response,resolution,resolution_notes,return_tracking_carrier,return_tracking_number,return_authorized_at,return_shipped_at,return_received_at,provider_dispute_status,provider_dispute_reason,created_at,resolved_at,order_items!inner(parts(title,slug),sellers(business_name,slug),orders!inner(buyer_id))")
+  .select("id,order_item_id,case_type,reason,details,status,previous_fulfilment_status,seller_response,resolution,resolution_notes,return_tracking_carrier,return_tracking_number,return_authorized_at,return_shipped_at,return_received_at,provider_dispute_status,provider_dispute_reason,created_at,resolved_at,order_items!inner(part_id,parts(title,slug),sellers(business_name,slug),orders!inner(buyer_id))")
   .eq("order_items.orders.buyer_id",user.id)
   .order("created_at",{ascending:false})
   .order("id",{ascending:false});
@@ -35,13 +36,34 @@ export async function GET(request:Request){
  const hasMore=raw.length>limit;
  const page=raw.slice(0,limit);
 
- const items=page.flatMap(row=>{
+ // Authorize the case page with the caller's RLS client before resolving the
+ // minimal identity of purchased parts hidden by public listing visibility.
+ if(page.some(row=>{
+  const item=one(row.order_items);
+  const order=item?one(item.orders):null;
+  return !item||!order||order.buyer_id!==user.id;
+ }))return mobileJson(request,{ok:false,error:"case_items_unavailable"},503);
+ const missingPartIds=[...new Set(page.flatMap(row=>{
+  const item=one(row.order_items);
+  return item&&!one(item.parts)&&item.part_id?[item.part_id]:[];
+ }))];
+ const purchasedParts=new Map<string,{title:string;slug:string}>();
+ if(missingPartIds.length){
+  try{
+   const {data:partRows,error:partError}=await createSupabaseAdminClient()
+    .from("parts").select("id,title,slug").in("id",missingPartIds);
+   if(partError)return mobileJson(request,{ok:false,error:"case_items_unavailable"},503);
+   for(const part of partRows??[])purchasedParts.set(part.id,{title:part.title,slug:part.slug});
+  }catch{return mobileJson(request,{ok:false,error:"case_items_unavailable"},503);}
+ }
+ const items=[];
+ for(const row of page){
   const orderItem=one(row.order_items);
-  const part=orderItem?one(orderItem.parts):null;
+  const part=orderItem?(one(orderItem.parts)??purchasedParts.get(orderItem.part_id)):null;
   const seller=orderItem?one(orderItem.sellers):null;
   const order=orderItem?one(orderItem.orders):null;
-  if(!part||!seller||!order)return [];
-  return [{
+  if(!part||!seller||!order)return mobileJson(request,{ok:false,error:"case_items_unavailable"},503);
+  items.push({
    id:row.id,
    orderItemId:row.order_item_id,
    caseType:row.case_type,
@@ -65,8 +87,8 @@ export async function GET(request:Request){
    partSlug:part.slug,
    sellerName:seller.business_name,
    sellerSlug:seller.slug
-  }];
- });
+  });
+ }
 
  return mobileJson(request,{ok:true,items,pagination:{offset,limit,returned:items.length,hasMore}});
 }

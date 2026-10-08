@@ -38,7 +38,7 @@ export function NativeAppMode(){
      href="/account";
     }else if((custom&&url.hostname==="checkout")||(trustedHttps&&url.pathname==="/checkout/mobile-complete")){
      const order=url.searchParams.get("order");
-     href=order?"/account/orders/"+encodeURIComponent(order):"/account/orders";
+     href=order&&order!=="."&&order!==".."?"/account/orders/"+encodeURIComponent(order):"/account/orders";
     }else if((custom&&url.hostname==="seller-payments")||(trustedHttps&&url.pathname==="/seller/payments/mobile-complete")){
      href="/dashboard/payments";
     }else return;
