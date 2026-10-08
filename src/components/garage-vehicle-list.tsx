@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect,useSyncExternalStore } from "react";
+import { useCallback,useEffect,useState,useSyncExternalStore } from "react";
 import { CarFront } from "lucide-react";
 import type { GarageVehicle } from "@/lib/types";
 import { GarageVehicleRemoveForm } from "@/components/garage-vehicle-remove-form";
@@ -17,9 +17,15 @@ const vehicleHref=(vehicleId:string)=>{
 };
 
 export function GarageVehicleList({vehicles,viewerId,initialSelection}:{vehicles:GarageVehicle[];viewerId:string;initialSelection?:Selection}){
- const storedSnapshot=useSyncExternalStore(subscribeVehicleContext,getStoredVehicleContextSnapshot,()=>"");
+ const [localSelection,setLocalSelection]=useState<{viewerId:string;initialSelection:Selection|undefined;selection:Selection|undefined}>(()=>({viewerId,initialSelection,selection:initialSelection}));
+ const subscribe=useCallback((listener:()=>void)=>subscribeVehicleContext(()=>{
+  setLocalSelection({viewerId,initialSelection,selection:undefined});
+  listener();
+ }),[viewerId,initialSelection]);
+ const storedSnapshot=useSyncExternalStore(subscribe,getStoredVehicleContextSnapshot,()=>"");
  const stored=storedSnapshot===EMPTY_VEHICLE_CONTEXT_SNAPSHOT?null:readStoredVehicleContext(storedSnapshot,viewerId);
- const selection=initialSelection!==undefined?initialSelection:stored?.selection??null;
+ const fallback=localSelection.viewerId===viewerId&&localSelection.initialSelection===initialSelection?localSelection.selection:initialSelection;
+ const selection=fallback!==undefined?fallback:stored?.selection??null;
  const selectionReady=initialSelection!==undefined||storedSnapshot!=="";
 
  useEffect(()=>{
@@ -32,6 +38,7 @@ export function GarageVehicleList({vehicles,viewerId,initialSelection}:{vehicles
  },[initialSelection,viewerId]);
 
  const persist=(next:Selection)=>{
+  setLocalSelection({viewerId,initialSelection,selection:next});
   if(next)writeStoredVehicleContext(viewerId,next);
   else clearStoredVehicleContext();
  };
