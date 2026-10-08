@@ -31,7 +31,7 @@ with zipfile.ZipFile(root / 'analysis.apks') as archive:
 with zipfile.ZipFile(root / 'universal.apk') as archive:
     for entry in archive.infolist():
         if entry.filename.startswith('lib/') and entry.filename.endswith('.so'):
-            assert re.fullmatch(r'lib/(arm64-v8a|armeabi-v7a|x86|x86_64)/[A-Za-z0-9_]+\.so', entry.filename), 'Unsupported native library path' 
+            assert re.fullmatch(r'lib/(arm64-v8a|armeabi-v7a|x86|x86_64)/[A-Za-z0-9_]+\.so', entry.filename), 'Unsupported native library path'
             assert entry.file_size <= 128 * 1024 * 1024, 'Unexpected native library size'
             target = root / entry.filename
             target.parent.mkdir(parents=True, exist_ok=True)
