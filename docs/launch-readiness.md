@@ -5,6 +5,10 @@ Branch: `rebuild-nextjs`
 
 This document is the canonical launch checklist for the Android / Google Play and public marketplace release. It deliberately separates code readiness from marketplace liquidity, and it distinguishes code-level safeguards from real provider/device E2E evidence.
 
+## Final RC hardening — 8 October 2026
+
+[The final RC execution report](test-runs/2026-10-08-final-rc-hardening.md) records the stacked `codex/final-rc-hardening` work, scoped fixes, machine verification and remaining gates. A confirmed P0 deletion/checkout race and related fitting creation/retained-participant authorization defects require the exact reviewed five-function SQL proposal before release. The proposal is unapplied; hosted migration history is untouched. PR #16 and #10 remain unmerged, and no Production deployment is authorized. The verified code commit passes 1,026 tests, all seven QA jobs, Android AAB dry run and 26 Preview HTTP checks, with independent review. Physical/provider evidence and the unapplied SQL remain separate blockers; follow the execution report for exact SHAs and deployment evidence.
+
 ## Continuation audit — 2026-09-21
 
 [The handover reconciliation](test-runs/2026-09-21-handover-audit.md) records the 356-commit local/remote drift, current hosted migration readback and a local provider-dispute terminal guard repair. It does not replace the scoped deployed evidence or close release gates below.
