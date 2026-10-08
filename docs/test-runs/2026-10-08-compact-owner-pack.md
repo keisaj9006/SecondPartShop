@@ -1,0 +1,18 @@
+# Compact owner confirmation pack — 8 October 2026
+
+Use the immutable Preview and CI/artifact links in the final automation checkpoint. These are release gates; code and isolated harness passes do not substitute for them. No integration, Production promotion or Play submission has been performed.
+
+A. **One disposable external-mailbox lifecycle.** Sign up once, receive and consume the confirmation email, then exercise recovery and sign out/sign in. Record outcomes without email addresses, passwords or token URLs. Reused and expired links must show bounded recovery. This establishes actual delivery and token consumption. Normal Auth/Storage account deletion remains separately subject to exact disposable-identity scope and explicit destructive-operation approval; never use a global privacy worker.
+
+B. **One owner-known vehicle.** On that identity, confirm a real registration's returned identity and derivative, then compare the representative visual with its stated limitations. Switch the current vehicle, turn fit OFF/ON and return to Browse without vehicle. Do not copy the registration into public evidence. Synthetic and manual catalogue behavior already has automated evidence.
+
+C. **Isolated Stripe prerequisites, then one application Sandbox checkout if unavoidable.** Claim an eligible disposable Sandbox and supply a scoped test-only Connect/dispute credential securely; the agent can then automate those currently scope-blocked provider checks. Permit a genuinely isolated application fixture/webhook boundary before linked adverse flows. Use official test payment methods and a tagged disposable order. Confirm browser decline/retry or cancel, final-stock handling and the resulting order/provider state. Standalone isolated provider passes are recorded separately; shared Sandbox webhooks/global workers must not be exercised casually. This gate needs an isolated application fixture and provider configuration, not real cards or Stripe Live.
+
+D. **One physical Android pass.** Install the final test-track artifact and exercise camera/gallery, authenticated foreground/background FCM, verified App Links and Auth/Stripe returns, back/tab navigation and interrupted network recovery. Capture device/Android/version/commit and outcomes. Artifact and emulator evidence do not certify physical FCM or production signing.
+
+E. **Signing, Play and business release inputs.** Supply the real upload signer, Play App Signing certificate, valid Firebase client/server configuration and push authorization through approved secret stores. Finalize reviewer access, store assets, Data Safety/privacy/support/deletion declarations, testing-track eligibility and business/legal/payment sign-off. Produce and verify the exact final signed AAB using the existing guarded workflow. No secrets or real registrations belong in reports.
+
+Integration remains a separate authorization: merge commits in order PR #17 → codex/auth-hardening, PR #16 → codex/dvsa-integration, PR #10 → rebuild-nextjs, with exact-merge-SHA QA and Preview regression checks after each. Main stays untouched.
+
+## Retained QA identity boundary
+Automatic approval review rejected decrypting the quarantined synthetic QA credential store, citing the earlier explicit prohibition. A separate pending question asks for in-memory use only by a new GET-only Preview harness. Until explicit authorization arrives, those authenticated deployed reads remain unsigned; no workaround or quarantined prototype is permitted. This narrow authorization can reduce deployed-read gaps but cannot establish mailbox delivery, Storage writes or normal destructive deletion.

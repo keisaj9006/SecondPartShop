@@ -3,9 +3,12 @@ import {Suspense} from "react";
 import {Header} from "@/components/header";
 import {AuthForm} from "@/components/auth-form";
 import {AccountDashboardContent,AccountDashboardFallback,AccountTrustSummary} from "@/components/account-dashboard-content";
-import {getCurrentProfile,getCurrentUser} from "@/lib/auth";
+import {getCurrentProfileState,getCurrentUserState} from "@/lib/auth";
+import {AccountProfileUnavailable} from "@/components/account-profile-unavailable";
 import {isSupabaseConfigured} from "@/lib/supabase/env";
 import {safeInternalPath} from "@/lib/navigation";
+import {AccountSignOut} from "@/components/account-sign-out";
+import {NativePushSettings} from "@/components/native-push-settings";
 
 export const dynamic="force-dynamic";
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
@@ -14,8 +17,11 @@ export default async function AccountPage({searchParams}:{searchParams:Promise<R
  const params=await searchParams;
  const requestedReturnTo=first(params.returnTo);
  const returnTo=requestedReturnTo===undefined?undefined:safeInternalPath(requestedReturnTo,"")||undefined;
- const [user,profile]=await Promise.all([getCurrentUser(),getCurrentProfile()]);
- if(!user||!profile){
+ const authState=await getCurrentUserState();
+ if(authState.kind==="error"){
+  return <><Header/><main className="mx-auto max-w-3xl px-4 py-12"><AccountProfileUnavailable reason="auth-error"/></main></>;
+ }
+ if(authState.kind==="unauthenticated"){
   const notice=first(params.reason)==="signin-required"
    ?"Please sign in to continue. Your previous session may have expired."
    :first(params.error)==="confirmation-failed"
@@ -23,6 +29,13 @@ export default async function AccountPage({searchParams}:{searchParams:Promise<R
     :undefined;
   return <><Header/><main className="mx-auto grid min-h-[70vh] max-w-7xl place-items-center px-4 py-12"><AuthForm defaultMode={first(params.mode)==="signup"?"signup":"signin"} defaultRole={first(params.role)==="seller"?"seller":"buyer"} returnTo={returnTo} configured={isSupabaseConfigured()} notice={notice}/></main></>;
  }
+
+ const user=authState.user;
+ const profileState=await getCurrentProfileState(user);
+ if(profileState.kind!=="profile"){
+  return <><Header/><main className="mx-auto max-w-3xl px-4 py-12"><AccountProfileUnavailable reason={profileState.kind==="missing"?"missing-profile":"profile-error"} email={user.email}/><AccountSignOut cleanupFailed={first(params.error)==="push-detach-failed"}/></main></>;
+ }
+ const profile=profileState.profile;
 
  const accessError=first(params.error);
  const sellingEnabled=(["seller","admin"] as string[]).includes(profile.role);
@@ -47,6 +60,8 @@ export default async function AccountPage({searchParams}:{searchParams:Promise<R
    </div>
   </section>
 
+  <NativePushSettings userId={user.id}/>
+
   <div className="mt-5 grid max-w-md grid-cols-2 rounded-2xl bg-[#eef1eb] p-1">
    <Link href="/account?view=buying" className={`rounded-xl px-4 py-2.5 text-center text-sm font-black ${view==="buying"?"bg-white shadow-sm":""}`}>Buyer</Link>
    <Link href={sellingEnabled?"/account?view=selling":"/sell"} className={`rounded-xl px-4 py-2.5 text-center text-sm font-black ${view==="selling"?"bg-white shadow-sm":""}`}>Seller</Link>
@@ -57,5 +72,6 @@ export default async function AccountPage({searchParams}:{searchParams:Promise<R
   <Suspense fallback={<AccountDashboardFallback/>}>
    <AccountDashboardContent userId={user.id} role={profile.role} view={view}/>
   </Suspense>
+  <AccountSignOut cleanupFailed={accessError==="push-detach-failed"}/>
  </main></>;
 }

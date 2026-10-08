@@ -1,25 +1,10 @@
-import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { safeInternalPath } from "@/lib/navigation";
-
+import {NextResponse} from "next/server";
+import {finishAuthReturn} from "@/lib/auth-return";
 export async function GET(request:Request){
  const url=new URL(request.url);
- const code=url.searchParams.get("code");
- const next=safeInternalPath(url.searchParams.get("next"),"/account");
- const providerError=url.searchParams.get("error_description")??url.searchParams.get("error");
- const confirmationFailure=next==="/account"?"/account?error=confirmation-failed":`/account?error=confirmation-failed&returnTo=${encodeURIComponent(next)}`;
-
- if(providerError){
-  const target=next.startsWith("/auth/reset-password")?"/auth/forgot-password?error=expired-link":confirmationFailure;
-  return NextResponse.redirect(new URL(target,url.origin));
+ if(/(?:^|;\s*)secondpart_native=1(?:;|$)/.test(request.headers.get("cookie")??"")){
+  // Exchange only after the native continuation has acquired the account-change lock.
+  return NextResponse.redirect(new URL("/auth/native-return/callback"+url.search,url.origin));
  }
-
- if(code){
-  const supabase=await createSupabaseServerClient();
-  const {error}=await supabase.auth.exchangeCodeForSession(code);
-  if(!error)return NextResponse.redirect(new URL(next,url.origin));
- }
-
- const target=next.startsWith("/auth/reset-password")?"/auth/forgot-password?error=expired-link":confirmationFailure;
- return NextResponse.redirect(new URL(target,url.origin));
+ return finishAuthReturn(request,"callback");
 }

@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/types";
 
-const allowed=new Set(["q","category","condition","sort","min","max","pc","collection","vehicle","vr","cv","cy","cf","ce"]);
+const allowed=new Set(["q","category","condition","sort","min","max","pc","collection","fit","vehicle","vr","cv","cy","cf","ce"]);
 
 const safeParams=(raw:string)=>{
  let parsed:unknown;

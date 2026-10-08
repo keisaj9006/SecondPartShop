@@ -1,0 +1,154 @@
+{
+  "project_ref": "etkupijfdznljimrfyct",
+  "date": "2026-10-08",
+  "source_commit": "7cc3568e3d70f5d5f9a108e46564f671193d1498",
+  "migration": {
+    "version": "20261008130523",
+    "name": "account_deletion_checkout_fitting_serialization",
+    "runner": "Supabase apply_migration",
+    "outer_wrapper_omitted": true,
+    "result": "success"
+  },
+  "preflight": {
+    "matched_reviewed_definitions": true,
+    "ledger_count": 206,
+    "ledger_latest": "20261006093220",
+    "deletion_states": {
+      "completed": 2
+    },
+    "detached_active_orders": 0,
+    "detached_active_fitting_buyers": 0,
+    "detached_active_garage_owners": 0
+  },
+  "functions": [
+    {
+      "schema": "private",
+      "proname": "account_deletion_blocker",
+      "signature": "p_profile_id uuid",
+      "arguments": "p_profile_id uuid",
+      "result": "text",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "acl": "{postgres=X/postgres}",
+      "hash": "c52ca34390038932de34708400303fc6"
+    },
+    {
+      "schema": "public",
+      "proname": "buyer_respond_fitting_quote",
+      "signature": "p_request_id uuid, p_action text",
+      "arguments": "p_request_id uuid, p_action text",
+      "result": "boolean",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "hash": "685c990493161bf3f8ed9e271ef802ae"
+    },
+    {
+      "schema": "public",
+      "proname": "claim_account_deletion_request",
+      "signature": "p_request_id uuid",
+      "arguments": "p_request_id uuid",
+      "result": "TABLE(claimed boolean, profile_id uuid, blocker_code text)",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "hash": "3e58f123a5a006f2fac0b17d3eee8e60"
+    },
+    {
+      "schema": "public",
+      "proname": "garage_respond_fitting_request",
+      "signature": "p_request_id uuid, p_action text, p_quote_pence integer, p_note text",
+      "arguments": "p_request_id uuid, p_action text, p_quote_pence integer DEFAULT NULL::integer, p_note text DEFAULT NULL::text",
+      "result": "boolean",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "hash": "aef7f027fe4c83e0b80c911ddc656dec"
+    },
+    {
+      "schema": "public",
+      "proname": "prepare_checkout_order",
+      "signature": "p_part_id uuid, p_quantity integer, p_delivery_method text",
+      "arguments": "p_part_id uuid, p_quantity integer DEFAULT 1, p_delivery_method text DEFAULT 'shipping'::text",
+      "result": "TABLE(order_id uuid, order_item_id uuid, part_title text, seller_name text, quantity integer, unit_price_pence integer, shipping_pence integer, platform_fee_pence integer, seller_net_pence integer, total_pence integer, checkout_expires_at timestamp with time zone)",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "hash": "2a7aa5c2f3d1de0882235d4c96e9664e"
+    },
+    {
+      "schema": "public",
+      "proname": "request_part_fitting_quote",
+      "signature": "p_part_id uuid, p_garage_partner_id uuid, p_vehicle_variant_id uuid, p_vehicle_year smallint, p_vehicle_fuel text, p_vehicle_engine integer, p_vehicle_registration text, p_notes text",
+      "arguments": "p_part_id uuid, p_garage_partner_id uuid, p_vehicle_variant_id uuid, p_vehicle_year smallint, p_vehicle_fuel text DEFAULT NULL::text, p_vehicle_engine integer DEFAULT NULL::integer, p_vehicle_registration text DEFAULT NULL::text, p_notes text DEFAULT NULL::text",
+      "result": "uuid",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "hash": "f6d36fe6679a3dda7b9c8f63bb5b4ab1"
+    },
+    {
+      "schema": "public",
+      "proname": "send_fitting_request_message",
+      "signature": "p_request_id uuid, p_body text",
+      "arguments": "p_request_id uuid, p_body text",
+      "result": "uuid",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "hash": "9e80d7ad723d78539624fed72561e305"
+    }
+  ],
+  "schema_change_identities": [
+    "public.claim_account_deletion_request(p_request_id uuid)",
+    "public.garage_respond_fitting_request(p_request_id uuid, p_action text, p_quote_pence integer, p_note text)",
+    "public.prepare_checkout_order(p_part_id uuid, p_quantity integer, p_delivery_method text)",
+    "public.request_part_fitting_quote(p_part_id uuid, p_garage_partner_id uuid, p_vehicle_variant_id uuid, p_vehicle_year smallint, p_vehicle_fuel text, p_vehicle_engine integer, p_vehicle_registration text, p_notes text)",
+    "public.send_fitting_request_message(p_request_id uuid, p_body text)"
+  ],
+  "postflight": {
+    "ledger_count": 207,
+    "unbound_activity_rejections": 4,
+    "destructive_claim_denied_to_anon_and_authenticated": true,
+    "public_tables_without_rls": 0,
+    "detached_active_orders": 0,
+    "detached_active_fitting_buyers": 0,
+    "detached_active_garage_owners": 0,
+    "deletion_states": {
+      "completed": 2
+    }
+  },
+  "regressions": {
+    "local": {
+      "pass": 56,
+      "fail": 0
+    },
+    "pg17_ci": "https://github.com/keisaj9006/SecondPartShop/actions/runs/37781839135",
+    "pg17": {
+      "pass": 63,
+      "fail": 0,
+      "real_contention_subcases": 7
+    },
+    "ci_all_seven_jobs": "success"
+  },
+  "required_hosted_disposable_qa": "BLOCKED: fresh confirmed disposable QA sessions/fixtures and configured maintenance authorization unavailable",
+  "destructive_deletion_e2e": "NOT RUN",
+  "remaining_open": {
+    "P0": 1,
+    "P1": 3
+  }
+}

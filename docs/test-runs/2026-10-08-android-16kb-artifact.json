@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "artifactOnly": true,
+  "runtimeTested": false,
+  "aabSha256": "16c718d756d7634502a0b4c9ea94b08a962b423f636f236e7e347c8e7566e2b0",
+  "apkSha256": "d15fdb9287bf3daddfee853373b096370b1853e657204f986fe7fc06a35505ec",
+  "zipAlignment16KB": true,
+  "libraries": [
+    {
+      "library": "arm64-v8a/libdatastore_shared_counter.so",
+      "sha256": "d3e48717c9aa147e0ab21063ba0e8e0211cabf8bf40b222640829519edbf58e1",
+      "elfBits": 64,
+      "loadSegments": 3,
+      "relroMode": "entire-load"
+    },
+    {
+      "library": "arm64-v8a/libimage_processing_util_jni.so",
+      "sha256": "3e0071afcdc7e321f839e196d266014182f18d0988e4455acc9857a085b2184e",
+      "elfBits": 64,
+      "loadSegments": 3,
+      "relroMode": "entire-load"
+    },
+    {
+      "library": "arm64-v8a/libsurface_util_jni.so",
+      "sha256": "ee3f0d56f81cc0a301db32dc4fd51274c3216733b4c40172768e38bc5049a265",
+      "elfBits": 64,
+      "loadSegments": 2,
+      "relroMode": "entire-load"
+    },
+    {
+      "library": "armeabi-v7a/libdatastore_shared_counter.so",
+      "sha256": "716c5d8d2cac8ca0edf65da8f139c7886b726ac79d542a14edeb94994ba6d3dc",
+      "elfBits": 32,
+      "loadSegments": 2,
+      "relroMode": "entire-load"
+    },
+    {
+      "library": "armeabi-v7a/libimage_processing_util_jni.so",
+      "sha256": "e48e356bbe1902ae9a66178a4a0141c993b82ee9f70dde52ad83e4af3eca984f",
+      "elfBits": 32,
+      "loadSegments": 3,
+      "relroMode": "entire-load"
+    },
+    {
+      "library": "armeabi-v7a/libsurface_util_jni.so",
+      "sha256": "f110d6a305fef5be5664d58cfb054366b002bc516066b4ec880c38a68428756f",
+      "elfBits": 32,
+      "loadSegments": 2,
+      "relroMode": "entire-load"
+    },
+    {
+      "library": "x86/libdatastore_shared_counter.so",
+      "sha256": "cd4a1649e2c8350703146f94a6ee2bf4c3c8c9f172159f805b61a4a2abdf0659",
+      "elfBits": 32,
+      "loadSegments": 2,
+      "relroMode": "entire-load"
+    },
+    {
+      "library": "x86/libimage_processing_util_jni.so",
+      "sha256": "f5bdd537631cce21ad038a6737775540a7aef1f5a3d1fdc26c469f6c1ae73010",
+      "elfBits": 32,
+      "loadSegments": 3,
+      "relroMode": "entire-load"
+    },
+    {
+      "library": "x86/libsurface_util_jni.so",
+      "sha256": "6b5d033063bc125d99706f14f0ded08b3f0058f53f5a3d17d134e7d2ea75db11",
+      "elfBits": 32,
+      "loadSegments": 2,
+      "relroMode": "entire-load"
+    },
+    {
+      "library": "x86_64/libdatastore_shared_counter.so",
+      "sha256": "fb6c9208988c49ae94943bc3236fa763ba584722e044fa4ea9a12d2941027105",
+      "elfBits": 64,
+      "loadSegments": 2,
+      "relroMode": "entire-load"
+    },
+    {
+      "library": "x86_64/libimage_processing_util_jni.so",
+      "sha256": "676e3e280c10dcb9b71ef5bb727552610dc73c7ec85af54c7c898f82785c33d7",
+      "elfBits": 64,
+      "loadSegments": 3,
+      "relroMode": "entire-load"
+    },
+    {
+      "library": "x86_64/libsurface_util_jni.so",
+      "sha256": "cd425e10a365fb3695e53f1e46227d44d89f14854da4f1258ef079c80c752339",
+      "elfBits": 64,
+      "loadSegments": 2,
+      "relroMode": "entire-load"
+    }
+  ]
+}

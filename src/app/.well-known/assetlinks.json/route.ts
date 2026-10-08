@@ -1,9 +1,10 @@
 const PACKAGE_NAME="com.secondpart.marketplace";
 
-const fingerprints=()=>String(process.env.ANDROID_APP_LINK_SHA256_FINGERPRINTS??"")
- .split(",")
+const fingerprints=()=>[...new Set(String(process.env.ANDROID_APP_LINK_SHA256_FINGERPRINTS??"")
+ .split(/[,\r\n]+/)
  .map(value=>value.trim().toUpperCase())
- .filter(value=>/^(?:[0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(value));
+ .filter(value=>/^[0-9A-F]{64}$/.test(value)||/^(?:[0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(value))
+ .map(value=>value.replaceAll(":","").match(/.{2}/g)!.join(":")))];
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";

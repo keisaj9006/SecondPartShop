@@ -592,7 +592,7 @@ export async function getVehicles():Promise<Vehicle[]>{
 }
 export async function getSavedPartIds(userId:string):Promise<string[]>{if(!isSupabaseConfigured())return [];const supabase=await createSupabaseServerClient();const {data}=await supabase.from("saved_parts").select("part_id").eq("profile_id",userId);return (data??[]).map(item=>item.part_id);}
 
-export async function getSavedPartIdsForParts(userId:string,partIds:string[]):Promise<string[]>{
+export async function getSavedPartIdsForParts(userId:string,partIds:string[],options:{throwOnError?:boolean}={}):Promise<string[]>{
  if(!isSupabaseConfigured()||!partIds.length)return [];
  const ids=[...new Set(partIds)].slice(0,100);
  const supabase=await createSupabaseServerClient();
@@ -601,7 +601,7 @@ export async function getSavedPartIdsForParts(userId:string,partIds:string[]):Pr
   .select("part_id")
   .eq("profile_id",userId)
   .in("part_id",ids);
- if(error)return [];
+ if(error){if(options.throwOnError)throw new Error("Saved-part status is temporarily unavailable.");return [];}
  return (data??[]).map(item=>item.part_id);
 }
 
@@ -768,11 +768,11 @@ export async function getPublicSellerListingsPage(sellerId:string,options:{offse
  return {data:listings,hasMore,offset,limit};
 }
 
-export async function getSellerForOwner(ownerId:string):Promise<Seller|null>{
+export async function getSellerForOwner(ownerId:string,options:{throwOnError?:boolean}={}):Promise<Seller|null>{
  if(!isSupabaseConfigured())return null;
  const supabase=await createSupabaseServerClient();
  const {data,error}=await supabase.rpc("get_own_seller_profile_private");
- if(error)return null;
+ if(error){if(options.throwOnError)throw new Error("Seller profile is temporarily unavailable.");return null;}
  const row=data?.[0];
  if(!row||row.owner_id!==ownerId)return null;
  return sellerFrom(row as RawSeller);

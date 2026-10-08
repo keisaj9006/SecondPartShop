@@ -41,7 +41,8 @@ export async function GET(request:Request){
  const selectedCatalogue=variantId&&year
   ?await getCatalogueSelection(variantId,year,fuel,engine).catch(()=>null)
   :null;
- if(url.searchParams.get("q")?.trim()&&(url.searchParams.has("cv")||url.searchParams.has("cy"))
+ const hasCatalogueContext=["cv","cy","cf","ce"].some(key=>url.searchParams.has(key));
+ if((url.searchParams.get("q")?.trim()||url.searchParams.get("fit")!=="0")&&hasCatalogueContext
   &&(!selectedCatalogue||(url.searchParams.has("ce")&&engine===undefined))){
   return mobileJson(request,{ok:false,error:"marketplace_unavailable",message:"Compatibility data is temporarily unavailable."},503);
  }

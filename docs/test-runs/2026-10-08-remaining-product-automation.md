@@ -1,0 +1,48 @@
+# Remaining Buyer, Seller and Garage automation — 8 October 2026
+
+Independent local product review on the final RC worktree, starting from 8ed1fc0 plus the reviewed working changes. This record separates actual application execution with dependency adapters, isolated SQL execution, static checks and hosted evidence. It does not claim that every signed-in journey passed in a deployed browser.
+
+## Fresh evidence
+
+- The focused existing/new product checkpoint passed 170/170 tests, with no failures or skips. It covered Garage identity SQL/save/components/ownership/checkout, vehicle visuals, buyer orders, checkout fail-closed, listing retries, bulk inventory, image validation, compatibility editing and seller read/grant contracts. This checkpoint included the earlier 38-test version of the new journey harness.
+- The completed `scripts/test-remaining-product-journeys.mjs` has 43 passing tests. It executes actual routes, server actions and a Garage component after TypeScript transpilation; database, provider, navigation and browser storage dependencies are controlled adapters. It verifies calls, ownership filters, failure handling and state transitions, not hosted persistence or full RLS.
+- Final independent affected-change run: `node --test scripts/test-native-app-mode.mjs scripts/test-stripe-webhook-push-isolation.mjs scripts/test-mobile-buyer-cases.mjs scripts/test-remaining-product-journeys.mjs`: 95/95 PASS, zero skipped/failed (13 native + 26 webhook + 13 cases + 43 product), exit 0. These overlap earlier checkpoints and must not be summed as unique coverage.
+- A deliberate in-memory mutation removing the saved-part owner filter produced the two expected ownership test failures. No production file was changed for that sensitivity check.
+- No new shared database fixture, Auth account, Storage upload/delete, global worker, provider payment or credential decryption was performed for this product review. The persistent fixture HTTP prototype remains quarantined.
+
+## Journey coverage and honest boundaries
+
+| Requested journey | Meaningful executable evidence | Remaining boundary |
+| --- | --- | --- |
+| Buyer saved parts | New actual POST/DELETE handler tests bind reads and writes to authenticated viewer, ignore supplied identity, refuse anonymous/malformed input and expose write failure. Existing saved-viewer tests cover viewer isolation. | Query intent is checked with adapters; fresh deployed signed-in save/reload is not claimed. |
+| Saved searches | Root's five actual save/read/URL tests cover explicit fit ON/OFF, and the independently reviewed read allowlist repair preserves `fit`. | Browser persistence across a normal Auth session remains separate. |
+| Recent views | New actual route tests verify owner/part upsert conflict key, retry intent, supplied-identity rejection and error responses. | No new hosted upsert or deduplication measurement. |
+| Checkout | Garage checkout and compatibility fail-closed tests exercise actual actions/routes: foreign/missing/malformed/stale vehicle context cannot authorize fit; client claims are ignored; explicit unverified acknowledgment/manual/no-vehicle paths are distinguished. | Stripe delivery, normal Auth, and complete purchase settlement belong to provider E2E evidence. |
+| Orders and retained purchases | Web/mobile order tests retain sold-part identity for authorized purchases and deny inaccessible-order privileged lookup. | Existing isolated and hosted deletion evidence has its own limits; not a fresh full buyer session. |
+| Reviews / Verified Fit | New actual route tests preserve RPC authority for already-reviewed, case-paused and not-ready errors. Existing Verified Fit source checks remain static. | Adapter return codes do not prove a completed hosted transaction or earned fit confirmation. |
+| Buyer cases | New 13-test actual GET harness reproduces and fixes RC26-09 below; four POST tests preserve authoritative forbidden/duplicate/closed/window errors. | Normal buyer-protection lifecycle, evidence Storage and provider dispute settlement remain external gates. |
+| Enable Seller | Actual web action compare-and-set upgrades only current buyer; existing seller/admin roles are preserved. Mobile profile creation/retry binds ownership and rejects missing terms/profile or failed upgrade. | No new hosted role mutation. |
+| Seller readiness / payouts | Ten cases distinguish each data-source failure, complete readiness, unfinished onboarding, disabled transfers, no active listing and missing business kind. | Provider flags are fixtures, not evidence of real onboarding, payouts or verification. |
+| Draft / publish / edit / unpublish | Existing listing retry tests execute actions for limits, draft redirect, partial upload failure/retry and absent compatibility. Four new create/update tests require readiness before writes and keep draft until fitment/photos complete before active. Archive/unpublish remains owner-bound and excludes reserved stock. | Storage and database are adapters; no new public listing or real upload. |
+| Stock | New action tests cover active-to-sold, sold-to-draft and draft-to-draft, owner binding and concurrent reservation predicate; missing/foreign/reserved rows refuse mutation. | These prove action contracts, not concurrency. Earlier exact PG17 last-stock/checkout schedules provide separate database evidence. |
+| CSV import | Existing executable parser/action tests cover 5,000-row acceptance versus 5,001 rejection, byte bounds, malformed input before writes, retries/deduplication and bounded partial-finalization preview. | Provider/database adapters do not establish real recycler feed synchronization. |
+| Images | Actual image decoder tests cover supported formats, dimensions and animated inputs; listing retry tests cover partial upload recovery. | Real Storage lifecycle and device camera/gallery permissions remain untested here. |
+| Compatibility / seller profile | Existing editor/action contracts require deliberate fitment evidence; new profile handlers ignore client role/verification/owner fields and bind edits to caller. Public seller/grant tests are static privacy contracts. | No invented compatibility or AI fit guarantee; authoritative catalog/provider behavior remains separate. |
+| Garage current/many/switch/clear | Actual component tests cover current selection and fit ON/OFF; new 20-row fixture retains all saved rows while one current vehicle switches to the last row or is cleared. | Storage is mocked; no physical browser persistence/performance claim. |
+| Garage remove/ownership/duplicates | Actual action tests bind remove/save to owner. Existing PGlite migration tests exercise normalized duplicate identity, manual variants, cross-owner read/write and anonymous execute denial. | Reduced isolated schema is not the entire hosted Auth/RLS environment. |
+| Garage stale/manual/provider fallback | Existing context and journey tests distinguish stale/malformed context, identity-only provider results, unresolved fit ON, fit OFF and manual selection; provider failure does not fabricate data. | A real registration's derivative accuracy and normal provider availability need provider evidence. |
+| Garage vehicle visuals | Existing actual mapping/component checks cover representative local assets and accessible labels without asserting compatibility. | Visual/device judgment and a real owner's selected vehicle remain acceptance checks. |
+
+## RC26-09 — new P1, fixed locally pending final CI
+
+Root cause: mobile case-list GET previously dropped a caller-authorized case when its purchased `parts` relation was NULL under public listing RLS, as happens for retained sold listings. The actual-handler reproduction returned successful `items: []` despite an ongoing authorized case. This is a newly reproduced visibility defect, not a reopening of the closed account-deletion defects.
+
+The minimal repair in `src/app/api/mobile/v1/cases/route.ts` preserves the caller-scoped case query and then explicitly checks each returned order belongs to the caller. Only missing part IDs from that authorized page are deduplicated for a restricted privileged `id,title,slug` lookup. Caller-supplied part IDs and the pagination sentinel cannot feed that lookup. Missing metadata/provider failures return explicit 503 rather than falsely presenting no cases. No policy, migration, provider authority or existing order implementation changed.
+
+The original route failed five regression expectations before the repair. The final 13 tests pass: retained identity, already-visible identity, anonymous/no-row/read-error no privileged access, provider error/throw/missing row, page bounds, foreign/missing order, duplicate IDs and missing seller metadata. Root independently reviewed the patch and reported its own 72-test affected checkpoint passing. Final integrated CI/build/typecheck are root-owned and must be recorded separately before release closure.
+
+## Files and remaining acceptance work
+
+Owned changes: `scripts/test-remaining-product-journeys.mjs`, `scripts/test-mobile-buyer-cases.mjs`, the minimal case-list route repair, and this report. Independent native/webhook review is appended to `2026-10-08-remaining-security-performance.md`.
+
+The remaining genuine end-to-end prerequisites are a permitted normal Auth/browser session, mailbox verification/reset access, provider Sandbox transactions and event delivery, Storage lifecycle evidence, and physical Android/device evidence. These should be combined with the existing owner acceptance pack rather than replaced with adapter-based PASS labels. No launch-readiness claim is made.

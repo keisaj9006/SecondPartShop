@@ -1,0 +1,16 @@
+[
+  {
+    "resource": "/v1/accounts",
+    "error_type": "invalid_request_error",
+    "error_code": null,
+    "restricted_claimable_scope": true,
+    "requires_claim": true
+  },
+  {
+    "resource": "/v1/disputes",
+    "error_type": "invalid_request_error",
+    "error_code": null,
+    "restricted_claimable_scope": true,
+    "requires_claim": true
+  }
+]

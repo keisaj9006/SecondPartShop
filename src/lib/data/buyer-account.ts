@@ -6,7 +6,7 @@ import type { Listing,SavedSearch } from "@/lib/types";
 
 const safeParams=(value:unknown):Record<string,string>=>{
  if(typeof value!=="object"||value===null||Array.isArray(value))return {};
- const allowed=new Set(["q","category","condition","sort","min","max","pc","collection","vehicle","vr","vc","cv","cy","cf","ce"]);
+ const allowed=new Set(["q","category","condition","sort","min","max","pc","collection","fit","vehicle","vr","vc","cv","cy","cf","ce"]);
  const result:Record<string,string>={};
  for(const [key,item] of Object.entries(value as Record<string,unknown>)){
   if(allowed.has(key)&&typeof item==="string"&&item.length<=200)result[key]=item;
@@ -54,7 +54,7 @@ export async function getRecentlyViewedListings(profileId:string,limit=12):Promi
 
 export async function getBuyerAccountCounts(profileId:string){
  const supabase=await createSupabaseServerClient();
- const [savedParts,savedSearches,garage,requests,recent,notifications,orders]=await Promise.all([
+ const [savedParts,savedSearches,garage,requests,recent,notifications,orders]=await Promise.allSettled([
   supabase.from("saved_parts").select("part_id",{count:"exact",head:true}).eq("profile_id",profileId),
   supabase.from("saved_searches").select("id",{count:"exact",head:true}).eq("profile_id",profileId),
   supabase.from("garage_vehicles").select("id",{count:"exact",head:true}).eq("profile_id",profileId),
@@ -63,13 +63,14 @@ export async function getBuyerAccountCounts(profileId:string){
   supabase.from("notifications").select("id",{count:"exact",head:true}).eq("profile_id",profileId).is("read_at",null),
   supabase.from("orders").select("id",{count:"exact",head:true}).eq("buyer_id",profileId)
  ]);
+ const count=(result:PromiseSettledResult<{count:number|null;error:unknown}>):number|null=>result.status==="fulfilled"&&!result.value.error?result.value.count:null;
  return {
-  savedParts:savedParts.count??0,
-  savedSearches:savedSearches.count??0,
-  garage:garage.count??0,
-  openRequests:requests.count??0,
-  recentlyViewed:recent.count??0,
-  unreadNotifications:notifications.count??0,
-  orders:orders.count??0
+  savedParts:count(savedParts),
+  savedSearches:count(savedSearches),
+  garage:count(garage),
+  openRequests:count(requests),
+  recentlyViewed:count(recent),
+  unreadNotifications:count(notifications),
+  orders:count(orders)
  };
 }

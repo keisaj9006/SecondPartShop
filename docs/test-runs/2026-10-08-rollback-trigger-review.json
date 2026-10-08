@@ -1,0 +1,48 @@
+{
+  "project_id": "etkupijfdznljimrfyct",
+  "purpose": "Independent pre-execution read-only trigger review for rollback acceptance",
+  "tables_examined": [
+    "public.profiles",
+    "public.fitting_requests",
+    "public.fitting_request_messages",
+    "public.notifications",
+    "public.mobile_push_outbox",
+    "private.part_request_refresh_queue",
+    "private.saved_search_match_queue"
+  ],
+  "observations": "No custom triggers returned for examined tables except notifications and profiles. Notification trigger writes only transactional outbox rows. Profile role update triggers only protection/timestamp; handle trigger not invoked by role-only update. No external provider calls in returned bodies. Existing broader inventory covers seller/part/order triggers.",
+  "triggers": [
+    {
+      "schema_name": "public",
+      "table_name": "notifications",
+      "tgname": "enqueue_mobile_push_trigger",
+      "trigger_definition": "CREATE TRIGGER enqueue_mobile_push_trigger AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION private.enqueue_mobile_push()",
+      "function_signature": "private.enqueue_mobile_push()",
+      "function_definition": "CREATE OR REPLACE FUNCTION private.enqueue_mobile_push()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\nbegin\n  insert into public.mobile_push_outbox(notification_id,profile_id,device_id)\n  select new.id,new.profile_id,d.id\n  from public.mobile_push_devices d\n  where d.profile_id=new.profile_id\n    and d.enabled\n  on conflict do nothing;\n  return new;\nend;\n$function$\n"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "profiles",
+      "tgname": "ensure_profile_handle_trigger",
+      "trigger_definition": "CREATE TRIGGER ensure_profile_handle_trigger BEFORE INSERT OR UPDATE OF handle, display_name ON public.profiles FOR EACH ROW EXECUTE FUNCTION private.ensure_profile_handle()",
+      "function_signature": "private.ensure_profile_handle()",
+      "function_definition": "CREATE OR REPLACE FUNCTION private.ensure_profile_handle()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\ndeclare\n  base_handle text;\nbegin\n  if new.handle is null or btrim(new.handle)='' then\n    base_handle := trim(both '-' from regexp_replace(lower(new.display_name), '[^a-z0-9]+', '-', 'g'));\n    if length(base_handle) < 3 then base_handle := 'member'; end if;\n    new.handle := left(base_handle,24) || '-' || substr(replace(new.id::text,'-',''),1,6);\n  else\n    new.handle := lower(btrim(new.handle));\n  end if;\n  return new;\nend;\n$function$\n"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "profiles",
+      "tgname": "profiles_protect_role",
+      "trigger_definition": "CREATE TRIGGER profiles_protect_role BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION private.protect_profile_role()",
+      "function_signature": "private.protect_profile_role()",
+      "function_definition": "CREATE OR REPLACE FUNCTION private.protect_profile_role()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  request_role text:=(select auth.jwt()->>'role');\nbegin\n  if new.role is distinct from old.role then\n    if old.role='buyer'::public.user_role\n       and new.role='seller'::public.user_role\n       and old.id=(select auth.uid())\n       and new.id=old.id then\n      return new;\n    end if;\n\n    if request_role='service_role' or private.is_admin() then\n      return new;\n    end if;\n\n    raise exception 'Only administrators can change account roles';\n  end if;\n\n  return new;\nend;\n$function$\n"
+    },
+    {
+      "schema_name": "public",
+      "table_name": "profiles",
+      "tgname": "profiles_touch",
+      "trigger_definition": "CREATE TRIGGER profiles_touch BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION private.touch_updated_at()",
+      "function_signature": "private.touch_updated_at()",
+      "function_definition": "CREATE OR REPLACE FUNCTION private.touch_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  new.updated_at = pg_catalog.now();\n  return new;\nend;\n$function$\n"
+    }
+  ]
+}
