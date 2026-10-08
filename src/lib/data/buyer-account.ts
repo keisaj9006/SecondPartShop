@@ -6,7 +6,7 @@ import type { Listing,SavedSearch } from "@/lib/types";
 
 const safeParams=(value:unknown):Record<string,string>=>{
  if(typeof value!=="object"||value===null||Array.isArray(value))return {};
- const allowed=new Set(["q","category","condition","sort","min","max","pc","collection","vehicle","vr","vc","cv","cy","cf","ce"]);
+ const allowed=new Set(["q","category","condition","sort","min","max","pc","collection","fit","vehicle","vr","vc","cv","cy","cf","ce"]);
  const result:Record<string,string>={};
  for(const [key,item] of Object.entries(value as Record<string,unknown>)){
   if(allowed.has(key)&&typeof item==="string"&&item.length<=200)result[key]=item;

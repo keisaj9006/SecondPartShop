@@ -16,6 +16,7 @@ function moduleFrom(relativePath,dependencies={}){
  vm.runInNewContext(compiled,{
   exports,
   require(name){
+   if(name==="@/lib/auth-return")return moduleFrom("src/lib/auth-return.ts",dependencies);
    if(name in dependencies)return dependencies[name];
    throw new Error(`Unexpected dependency ${name} in ${relativePath}`);
   },

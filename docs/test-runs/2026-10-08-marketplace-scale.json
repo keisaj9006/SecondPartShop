@@ -1,0 +1,345 @@
+{
+  "date": "2026-10-08",
+  "purpose": "Isolated synthetic correctness and scale measurements, not hosted latency SLO",
+  "runs": [
+    {
+      "status": "PASS",
+      "fixtureCount": 1000,
+      "scope": {
+        "fixture": "isolated in-memory PGlite",
+        "sharedSupabaseWrites": 0
+      },
+      "runtime": {
+        "node": "v24.20.0",
+        "platform": "win32",
+        "architecture": "x64",
+        "logicalCpuCount": 4,
+        "pglite": "0.5.8",
+        "postgresql": "PostgreSQL 18.3 (PGlite 0.5.8) on wasm32-unknown-emscripten, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit",
+        "pgTrgm": "1.6",
+        "rssMiB": 606.2
+      },
+      "migration": {
+        "path": "supabase/migrations/20260912110440_complete_marketplace_search_page.sql",
+        "sha256": "535194ac597564e1bc005c70f95d01b5824d23d5f466366c41bcd56c8d570911"
+      },
+      "timingsMs": {
+        "bootstrap": 4559.7,
+        "seed": 302.8,
+        "migration": 22.8,
+        "analyze": 26.4,
+        "queries": [
+          {
+            "name": "filtered_compact_oem",
+            "query": "SCALEOEM25000",
+            "sort": "best",
+            "categoryIds": [
+              "00000000-0000-4000-8000-000000007002"
+            ],
+            "limit": 24,
+            "offset": 0,
+            "rowCount": 1,
+            "firstPartId": "00000000-0000-4000-8000-000000001000",
+            "lastPartId": "00000000-0000-4000-8000-000000001000",
+            "durationMs": 168.8
+          },
+          {
+            "name": "best_first_page",
+            "query": "Scale alternator",
+            "sort": "best",
+            "categoryIds": null,
+            "limit": 24,
+            "offset": 0,
+            "rowCount": 25,
+            "firstPartId": "00000000-0000-4000-8000-000000000001",
+            "lastPartId": "00000000-0000-4000-8000-000000000025",
+            "durationMs": 223.2
+          },
+          {
+            "name": "price_desc_clamped_page",
+            "query": "Scale alternator",
+            "sort": "price_desc",
+            "categoryIds": null,
+            "limit": 1000,
+            "offset": 0,
+            "rowCount": 61,
+            "firstPartId": "00000000-0000-4000-8000-000000001000",
+            "lastPartId": "00000000-0000-4000-8000-000000000940",
+            "durationMs": 125.8
+          },
+          {
+            "name": "price_asc_deep_page",
+            "query": "Scale alternator",
+            "sort": "price_asc",
+            "categoryIds": null,
+            "limit": 24,
+            "offset": 960,
+            "rowCount": 25,
+            "firstPartId": "00000000-0000-4000-8000-000000000961",
+            "lastPartId": "00000000-0000-4000-8000-000000000985",
+            "durationMs": 150.3
+          },
+          {
+            "name": "price_desc_deep_page",
+            "query": "Scale alternator",
+            "sort": "price_desc",
+            "categoryIds": null,
+            "limit": 24,
+            "offset": 960,
+            "rowCount": 25,
+            "firstPartId": "00000000-0000-4000-8000-000000000040",
+            "lastPartId": "00000000-0000-4000-8000-000000000016",
+            "durationMs": 118.9
+          },
+          {
+            "name": "best_terminal_page",
+            "query": "Scale alternator",
+            "sort": "best",
+            "categoryIds": null,
+            "limit": 24,
+            "offset": 984,
+            "rowCount": 16,
+            "firstPartId": "00000000-0000-4000-8000-000000000985",
+            "lastPartId": "00000000-0000-4000-8000-000000001000",
+            "durationMs": 184.1
+          }
+        ],
+        "total": 5896.4
+      },
+      "verified": [
+        "exactly 1000 synthetic listings",
+        "current checked-in search migration loaded unchanged",
+        "compact OEM matching under a category filter",
+        "bounded limit-plus-one pages",
+        "global best and price ordering before pagination",
+        "deep and terminal pagination behavior"
+      ]
+    },
+    {
+      "status": "PASS",
+      "fixtureCount": 10000,
+      "scope": {
+        "fixture": "isolated in-memory PGlite",
+        "sharedSupabaseWrites": 0
+      },
+      "runtime": {
+        "node": "v24.20.0",
+        "platform": "win32",
+        "architecture": "x64",
+        "logicalCpuCount": 4,
+        "pglite": "0.5.8",
+        "postgresql": "PostgreSQL 18.3 (PGlite 0.5.8) on wasm32-unknown-emscripten, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit",
+        "pgTrgm": "1.6",
+        "rssMiB": 381.3
+      },
+      "migration": {
+        "path": "supabase/migrations/20260912110440_complete_marketplace_search_page.sql",
+        "sha256": "535194ac597564e1bc005c70f95d01b5824d23d5f466366c41bcd56c8d570911"
+      },
+      "timingsMs": {
+        "bootstrap": 4371.9,
+        "seed": 1644.6,
+        "migration": 10.5,
+        "analyze": 64,
+        "queries": [
+          {
+            "name": "filtered_compact_oem",
+            "query": "SCALEOEM25000",
+            "sort": "best",
+            "categoryIds": [
+              "00000000-0000-4000-8000-000000007002"
+            ],
+            "limit": 24,
+            "offset": 0,
+            "rowCount": 1,
+            "firstPartId": "00000000-0000-4000-8000-000000010000",
+            "lastPartId": "00000000-0000-4000-8000-000000010000",
+            "durationMs": 103.9
+          },
+          {
+            "name": "best_first_page",
+            "query": "Scale alternator",
+            "sort": "best",
+            "categoryIds": null,
+            "limit": 24,
+            "offset": 0,
+            "rowCount": 25,
+            "firstPartId": "00000000-0000-4000-8000-000000000001",
+            "lastPartId": "00000000-0000-4000-8000-000000000025",
+            "durationMs": 360.4
+          },
+          {
+            "name": "price_desc_clamped_page",
+            "query": "Scale alternator",
+            "sort": "price_desc",
+            "categoryIds": null,
+            "limit": 1000,
+            "offset": 0,
+            "rowCount": 61,
+            "firstPartId": "00000000-0000-4000-8000-000000010000",
+            "lastPartId": "00000000-0000-4000-8000-000000009940",
+            "durationMs": 344.3
+          },
+          {
+            "name": "price_asc_deep_page",
+            "query": "Scale alternator",
+            "sort": "price_asc",
+            "categoryIds": null,
+            "limit": 24,
+            "offset": 9960,
+            "rowCount": 25,
+            "firstPartId": "00000000-0000-4000-8000-000000009961",
+            "lastPartId": "00000000-0000-4000-8000-000000009985",
+            "durationMs": 293.5
+          },
+          {
+            "name": "price_desc_deep_page",
+            "query": "Scale alternator",
+            "sort": "price_desc",
+            "categoryIds": null,
+            "limit": 24,
+            "offset": 9960,
+            "rowCount": 25,
+            "firstPartId": "00000000-0000-4000-8000-000000000040",
+            "lastPartId": "00000000-0000-4000-8000-000000000016",
+            "durationMs": 278.4
+          },
+          {
+            "name": "best_terminal_page",
+            "query": "Scale alternator",
+            "sort": "best",
+            "categoryIds": null,
+            "limit": 24,
+            "offset": 9984,
+            "rowCount": 16,
+            "firstPartId": "00000000-0000-4000-8000-000000009985",
+            "lastPartId": "00000000-0000-4000-8000-000000010000",
+            "durationMs": 356.1
+          }
+        ],
+        "total": 7846.5
+      },
+      "verified": [
+        "exactly 10000 synthetic listings",
+        "current checked-in search migration loaded unchanged",
+        "compact OEM matching under a category filter",
+        "bounded limit-plus-one pages",
+        "global best and price ordering before pagination",
+        "deep and terminal pagination behavior"
+      ]
+    },
+    {
+      "status": "PASS",
+      "fixtureCount": 25000,
+      "scope": {
+        "fixture": "isolated in-memory PGlite",
+        "sharedSupabaseWrites": 0
+      },
+      "runtime": {
+        "node": "v24.20.0",
+        "platform": "win32",
+        "architecture": "x64",
+        "logicalCpuCount": 4,
+        "pglite": "0.5.8",
+        "postgresql": "PostgreSQL 18.3 (PGlite 0.5.8) on wasm32-unknown-emscripten, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit",
+        "pgTrgm": "1.6",
+        "rssMiB": 395.9
+      },
+      "migration": {
+        "path": "supabase/migrations/20260912110440_complete_marketplace_search_page.sql",
+        "sha256": "535194ac597564e1bc005c70f95d01b5824d23d5f466366c41bcd56c8d570911"
+      },
+      "timingsMs": {
+        "bootstrap": 3343.2,
+        "seed": 2169.5,
+        "migration": 5,
+        "analyze": 142.6,
+        "queries": [
+          {
+            "name": "filtered_compact_oem",
+            "query": "SCALEOEM25000",
+            "sort": "best",
+            "categoryIds": [
+              "00000000-0000-4000-8000-000000007002"
+            ],
+            "limit": 24,
+            "offset": 0,
+            "rowCount": 1,
+            "firstPartId": "00000000-0000-4000-8000-000000025000",
+            "lastPartId": "00000000-0000-4000-8000-000000025000",
+            "durationMs": 162.8
+          },
+          {
+            "name": "best_first_page",
+            "query": "Scale alternator",
+            "sort": "best",
+            "categoryIds": null,
+            "limit": 24,
+            "offset": 0,
+            "rowCount": 25,
+            "firstPartId": "00000000-0000-4000-8000-000000000001",
+            "lastPartId": "00000000-0000-4000-8000-000000000025",
+            "durationMs": 698.2
+          },
+          {
+            "name": "price_desc_clamped_page",
+            "query": "Scale alternator",
+            "sort": "price_desc",
+            "categoryIds": null,
+            "limit": 1000,
+            "offset": 0,
+            "rowCount": 61,
+            "firstPartId": "00000000-0000-4000-8000-000000025000",
+            "lastPartId": "00000000-0000-4000-8000-000000024940",
+            "durationMs": 616.3
+          },
+          {
+            "name": "price_asc_deep_page",
+            "query": "Scale alternator",
+            "sort": "price_asc",
+            "categoryIds": null,
+            "limit": 24,
+            "offset": 24960,
+            "rowCount": 25,
+            "firstPartId": "00000000-0000-4000-8000-000000024961",
+            "lastPartId": "00000000-0000-4000-8000-000000024985",
+            "durationMs": 617.4
+          },
+          {
+            "name": "price_desc_deep_page",
+            "query": "Scale alternator",
+            "sort": "price_desc",
+            "categoryIds": null,
+            "limit": 24,
+            "offset": 24960,
+            "rowCount": 25,
+            "firstPartId": "00000000-0000-4000-8000-000000000040",
+            "lastPartId": "00000000-0000-4000-8000-000000000016",
+            "durationMs": 638.7
+          },
+          {
+            "name": "best_terminal_page",
+            "query": "Scale alternator",
+            "sort": "best",
+            "categoryIds": null,
+            "limit": 24,
+            "offset": 24984,
+            "rowCount": 16,
+            "firstPartId": "00000000-0000-4000-8000-000000024985",
+            "lastPartId": "00000000-0000-4000-8000-000000025000",
+            "durationMs": 701.4
+          }
+        ],
+        "total": 9109.8
+      },
+      "verified": [
+        "exactly 25000 synthetic listings",
+        "current checked-in search migration loaded unchanged",
+        "compact OEM matching under a category filter",
+        "bounded limit-plus-one pages",
+        "global best and price ordering before pagination",
+        "deep and terminal pagination behavior"
+      ]
+    }
+  ]
+}

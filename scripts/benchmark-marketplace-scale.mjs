@@ -5,7 +5,8 @@ import os from 'node:os';
 import {performance} from 'node:perf_hooks';
 import {database,id,migration} from './lib/marketplace-search-sql-harness.mjs';
 
-const fixtureCount=25_000;
+const fixtureCount=Number(process.argv[2]??25_000);
+assert.ok([1_000,10_000,25_000].includes(fixtureCount),'fixture size must be 1000, 10000 or 25000');
 const queryText='Scale alternator';
 const migrationName='20260912110440_complete_marketplace_search_page.sql';
 const migrationPath=`supabase/migrations/${migrationName}`;
@@ -58,7 +59,7 @@ async function runScaleProbe(){
   await seedScaleFixture(db);
   const seedMs=elapsed(seedStart);
   const actualCount=(await db.query('select count(*)::integer count from public.parts')).rows[0].count;
-  assert.equal(actualCount,fixtureCount,'the isolated scale fixture contains exactly 25,000 listings');
+  assert.equal(actualCount,fixtureCount,'the isolated scale fixture contains the requested listing count');
 
   const migrationStart=performance.now();
   await db.exec(migrationSql);
@@ -96,12 +97,12 @@ async function runScaleProbe(){
    });
   };
 
-  await measure({name:'filtered_compact_oem',query:'SCALEOEM25000',categoryIds:[id(7002)],expectedIds:[id(25_000)]});
+  await measure({name:'filtered_compact_oem',query:'SCALEOEM25000',categoryIds:[id(7002)],expectedIds:[id(fixtureCount)]});
   await measure({name:'best_first_page',expectedIds:ids(1,25)});
-  await measure({name:'price_desc_clamped_page',sort:'price_desc',limit:1000,expectedIds:ids(25_000,24_940,-1)});
-  await measure({name:'price_asc_deep_page',sort:'price_asc',offset:24_960,expectedIds:ids(24_961,24_985)});
-  await measure({name:'price_desc_deep_page',sort:'price_desc',offset:24_960,expectedIds:ids(40,16,-1)});
-  await measure({name:'best_terminal_page',offset:24_984,expectedIds:ids(24_985,25_000)});
+  await measure({name:'price_desc_clamped_page',sort:'price_desc',limit:1000,expectedIds:ids(fixtureCount,fixtureCount-60,-1)});
+  await measure({name:'price_asc_deep_page',sort:'price_asc',offset:fixtureCount-40,expectedIds:ids(fixtureCount-39,fixtureCount-15)});
+  await measure({name:'price_desc_deep_page',sort:'price_desc',offset:fixtureCount-40,expectedIds:ids(40,16,-1)});
+  await measure({name:'best_terminal_page',offset:fixtureCount-16,expectedIds:ids(fixtureCount-15,fixtureCount)});
 
   return {
    fixtureCount:actualCount,
@@ -120,7 +121,7 @@ async function runScaleProbe(){
    migration:{path:migrationPath,sha256:migrationSha256},
    timingsMs:{bootstrap:bootstrapMs,seed:seedMs,migration:migrationMs,analyze:analyzeMs,queries,total:elapsed(totalStart)},
    verified:[
-   'exactly 25,000 synthetic listings',
+   `exactly ${fixtureCount} synthetic listings`,
    'current checked-in search migration loaded unchanged',
     'compact OEM matching under a category filter',
    'bounded limit-plus-one pages',
@@ -134,5 +135,5 @@ async function runScaleProbe(){
 }
 
 const report=await runScaleProbe();
-assert.equal(report.fixtureCount,25_000,'scale probe verifies exactly 25,000 listings');
+assert.equal(report.fixtureCount,fixtureCount,'scale probe verifies the requested listing count');
 console.log(JSON.stringify(report,null,2));

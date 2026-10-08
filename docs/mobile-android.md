@@ -54,7 +54,7 @@ The full production frontend URL is verified again in the Android production wor
 
 ## Mobile/native integration
 
-The Next.js frontend can access native Android capabilities through the Capacitor wrapper and the bundled bridge generated from `mobile-native-src/native.ts`.
+The hosted Next.js frontend accesses the Capacitor plugin proxies injected into its WebView. Its push integration uses `Capacitor.Plugins.PushNotifications` directly; it does not depend on the custom `SecondPartNative` bridge, which is loaded only by the bundled `mobile-shell/index.html`. The bridge generated from `mobile-native-src/native.ts` remains a bundled wrapper asset.
 
 Native capabilities currently include:
 
@@ -66,6 +66,8 @@ Native capabilities currently include:
 - push notification permission, token registration and notification taps
 - custom-scheme Preview fallback where applicable
 - verified HTTPS App Links for Production completion paths
+
+Hosted Android push opt-in lives in Account > Notifications on this device. Enable requests Android permission explicitly; restoring a prior opt-in for the same account only uses already-granted permission. Cookie-authenticated server actions bind the installation to the authenticated profile using the existing `mobile_push_devices` contract. A signed HTTP-only installation ID/version cookie supports exact-device disable and logout cleanup, including expired sessions and account replacement; FCM tokens are not kept in browser storage. Registration, disable, sign-out and sign-in share a same-origin lock to handle account changes between tabs. Native email/PKCE returns first open a same-origin continuation, which takes that lock before a server action performs the normal verified credential exchange using fresh cookies. Registration first stages a disabled row and delivers its signed binding, then a separate compare-and-set action activates it. Cleanup strictly advances the existing row version, preventing a delayed activation from reviving the preceding account association even when navigation unloads the previous page. Enable requires an Android System WebView with this coordination capability and otherwise gives update guidance before prompting. Ordinary browsers do not register native push.
 
 The native wrapper is intentionally thin. Business rules and transaction truth remain server-controlled.
 
@@ -83,7 +85,7 @@ Relevant completion paths include:
 
 Preview retains a `secondpart://...` fallback where required. Production supports verified HTTPS App Links patched into the generated Android manifest.
 
-The application must not intercept `/auth/callback` before Supabase completes its PKCE/code exchange.
+The native external-link listener must not route `/auth/callback` straight to Account before Supabase verifies its PKCE/code exchange. The same-origin native continuation coordinates that verified exchange before completing navigation.
 
 ## Push notifications
 

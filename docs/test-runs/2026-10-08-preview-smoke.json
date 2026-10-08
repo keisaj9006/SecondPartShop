@@ -1,0 +1,128 @@
+{
+  "commit": "62362de62b7556458f445137eccd970cd1678fc5",
+  "origin": "https://second-part-shop-h4xnek9t9-joannakwapis11-5369.vercel.app",
+  "status": "PASS",
+  "checks": [
+    {
+      "route": "/",
+      "status": 200
+    },
+    {
+      "route": "/account",
+      "status": 200
+    },
+    {
+      "route": "/garage",
+      "status": 200
+    },
+    {
+      "route": "/dashboard",
+      "status": 200
+    },
+    {
+      "route": "/api/mobile/v1/health",
+      "status": 200
+    },
+    {
+      "route": "/parts/dq500-valve-body-assembly?sort=best",
+      "status": 200
+    },
+    {
+      "route": "/?q=alternator",
+      "status": 200
+    },
+    {
+      "route": "/auth/mobile-complete",
+      "status": 200,
+      "falseSuccess": false
+    },
+    {
+      "route": "/auth/mobile-complete?state=password-updated",
+      "status": 200,
+      "falseSuccess": false
+    },
+    {
+      "route": "/api/mobile/v1/me",
+      "status": 401,
+      "noStore": true
+    },
+    {
+      "route": "/api/mobile/v1/profile",
+      "status": 401,
+      "noStore": true
+    },
+    {
+      "route": "/api/mobile/v1/garage",
+      "status": 401,
+      "noStore": true
+    },
+    {
+      "route": "/api/mobile/v1/saved",
+      "status": 401,
+      "noStore": true
+    },
+    {
+      "route": "/api/mobile/v1/orders",
+      "status": 401,
+      "noStore": true
+    },
+    {
+      "route": "/api/mobile/v1/cases",
+      "status": 401,
+      "noStore": true
+    },
+    {
+      "route": "/api/mobile/v1/inbox",
+      "status": 401,
+      "noStore": true
+    },
+    {
+      "route": "/api/mobile/v1/notifications",
+      "status": 401,
+      "noStore": true
+    },
+    {
+      "route": "/api/mobile/v1/seller/listings",
+      "status": 401,
+      "noStore": true
+    },
+    {
+      "route": "/api/mobile/v1/seller/profile",
+      "status": 401,
+      "noStore": true
+    },
+    {
+      "route": "/api/mobile/v1/seller/verification",
+      "status": 401,
+      "noStore": true
+    },
+    {
+      "route": "/api/mobile/v1/security",
+      "status": 401,
+      "noStore": true
+    },
+    {
+      "route": "/api/mobile/v1/marketplace?cv=bad-id&cy=2020&fit=1",
+      "status": 503
+    },
+    {
+      "route": "/api/mobile/v1/marketplace?cv=bad-id&cy=2020&fit=0",
+      "status": 200
+    },
+    {
+      "route": "/auth/callback?error=rc-probe",
+      "status": 307,
+      "nativeHandoff": "/auth/native-return/callback"
+    },
+    {
+      "route": "/auth/confirm?error=rc-probe",
+      "status": 307,
+      "nativeHandoff": "/auth/native-return/confirm"
+    },
+    {
+      "route": "/?cv=bad-id&cy=2020&fit=1",
+      "status": 200,
+      "failClosed": true
+    }
+  ]
+}

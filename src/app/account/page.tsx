@@ -7,6 +7,8 @@ import {getCurrentProfileState,getCurrentUserState} from "@/lib/auth";
 import {AccountProfileUnavailable} from "@/components/account-profile-unavailable";
 import {isSupabaseConfigured} from "@/lib/supabase/env";
 import {safeInternalPath} from "@/lib/navigation";
+import {AccountSignOut} from "@/components/account-sign-out";
+import {NativePushSettings} from "@/components/native-push-settings";
 
 export const dynamic="force-dynamic";
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
@@ -31,7 +33,7 @@ export default async function AccountPage({searchParams}:{searchParams:Promise<R
  const user=authState.user;
  const profileState=await getCurrentProfileState(user);
  if(profileState.kind!=="profile"){
-  return <><Header/><main className="mx-auto max-w-3xl px-4 py-12"><AccountProfileUnavailable reason={profileState.kind==="missing"?"missing-profile":"profile-error"} email={user.email}/></main></>;
+  return <><Header/><main className="mx-auto max-w-3xl px-4 py-12"><AccountProfileUnavailable reason={profileState.kind==="missing"?"missing-profile":"profile-error"} email={user.email}/><AccountSignOut cleanupFailed={first(params.error)==="push-detach-failed"}/></main></>;
  }
  const profile=profileState.profile;
 
@@ -58,6 +60,8 @@ export default async function AccountPage({searchParams}:{searchParams:Promise<R
    </div>
   </section>
 
+  <NativePushSettings userId={user.id}/>
+
   <div className="mt-5 grid max-w-md grid-cols-2 rounded-2xl bg-[#eef1eb] p-1">
    <Link href="/account?view=buying" className={`rounded-xl px-4 py-2.5 text-center text-sm font-black ${view==="buying"?"bg-white shadow-sm":""}`}>Buyer</Link>
    <Link href={sellingEnabled?"/account?view=selling":"/sell"} className={`rounded-xl px-4 py-2.5 text-center text-sm font-black ${view==="selling"?"bg-white shadow-sm":""}`}>Seller</Link>
@@ -68,5 +72,6 @@ export default async function AccountPage({searchParams}:{searchParams:Promise<R
   <Suspense fallback={<AccountDashboardFallback/>}>
    <AccountDashboardContent userId={user.id} role={profile.role} view={view}/>
   </Suspense>
+  <AccountSignOut cleanupFailed={accessError==="push-detach-failed"}/>
  </main></>;
 }

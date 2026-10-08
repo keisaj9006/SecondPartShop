@@ -5,6 +5,14 @@ Branch: `rebuild-nextjs`
 
 This document is the canonical launch checklist for the Android / Google Play and public marketplace release. It deliberately separates code readiness from marketplace liquidity, and it distinguishes code-level safeguards from real provider/device E2E evidence.
 
+## Final RC hardening — 8 October 2026
+
+[The final RC execution report](test-runs/2026-10-08-final-rc-hardening.md) records the stacked `codex/final-rc-hardening` work. All reviewed RC26 P0/P1 repairs are now FIXED / VERIFIED: the five deployed SQL functions passed 32 safe hosted rollback scenarios and 67 exact-deployed-body PostgreSQL 17 tests, including seven real overlap schedules, with independent review. The rejected shared-host committed concurrency package is quarantined. [Closure evidence](test-runs/2026-10-08-safe-acceptance-independent-review.md). The integrated local suite passes 1,102 tests. Fresh external mailbox/Auth/Storage deletion, provider, physical-device, legal and marketplace gates remain separate; this is not launch approval. PR #17 remains draft, PR #16 and #10 unmerged, and no Production deployment is authorized. Historical migration drift remains untouched.
+
+## Remaining automation continuation — 8 October 2026
+
+Fresh safe automation repairs buyer-case visibility behind sold-part RLS, saved-search read-side fit intent, native dot-segment returns, App Links fingerprint formats and ignored-webhook push scheduling. Local integrated tests: 1,225/1,225; lint zero errors/four existing warnings, typecheck/build, all 14 validators and production dependency audit pass. Independent affected-change review: 95/95. Fresh exact-code CI passes all seven jobs and 1,246 tests, with 45 Preview HTTP checks. [The continuation checkpoint](test-runs/2026-10-08-remaining-rc-checkpoint.md) records the exact SHA, isolated Stripe/Android evidence and remaining external prerequisites. [One compact owner confirmation pack](test-runs/2026-10-08-compact-owner-pack.md) collects genuine mailbox, real-vehicle, application Sandbox, physical-device and signing/business boundaries. No launch, merge or Production approval follows from local checks.
+
 ## Continuation audit — 2026-09-21
 
 [The handover reconciliation](test-runs/2026-09-21-handover-audit.md) records the 356-commit local/remote drift, current hosted migration readback and a local provider-dispute terminal guard repair. It does not replace the scoped deployed evidence or close release gates below.

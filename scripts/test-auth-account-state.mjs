@@ -14,12 +14,14 @@ function load(path,modules){
 }
 const user={id:'viewer',email:'buyer@example.test',email_confirmed_at:'confirmed'};
 const profile={id:'viewer',role:'seller',displayName:'Test Member',handle:'member'};
-async function page(authState,profileState,params={}){
+async function page(authState,profileState,params={},native=false){
  let profileReads=0;
  const Unavailable=({reason})=>React.createElement('div',null,'Recovery '+reason);
  const api=load('src/app/account/page.tsx',{
   'react/jsx-runtime':runtime,'react':React,'next/link':link,
-  '@/components/header':{Header:()=>React.createElement('header',null,'Header')},
+  '@/components/account-sign-out':load('src/components/account-sign-out.tsx',{'react/jsx-runtime':runtime,'@/app/auth/actions':{signOut:async()=>{}}}),
+  '@/components/native-push-settings':{NativePushSettings:()=>null},
+  '@/components/header':{Header:()=>native?null:React.createElement('header',null,'Header')},
   '@/components/auth-form':{AuthForm:({defaultMode})=>React.createElement('div',null,defaultMode==='signup'?'Create account form':'Sign-in form')},
   '@/components/account-profile-unavailable':{AccountProfileUnavailable:Unavailable},
   '@/components/account-dashboard-content':{AccountDashboardContent:()=>React.createElement('div',null,'Dashboard'),AccountDashboardFallback:()=>null,AccountTrustSummary:()=>null},
@@ -57,4 +59,17 @@ test('profile recovery copy distinguishes Auth errors, missing profiles and tran
  assert.match(error,/temporarily unavailable/);assert.match(error,/signed in/);assert.notEqual(error,missing);
  assert.match(auth,/check your sign-in status/);assert.doesNotMatch(auth,/You’re signed in|buyer@example/);
  for(const html of [missing,error,auth]){assert.match(html,/Retry/);assert.doesNotMatch(html,/Finish setup|Sign-in form/);}
+});
+
+test('native authenticated Account exposes sign-out when the native layout hides Header',async()=>{
+ const result=await page({kind:'authenticated',user},{kind:'profile',profile},{},true);
+ assert.doesNotMatch(result.html,/>Header</);
+ assert.match(result.html,/<form[^>]*aria-label="Sign out of SecondPart"/);
+ assert.match(result.html,/<button[^>]*type="submit"[^>]*>Sign out<\/button>/);
+});
+
+for(const kind of ['missing','error'])test(`native authenticated ${kind} profile recovery still exposes coordinated sign-out`,async()=>{
+ const result=await page({kind:'authenticated',user},{kind},{error:'push-detach-failed'},true);
+ assert.match(result.html,/<form[^>]*aria-label="Sign out of SecondPart"/);
+ assert.match(result.html,/could not disable notifications/i);
 });

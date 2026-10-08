@@ -3,9 +3,18 @@
 import Link from "next/link";
 import { useActionState,useEffect,useRef,useState } from "react";
 import { ShoppingBag,Store } from "lucide-react";
-import { signIn,signUp } from "@/app/auth/actions";
+import { signIn as signInServer,signUp as signUpServer } from "@/app/auth/actions";
 import type { ActionState } from "@/lib/types";
 import { safeInternalPath } from "@/lib/navigation";
+
+async function signIn(previous:ActionState,formData:FormData){
+ const {coordinateNativeAccountChange}=await import("@/lib/native-push");
+ return coordinateNativeAccountChange(()=>signInServer(previous,formData));
+}
+async function signUp(previous:ActionState,formData:FormData){
+ const {coordinateNativeAccountChange}=await import("@/lib/native-push");
+ return coordinateNativeAccountChange(()=>signUpServer(previous,formData));
+}
 
 const initial:ActionState={status:"idle"};
 

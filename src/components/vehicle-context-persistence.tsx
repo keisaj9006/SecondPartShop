@@ -27,11 +27,14 @@ export function VehicleContextPersistence({viewerId,garageContextValid=true}:{vi
   const canonicalDestination=canonicalQuery?`/?${canonicalQuery}#marketplace`:"/#marketplace";
   if(!resolved.needsReplace&&normalizedRef.current===canonicalDestination)normalizedRef.current="";
   if(resolved.clearStored||(raw!==null&&!stored))clearStoredVehicleContext();
+  // Keep explicit vehicle errors on this URL until the buyer changes or clears them.
+  // Dropping invalid context here would turn a fail-closed server result into broad browse.
+  if(resolved.selection.kind==="invalid-garage"||(resolved.source==="url"&&resolved.selection.kind==="none"))return;
   if(resolved.needsReplace){
    if(normalizedRef.current!==canonicalDestination){normalizedRef.current=canonicalDestination;router.replace(canonicalDestination,{scroll:false});}
    return;
   }
-  if(resolved.source==="url"&&resolved.selection.kind!=="none"&&resolved.selection.kind!=="invalid-garage"&&viewerId){
+  if(resolved.source==="url"&&resolved.selection.kind!=="none"&&viewerId){
    writeStoredVehicleContext(viewerId,resolved.selection);
   }
   if(resolved.source==="storage"){

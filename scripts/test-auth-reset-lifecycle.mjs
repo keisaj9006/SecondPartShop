@@ -178,12 +178,13 @@ test("password-updated mobile completion returns to the Android auth deep link",
   "next/link":"a",
   "lucide-react":{CheckCircle2:()=>null,KeyRound:()=>null},
   "@/components/header":{Header:()=>null},
-  "@/components/mobile-auth-return":{MobileAuthReturn}
+  "@/components/mobile-auth-return":{MobileAuthReturn},
+  "@/lib/auth":{getCurrentUserState:async()=>({kind:"unauthenticated"})}
  });
  const tree=await MobileAuthCompletePage({searchParams:Promise.resolve({state:"password-updated"})});
  const visible=textContent(tree);
- assert.match(visible,/Password updated/);
- assert.match(visible,/sign in with the new password/);
+ assert.doesNotMatch(visible,/Password updated|Your password has been changed/);
+ assert.match(visible,/if you changed your password/i);
  assert.deepEqual(JSON.parse(JSON.stringify(findNode(tree,node=>node.type===MobileAuthReturn).props)),{state:"password-updated"});
 
  let returnTarget="";
@@ -194,4 +195,48 @@ test("password-updated mobile completion returns to the Android auth deep link",
  const returnLink=ReturnLink({state:"password-updated"});
  assert.equal(returnLink.props.href,"secondpart://auth?state=password-updated");
  assert.equal(returnTarget,"secondpart://auth?state=password-updated");
+});
+
+async function mobileCompletion(state,authState){
+ const {default:Page}=moduleFrom("src/app/auth/mobile-complete/page.tsx",{
+  "next/link":{default:"a"},
+  "lucide-react":{CheckCircle2:()=>null,KeyRound:()=>null},
+  "@/components/header":{Header:()=>null},
+  "@/components/mobile-auth-return":{MobileAuthReturn:"mobile-return"},
+  "@/lib/auth":{getCurrentUserState:async()=>authState}
+ });
+ return Page({searchParams:Promise.resolve({state})});
+}
+
+for(const [label,authState] of [
+ ["anonymous",{kind:"unauthenticated"}],
+ ["unconfirmed",{kind:"authenticated",user:{id:"qa-user",email_confirmed_at:null}}],
+ ["Auth outage",{kind:"error"}]
+])test(`mobile email-completion query cannot invent confirmation for ${label}`,async()=>{
+ const tree=await mobileCompletion("confirmed",authState);
+ assert.doesNotMatch(textContent(tree),/Email confirmed|Your email address is confirmed/);
+ assert.equal(findNode(tree,node=>node.type==="a").props.href,"/account");
+ assert.equal(findNode(tree,node=>node.type==="mobile-return").props.state,"confirmed");
+});
+
+test("mobile email confirmation is supported by the provider-verified current session",async()=>{
+ const tree=await mobileCompletion("confirmed",{kind:"authenticated",user:{id:"qa-user",email_confirmed_at:"2026-10-08T10:00:00Z"}});
+ assert.match(textContent(tree),/Email confirmed/);
+ assert.match(textContent(tree),/Your email address is confirmed/);
+});
+
+for(const [label,authState] of [
+ ["anonymous",{kind:"unauthenticated"}],
+ ["signed in",{kind:"authenticated",user:{id:"qa-user",email_confirmed_at:"2026-10-08T10:00:00Z"}}]
+])test(`mobile password hint never proves an update for ${label}`,async()=>{
+ const tree=await mobileCompletion("password-updated",authState);
+ assert.doesNotMatch(textContent(tree),/Password updated|Your password has been changed|Email confirmed/);
+ assert.equal(findNode(tree,node=>node.type==="mobile-return").props.state,"password-updated");
+});
+
+test("mobile Auth outage remains a retry state rather than pretending the user signed out",async()=>{
+ const tree=await mobileCompletion("password-updated",{kind:"error"});
+ assert.match(textContent(tree),/could not check your account status/i);
+ assert.match(textContent(tree),/try again/i);
+ assert.doesNotMatch(textContent(tree),/sign in|Password updated|Email confirmed/i);
 });

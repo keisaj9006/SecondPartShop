@@ -4,6 +4,8 @@ This is a high-level gate. Use `docs/launch-readiness.md` for canonical detail.
 
 2026-09-11 commerce QA: Connect readiness and test webhook delivery/replay verified; application checkout API-version defect fixed with regression coverage. Scenario A passed through explicit buyer acceptance and one test Connect transfer, including paid-webhook replay; reversal/recovery and other provider scenarios remain unsigned. Evidence: `docs/test-runs/2026-09-11-commerce-preview-preflight.md`.
 
+2026-10-08 remaining automation: [verified checkpoint](test-runs/2026-10-08-remaining-rc-checkpoint.md) records seven green QA jobs, 1,246 tests, 45 current Preview checks and new scoped product/native/webhook repairs. [The compact owner pack](test-runs/2026-10-08-compact-owner-pack.md) keeps mailbox, real vehicle, isolated provider integration, physical Android and signing/business gates explicit. Historical checkboxes below are not blanket release approval.
+
 ## A. Code baseline
 
 Product Excellence evidence (2026-09-12): corrected `1a34457` passed301 tests, lint/typecheck/build,14 static validators, independent review and exact-SHA Preview checks. See [phase report](test-runs/2026-09-12-product-excellence.md). This is scoped engineering evidence, not a blanket release sign-off. QA Seller CSV Preview/file retention and seller-form viewport checks subsequently passed on `a54f205`; actual import/provider recovery, native zoom and physical/provider/domain gates below remain unchecked.

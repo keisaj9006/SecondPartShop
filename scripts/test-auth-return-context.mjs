@@ -21,6 +21,7 @@ function moduleFrom(relativePath,dependencies={},globals={}){
  vm.runInNewContext(compiled,{
   exports,
   require(name){
+   if(name==="@/lib/auth-return")return moduleFrom("src/lib/auth-return.ts",dependencies);
    if(name==="react/jsx-runtime")return jsxRuntime;
    if(name in dependencies)return dependencies[name];
    throw new Error(`Unexpected dependency ${name} in ${relativePath}`);
@@ -218,6 +219,8 @@ test("AccountPage preserves missing returnTo and explicit account intent at the 
  const {default:AccountPage}=moduleFrom("src/app/account/page.tsx",{
   "next/link":"a",react:{Suspense:"Suspense"},"@/components/header":{Header:()=>null},"@/components/auth-form":{AuthForm},
   "@/components/account-dashboard-content":{AccountDashboardContent:()=>null,AccountDashboardFallback:()=>null,AccountTrustSummary:()=>null},
+  "@/components/account-sign-out":{AccountSignOut:()=>null},
+  "@/components/native-push-settings":{NativePushSettings:()=>null},
   "@/components/account-profile-unavailable":{AccountProfileUnavailable:()=>null},
   "@/lib/auth":{getCurrentUserState:async()=>({kind:"unauthenticated"}),getCurrentProfileState:async()=>({kind:"missing"})},"@/lib/supabase/env":{isSupabaseConfigured:()=>true},
   "@/lib/navigation":moduleFrom("src/lib/navigation.ts")

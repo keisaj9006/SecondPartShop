@@ -25,8 +25,8 @@ for(const kind of ['mobile','home']){
   const h=caller(kind);const result=await h.run({q:'DSG',...params,fit:'0',vehicle:cv});assert.equal(h.calls.length,0);if(kind==='mobile')assert.equal(result.status,503);else assert.match(result.error,/compatibility.*unavailable/i);
  });
  for(const selection of ['null','throw'])test(`${kind} search rejects failed selection lookup`,async()=>{const h=caller(kind,selection);const result=await h.run({q:'DSG',cv,cy:'2020',fit:'1'});assert.equal(h.calls.length,0);if(kind==='home')assert.match(result.error,/compatibility.*unavailable/i);else assert.equal(result.status,503);});
- test(`${kind} valid catalogue and context-free search reach page boundary; no-query behaviour preserved`,async()=>{
-  for(const params of [{q:'DSG',cv,cy:'2020'},{q:'DSG'},{cv:'broken',cy:'0'}]){const h=caller(kind);await h.run(params);assert.equal(h.calls.length,1);if(params.cv===cv)assert.equal(h.calls[0].filters.catalogueVariant,cv);if(kind==='home')assert.equal(h.calls[0].options.lean,true);}
+ test(`${kind} valid catalogue and context-free search reach page boundary`,async()=>{
+  for(const params of [{q:'DSG',cv,cy:'2020'},{q:'DSG'}]){const h=caller(kind);await h.run(params);assert.equal(h.calls.length,1);if(params.cv===cv)assert.equal(h.calls[0].filters.catalogueVariant,cv);if(kind==='home')assert.equal(h.calls[0].options.lean,true);}
  });
  test(`${kind} valid optional fuel and engine reach the page boundary`,async()=>{const h=caller(kind);await h.run({q:'DSG',cv,cy:'2020',cf:'PETROL',ce:'2000',fit:'0'});assert.equal(h.calls[0].filters.catalogueFuel,'PETROL');assert.equal(h.calls[0].filters.catalogueEngineSize,2000);assert.equal(h.calls[0].filters.compatibleOnly,false);});
 }
@@ -46,4 +46,14 @@ test('Home keeps identity-only Garage fit ON unresolved and uses unverified broa
  assert.equal(broad.calls.length,1);
  assert.equal(broadResult.identityOnlyFitmentUnresolved,false);
  assert.equal(broadResult.listings[0].compatibility.level,'unverified');
+});
+
+for(const selection of ['null','throw'])test('mobile no-query fit ON rejects '+selection+' catalogue lookup',async()=>{
+ const h=caller('mobile',selection);const result=await h.run({cv,cy:'2020',fit:'1'});assert.equal(h.calls.length,0);assert.equal(result.status,503);assert.equal(result.body.ok,false);
+});
+for(const params of [{cv},{cy:'2020'},{cv:'broken',cy:'2020'},{cv,cy:'2020',ce:'broken'},{cf:'PETROL'},{ce:'2000'}])test('mobile no-query fit ON rejects invalid explicit context '+JSON.stringify(params),async()=>{
+ const h=caller('mobile');const result=await h.run(params);assert.equal(h.calls.length,0);assert.equal(result.status,503);
+});
+test('mobile no-query context-free browse, valid fit selection and intentional fit OFF still reach marketplace',async()=>{
+ for(const params of [{},{cv,cy:'2020'},{cv:'broken',cy:'2020',fit:'0'}]){const h=caller('mobile');const result=await h.run(params);assert.equal(h.calls.length,1);assert.equal(result.status,200);if(params.cv===cv)assert.equal(h.calls[0].filters.compatibleOnly,true);else assert.equal(h.calls[0].filters.compatibleOnly,false);}
 });

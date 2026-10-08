@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import {spawnSync} from "node:child_process";
 
 const criticalDispatchFiles=[
  "src/app/api/stripe/webhook/route.ts",
@@ -50,15 +51,9 @@ if(!schedule.includes('after('))failures.push("push schedule must use Next after
 const fcm=read("src/lib/push/fcm.ts");
 if(!fcm.includes('priority:"HIGH"'))failures.push("Android transactional pushes must use HIGH priority");
 
-const nativeMode=read("src/components/native-app-mode.tsx");
-if(!nativeMode.includes("SecondPartNative")||!nativeMode.includes("onReceived")||!nativeMode.includes("router.refresh()")){
- failures.push("native foreground push must refresh hosted application state");
-}
-if(!nativeMode.includes("onAction")||!nativeMode.includes("notification.data?.href")||!nativeMode.includes("router.push(href)")){
- failures.push("native push action must route the notification href through the hosted application");
-}
-if(!nativeMode.includes('value.startsWith("/")')||!nativeMode.includes('value.startsWith("//")')||!nativeMode.includes('url.origin!==window.location.origin')){
- failures.push("native push action href must be restricted to a safe same-origin internal path");
+const nativePushTests=spawnSync(process.execPath,["--test","scripts/test-hosted-native-push.mjs"],{encoding:"utf8"});
+if(nativePushTests.status!==0){
+ failures.push("hosted native push lifecycle/routing regression failed: "+(nativePushTests.stdout||nativePushTests.stderr||"test runner unavailable"));
 }
 
 const smokeAction=read("src/app/admin/system/push-test/actions.ts");
