@@ -6,6 +6,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {PGlite} from '@electric-sql/pglite';
 import ts from 'typescript';
+import {requireIsolatedDeletionTarget} from './isolated-deletion-target.mjs';
+import {loadDeployedDeletionFunctions,verifyDeployedDeletionFunctions} from './deployed-deletion-functions.mjs';
 
 const root=path.resolve(import.meta.dirname,'..');
 const baseline=process.argv.includes('--baseline');
@@ -13,6 +15,8 @@ const postgresMode=process.argv.includes('--postgres');
 const fittingBaseline=process.argv.includes('--fitting-baseline');
 const responseBaseline=process.argv.includes('--response-baseline');
 const messageBaseline=process.argv.includes('--message-baseline');
+const deployedMode=process.argv.includes('--deployed');
+if(deployedMode&&(!postgresMode||baseline||fittingBaseline||responseBaseline||messageBaseline))throw new Error('Deployed verification requires --postgres and forbids baseline/candidate substitutions.');
 const stranger='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const garage='55555555-5555-4555-8555-555555555555';
 const variant='66666666-6666-4666-8666-666666666666';
@@ -38,8 +42,7 @@ async function buildDatabase(){
   if(baseline)throw new Error('Real contention proof requires the candidate proposal.');
   const url=process.env.TEST_DATABASE_URL;
   if(!url)throw new Error('Disposable local PostgreSQL TEST_DATABASE_URL required.');
-  const target=new URL(url);
-  if(!['127.0.0.1','localhost'].includes(target.hostname)||target.pathname!=='/secondpart_deletion_rc')throw new Error('Disposable local secondpart_deletion_rc required.');
+  requireIsolatedDeletionTarget(url);
   const pg=process.env.PG_CLIENT_MODULE?await import(pathToFileURL(process.env.PG_CLIENT_MODULE).href):await import('pg');
   const Client=pg.Client??pg.default.Client;
   const client=new Client({connectionString:url,statement_timeout:15000});
@@ -96,16 +99,19 @@ async function buildDatabase(){
  insert into account_deletion_requests(id,profile_id,target_profile_id,status) values('${request}','${uid}','${uid}','processing');
  `);
 
- await db.exec(sqlFunction('20260906163000_checkout_reservation_lifecycle.sql','public.prepare_checkout_order('));
+ if(!deployedMode)await db.exec(sqlFunction('20260906163000_checkout_reservation_lifecycle.sql','public.prepare_checkout_order('));
  await db.exec(sqlFunction('20260909234500_account_deletion_buy_fit_guard.sql','private.account_deletion_blocker('));
- await db.exec(sqlFunction('20260909233000_account_deletion_retry_context.sql','public.claim_account_deletion_request('));
+ if(!deployedMode)await db.exec(sqlFunction('20260909233000_account_deletion_retry_context.sql','public.claim_account_deletion_request('));
  await db.exec(sqlFunction('20260912215057_account_deletion_seller_minimization.sql','public.prepare_claimed_account_deletion('));
  await db.exec(sqlFunction('20260911213522_secure_part_image_cleanup.sql','public.complete_account_deletion_request('));
- await db.exec(sqlFunction('20260907181459_buy_fit_foundation.sql','public.request_part_fitting_quote('));
+ if(!deployedMode)await db.exec(sqlFunction('20260907181459_buy_fit_foundation.sql','public.request_part_fitting_quote('));
  await db.exec(sqlFunction('20260907181459_buy_fit_foundation.sql','public.buyer_respond_fitting_quote('));
- await db.exec(sqlFunction('20260907181459_buy_fit_foundation.sql','public.garage_respond_fitting_request('));
- await db.exec(sqlFunction('20260907183900_buy_fit_messages.sql','public.send_fitting_request_message('));
- if(!baseline)await db.exec(fs.readFileSync(proposal,'utf8'));
+ if(!deployedMode)await db.exec(sqlFunction('20260907181459_buy_fit_foundation.sql','public.garage_respond_fitting_request('));
+ if(!deployedMode)await db.exec(sqlFunction('20260907183900_buy_fit_messages.sql','public.send_fitting_request_message('));
+ if(deployedMode){
+  db.deployed=await loadDeployedDeletionFunctions(db,JSON.parse(fs.readFileSync(path.join(root,'docs/test-runs/2026-10-08-deployed-deletion-functions.json'),'utf8')));
+  console.log('EXACT_HOSTED_FUNCTIONS '+JSON.stringify(db.deployed.functions.map(({signature,definition_md5,definition_sha256,acl})=>({signature,definition_md5,definition_sha256,acl}))));
+ }else if(!baseline)await db.exec(fs.readFileSync(proposal,'utf8'));
  if(fittingBaseline)await db.exec(sqlFunction('20260907181459_buy_fit_foundation.sql','public.request_part_fitting_quote('));
  if(responseBaseline)await db.exec(sqlFunction('20260907181459_buy_fit_foundation.sql','public.garage_respond_fitting_request('));
  if(messageBaseline)await db.exec(sqlFunction('20260907183900_buy_fit_messages.sql','public.send_fitting_request_message('));
@@ -156,8 +162,26 @@ test('checkout, fitting and deletion obey the same claim boundary in actual SQL'
   await t.test('ordinary unclaimed blocked account retains checkout functionality',async()=>{await reset(db,{status:'blocked'});assert.ok((await checkout(db)).rows[0].order_id);});
   await t.test('checkout first makes deletion claim block without detaching identity',async()=>{await reset(db);await checkout(db);const row=(await claim(db)).rows[0];assert.equal(row.claimed,false);assert.equal(row.blocker_code,'buyer_commerce_active');assert.equal((await db.query('select count(*)::int n from auth.users')).rows[0].n,1);assert.equal((await db.query('select status from account_deletion_requests')).rows[0].status,'blocked');});
   await t.test('deletion claim first rejects checkout without taking stock',async()=>{await reset(db);assert.equal((await claim(db)).rows[0].claimed,true);await assert.rejects(checkout(db),/deletion.*in progress/i);assert.deepEqual(await snapshot(db),{orders:0,stock:1});});
+  await t.test('repeated checkout cannot reserve the same final stock again',async()=>{
+   await reset(db);await checkout(db);await assert.rejects(checkout(db),/not available|not enough stock/i);
+   assert.deepEqual(await snapshot(db),{orders:1,stock:0});assert.equal((await db.query('select buyer_id from orders')).rows[0].buyer_id,uid);
+  });
+  await t.test('repeated deletion claim preserves single processing authority',async()=>{
+   await reset(db);assert.equal((await claim(db)).rows[0].claimed,true);
+   const again=(await claim(db)).rows[0];assert.equal(again.claimed,false);assert.equal(again.blocker_code,'request_not_claimable');
+   assert.equal((await db.query('select attempt_count from account_deletion_requests where id=$1',[request])).rows[0].attempt_count,1);
+  });
+  await t.test('repeated fitting request creates no duplicate obligation or notification',async()=>{
+   await reset(db);await fitting(db);const before=(await db.query('select count(*)::int n from notifications')).rows[0].n;
+   await assert.rejects(fitting(db),/already open/i);assert.equal((await db.query('select count(*)::int n from fitting_requests')).rows[0].n,1);
+   assert.equal((await db.query('select count(*)::int n from notifications')).rows[0].n,before);
+  });
   for(const status of ['processing','failed','blocked'])await t.test('claimed '+status+' deletion rejects new obligations',async()=>{await reset(db,{status,attempt:1});await assert.rejects(checkout(db),/deletion.*in progress/i);assert.deepEqual(await snapshot(db),{orders:0,stock:1});});
   await t.test('checkout after final preflight cannot survive Auth hard deletion',async()=>{await reset(db,{status:'processing',attempt:1});const worker=deletionWorker(db);assert.equal((await worker.run()).status,'completed');assert.equal(worker.refused,true,'new checkout must be refused after final preflight');assert.ok(!worker.events.includes('unsafe-checkout'));assert.deepEqual(await snapshot(db),{orders:0,stock:1});assert.equal((await db.query('select count(*)::int n from auth.users')).rows[0].n,0);});
+  await t.test('completed deletion worker retry performs no second identity deletion',async()=>{
+   await reset(db,{status:'processing',attempt:1});const worker=deletionWorker(db);assert.equal((await worker.run()).status,'completed');
+   const calls=worker.events.length;assert.equal((await worker.run()).reason,'already_completed');assert.equal(worker.events.length,calls);
+  });
   if(!baseline)await t.test('RPC grants preserve existing caller authority',async()=>{assert.equal((await db.query("select has_function_privilege('authenticated','public.prepare_checkout_order(uuid,integer,text)','execute') allowed")).rows[0].allowed,true);for(const role of ['anon','authenticated'])assert.equal((await db.query("select has_function_privilege($1,'public.claim_account_deletion_request(uuid)','execute') allowed",[role])).rows[0].allowed,false);assert.equal((await db.query("select has_function_privilege('service_role','public.claim_account_deletion_request(uuid)','execute') allowed")).rows[0].allowed,true);});
 
   if(!baseline)await t.test('hosted service grant is preserved but an unbound service request cannot buy',async()=>{
@@ -300,6 +324,7 @@ test('checkout, fitting and deletion obey the same claim boundary in actual SQL'
      assert.equal(settled.result.rows[0].claimed,false);
      assert.equal(settled.result.rows[0].blocker_code,'buyer_commerce_active');
      assert.equal((await db.query('select buyer_id from orders')).rows[0].buyer_id,uid);
+     assert.deepEqual(await snapshot(db),{orders:1,stock:0});
     });
     await t.test('PG17 claim first forces checkout to wait, then reject',async()=>{
      await reset(db);await a.query('begin');assert.equal((await claim(a)).rows[0].claimed,true);
@@ -342,6 +367,10 @@ test('checkout, fitting and deletion obey the same claim boundary in actual SQL'
     });
     console.log('PostgreSQL '+(await db.query('show server_version')).rows[0].server_version);
    }finally{await a.query('rollback').catch(()=>{});await Promise.all([a.end().catch(()=>{}),b.end().catch(()=>{})]);}
+  }
+  if(deployedMode){
+   await verifyDeployedDeletionFunctions(db,db.deployed);
+   console.log('EXACT_HOSTED_FUNCTIONS_UNCHANGED_AFTER_TESTS');
   }
  }finally{await db.close();}
 });

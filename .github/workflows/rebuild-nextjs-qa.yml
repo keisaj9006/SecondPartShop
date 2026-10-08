@@ -225,8 +225,17 @@ jobs:
         run: npm ci
       - name: Install isolated PostgreSQL test client
         run: npm install --prefix "$RUNNER_TEMP/deletion-pg" --ignore-scripts --no-audit --no-fund pg@8.16.3
-      - name: Prove proposed deletion and checkout serialization in disposable PostgreSQL
+      - name: Prove exact deployed deletion and fitting functions in disposable PostgreSQL 17
+        shell: bash
         env:
           TEST_DATABASE_URL: postgresql://postgres:secondpart_deletion_fixture_password@127.0.0.1:5432/secondpart_deletion_rc
           PG_CLIENT_MODULE: ${{ runner.temp }}/deletion-pg/node_modules/pg/lib/index.js
-        run: node scripts/test-account-deletion-checkout-race.mjs --postgres
+        run: node --test-reporter=tap scripts/test-account-deletion-checkout-race.mjs --postgres --deployed | tee deletion-exact-hosted-pg17.tap
+      - name: Preserve exact-function provenance and concurrency results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deletion-exact-hosted-pg17
+          path: |
+            deletion-exact-hosted-pg17.tap
+            docs/test-runs/2026-10-08-deployed-deletion-functions.json
