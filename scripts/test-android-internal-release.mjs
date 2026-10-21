@@ -16,14 +16,14 @@ const root=path.resolve(import.meta.dirname,"..");
 const prepare=path.join(root,"scripts","prepare-android-internal.mjs");
 
 test("Internal release accepts only the dedicated stable HTTPS origin",()=>{
- assert.equal(validateInternalOrigin("https://internal.secondpart.co.uk"),"https://internal.secondpart.co.uk");
+ assert.equal(validateInternalOrigin("https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app"),"https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app");
  for(const value of [
   "http://internal.secondpart.co.uk",
   "https://second-part-shop-preview.vercel.app",
-  "https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app",
+  "https://internal.secondpart.co.uk",
   "https://www.secondpart.co.uk",
-  "https://internal.secondpart.co.uk/path",
-  "https://internal.secondpart.co.uk?channel=qa"
+  "https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app/path",
+  "https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app?channel=qa"
  ]){
   assert.throws(()=>validateInternalOrigin(value),/Internal QA origin/);
  }
@@ -42,12 +42,12 @@ test("Internal preparation produces the Play package with release hardening",()=
   const result=spawnSync(process.execPath,[prepare],{
    cwd:directory,
    encoding:"utf8",
-   env:{...process.env,SECOND_PART_INTERNAL_URL:"https://internal.secondpart.co.uk"}
+   env:{...process.env,SECOND_PART_INTERNAL_URL:"https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app"}
   });
   assert.equal(result.status,0,result.stderr||result.stdout);
   const config=JSON.parse(readFileSync(path.join(directory,"capacitor.config.json"),"utf8"));
   assert.equal(config.appId,"com.secondpart.marketplace");
-  assert.equal(config.server.url,"https://internal.secondpart.co.uk");
+  assert.equal(config.server.url,"https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app");
   assert.equal(config.server.cleartext,false);
   assert.equal(config.loggingBehavior,"none");
   assert.equal(config.android.webContentsDebuggingEnabled,false);
@@ -109,6 +109,7 @@ test("Internal workflow policy requires the protected environment and fails clos
   "      - run: echo ${{ secrets.GOOGLE_SERVICES_JSON_BASE64_INTERNAL }}",
   "      - run: echo ${{ vars.SECOND_PART_INTERNAL_URL }}",
   "      - run: echo ${{ vars.SECOND_PART_INTERNAL_STRIPE_MODE }}",
+  "      - run: echo ${{ vars.ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS }}",
   "      - run: echo "+EXPECTED_UPLOAD_SHA256,
   "      - run: echo "+EXPECTED_PLAY_APP_SIGNING_SHA256
  ].join("\n");

@@ -31,7 +31,7 @@ jobs:
     env:
       SECOND_PART_INTERNAL_URL: ${{ vars.SECOND_PART_INTERNAL_URL }}
       SECOND_PART_INTERNAL_STRIPE_MODE: ${{ vars.SECOND_PART_INTERNAL_STRIPE_MODE }}
-      ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS: 916508490C6854B5CFBA742AFF1A3AD3EA853B9FA21C38D1EA3733C2072F6056
+      ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS: ${{ vars.ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS }}
       SECOND_PART_VERSION_NAME: ${{ inputs.version_name }}
       SECOND_PART_VERSION_CODE: ${{ inputs.version_code }}
 
@@ -47,8 +47,9 @@ jobs:
 
       - name: Enforce Internal QA release boundary
         run: |
-          test "$SECOND_PART_INTERNAL_URL" = "https://internal.secondpart.co.uk"
+          test "$SECOND_PART_INTERNAL_URL" = "https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app"
           test "$SECOND_PART_INTERNAL_STRIPE_MODE" = "test"
+          test "$ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS" = "916508490C6854B5CFBA742AFF1A3AD3EA853B9FA21C38D1EA3733C2072F6056"
           node scripts/validate-android-internal-release.mjs
 
       - name: Verify stable Internal QA origin and App Links
@@ -149,7 +150,7 @@ jobs:
           const fs=require("fs");
           const c=JSON.parse(fs.readFileSync("capacitor.config.json","utf8"));
           if(c.appId!=="com.secondpart.marketplace")throw new Error("Wrong appId.");
-          if(c.server?.url!=="https://internal.secondpart.co.uk")throw new Error("Wrong Internal QA origin.");
+          if(c.server?.url!=="https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app")throw new Error("Wrong Internal QA origin.");
           if(c.loggingBehavior!=="none"||c.android?.webContentsDebuggingEnabled!==false)throw new Error("Release hardening is disabled.");
           const v=fs.readFileSync("android/variables.gradle","utf8");
           if(!/minSdkVersion\s*=\s*24/.test(v))throw new Error("minSdk 24 is required.");
