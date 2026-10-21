@@ -1,0 +1,199 @@
+name: Android Internal QA AAB
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: "Internal Testing version name"
+        required: true
+        default: "0.1.0"
+        type: string
+      version_code:
+        description: "Monotonically increasing Play version code"
+        required: true
+        default: "1"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-internal-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-internal-aab:
+    name: Build signed SecondPart Internal QA AAB
+    if: github.ref == 'refs/heads/rebuild-nextjs'
+    environment: secondpart-internal-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      SECOND_PART_INTERNAL_URL: ${{ vars.SECOND_PART_INTERNAL_URL }}
+      SECOND_PART_INTERNAL_STRIPE_MODE: ${{ vars.SECOND_PART_INTERNAL_STRIPE_MODE }}
+      ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS: 916508490C6854B5CFBA742AFF1A3AD3EA853B9FA21C38D1EA3733C2072F6056
+      SECOND_PART_VERSION_NAME: ${{ inputs.version_name }}
+      SECOND_PART_VERSION_CODE: ${{ inputs.version_code }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Enforce Internal QA release boundary
+        run: |
+          test "$SECOND_PART_INTERNAL_URL" = "https://internal.secondpart.co.uk"
+          test "$SECOND_PART_INTERNAL_STRIPE_MODE" = "test"
+          node scripts/validate-android-internal-release.mjs
+
+      - name: Verify stable Internal QA origin and App Links
+        run: node scripts/verify-android-internal-origin.mjs
+
+      - name: Install web dependencies
+        run: npm ci
+
+      - name: Install Capacitor 8 toolchain, assets and native plugins
+        run: |
+          npm install --no-save --package-lock=false \
+            @capacitor/core@8.5.1 @capacitor/cli@8.5.1 @capacitor/android@8.5.1 \
+            @capacitor/assets@3.0.5 @capacitor/app@8.1.1 @capacitor/browser@8.0.4 \
+            @capacitor/camera@8.2.4 @capacitor/push-notifications@8.0.4 \
+            @aparajita/capacitor-secure-storage@8.0.0 esbuild@0.25.9
+          npm pkg set "dependencies.@capacitor/app=8.1.1"
+          npm pkg set "dependencies.@capacitor/browser=8.0.4"
+          npm pkg set "dependencies.@capacitor/camera=8.2.4"
+          npm pkg set "dependencies.@capacitor/push-notifications=8.0.4"
+          npm pkg set "dependencies.@aparajita/capacitor-secure-storage=8.0.0"
+
+      - name: Prepare full Internal QA frontend
+        run: node scripts/prepare-android-internal.mjs
+
+      - name: Build native JavaScript bridge
+        run: npx esbuild mobile-native-src/native.ts --bundle --platform=browser --format=iife --target=es2020 --outfile=mobile-shell/native.js
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools
+
+      - name: Restore and verify permanent upload key
+        env:
+          ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_RELEASE_KEYSTORE_BASE64" ] || [ -z "$ANDROID_RELEASE_STORE_PASSWORD" ] || [ -z "$ANDROID_RELEASE_KEY_ALIAS" ] || [ -z "$ANDROID_RELEASE_KEY_PASSWORD" ]; then
+            echo "::error::Internal Android signing secrets are incomplete."
+            exit 1
+          fi
+          export SECOND_PART_RELEASE_KEYSTORE="$RUNNER_TEMP/secondpart-upload.jks"
+          printf '%s' "$ANDROID_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$SECOND_PART_RELEASE_KEYSTORE"
+          ACTUAL="$(keytool -list -v -keystore "$SECOND_PART_RELEASE_KEYSTORE" -storepass "$ANDROID_RELEASE_STORE_PASSWORD" -alias "$ANDROID_RELEASE_KEY_ALIAS" | sed -n 's/.*SHA256: //p' | head -n 1 | tr -d ':' | tr '[:lower:]' '[:upper:]')"
+          EXPECTED="98E69A9586347470048639C5A888D483595A4B4EE4565724661B88F9F13C1670"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Upload certificate does not match the approved permanent key."
+            exit 1
+          fi
+          echo "SECOND_PART_RELEASE_KEYSTORE=$SECOND_PART_RELEASE_KEYSTORE" >> "$GITHUB_ENV"
+          echo "ANDROID_EXPECTED_SIGNER_SHA256=$EXPECTED" >> "$GITHUB_ENV"
+
+      - name: Generate and sync Android project
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      - name: Generate and verify SecondPart brand assets
+        run: |
+          npx capacitor-assets generate --android --assetPath assets/android-production \
+            --iconBackgroundColor '#173c31' --iconBackgroundColorDark '#173c31' \
+            --splashBackgroundColor '#173c31' --splashBackgroundColorDark '#173c31' \
+            --logoSplashScale 0.18
+          node scripts/verify-android-brand-assets.mjs
+
+      - name: Patch Internal QA Android release
+        env:
+          SECOND_PART_PRODUCTION_URL: ${{ vars.SECOND_PART_INTERNAL_URL }}
+          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: |
+          node scripts/patch-android-production.mjs
+          node scripts/patch-android-app-links.mjs
+
+      - name: Configure Internal QA Firebase services
+        env:
+          GOOGLE_SERVICES_JSON_BASE64_INTERNAL: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64_INTERNAL }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON_BASE64_INTERNAL" ]; then
+            echo "::error::GOOGLE_SERVICES_JSON_BASE64_INTERNAL is required."
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_SERVICES_JSON_BASE64_INTERNAL" | base64 --decode > android/app/google-services.json
+          node scripts/verify-google-services-config.mjs android/app/google-services.json com.secondpart.marketplace production
+
+      - name: Verify package and SDK contract
+        run: |
+          node - <<'NODE'
+          const fs=require("fs");
+          const c=JSON.parse(fs.readFileSync("capacitor.config.json","utf8"));
+          if(c.appId!=="com.secondpart.marketplace")throw new Error("Wrong appId.");
+          if(c.server?.url!=="https://internal.secondpart.co.uk")throw new Error("Wrong Internal QA origin.");
+          if(c.loggingBehavior!=="none"||c.android?.webContentsDebuggingEnabled!==false)throw new Error("Release hardening is disabled.");
+          const v=fs.readFileSync("android/variables.gradle","utf8");
+          if(!/minSdkVersion\s*=\s*24/.test(v))throw new Error("minSdk 24 is required.");
+          if(!/compileSdkVersion\s*=\s*36/.test(v)||!/targetSdkVersion\s*=\s*36/.test(v))throw new Error("API 36 is required.");
+          NODE
+
+      - name: Build signed Android App Bundle
+        working-directory: android
+        env:
+          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew bundleRelease --no-daemon
+
+      - name: Audit bundle and merged Release permissions
+        run: |
+          bash scripts/audit-android-bundle-16kb.sh android/app/build/outputs/bundle/release/app-release.aab android-16kb-evidence.json
+          node scripts/verify-android-release-manifest.mjs
+
+      - name: Verify AAB signature and prepare artifact
+        run: |
+          SOURCE="android/app/build/outputs/bundle/release/app-release.aab"
+          TARGET="SecondPart-${{ inputs.version_name }}-${{ inputs.version_code }}-internal.aab"
+          test -s "$SOURCE"
+          jarsigner -verify -verbose -certs "$SOURCE" >/dev/null
+          ACTUAL="$(keytool -printcert -jarfile "$SOURCE" | sed -n 's/.*SHA256: //p' | head -n 1 | tr -d ':' | tr '[:lower:]' '[:upper:]')"
+          test "$ACTUAL" = "$ANDROID_EXPECTED_SIGNER_SHA256"
+          cp "$SOURCE" "$TARGET"
+          sha256sum "$TARGET" > "$TARGET.sha256"
+          printf 'package=com.secondpart.marketplace\nversionName=%s\nversionCode=%s\norigin=%s\nuploadCertificateSha256=%s\n' \
+            "$SECOND_PART_VERSION_NAME" "$SECOND_PART_VERSION_CODE" "$SECOND_PART_INTERNAL_URL" "$ANDROID_EXPECTED_SIGNER_SHA256" \
+            > android-internal-release-evidence.txt
+
+      - name: Upload signed Internal QA AAB and public evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: SecondPart-Internal-AAB-${{ inputs.version_name }}-${{ inputs.version_code }}
+          path: |
+            SecondPart-${{ inputs.version_name }}-${{ inputs.version_code }}-internal.aab
+            SecondPart-${{ inputs.version_name }}-${{ inputs.version_code }}-internal.aab.sha256
+            android-internal-release-evidence.txt
+            android-release-permissions.txt
+            android-16kb-evidence.json
+          if-no-files-found: error
+          retention-days: 30

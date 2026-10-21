@@ -23,6 +23,7 @@
     "validate:checkout-expiry-race": "node scripts/validate-checkout-expiry-race.mjs",
     "validate:payout-recovery": "node scripts/validate-payout-recovery.mjs",
     "validate:android-rc": "node scripts/validate-android-rc-gate.mjs",
+    "validate:android-internal": "node scripts/validate-android-internal-release.mjs",
     "validate:public-contact": "node scripts/validate-public-contact.mjs",
     "validate:account-deletion-e2e": "node scripts/validate-account-deletion-e2e.mjs",
     "validate:production-origin": "node scripts/validate-production-origin-preflight.mjs",
