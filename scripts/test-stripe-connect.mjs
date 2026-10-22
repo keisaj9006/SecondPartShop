@@ -34,6 +34,7 @@ test("Internal QA Connect fails closed for live or unattested credentials",async
  assert.equal(adapter(noRequest,{...runtime,STRIPE_SECRET_KEY:"sk_test_unit_fixture"}).isStripeConnectConfigured(),false);
  assert.equal(adapter(noRequest,{...runtime,SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"}).isStripeConnectConfigured(),false);
  assert.equal(adapter(noRequest,{...runtime,NEXT_PUBLIC_APP_URL:"https://www.secondpart.co.uk",SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"}).isStripeConnectConfigured(),false);
+ assert.equal(adapter(noRequest,{...runtime,NEXT_PUBLIC_APP_URL:"https://www.secondpart.co.uk",SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_test_unit_fixture"}).getAppUrl(),runtime.NEXT_PUBLIC_SITE_URL);
  assert.equal(adapter(noRequest,{...runtime,SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_test_unit_fixture"}).isStripeConnectConfigured(),true);
  const blocked=adapter(noRequest,{...runtime,SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"});
  await assert.rejects(blocked.getStripeRecipientAccount("acct_live_blocked"),/Internal QA requires Stripe test mode/);

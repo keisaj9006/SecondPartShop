@@ -99,8 +99,13 @@ test("Internal workflow policy requires the protected environment and fails clos
   "    environment: secondpart-internal-release",
   "    if: github.ref == 'refs/heads/rebuild-nextjs'",
   "    steps:",
+  "      - name: Checkout source",
+  "        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
   "      - name: Set up Node 22",
-  "        uses: actions/setup-node@v4",
+  "        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+  "      - run: echo uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3",
+  "      - run: echo uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd",
+  "      - run: echo uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
   "      - run: node scripts/validate-android-internal-release.mjs",
   "      - run: echo ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}",
   "      - run: echo ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}",
@@ -115,7 +120,7 @@ test("Internal workflow policy requires the protected environment and fails clos
  ].join("\n");
  assert.deepEqual(validateInternalWorkflow(valid),[]);
  assert.ok(validateInternalWorkflow(valid.replace("secondpart-internal-release","wrong-environment")).length>0);
- assert.ok(validateInternalWorkflow(valid.replace("uses: actions/setup-node@v4","run: node --version")).length>0);
+ assert.ok(validateInternalWorkflow(valid.replace("uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020","uses: actions/setup-node@v4")).length>0);
  assert.ok(validateInternalWorkflow(valid.replace("refs/heads/rebuild-nextjs","refs/heads/main")).length>0);
  assert.ok(validateInternalWorkflow(valid.replace("GOOGLE_SERVICES_JSON_BASE64_INTERNAL","GOOGLE_SERVICES_JSON_BASE64_PRODUCTION")).length>0);
  assert.ok(validateInternalWorkflow(valid+"\n  push:\n    branches: [main]\n").length>0);

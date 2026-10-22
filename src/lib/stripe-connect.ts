@@ -47,6 +47,7 @@ export function isStripeConnectConfigured(){
 }
 
 export function getAppUrl(){
+ if(isInternalQaRuntime())return INTERNAL_QA_ORIGIN;
  const value=(process.env.NEXT_PUBLIC_APP_URL?.trim()||process.env.NEXT_PUBLIC_SITE_URL?.trim())?.replace(/\/$/,"");
  if(!value||!value.startsWith("https://"))throw new Error("NEXT_PUBLIC_APP_URL must be an HTTPS URL.");
  return value;
