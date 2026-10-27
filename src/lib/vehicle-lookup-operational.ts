@@ -82,6 +82,11 @@ const unavailableRateLimit=():VehicleLookupRateLimit=>({
  remaining:null,
  retryAfterSeconds:0
 });
+const logRateLimitFailure=()=>console.error("vehicle_lookup_failed",{
+ code:"rate_limit_guard",
+ stage:"rate_limit",
+ status:null
+});
 
 export async function consumeVehicleLookupRateLimit(request:Request):Promise<VehicleLookupRateLimit>{
  const forwarded=request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
@@ -96,12 +101,12 @@ export async function consumeVehicleLookupRateLimit(request:Request):Promise<Veh
    p_limit:30,
    p_window_seconds:600
   });
-  if(error)return unavailableRateLimit();
+  if(error){logRateLimitFailure();return unavailableRateLimit();}
   const row=data?.[0];
-  if(!row)return unavailableRateLimit();
+  if(!row){logRateLimitFailure();return unavailableRateLimit();}
   const remaining=Number(row.remaining);
   const retryAfterSeconds=Number(row.retry_after_seconds);
-  if(typeof row.allowed!=="boolean"||!Number.isFinite(remaining)||!Number.isFinite(retryAfterSeconds))return unavailableRateLimit();
+  if(typeof row.allowed!=="boolean"||!Number.isFinite(remaining)||!Number.isFinite(retryAfterSeconds)){logRateLimitFailure();return unavailableRateLimit();}
   return {
    status:"available",
    allowed:row.allowed,
@@ -109,6 +114,7 @@ export async function consumeVehicleLookupRateLimit(request:Request):Promise<Veh
    retryAfterSeconds:Math.max(0,Math.floor(retryAfterSeconds))
   };
  }catch{
+  logRateLimitFailure();
   return unavailableRateLimit();
  }
 }

@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 import { matchRegistrationToCatalogue } from "@/lib/data/vehicle-catalogue";
 import { isPlausibleUkRegistration,lookupVehicleByRegistration,normalizeRegistration } from "@/lib/vehicle-registration";
 import { consumeVehicleLookupRateLimit } from "@/lib/vehicle-lookup-operational";
 
 export const dynamic="force-dynamic";
 const noStore={"cache-control":"no-store"};
+const logRouteFailure=(registration:string,code:"catalogue_error"|"other",stage:"catalogue"|"application")=>console.error("vehicle_lookup_failed",{
+ code,
+ stage,
+ status:null,
+ registration_hash:createHash("sha256").update(`vehicle-lookup:${registration}`).digest("hex")
+});
 
 export async function POST(request:Request){
  let body:unknown;
@@ -35,13 +42,22 @@ export async function POST(request:Request){
   if(result.status==="unavailable")return NextResponse.json({message:result.message,registration:result.registration},{status:503,headers:noStore});
   if(result.status==="not_found")return NextResponse.json({message:result.message,registration:result.registration},{status:404,headers:noStore});
 
-  const catalogue=await matchRegistrationToCatalogue({
-   make:result.vehicle.make,
-   model:result.vehicle.model,
-   year:result.vehicle.year,
-   fuelType:result.vehicle.fuelType,
-   engineSizeSimple:result.vehicle.engineSizeSimple
-  });
+  let catalogue;
+  try{
+   catalogue=await matchRegistrationToCatalogue({
+    make:result.vehicle.make,
+    model:result.vehicle.model,
+    year:result.vehicle.year,
+    fuelType:result.vehicle.fuelType,
+    engineSizeSimple:result.vehicle.engineSizeSimple
+   });
+  }catch{
+   logRouteFailure(registration,"catalogue_error","catalogue");
+   return NextResponse.json({
+    message:"Vehicle lookup is temporarily unavailable. Please try again or choose the vehicle manually.",
+    registration
+   },{status:503,headers:noStore});
+  }
 
   return NextResponse.json({
    registration:result.registration,
@@ -50,6 +66,7 @@ export async function POST(request:Request){
    strategy:"dvsa_to_dft"
   },{status:200,headers:noStore});
  }catch{
+  logRouteFailure(registration,"other","application");
   return NextResponse.json({
    message:"Vehicle lookup is temporarily unavailable. Please try again or choose the vehicle manually.",
    registration
