@@ -38,7 +38,7 @@ Payments, payouts, disputes, refunds, and settlement are a **final commerce laye
 
 ## Vehicle identification strategy
 
-**Status:** Official DVSA access approved, as confirmed by the owner on 1 October 2026. Server integration supports the five canonical DVSA environment variables. Activation and real-provider verification remain gated on credentials configured in the existing Preview environment; manual selection stays available. See [integration evidence](test-runs/2026-10-01-dvsa-integration.md).
+**Status:** Official DVSA access approved, as confirmed by the owner on 1 October 2026. Server integration supports the five canonical DVSA environment variables. A live Preview provider call for an owner-authorized known registration was verified on 27 October 2026 at exact SHA `b35864cc87714f7a16703be53985644758f7b410`; manual selection stays available. See [integration evidence](test-runs/2026-10-01-dvsa-integration.md) and [the live lookup incident record](test-runs/2026-10-27-vehicle-registration-lookup.md).
 
 SecondPart should not depend on a paid VRM lookup for its core buyer flow while the marketplace is pre-revenue.
 
