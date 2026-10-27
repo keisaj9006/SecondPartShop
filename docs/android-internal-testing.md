@@ -4,7 +4,8 @@
 
 - Play package: `com.secondpart.marketplace`
 - first release: `0.1.0` / versionCode `1`
-- workflow: `.github/workflows/android-internal-aab.yml`
+- registered dispatcher: **Android Release Pipeline Check** (`.github/workflows/android-release-check.yml`)
+- protected build definition: `.github/workflows/android-internal-aab.yml` from the same `rebuild-nextjs` commit
 - protected GitHub environment: `secondpart-internal-release`
 - allowed source branch: `rebuild-nextjs`
 - stable Internal QA origin: `https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app`
@@ -53,14 +54,15 @@ The private JKS and its passwords must stay outside the repository. Before the f
 
 1. Merge the reviewed workflow change into `rebuild-nextjs`.
 2. Complete the origin, Firebase, Stripe and backup prerequisites above.
-3. In GitHub Actions run **Android Internal QA AAB** with versionName `0.1.0` and versionCode `1`.
-4. Download artifact `SecondPart-Internal-AAB-0.1.0-1`.
-5. Verify the AAB SHA-256 against the included `.sha256` file and retain all evidence files.
-6. In Play Console open **Testing > Internal testing > Create new release**.
-7. Upload `SecondPart-0.1.0-1-internal.aab`.
-8. Confirm package `com.secondpart.marketplace`, versionName `0.1.0`, versionCode `1`, and Play App Signing.
-9. Add release notes, save, review, and start rollout to Internal Testing only.
-10. Install through the tester opt-in URL and execute the physical-device Android RC matrix.
+3. In GitHub Actions open **Android Release Pipeline Check**, choose **Run workflow**, select branch `rebuild-nextjs`, set `release_mode=internal`, versionName `0.1.0` and versionCode `1`.
+4. Approve the protected `secondpart-internal-release` environment when GitHub requests the required reviewer.
+5. Download artifact `SecondPart-Internal-AAB-0.1.0-1`.
+6. Verify the AAB SHA-256 against the included `.sha256` file and retain all evidence files.
+7. In Play Console open **Testing > Internal testing > Create new release**.
+8. Upload `SecondPart-0.1.0-1-internal.aab`.
+9. Confirm package `com.secondpart.marketplace`, versionName `0.1.0`, versionCode `1`, and Play App Signing.
+10. Add release notes, save, review, and start rollout to Internal Testing only.
+11. Install through the tester opt-in URL and execute the physical-device Android RC matrix.
 
 The workflow uploads an artifact to GitHub Actions only. It has no Play Console publication step.
 
