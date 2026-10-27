@@ -45,6 +45,9 @@ jobs:
           node-version: "22"
           cache: npm
 
+      - name: Install locked release dependencies
+        run: npm ci
+
       - name: Enforce Internal QA release boundary
         run: |
           test "$SECOND_PART_INTERNAL_URL" = "https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app"
@@ -54,22 +57,6 @@ jobs:
 
       - name: Verify stable Internal QA origin and App Links
         run: node scripts/verify-android-internal-origin.mjs
-
-      - name: Install web dependencies
-        run: npm ci
-
-      - name: Install Capacitor 8 toolchain, assets and native plugins
-        run: |
-          npm install --no-save --package-lock=false \
-            @capacitor/core@8.5.1 @capacitor/cli@8.5.1 @capacitor/android@8.5.1 \
-            @capacitor/assets@3.0.5 @capacitor/app@8.1.1 @capacitor/browser@8.0.4 \
-            @capacitor/camera@8.2.4 @capacitor/push-notifications@8.0.4 \
-            @aparajita/capacitor-secure-storage@8.0.0 esbuild@0.25.9
-          npm pkg set "dependencies.@capacitor/app=8.1.1"
-          npm pkg set "dependencies.@capacitor/browser=8.0.4"
-          npm pkg set "dependencies.@capacitor/camera=8.2.4"
-          npm pkg set "dependencies.@capacitor/push-notifications=8.0.4"
-          npm pkg set "dependencies.@aparajita/capacitor-secure-storage=8.0.0"
 
       - name: Prepare full Internal QA frontend
         run: node scripts/prepare-android-internal.mjs
@@ -180,6 +167,12 @@ jobs:
           jarsigner -verify -verbose -certs "$SOURCE" >/dev/null
           ACTUAL="$(keytool -printcert -jarfile "$SOURCE" | sed -n 's/.*SHA256: //p' | head -n 1 | tr -d ':' | tr '[:lower:]' '[:upper:]')"
           test "$ACTUAL" = "$ANDROID_EXPECTED_SIGNER_SHA256"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/bundletool.jar" \
+            https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar
+          echo "a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29  $RUNNER_TEMP/bundletool.jar" | sha256sum --check
+          java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$SOURCE" --output="$RUNNER_TEMP/final-manifest.xml"
+          node scripts/verify-android-bundle-identity.mjs "$RUNNER_TEMP/final-manifest.xml" \
+            com.secondpart.marketplace "$SECOND_PART_VERSION_CODE" "$SECOND_PART_VERSION_NAME"
           cp "$SOURCE" "$TARGET"
           sha256sum "$TARGET" > "$TARGET.sha256"
           printf 'package=com.secondpart.marketplace\nversionName=%s\nversionCode=%s\norigin=%s\nuploadCertificateSha256=%s\n' \

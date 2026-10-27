@@ -44,13 +44,24 @@
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
+    "@aparajita/capacitor-secure-storage": "8.0.0",
+    "@capacitor/android": "8.5.1",
+    "@capacitor/app": "8.1.1",
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/browser": "8.0.4",
+    "@capacitor/camera": "8.2.4",
+    "@capacitor/cli": "8.5.1",
+    "@capacitor/core": "8.5.1",
+    "@capacitor/push-notifications": "8.0.4",
     "@electric-sql/pglite": "0.5.8",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "esbuild": "0.25.9",
     "eslint": "^9",
-    "eslint-config-next": "16.3.8",
+    "eslint-config-next": "16.4.2",
+    "js-yaml": "4.3.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

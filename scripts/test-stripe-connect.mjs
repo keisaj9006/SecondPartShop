@@ -33,6 +33,8 @@ test("Internal QA Connect fails closed for live or unattested credentials",async
  const noRequest=async()=>{throw new Error("Stripe must not be called.");};
  assert.equal(adapter(noRequest,{...runtime,STRIPE_SECRET_KEY:"sk_test_unit_fixture"}).isStripeConnectConfigured(),false);
  assert.equal(adapter(noRequest,{...runtime,SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"}).isStripeConnectConfigured(),false);
+ assert.equal(adapter(noRequest,{VERCEL_ENV:"preview",NEXT_PUBLIC_APP_URL:"https://www.secondpart.co.uk",SUPABASE_SERVICE_ROLE_KEY:"service_role_unit_fixture",SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"}).isStripeConnectConfigured(),false);
+ assert.equal(adapter(noRequest,{VERCEL_ENV:"preview",SUPABASE_SERVICE_ROLE_KEY:"service_role_unit_fixture",SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"}).isStripeConnectConfigured(),false);
  assert.equal(adapter(noRequest,{...runtime,NEXT_PUBLIC_APP_URL:"https://www.secondpart.co.uk",SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"}).isStripeConnectConfigured(),false);
  assert.equal(adapter(noRequest,{...runtime,NEXT_PUBLIC_APP_URL:"https://www.secondpart.co.uk",SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_test_unit_fixture"}).getAppUrl(),runtime.NEXT_PUBLIC_SITE_URL);
  assert.equal(adapter(noRequest,{...runtime,SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_test_unit_fixture"}).isStripeConnectConfigured(),true);

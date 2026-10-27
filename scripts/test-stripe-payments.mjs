@@ -32,6 +32,8 @@ test("Internal QA checkout fails closed unless the credential and attestation ar
  const noRequest=async()=>{throw new Error("Stripe must not be called.");};
  assert.equal(adapter(noRequest,{...runtime,STRIPE_SECRET_KEY:"sk_test_unit_fixture"}).isStripeCheckoutConfigured(),false);
  assert.equal(adapter(noRequest,{...runtime,SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"}).isStripeCheckoutConfigured(),false);
+ assert.equal(adapter(noRequest,{VERCEL_ENV:"preview",NEXT_PUBLIC_APP_URL:"https://www.secondpart.co.uk",STRIPE_WEBHOOK_SECRET:"whsec_unit_fixture",SUPABASE_SERVICE_ROLE_KEY:"service_role_unit_fixture",SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"}).isStripeCheckoutConfigured(),false);
+ assert.equal(adapter(noRequest,{VERCEL_ENV:"preview",STRIPE_WEBHOOK_SECRET:"whsec_unit_fixture",SUPABASE_SERVICE_ROLE_KEY:"service_role_unit_fixture",SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"}).isStripeCheckoutConfigured(),false);
  assert.equal(adapter(noRequest,{...runtime,NEXT_PUBLIC_APP_URL:"https://www.secondpart.co.uk",SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"}).isStripeCheckoutConfigured(),false);
  const safe=adapter(noRequest,{...runtime,SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_test_unit_fixture"});
  assert.equal(safe.isStripeCheckoutConfigured(),true);

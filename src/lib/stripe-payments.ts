@@ -9,6 +9,7 @@ const STRIPE_V1_VERSION="2026-08-26.dahlia";
 type StripeErrorPayload={error?:{message?:string}};
 const INTERNAL_QA_ORIGIN="https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app";
 const isInternalQaRuntime=()=>{
+ if(["preview","development"].includes(process.env.VERCEL_ENV?.trim().toLowerCase()??""))return true;
  const configured=[process.env.NEXT_PUBLIC_APP_URL,process.env.NEXT_PUBLIC_SITE_URL];
  return configured.some(raw=>{
   try{return new URL(String(raw??"").trim()).origin===INTERNAL_QA_ORIGIN;}catch{return false;}
