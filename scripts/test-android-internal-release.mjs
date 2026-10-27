@@ -4,12 +4,14 @@ import {tmpdir} from "node:os";
 import path from "node:path";
 import {spawnSync} from "node:child_process";
 import test from "node:test";
+import {load as loadYaml} from "js-yaml";
 import {
  EXPECTED_PLAY_APP_SIGNING_SHA256,
  EXPECTED_UPLOAD_SHA256,
  validateInternalOrigin,
  validatePlayAssetLinks,
- validateInternalWorkflow
+ validateInternalWorkflow,
+ validateRegisteredReleaseWorkflow
 } from "./android-internal-release-policy.mjs";
 
 const root=path.resolve(import.meta.dirname,"..");
@@ -32,6 +34,65 @@ test("Internal workflow policy requires final AAB identity verification",()=>{
  const workflow=readFileSync(path.join(root,".github","workflows","android-internal-aab.yml"),"utf8");
  assert.deepEqual(validateInternalWorkflow(workflow),[]);
  assert.ok(validateInternalWorkflow(workflow.replace("node scripts/verify-android-bundle-identity.mjs","node scripts/removed-bundle-verifier.mjs")).length>0);
+});
+
+test("Registered release workflow dispatches the same-commit protected Internal QA workflow",()=>{
+ const workflow=readFileSync(path.join(root,".github","workflows","android-release-check.yml"),"utf8");
+ assert.doesNotMatch(workflow,/secrets:\s+inherit/);
+ const parsed=loadYaml(workflow);
+ assert.deepEqual(parsed.jobs?.["build-internal-aab"]?.secrets,{
+  ANDROID_RELEASE_KEY_ALIAS:"${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}",
+  ANDROID_RELEASE_KEY_PASSWORD:"${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}",
+  ANDROID_RELEASE_STORE_PASSWORD:"${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}",
+  ANDROID_RELEASE_KEYSTORE_BASE64:"${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}",
+  GOOGLE_SERVICES_JSON_BASE64_INTERNAL:"${{ secrets.GOOGLE_SERVICES_JSON_BASE64_INTERNAL }}"
+ });
+ assert.deepEqual(validateRegisteredReleaseWorkflow(workflow),[]);
+ for(const unsafe of [
+  workflow.replace("./.github/workflows/android-internal-aab.yml","keisaj9006/SecondPartShop/.github/workflows/android-internal-aab.yml@rebuild-nextjs"),
+  workflow.replace("refs/heads/rebuild-nextjs","refs/heads/main"),
+  workflow.replace(/    with:\r?\n/,"    secrets: inherit\n    with:\n"),
+  workflow.replace("inputs.release_mode == 'internal'","inputs.release_mode == 'dry-run'")
+ ])assert.ok(validateRegisteredReleaseWorkflow(unsafe).length>0);
+});
+
+test("Reusable Internal QA workflow declares only the five protected environment secrets",()=>{
+ const workflow=loadYaml(readFileSync(path.join(root,".github","workflows","android-internal-aab.yml"),"utf8"));
+ const declared=workflow.on?.workflow_call?.secrets;
+ assert.deepEqual(Object.keys(declared||{}).sort(),[
+  "ANDROID_RELEASE_KEY_ALIAS","ANDROID_RELEASE_KEY_PASSWORD","ANDROID_RELEASE_KEYSTORE_BASE64",
+  "ANDROID_RELEASE_STORE_PASSWORD","GOOGLE_SERVICES_JSON_BASE64_INTERNAL"
+ ].sort());
+ for(const definition of Object.values(declared||{}))assert.equal(definition.required,true);
+});
+
+test("Registered release workflow fails visibly for Internal QA dispatches from the wrong branch",()=>{
+ const workflow=readFileSync(path.join(root,".github","workflows","android-release-check.yml"),"utf8");
+ const parsed=loadYaml(workflow);
+ const guard=parsed.jobs?.["reject-invalid-internal-ref"];
+ assert.equal(guard?.if,"github.event_name == 'workflow_dispatch' && inputs.release_mode == 'internal' && github.ref != 'refs/heads/rebuild-nextjs'");
+ assert.match(guard?.steps?.[0]?.run||"",/exit 1/);
+});
+
+test("Internal release validator covers both the registered dispatcher and reusable workflow",()=>{
+ const validator=readFileSync(path.join(root,"scripts","validate-android-internal-release.mjs"),"utf8");
+ assert.match(validator,/android-release-check\.yml/);
+ assert.match(validator,/validateRegisteredReleaseWorkflow/);
+});
+
+test("Internal workflow restores signing material only after untrusted generation and always removes it",()=>{
+ const workflow=readFileSync(path.join(root,".github","workflows","android-internal-aab.yml"),"utf8");
+ assert.deepEqual(validateInternalWorkflow(workflow),[]);
+ for(const unsafe of [
+  workflow.replace("test \"$SECOND_PART_INTERNAL_STRIPE_MODE\" = \"test\"","test \"$SECOND_PART_INTERNAL_STRIPE_MODE\" = \"live\""),
+  workflow.replace("Internal Android signing secrets are incomplete.","Signing check removed."),
+  workflow.replace("98E69A9586347470048639C5A888D483595A4B4EE4565724661B88F9F13C1670","00E69A9586347470048639C5A888D483595A4B4EE4565724661B88F9F13C1670"),
+  workflow.replace("com.secondpart.marketplace production","com.secondpart.marketplace.preview production"),
+  workflow.replace(/      - name: Prepare full Internal QA frontend\r?\n        run:/,"      - name: Prepare full Internal QA frontend\n        env:\n          LEAKED_KEY: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}\n        run:"),
+  workflow.replace("Restore and verify permanent upload key","Restore key renamed"),
+  workflow.replace("npx capacitor-assets generate","echo assets removed"),
+  workflow.replace("if: always()","if: success()")
+ ])assert.ok(validateInternalWorkflow(unsafe).length>0);
 });
 
 test("Internal release accepts only the dedicated stable HTTPS origin",()=>{
@@ -109,45 +170,14 @@ test("Internal App Links require the Google Play signer, never only the upload s
  assert.throws(()=>validatePlayAssetLinks(wrongPackage),/Play App Signing/);
 });
 test("Internal workflow policy requires the protected environment and fails closed inputs",()=>{
- const valid=[
-  "name: Android Internal QA AAB",
-  "on:",
-  "  workflow_dispatch:",
-  "jobs:",
-  "  build:",
-  "    environment: secondpart-internal-release",
-  "    if: github.ref == 'refs/heads/rebuild-nextjs'",
-  "    steps:",
-  "      - name: Checkout source",
-  "        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
-  "      - name: Set up Node 22",
-  "        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
-  "      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3",
-  "      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd",
-  "      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
-  "      - run: npm ci",
-  "      - run: node scripts/validate-android-internal-release.mjs",
-  "      - run: echo ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}",
-  "      - run: echo ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}",
-  "      - run: echo ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}",
-  "      - run: echo ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}",
-  "      - run: echo ${{ secrets.GOOGLE_SERVICES_JSON_BASE64_INTERNAL }}",
-  "      - run: echo ${{ vars.SECOND_PART_INTERNAL_URL }}",
-  "      - run: echo ${{ vars.SECOND_PART_INTERNAL_STRIPE_MODE }}",
-  "      - run: echo ${{ vars.ANDROID_PLAY_APP_SIGNING_SHA256_FINGERPRINTS }}",
-  "      - run: echo https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar",
-  "      - run: echo a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29",
-  "      - run: node scripts/verify-android-bundle-identity.mjs final.xml com.secondpart.marketplace 1 0.1.0",
-  "      - run: echo "+EXPECTED_UPLOAD_SHA256,
-  "      - run: echo "+EXPECTED_PLAY_APP_SIGNING_SHA256
- ].join("\n");
+ const valid=readFileSync(path.join(root,".github","workflows","android-internal-aab.yml"),"utf8");
  assert.deepEqual(validateInternalWorkflow(valid),[]);
  assert.ok(validateInternalWorkflow(valid.replace("secondpart-internal-release","wrong-environment")).length>0);
  assert.ok(validateInternalWorkflow(valid.replace("uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020","uses: actions/setup-node@v4")).length>0);
  assert.ok(validateInternalWorkflow(valid.replace("uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3","run: echo uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3")).length>0);
- assert.ok(validateInternalWorkflow(valid.replace("      - run: npm ci\n      - run: node scripts/validate-android-internal-release.mjs","      - run: node scripts/validate-android-internal-release.mjs\n      - run: npm ci")).length>0);
+ assert.ok(validateInternalWorkflow(valid.replace("run: npm ci","run: echo npm-ci-removed")).length>0);
  assert.ok(validateInternalWorkflow(valid.replace("refs/heads/rebuild-nextjs","refs/heads/main")).length>0);
- assert.ok(validateInternalWorkflow(valid.replace("GOOGLE_SERVICES_JSON_BASE64_INTERNAL","GOOGLE_SERVICES_JSON_BASE64_PRODUCTION")).length>0);
+ assert.ok(validateInternalWorkflow(valid.replaceAll("GOOGLE_SERVICES_JSON_BASE64_INTERNAL","GOOGLE_SERVICES_JSON_BASE64_PRODUCTION")).length>0);
  assert.ok(validateInternalWorkflow(valid+"\n  push:\n    branches: [main]\n").length>0);
  assert.ok(validateInternalWorkflow(valid+"\n      - run: fastlane supply\n").length>0);
 });

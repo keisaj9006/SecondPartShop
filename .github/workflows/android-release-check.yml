@@ -2,6 +2,25 @@ name: Android Release Pipeline Check
 
 on:
   workflow_dispatch:
+    inputs:
+      release_mode:
+        description: "Pipeline to run"
+        required: true
+        default: dry-run
+        type: choice
+        options:
+          - dry-run
+          - internal
+      version_name:
+        description: "Internal Testing version name"
+        required: true
+        default: "0.1.0"
+        type: string
+      version_code:
+        description: "Monotonically increasing Play version code"
+        required: true
+        default: "1"
+        type: string
   push:
     branches: [rebuild-nextjs]
     paths:
@@ -32,6 +51,7 @@ concurrency:
 jobs:
   validate-release-bundle:
     name: Validate production-style AAB build
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.release_mode == 'dry-run')
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -191,3 +211,27 @@ jobs:
             android-release-evidence.json
             android-release-evidence.txt
             android-16kb-evidence.json
+
+  build-internal-aab:
+    name: Dispatch protected Internal QA AAB build
+    if: github.event_name == 'workflow_dispatch' && inputs.release_mode == 'internal' && github.ref == 'refs/heads/rebuild-nextjs'
+    uses: ./.github/workflows/android-internal-aab.yml
+    with:
+      version_name: ${{ inputs.version_name }}
+      version_code: ${{ inputs.version_code }}
+    secrets:
+      ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+      ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+      ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+      ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+      GOOGLE_SERVICES_JSON_BASE64_INTERNAL: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64_INTERNAL }}
+
+  reject-invalid-internal-ref:
+    name: Reject Internal QA build outside rebuild-nextjs
+    if: github.event_name == 'workflow_dispatch' && inputs.release_mode == 'internal' && github.ref != 'refs/heads/rebuild-nextjs'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject unsafe source branch
+        run: |
+          echo "::error::Internal QA AAB can only be built from rebuild-nextjs."
+          exit 1

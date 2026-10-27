@@ -32,14 +32,60 @@ export function validatePlayAssetLinks(payload){
  }
  return true;
 }
+
+export function validateRegisteredReleaseWorkflow(source){
+ const errors=[];
+ let workflow;
+ try{workflow=loadYaml(source);}catch(error){return [`Workflow YAML is invalid: ${error instanceof Error?error.message:"unknown parse error"}`];}
+ if(!workflow||typeof workflow!=="object")return ["Workflow YAML must contain an object."];
+ const dispatch=workflow.on?.workflow_dispatch;
+ const mode=dispatch?.inputs?.release_mode;
+ if(mode?.type!=="choice"||mode?.default!=="dry-run"||!Array.isArray(mode?.options)||!mode.options.includes("dry-run")||!mode.options.includes("internal")){
+  errors.push("Registered workflow must require an explicit dry-run or internal release mode.");
+ }
+ const jobs=workflow.jobs&&typeof workflow.jobs==="object"?workflow.jobs:{};
+ const dryRun=jobs["validate-release-bundle"];
+ const internal=jobs["build-internal-aab"];
+ const invalidRef=jobs["reject-invalid-internal-ref"];
+ const expectedDryRun="github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.release_mode == 'dry-run')";
+ const expectedInternal="github.event_name == 'workflow_dispatch' && inputs.release_mode == 'internal' && github.ref == 'refs/heads/rebuild-nextjs'";
+ const expectedSecrets={
+  ANDROID_RELEASE_KEY_ALIAS:"${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}",
+  ANDROID_RELEASE_KEY_PASSWORD:"${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}",
+  ANDROID_RELEASE_STORE_PASSWORD:"${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}",
+  ANDROID_RELEASE_KEYSTORE_BASE64:"${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}",
+  GOOGLE_SERVICES_JSON_BASE64_INTERNAL:"${{ secrets.GOOGLE_SERVICES_JSON_BASE64_INTERNAL }}"
+ };
+ if(dryRun?.if!==expectedDryRun)errors.push("Dry-run job must not execute for an Internal QA dispatch.");
+ if(internal?.if!==expectedInternal)errors.push("Internal dispatcher must fail closed to rebuild-nextjs and explicit internal mode.");
+ if(internal?.uses!=="./.github/workflows/android-internal-aab.yml")errors.push("Internal dispatcher must call the same-commit Internal QA workflow by relative path.");
+ if(JSON.stringify(internal?.secrets)!==JSON.stringify(expectedSecrets))errors.push("Caller workflow must forward exactly the five named Internal QA secrets, never inherit all repository secrets.");
+ if(internal?.with?.version_name!=="${{ inputs.version_name }}"||internal?.with?.version_code!=="${{ inputs.version_code }}"){
+  errors.push("Internal dispatcher must forward the approved version inputs unchanged.");
+ }
+ const expectedInvalidRef="github.event_name == 'workflow_dispatch' && inputs.release_mode == 'internal' && github.ref != 'refs/heads/rebuild-nextjs'";
+ if(invalidRef?.if!==expectedInvalidRef||!invalidRef?.steps?.some(step=>typeof step?.run==="string"&&step.run.includes("exit 1"))){
+  errors.push("Wrong-branch Internal QA dispatch must fail visibly without entering the protected environment.");
+ }
+ if(/refs\/heads\/(?:main|Production)\b/.test(JSON.stringify(workflow)))errors.push("Registered workflow must not target main or Production.");
+ return errors;
+}
+
 export function validateInternalWorkflow(source){
  const errors=[];
  let workflow;
  try{workflow=loadYaml(source);}catch(error){return [`Workflow YAML is invalid: ${error instanceof Error?error.message:"unknown parse error"}`];}
  if(!workflow||typeof workflow!=="object")return ["Workflow YAML must contain an object."];
  const triggers=workflow.on;
- if(!triggers||typeof triggers!=="object"||Array.isArray(triggers)||Object.keys(triggers).some(key=>key!=="workflow_dispatch")){
-  errors.push("Workflow must be manual-only.");
+ const triggerKeys=triggers&&typeof triggers==="object"&&!Array.isArray(triggers)?Object.keys(triggers):[];
+ if(!triggerKeys.includes("workflow_dispatch")||!triggerKeys.includes("workflow_call")||triggerKeys.some(key=>!["workflow_dispatch","workflow_call"].includes(key))){
+  errors.push("Internal workflow must support only manual and same-commit reusable dispatch.");
+ }
+ const expectedSecretNames=["ANDROID_RELEASE_KEY_ALIAS","ANDROID_RELEASE_KEY_PASSWORD","ANDROID_RELEASE_STORE_PASSWORD","ANDROID_RELEASE_KEYSTORE_BASE64","GOOGLE_SERVICES_JSON_BASE64_INTERNAL"].sort();
+ const declaredSecrets=triggers?.workflow_call?.secrets;
+ const declaredNames=declaredSecrets&&typeof declaredSecrets==="object"?Object.keys(declaredSecrets).sort():[];
+ if(JSON.stringify(declaredNames)!==JSON.stringify(expectedSecretNames)||declaredNames.some(name=>declaredSecrets[name]?.required!==true)){
+  errors.push("Reusable workflow must require exactly the five protected Internal QA secrets.");
  }
  const jobs=workflow.jobs&&typeof workflow.jobs==="object"?Object.values(workflow.jobs):[];
  const job=jobs.find(candidate=>candidate&&typeof candidate==="object"&&candidate.environment==="secondpart-internal-release");
@@ -71,7 +117,7 @@ export function validateInternalWorkflow(source){
   EXPECTED_UPLOAD_SHA256,
   EXPECTED_PLAY_APP_SIGNING_SHA256
  ];
- if(!/^on:\s*\r?\n\s+workflow_dispatch:/m.test(source))errors.push("Workflow must be manual-only.");
+ if(!/^on:\s*\r?\n\s+workflow_dispatch:/m.test(source)||!/^\s+workflow_call:/m.test(source))errors.push("Internal workflow must expose manual and reusable dispatch only.");
  if(/^\s+push:/m.test(source)||/^\s+pull_request:/m.test(source))errors.push("Workflow must not run automatically.");
  for(const value of required)if(!serialized.includes(value))errors.push("Missing required Internal QA control: "+value);
  const nodeSetup=steps.findIndex(step=>step?.uses===PINNED_NODE_SETUP.slice("uses: ".length));
@@ -79,6 +125,32 @@ export function validateInternalWorkflow(source){
  const firstNodeScript=steps.findIndex(step=>typeof step?.run==="string"&&step.run.includes("node scripts/"));
  if(firstNodeScript>=0&&nodeSetup>firstNodeScript)errors.push("Node 22 must be configured before release scripts run.");
  if(npmCi<0||(firstNodeScript>=0&&npmCi>firstNodeScript))errors.push("npm ci must install the locked release dependencies before release scripts run.");
+ const boundary=steps.findIndex(step=>step?.name==="Enforce Internal QA release boundary");
+ if(boundary>=0&&!steps[boundary].run?.includes('test "$SECOND_PART_INTERNAL_STRIPE_MODE" = "test"'))errors.push("Internal QA workflow must fail closed unless Stripe mode is test.");
+ const assets=steps.findIndex(step=>typeof step?.run==="string"&&step.run.includes("capacitor-assets generate"));
+ const firebase=steps.findIndex(step=>step?.name==="Configure Internal QA Firebase services");
+ const packageContract=steps.findIndex(step=>step?.name==="Verify package and SDK contract");
+ const restore=steps.findIndex(step=>step?.name==="Restore and verify permanent upload key");
+ const patch=steps.findIndex(step=>step?.name==="Patch Internal QA Android release");
+ const build=steps.findIndex(step=>step?.name==="Build signed Android App Bundle");
+ const cleanup=steps.findIndex(step=>step?.name==="Remove private signing material");
+ const signingSecretNames=["ANDROID_RELEASE_KEYSTORE_BASE64","ANDROID_RELEASE_STORE_PASSWORD","ANDROID_RELEASE_KEY_ALIAS","ANDROID_RELEASE_KEY_PASSWORD"];
+ const allowedSigningSteps=new Set(["Restore and verify permanent upload key","Patch Internal QA Android release","Build signed Android App Bundle"]);
+ if(signingSecretNames.some(name=>JSON.stringify(job?.env||{}).includes(`secrets.${name}`)))errors.push("Signing secrets must never be exposed at job scope.");
+ for(const step of steps){
+  const value=JSON.stringify(step);
+  if(signingSecretNames.some(name=>value.includes(`secrets.${name}`))&&!allowedSigningSteps.has(step?.name))errors.push("Signing secrets are exposed outside the restore, patch or signing steps.");
+  if(value.includes("secrets.GOOGLE_SERVICES_JSON_BASE64_INTERNAL")&&step?.name!=="Configure Internal QA Firebase services")errors.push("Firebase configuration secret is exposed outside its validation step.");
+ }
+ if([assets,firebase,packageContract,restore,patch,build,cleanup].some(index=>index<0))errors.push("Internal workflow is missing a required pre-signing, signing or cleanup step.");
+ if([assets,firebase,packageContract,restore,patch,build,cleanup].every(index=>index>=0)){
+  if([assets,firebase,packageContract].some(index=>index<0||index>restore))errors.push("Asset generation, Firebase validation and package checks must finish before the private JKS is restored.");
+  if(patch<restore||build<patch)errors.push("Signing configuration and bundle build must run only after the JKS is verified.");
+  if(!steps[restore].run?.includes("Internal Android signing secrets are incomplete."))errors.push("Signing secret completeness must fail closed before JKS restoration.");
+  if(!steps[restore].run?.includes(EXPECTED_UPLOAD_SHA256))errors.push("Restored JKS must match the approved upload signer.");
+  if(firebase>=0&&!steps[firebase].run?.includes("verify-google-services-config.mjs android/app/google-services.json com.secondpart.marketplace production"))errors.push("Firebase configuration must be validated for the release package.");
+  if(cleanup<build||steps[cleanup]?.if!=="always()"||!steps[cleanup]?.run?.includes('rm -f -- "$RUNNER_TEMP/secondpart-upload.jks"'))errors.push("Private JKS must be removed after signing even when the build fails.");
+ }
  if(/refs\/heads\/(?:main|Production)\b/.test(serialized))errors.push("Internal QA workflow must not target main or Production.");
  if(/fastlane\s+(?:supply|upload)|google-play|playstore|play\s+publish/i.test(serialized))errors.push("Workflow must not upload to Google Play.");
  return errors;

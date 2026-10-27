@@ -13,6 +13,27 @@ on:
         required: true
         default: "1"
         type: string
+  workflow_call:
+    inputs:
+      version_name:
+        description: "Internal Testing version name"
+        required: true
+        type: string
+      version_code:
+        description: "Monotonically increasing Play version code"
+        required: true
+        type: string
+    secrets:
+      ANDROID_RELEASE_KEY_ALIAS:
+        required: true
+      ANDROID_RELEASE_KEY_PASSWORD:
+        required: true
+      ANDROID_RELEASE_STORE_PASSWORD:
+        required: true
+      ANDROID_RELEASE_KEYSTORE_BASE64:
+        required: true
+      GOOGLE_SERVICES_JSON_BASE64_INTERNAL:
+        required: true
 
 permissions:
   contents: read
@@ -75,28 +96,6 @@ jobs:
         with:
           packages: platform-tools
 
-      - name: Restore and verify permanent upload key
-        env:
-          ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
-          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
-          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
-          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
-        run: |
-          if [ -z "$ANDROID_RELEASE_KEYSTORE_BASE64" ] || [ -z "$ANDROID_RELEASE_STORE_PASSWORD" ] || [ -z "$ANDROID_RELEASE_KEY_ALIAS" ] || [ -z "$ANDROID_RELEASE_KEY_PASSWORD" ]; then
-            echo "::error::Internal Android signing secrets are incomplete."
-            exit 1
-          fi
-          export SECOND_PART_RELEASE_KEYSTORE="$RUNNER_TEMP/secondpart-upload.jks"
-          printf '%s' "$ANDROID_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$SECOND_PART_RELEASE_KEYSTORE"
-          ACTUAL="$(keytool -list -v -keystore "$SECOND_PART_RELEASE_KEYSTORE" -storepass "$ANDROID_RELEASE_STORE_PASSWORD" -alias "$ANDROID_RELEASE_KEY_ALIAS" | sed -n 's/.*SHA256: //p' | head -n 1 | tr -d ':' | tr '[:lower:]' '[:upper:]')"
-          EXPECTED="98E69A9586347470048639C5A888D483595A4B4EE4565724661B88F9F13C1670"
-          if [ "$ACTUAL" != "$EXPECTED" ]; then
-            echo "::error::Upload certificate does not match the approved permanent key."
-            exit 1
-          fi
-          echo "SECOND_PART_RELEASE_KEYSTORE=$SECOND_PART_RELEASE_KEYSTORE" >> "$GITHUB_ENV"
-          echo "ANDROID_EXPECTED_SIGNER_SHA256=$EXPECTED" >> "$GITHUB_ENV"
-
       - name: Generate and sync Android project
         run: |
           npx cap add android
@@ -109,16 +108,6 @@ jobs:
             --splashBackgroundColor '#173c31' --splashBackgroundColorDark '#173c31' \
             --logoSplashScale 0.18
           node scripts/verify-android-brand-assets.mjs
-
-      - name: Patch Internal QA Android release
-        env:
-          SECOND_PART_PRODUCTION_URL: ${{ vars.SECOND_PART_INTERNAL_URL }}
-          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
-          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
-          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
-        run: |
-          node scripts/patch-android-production.mjs
-          node scripts/patch-android-app-links.mjs
 
       - name: Configure Internal QA Firebase services
         env:
@@ -144,6 +133,38 @@ jobs:
           if(!/compileSdkVersion\s*=\s*36/.test(v)||!/targetSdkVersion\s*=\s*36/.test(v))throw new Error("API 36 is required.");
           NODE
 
+      - name: Restore and verify permanent upload key
+        env:
+          ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_RELEASE_KEYSTORE_BASE64" ] || [ -z "$ANDROID_RELEASE_STORE_PASSWORD" ] || [ -z "$ANDROID_RELEASE_KEY_ALIAS" ] || [ -z "$ANDROID_RELEASE_KEY_PASSWORD" ]; then
+            echo "::error::Internal Android signing secrets are incomplete."
+            exit 1
+          fi
+          SECOND_PART_RELEASE_KEYSTORE="$RUNNER_TEMP/secondpart-upload.jks"
+          printf '%s' "$ANDROID_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$SECOND_PART_RELEASE_KEYSTORE"
+          ACTUAL="$(keytool -list -v -keystore "$SECOND_PART_RELEASE_KEYSTORE" -storepass "$ANDROID_RELEASE_STORE_PASSWORD" -alias "$ANDROID_RELEASE_KEY_ALIAS" | sed -n 's/.*SHA256: //p' | head -n 1 | tr -d ':' | tr '[:lower:]' '[:upper:]')"
+          EXPECTED="98E69A9586347470048639C5A888D483595A4B4EE4565724661B88F9F13C1670"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Upload certificate does not match the approved permanent key."
+            exit 1
+          fi
+          echo "SECOND_PART_RELEASE_KEYSTORE=$SECOND_PART_RELEASE_KEYSTORE" >> "$GITHUB_ENV"
+          echo "ANDROID_EXPECTED_SIGNER_SHA256=$EXPECTED" >> "$GITHUB_ENV"
+
+      - name: Patch Internal QA Android release
+        env:
+          SECOND_PART_PRODUCTION_URL: ${{ vars.SECOND_PART_INTERNAL_URL }}
+          ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: |
+          node scripts/patch-android-production.mjs
+          node scripts/patch-android-app-links.mjs
+
       - name: Build signed Android App Bundle
         working-directory: android
         env:
@@ -153,6 +174,10 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew bundleRelease --no-daemon
+
+      - name: Remove private signing material
+        if: always()
+        run: rm -f -- "$RUNNER_TEMP/secondpart-upload.jks"
 
       - name: Audit bundle and merged Release permissions
         run: |

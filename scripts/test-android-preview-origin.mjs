@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
+import {load as loadYaml} from "js-yaml";
 
 const root=path.resolve(import.meta.dirname,"..");
 const branchPreview="https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app";
@@ -46,12 +47,13 @@ for(const name of ['android-release-check.yml','android-production-aab.yml']){
 
 test("Android dry-run retains only its AAB and public audit evidence with an explicit non-Play label",()=>{
  const source=fs.readFileSync(path.join(root,'.github/workflows/android-release-check.yml'),'utf8');
- const upload=source.match(/- name: Retain ephemeral dry-run evidence[\s\S]*$/)?.[0]??'';
- assert.match(upload,/uses:\s*actions\/upload-artifact@v4/);
- assert.match(upload,/name:\s*SecondPart-Android-Dry-Run-NOT-FOR-PLAY-/);
- assert.match(upload,/if-no-files-found:\s*error/);
- const paths=upload.match(/path:\s*\|\s*\n([\s\S]*?)(?=\n\s*[\w-]+:|$)/)?.[1]?.trim().split(/\r?\n/).map(value=>value.trim());
+ const releaseWorkflow=loadYaml(source);
+ const upload=releaseWorkflow.jobs?.['validate-release-bundle']?.steps?.find(step=>step?.name?.startsWith('Retain ephemeral dry-run evidence'));
+ assert.equal(upload?.uses,'actions/upload-artifact@v4');
+ assert.match(upload?.with?.name||'',/^SecondPart-Android-Dry-Run-NOT-FOR-PLAY-/);
+ assert.equal(upload?.with?.['if-no-files-found'],'error');
+ const paths=upload?.with?.path?.trim().split(/\r?\n/).map(value=>value.trim());
  assert.deepEqual(paths,['android/app/build/outputs/bundle/release/app-release.aab','android-release-permissions.txt','android-release-evidence.json','android-release-evidence.txt','android-16kb-evidence.json']);
- assert.doesNotMatch(upload,/\*|keystore|\.jks|google-services|secrets\./i);
+ assert.doesNotMatch(JSON.stringify(upload),/\*|keystore|\.jks|google-services|secrets\./i);
  assert.ok(source.indexOf('Retain ephemeral dry-run evidence')>source.indexOf('Verify release evidence generation'));
 });
