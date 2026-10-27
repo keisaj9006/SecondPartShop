@@ -6,6 +6,8 @@ SecondPart uses the existing server registration service for both web and mobile
 
 Configure `DVSA_CLIENT_ID`, `DVSA_CLIENT_SECRET`, `DVSA_API_KEY`, `DVSA_SCOPE_URL` and `DVSA_TOKEN_URL` in the intended Vercel environment. Do not use `NEXT_PUBLIC_`, Git, reports or client storage. Preview values are not authority to configure Production. Confirm names, environment and branch scope without decrypting or printing values.
 
+For `rebuild-nextjs`, verify the deployment behind `https://second-part-shop-preview.vercel.app` resolves to the same deployment ID and Git SHA as the Vercel branch alias before provider QA. Reassigning a friendly Preview alias does not inject newer environment variables into an old deployment; it must point at a deployment built after those variables were configured.
+
 A variable update requires a **new deployment**. Verify deployment target, branch, SHA and READY state, then health and one authorised known registration through `/api/vehicle-lookup`. Record vehicle/result status and timings only. Never record the OAuth response, Authorization header, API key or secret. A success might come from the result cache; distinguish that from a new provider request before claiming OAuth runtime evidence.
 
 ## Token and result caching
@@ -24,6 +26,7 @@ Client secrets expire after two years; DVSA sends advance notices. Request repla
 
 ## Incident handling
 
+- `auth_missing`: verify the deployment age and environment-variable presence. A stale Preview alias can still point at a deployment built before credentials were configured.
 - 401/403: check expiry, secret/key configuration and provider permissions in the management UI; do not expose upstream bodies or repeatedly retry.
 - 429: respect provider throttling and stop repeated QA; preserve manual selection.
 - 5xx/timeout/network: use the provider status page, controlled user retry and manual selection.
@@ -31,4 +34,4 @@ Client secrets expire after two years; DVSA sends advance notices. Request repla
 
 Rollback Preview to a known safe deployment only after checking environment applicability. Old deployments may lack rotated credentials. Production rollback/deployment needs separate authorisation.
 
-Sources checked 5 October 2026: [DVSA authentication, token lifetime, inactivity and rotation](https://documentation.history.mot.api.gov.uk/mot-history-api/authentication/), [provider status](https://motservice.status.dvsa.gov.uk/).
+Sources checked 27 October 2026: [DVSA authentication, token lifetime, inactivity and rotation](https://documentation.history.mot.api.gov.uk/mot-history-api/authentication/), [provider status](https://motservice.status.dvsa.gov.uk/).

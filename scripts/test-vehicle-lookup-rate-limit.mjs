@@ -18,6 +18,7 @@ const request=()=>new Request("https://secondpart.test/api/vehicle-lookup",{
 function operationalModule(rpcMode){
  const source=compile("src/lib/vehicle-lookup-operational.ts");
  const exports={};
+ const logs=[];
  const query={
   select(){return query;},eq(){return query;},gt(){return query;},maybeSingle:async()=>({data:null,error:null}),upsert:async()=>({error:null})
  };
@@ -40,14 +41,15 @@ function operationalModule(rpcMode){
    if(name==="@/lib/vehicle-registration")return {};
    throw new Error(`Unexpected dependency ${name}`);
   },
-  Date,Number,Boolean,Object,Array,Promise
+  Date,Number,Boolean,Object,Array,Promise,console:{error:(...args)=>logs.push(args)}
  });
- return exports;
+ return {...exports,logs};
 }
 
-function routeModule(rateResult){
+function routeModule(rateResult,{catalogueError=false}={}){
  const source=compile("src/app/api/vehicle-lookup/route.ts");
  const exports={};
+ const logs=[];
  let providerCalls=0;
  let catalogueCalls=0;
  class TestNextResponse{
@@ -68,12 +70,13 @@ function routeModule(rateResult){
      return {status:"found",registration:"AB12CDE",vehicle:{make:"FORD",model:"FOCUS",year:2020}};
     }
    };
-   if(name==="@/lib/data/vehicle-catalogue")return {matchRegistrationToCatalogue:async()=>{catalogueCalls++;return {variants:[]};}};
+   if(name==="node:crypto")return crypto;
+   if(name==="@/lib/data/vehicle-catalogue")return {matchRegistrationToCatalogue:async()=>{catalogueCalls++;if(catalogueError)throw new Error("synthetic-secret AB12CDE");return {variants:[]};}};
    throw new Error(`Unexpected dependency ${name}`);
   },
-  Request,Response,Headers,URL,URLSearchParams,String,Object,Array,JSON,Math
+  Request,Response,Headers,URL,URLSearchParams,String,Object,Array,JSON,Math,console:{error:(...args)=>logs.push(args)}
  });
- return {POST:exports.POST,stats:()=>({providerCalls,catalogueCalls})};
+ return {POST:exports.POST,stats:()=>({providerCalls,catalogueCalls}),logs};
 }
 
 for(const mode of ["error","missing","throw"]){
@@ -82,6 +85,18 @@ for(const mode of ["error","missing","throw"]){
   assert.equal(result.status,"unavailable");
   assert.equal(result.allowed,false);
   assert.equal(result.remaining,null);
+ });
+}
+
+for(const mode of ["error","missing","throw"]){
+ test(`limiter ${mode} emits a safe rate_limit_guard diagnostic`,async()=>{
+  const operational=operationalModule(mode);
+  await operational.consumeVehicleLookupRateLimit(request());
+  assert.equal(operational.logs.length,1);
+  assert.equal(operational.logs[0][0],"vehicle_lookup_failed");
+  assert.equal(operational.logs[0][1].code,"rate_limit_guard");
+  assert.equal(operational.logs[0][1].stage,"rate_limit");
+  assert.doesNotMatch(JSON.stringify(operational.logs),/198\.51\.100\.10|SecondPart RC test|synthetic limiter/);
  });
 }
 
@@ -125,4 +140,16 @@ test("only a healthy allowed limiter reaches provider and catalogue lookup",asyn
  const response=await route.POST(request());
  assert.equal(response.status,200);
  assert.deepEqual(route.stats(),{providerCalls:1,catalogueCalls:1});
+});
+
+test("catalogue failure emits a safe catalogue_error diagnostic",async()=>{
+ const route=routeModule({status:"available",allowed:true,remaining:29,retryAfterSeconds:0},{catalogueError:true});
+ const response=await route.POST(request());
+ assert.equal(response.status,503);
+ assert.equal(route.logs.length,1);
+ assert.equal(route.logs[0][0],"vehicle_lookup_failed");
+ assert.equal(route.logs[0][1].code,"catalogue_error");
+ assert.equal(route.logs[0][1].stage,"catalogue");
+ assert.equal(route.logs[0][1].registration_hash,"63c9b47c5f01bba3341c2165b5ae0b3ace9398e91f130566bfa6225045f8b7d1");
+ assert.doesNotMatch(JSON.stringify(route.logs),/AB12CDE|synthetic-secret/);
 });
