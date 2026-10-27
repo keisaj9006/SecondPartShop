@@ -11,11 +11,11 @@ const compiled=ts.transpileModule(source,{
  compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}
 }).outputText;
 
-function adapter(fetch){
+function adapter(fetch,env={}){
  const exports={};
  vm.runInNewContext(compiled,{
   exports,Headers,URL,URLSearchParams,fetch,
-  process:{env:{STRIPE_SECRET_KEY:"sk_test_unit_fixture",STRIPE_CONNECT_API_VERSION:"2026-08-26.preview"}},
+  process:{env:{STRIPE_SECRET_KEY:"sk_test_unit_fixture",STRIPE_CONNECT_API_VERSION:"2026-08-26.preview",...env}},
   require(name){
    if(name==="server-only")return {};
    throw new Error(`Unexpected dependency: ${name}`);
@@ -27,6 +27,20 @@ function adapter(fetch){
 function recipient(status){
  return {id:"acct_unit_fixture",configuration:{recipient:{capabilities:{stripe_balance:{stripe_transfers:{status}}}}}};
 }
+
+test("Internal QA Connect fails closed for live or unattested credentials",async()=>{
+ const runtime={NEXT_PUBLIC_SITE_URL:"https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app",SUPABASE_SERVICE_ROLE_KEY:"service_role_unit_fixture"};
+ const noRequest=async()=>{throw new Error("Stripe must not be called.");};
+ assert.equal(adapter(noRequest,{...runtime,STRIPE_SECRET_KEY:"sk_test_unit_fixture"}).isStripeConnectConfigured(),false);
+ assert.equal(adapter(noRequest,{...runtime,SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"}).isStripeConnectConfigured(),false);
+ assert.equal(adapter(noRequest,{VERCEL_ENV:"preview",NEXT_PUBLIC_APP_URL:"https://www.secondpart.co.uk",SUPABASE_SERVICE_ROLE_KEY:"service_role_unit_fixture",SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"}).isStripeConnectConfigured(),false);
+ assert.equal(adapter(noRequest,{VERCEL_ENV:"preview",SUPABASE_SERVICE_ROLE_KEY:"service_role_unit_fixture",SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"}).isStripeConnectConfigured(),false);
+ assert.equal(adapter(noRequest,{...runtime,NEXT_PUBLIC_APP_URL:"https://www.secondpart.co.uk",SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"}).isStripeConnectConfigured(),false);
+ assert.equal(adapter(noRequest,{...runtime,NEXT_PUBLIC_APP_URL:"https://www.secondpart.co.uk",SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_test_unit_fixture"}).getAppUrl(),runtime.NEXT_PUBLIC_SITE_URL);
+ assert.equal(adapter(noRequest,{...runtime,SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_test_unit_fixture"}).isStripeConnectConfigured(),true);
+ const blocked=adapter(noRequest,{...runtime,SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"});
+ await assert.rejects(blocked.getStripeRecipientAccount("acct_live_blocked"),/Internal QA requires Stripe test mode/);
+});
 
 test("account retrieval uses indexed includes and preserves an active recipient capability",async()=>{
  let requests=0;

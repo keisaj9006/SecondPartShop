@@ -7,6 +7,18 @@ const STRIPE_API="https://api.stripe.com";
 const STRIPE_V1_VERSION="2026-08-26.dahlia";
 
 type StripeErrorPayload={error?:{message?:string}};
+const INTERNAL_QA_ORIGIN="https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app";
+const isInternalQaRuntime=()=>{
+ if(["preview","development"].includes(process.env.VERCEL_ENV?.trim().toLowerCase()??""))return true;
+ const configured=[process.env.NEXT_PUBLIC_APP_URL,process.env.NEXT_PUBLIC_SITE_URL];
+ return configured.some(raw=>{
+  try{return new URL(String(raw??"").trim()).origin===INTERNAL_QA_ORIGIN;}catch{return false;}
+ });
+};
+const isStripeCredentialAllowed=(value:string)=>!isInternalQaRuntime()||(
+ process.env.SECOND_PART_INTERNAL_STRIPE_MODE?.trim().toLowerCase()==="test"&&
+ (value.startsWith("sk_test_")||value.startsWith("rk_test_"))
+);
 
 export type StripeCheckoutSession={
  id:string;
@@ -53,12 +65,13 @@ export type StripeTransferReversalList={data:StripeTransferReversal[];has_more:b
 const secret=()=>{
  const value=process.env.STRIPE_SECRET_KEY?.trim();
  if(!value)throw new Error("Stripe is not configured.");
+ if(!isStripeCredentialAllowed(value))throw new Error("Internal QA requires Stripe test mode.");
  return value;
 };
 
 export function isStripeCheckoutConfigured(){
  return Boolean(
-  process.env.STRIPE_SECRET_KEY?.trim()&&
+  process.env.STRIPE_SECRET_KEY?.trim()&&isStripeCredentialAllowed(process.env.STRIPE_SECRET_KEY.trim())&&
   process.env.STRIPE_WEBHOOK_SECRET?.trim()&&
   process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()&&
   (process.env.NEXT_PUBLIC_APP_URL?.trim()||process.env.NEXT_PUBLIC_SITE_URL?.trim())

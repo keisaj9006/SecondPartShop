@@ -23,6 +23,24 @@ function adapter(fetch,env={}){
  return exports;
 }
 const input={orderId:"qa-order",partTitle:"QA TEST PART",partSlug:"qa-part",quantity:1,unitPricePence:1250,shippingPence:0,deliveryMethod:"shipping",expiresAt:"2026-09-12T12:00:00Z"};
+test("Internal QA checkout fails closed unless the credential and attestation are test mode",async()=>{
+ const runtime={
+  NEXT_PUBLIC_SITE_URL:"https://second-part-shop-git-rebuild-nextjs-joannakwapis11-5369.vercel.app",
+  STRIPE_WEBHOOK_SECRET:"whsec_unit_fixture",
+  SUPABASE_SERVICE_ROLE_KEY:"service_role_unit_fixture"
+ };
+ const noRequest=async()=>{throw new Error("Stripe must not be called.");};
+ assert.equal(adapter(noRequest,{...runtime,STRIPE_SECRET_KEY:"sk_test_unit_fixture"}).isStripeCheckoutConfigured(),false);
+ assert.equal(adapter(noRequest,{...runtime,SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"}).isStripeCheckoutConfigured(),false);
+ assert.equal(adapter(noRequest,{VERCEL_ENV:"preview",NEXT_PUBLIC_APP_URL:"https://www.secondpart.co.uk",STRIPE_WEBHOOK_SECRET:"whsec_unit_fixture",SUPABASE_SERVICE_ROLE_KEY:"service_role_unit_fixture",SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"}).isStripeCheckoutConfigured(),false);
+ assert.equal(adapter(noRequest,{VERCEL_ENV:"preview",STRIPE_WEBHOOK_SECRET:"whsec_unit_fixture",SUPABASE_SERVICE_ROLE_KEY:"service_role_unit_fixture",SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"}).isStripeCheckoutConfigured(),false);
+ assert.equal(adapter(noRequest,{...runtime,NEXT_PUBLIC_APP_URL:"https://www.secondpart.co.uk",SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"}).isStripeCheckoutConfigured(),false);
+ const safe=adapter(noRequest,{...runtime,SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_test_unit_fixture"});
+ assert.equal(safe.isStripeCheckoutConfigured(),true);
+ const blocked=adapter(noRequest,{...runtime,SECOND_PART_INTERNAL_STRIPE_MODE:"test",STRIPE_SECRET_KEY:"sk_live_unit_fixture"});
+ await assert.rejects(blocked.getCheckoutSession("cs_live_blocked"),/Internal QA requires Stripe test mode/);
+});
+
 
 test("checkout uses the provider-supported stable API version and preserves payment linkage",async()=>{
  let requests=0;
