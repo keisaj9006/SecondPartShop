@@ -15,7 +15,8 @@ const forwardReviewPath = "supabase/migrations/20261014202700_review_ready_notif
 
 test("five-function source is the exact approved artifact without its transport transaction", () => {
   const approved = read(approvedPath);
-  assert.equal(sha256(readFileSync(path.join(root, approvedPath))), "9e7a6a6fa694b93999c2fb7b90ff5562dabb4917487e22227e568e69334df055");
+  // Pin the canonical LF source so Windows CRLF checkout conversion cannot make CI and local disagree.
+  assert.equal(sha256(approved), "b36e7abd25851a8bab46e4d33d2dc963beaca7e03e5584ec922ab8b4e5c8efd5");
   assert.equal((approved.match(/^begin;$/gm) ?? []).length, 1);
   assert.equal((approved.match(/^commit;$/gm) ?? []).length, 1);
   const expected = approved.replace("\nbegin;\n", "\n").replace(/\ncommit;\s*$/i, "\n");
