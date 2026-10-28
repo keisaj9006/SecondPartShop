@@ -42,10 +42,11 @@ The clean platform starts with Auth and Storage schemas and extension packages a
 
 Machine evidence:
 
-- [Replay A JSON](2026-10-28-rc05-native-replay-a.json) — SHA-256 `24f5fbfdc3d90ec6362bc1159dbba47c71b32619703389a7ded5e7f03b11f052`.
-- [Replay B JSON](2026-10-28-rc05-native-replay-b.json) — SHA-256 `1d72ca29f21589cd2ddc76d5009d403652c087d4d009feb8f9eedf9f11f8d985`.
+- [Replay A JSON](2026-10-28-rc05-native-replay-a.json) — SHA-256 `a375f9ef01bc69cfce47799c597b4110ffa658cd22210e1fe5d77aec3351d574`.
+- [Replay B JSON](2026-10-28-rc05-native-replay-b.json) — SHA-256 `b9054f4b22bc8ad4adb20a5f7bf72cb7870ff5e03cfede4e3e8df2684948dc6a`.
+- [Harness/lifecycle observations](2026-10-28-rc05-native-harness-observations.md) — transcribed command results, explicitly distinguished from automated capture.
 
-The JSON files differ in run ID, project ID and timestamps, as expected for independent executions. Explicit comparison returned zero ordered source/execution-hash differences, zero catalog-fingerprint differences and zero count differences. Both reports record clean-state preflight, native Auth/Storage HTTP 200, CLI/image provenance and PostgreSQL 17.11. The A volume was removed before B started; both stopped with zero matching containers/volumes. The runner strips only outer per-file BEGIN/COMMIT transport wrappers, then wraps each mapped unit in one transaction; both source and execution hashes are retained.
+The JSON files differ in run ID, project ID and timestamps, as expected for independent executions. Explicit comparison returned zero ordered source/execution-hash differences, zero catalog-fingerprint differences and zero count differences. Both reports record clean-state preflight and PostgreSQL 17.11. The CLI/image identifiers and native Auth/Storage HTTP 200 are operator-provided provenance fields, not independently checked by the runner. The A volume was removed before B started; both stopped with zero matching containers/volumes observed in Docker CLI output. The runner strips only outer per-file BEGIN/COMMIT transport wrappers, then wraps each mapped unit in one transaction; both source and execution hashes are retained.
 
 ## Replay ↔ current hosted comparison
 
