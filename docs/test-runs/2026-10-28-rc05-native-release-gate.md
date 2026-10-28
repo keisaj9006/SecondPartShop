@@ -4,7 +4,7 @@
 
 **RC-05: PASS.** Two independent native Supabase/PostgreSQL 17 replays completed from empty Docker volumes. Replay A's volume was destroyed before Replay B was created. The replays have identical ordered source hashes and identical final catalog fingerprints. The hosted SecondPart project was read only throughout.
 
-**Controlled `review_ready` deployment: NO-GO pending migration-identity rehearsal and separate explicit hosted-DDL approval.** The corrected SQL passed native tests twice, but the proposed Management API route may assign a different version. That identity must be proven in a disposable project before a hosted change. Blind `db push`, migration repair, and historical ledger edits remain forbidden.
+**Controlled `review_ready` deployment: migration identity PASS; hosted execution remains NO-GO pending separate explicit hosted-DDL approval.** The corrected SQL passed native tests twice. A disposable Supabase CLI `migration up` rehearsal then recorded exactly version `20261014202700`, name `review_ready_notifications_forward`, one ledger row and the approved SQL statement fingerprint. Blind `db push`, migration repair, Management API application with a server-assigned version, and historical ledger edits remain forbidden.
 
 **Commerce B–H provider execution: NO-GO in the shared Preview database without a separately approved isolated provider/data fixture.** The fail-closed harness, reduced-SQL concurrency tests and 220 focused tests pass, but no new Stripe object or shared hosted row was created in this checkpoint. Those are not full provider E2E evidence.
 
@@ -98,7 +98,9 @@ The native harness is [rc05-review-ready-native.sql](../../scripts/rc05-review-r
 
 The desired operation is exactly one new forward-only migration against project `etkupijfdznljimrfyct`, with name `review_ready_notifications_forward` and the exact LF-normalized SQL above. Do not use `supabase db push`, `migration up --include-all`, or `migration repair`. No hosted execution mechanism is approved yet.
 
-The Management API may assign a new ledger version rather than the reserved `20261014202700`. Before hosted approval, prove its version/name semantics and one-transaction/one-ledger-row behavior on an isolated disposable Supabase project, then reconcile the reviewed repository filename and exact SQL identity. Abort if exact identity cannot be predicted and reviewed before application.
+The approved mechanism is the official Supabase CLI `migration up` path using the exact filename, not the Management API. The disposable PostgreSQL 17.11 stack recorded version `20261014202700`, name `review_ready_notifications_forward`, one row, six parsed statements and statements SHA-256 `87d416c7b7b56686f9c0c799cbf6012c2dc0a6041f770b18d84359c10388b2fe`. The repository validator additionally pins the LF-normalized source SHA-256 because the CLI treats an already-recorded version as applied and does not compare changed SQL bytes. The full rehearsal evidence is [2026-10-28-rc05-migration-identity.json](2026-10-28-rc05-migration-identity.json).
+
+Before any authorized hosted application, construct a task-only migration directory from the fresh hosted version/name inventory plus the single exact candidate and run read-only `migration list --db-url`. Abort unless the 207 existing rows have no unexpected local-only item and the candidate is the only new local version. Do not run `migration up` from the ordinary repository migration directory while historical filename identities differ.
 
 ### Read-only preflight
 

@@ -1,0 +1,43 @@
+{
+  "status": "PASS",
+  "environment": {
+    "kind": "disposable local Supabase Docker stack",
+    "projectId": "secondpart-rc05-identity-20261028",
+    "postgres": "17.11",
+    "supabaseCli": "2.122.0",
+    "databasePort": 55322,
+    "hostedSecondPartMutated": false
+  },
+  "source": {
+    "file": "supabase/migrations/20261014202700_review_ready_notifications_forward.sql",
+    "sha256Lf": "e6dd184f94748c5a7f6ec6ba9012ab534599d2f69099c23af12f2e542f1246aa"
+  },
+  "ledger": {
+    "version": "20261014202700",
+    "name": "review_ready_notifications_forward",
+    "statementCount": 6,
+    "statementsSha256": "87d416c7b7b56686f9c0c799cbf6012c2dc0a6041f770b18d84359c10388b2fe",
+    "rowCount": 1
+  },
+  "postflight": {
+    "functionCount": 1,
+    "triggerCount": 2,
+    "migrationListLocal": "20261014202700",
+    "migrationListRemote": "20261014202700"
+  },
+  "hostedReadback": {
+    "projectId": "etkupijfdznljimrfyct",
+    "observedAt": "2026-10-28",
+    "ledgerCount": 207,
+    "ledgerHead": "20261008130523",
+    "repairIdentityCount": 1,
+    "candidateVersionCount": 0,
+    "candidateNameCount": 0,
+    "readOnly": true
+  },
+  "driftProbe": {
+    "changedSourceSha256": "67d4420654288401acb143aefa362f8829acd8272601d5c6dd7d27df1a9acbd8",
+    "secondMigrationUpApplied": [],
+    "finding": "Supabase CLI skips an already applied version without comparing changed SQL bytes; the repository validator must pin source and parsed-ledger hashes."
+  }
+}

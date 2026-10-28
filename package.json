@@ -30,6 +30,7 @@
     "validate:production-env": "node scripts/validate-production-environment.mjs",
     "validate:beta-feedback": "node scripts/validate-beta-feedback.mjs",
     "validate:seller-read-policy": "node scripts/validate-seller-read-policy.mjs",
+    "validate:rc05-migration-identity": "node scripts/rc05-migration-identity.mjs",
     "validate:dependencies": "npm audit --omit=dev --audit-level=high"
   },
   "dependencies": {
