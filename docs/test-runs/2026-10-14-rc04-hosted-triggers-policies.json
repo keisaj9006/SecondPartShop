@@ -1,0 +1,1424 @@
+{
+  "project": "etkupijfdznljimrfyct",
+  "as_of": "2026-10-14",
+  "read_only": true,
+  "triggers": [
+    {
+      "object": "public.commerce_settings.commerce_settings_touch",
+      "definition": "CREATE TRIGGER commerce_settings_touch BEFORE UPDATE ON public.commerce_settings FOR EACH ROW EXECUTE FUNCTION private.touch_updated_at()"
+    },
+    {
+      "object": "public.donor_vehicles.queue_find_my_part_after_donors_delete",
+      "definition": "CREATE TRIGGER queue_find_my_part_after_donors_delete AFTER DELETE ON public.donor_vehicles REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION private.queue_requests_after_donors_delete()"
+    },
+    {
+      "object": "public.donor_vehicles.queue_find_my_part_after_donors_insert",
+      "definition": "CREATE TRIGGER queue_find_my_part_after_donors_insert AFTER INSERT ON public.donor_vehicles REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION private.queue_requests_after_donors_insert()"
+    },
+    {
+      "object": "public.donor_vehicles.queue_find_my_part_after_donors_update",
+      "definition": "CREATE TRIGGER queue_find_my_part_after_donors_update AFTER UPDATE ON public.donor_vehicles REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION private.queue_requests_after_donors_update()"
+    },
+    {
+      "object": "public.founding_seller_applications.founding_seller_applications_touch",
+      "definition": "CREATE TRIGGER founding_seller_applications_touch BEFORE UPDATE ON public.founding_seller_applications FOR EACH ROW EXECUTE FUNCTION private.touch_updated_at()"
+    },
+    {
+      "object": "public.garage_partners.garage_partners_protect_review",
+      "definition": "CREATE TRIGGER garage_partners_protect_review BEFORE INSERT OR UPDATE ON public.garage_partners FOR EACH ROW EXECUTE FUNCTION private.protect_garage_partner_review()"
+    },
+    {
+      "object": "public.garage_partners.garage_partners_touch",
+      "definition": "CREATE TRIGGER garage_partners_touch BEFORE UPDATE ON public.garage_partners FOR EACH ROW EXECUTE FUNCTION private.touch_updated_at()"
+    },
+    {
+      "object": "public.notifications.enqueue_mobile_push_trigger",
+      "definition": "CREATE TRIGGER enqueue_mobile_push_trigger AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION private.enqueue_mobile_push()"
+    },
+    {
+      "object": "public.order_items.order_items_prevent_duplicate_active_reservation",
+      "definition": "CREATE TRIGGER order_items_prevent_duplicate_active_reservation BEFORE INSERT ON public.order_items FOR EACH ROW EXECUTE FUNCTION private.prevent_duplicate_active_part_reservation()"
+    },
+    {
+      "object": "public.order_items.remove_reviews_for_failed_order_item",
+      "definition": "CREATE TRIGGER remove_reviews_for_failed_order_item AFTER UPDATE OF refunded_at, fulfilment_status, payout_status ON public.order_items FOR EACH ROW EXECUTE FUNCTION private.remove_reviews_for_failed_order_item()"
+    },
+    {
+      "object": "public.orders.close_fulfilled_part_requests_trigger",
+      "definition": "CREATE TRIGGER close_fulfilled_part_requests_trigger AFTER UPDATE OF payment_status ON public.orders FOR EACH ROW EXECUTE FUNCTION private.close_fulfilled_part_requests()"
+    },
+    {
+      "object": "public.orders.orders_limit_active_checkout_reservations",
+      "definition": "CREATE TRIGGER orders_limit_active_checkout_reservations BEFORE INSERT ON public.orders FOR EACH ROW EXECUTE FUNCTION private.limit_active_checkout_orders()"
+    },
+    {
+      "object": "public.orders.orders_touch",
+      "definition": "CREATE TRIGGER orders_touch BEFORE UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION private.touch_updated_at()"
+    },
+    {
+      "object": "public.part_catalogue_fitments.queue_find_my_part_after_fitments_delete",
+      "definition": "CREATE TRIGGER queue_find_my_part_after_fitments_delete AFTER DELETE ON public.part_catalogue_fitments REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION private.queue_requests_after_fitments_delete()"
+    },
+    {
+      "object": "public.part_catalogue_fitments.queue_find_my_part_after_fitments_insert",
+      "definition": "CREATE TRIGGER queue_find_my_part_after_fitments_insert AFTER INSERT ON public.part_catalogue_fitments REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION private.queue_requests_after_fitments_insert()"
+    },
+    {
+      "object": "public.part_catalogue_fitments.queue_find_my_part_after_fitments_update",
+      "definition": "CREATE TRIGGER queue_find_my_part_after_fitments_update AFTER UPDATE ON public.part_catalogue_fitments REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION private.queue_requests_after_fitments_change()"
+    },
+    {
+      "object": "public.part_images.part_images_guard_attachment",
+      "definition": "CREATE TRIGGER part_images_guard_attachment BEFORE INSERT OR UPDATE ON public.part_images FOR EACH ROW EXECUTE FUNCTION private.guard_part_image_attachment()"
+    },
+    {
+      "object": "public.part_images.part_images_keep_one_for_active_listing",
+      "definition": "CREATE TRIGGER part_images_keep_one_for_active_listing BEFORE DELETE ON public.part_images FOR EACH ROW EXECUTE FUNCTION private.prevent_last_active_listing_image_delete()"
+    },
+    {
+      "object": "public.part_requests.route_part_request_matches_trigger",
+      "definition": "CREATE TRIGGER route_part_request_matches_trigger AFTER INSERT OR UPDATE OF status, category_id, catalogue_variant_id, year, fuel_type, engine_size_simple, oem_number ON public.part_requests FOR EACH ROW EXECUTE FUNCTION private.route_part_request_trigger()"
+    },
+    {
+      "object": "public.part_requests.sync_seller_part_request_lead_trigger",
+      "definition": "CREATE TRIGGER sync_seller_part_request_lead_trigger AFTER INSERT OR DELETE OR UPDATE ON public.part_requests FOR EACH ROW EXECUTE FUNCTION private.sync_seller_part_request_lead()"
+    },
+    {
+      "object": "public.parts.mark_part_request_match_responded_trigger",
+      "definition": "CREATE TRIGGER mark_part_request_match_responded_trigger AFTER INSERT OR UPDATE OF source_request_id, status ON public.parts FOR EACH ROW EXECUTE FUNCTION private.mark_part_request_match_responded()"
+    },
+    {
+      "object": "public.parts.notify_buyer_for_request_listing_trigger",
+      "definition": "CREATE TRIGGER notify_buyer_for_request_listing_trigger AFTER INSERT OR UPDATE OF status, source_request_id ON public.parts FOR EACH ROW EXECUTE FUNCTION private.notify_buyer_for_request_listing()"
+    },
+    {
+      "object": "public.parts.parts_enforce_activation_readiness_insert",
+      "definition": "CREATE TRIGGER parts_enforce_activation_readiness_insert BEFORE INSERT ON public.parts FOR EACH ROW EXECUTE FUNCTION private.enforce_listing_activation_readiness()"
+    },
+    {
+      "object": "public.parts.parts_enforce_activation_readiness_update",
+      "definition": "CREATE TRIGGER parts_enforce_activation_readiness_update BEFORE UPDATE OF status, category_id, donor_vehicle_id, oem_number, manufacturer, part_number, gearbox_family, gearbox_code ON public.parts FOR EACH ROW EXECUTE FUNCTION private.enforce_listing_activation_readiness()"
+    },
+    {
+      "object": "public.parts.parts_queue_images_before_delete",
+      "definition": "CREATE TRIGGER parts_queue_images_before_delete BEFORE DELETE ON public.parts FOR EACH ROW EXECUTE FUNCTION private.queue_part_images_before_parent_delete()"
+    },
+    {
+      "object": "public.parts.parts_touch",
+      "definition": "CREATE TRIGGER parts_touch BEFORE UPDATE ON public.parts FOR EACH ROW EXECUTE FUNCTION private.touch_updated_at()"
+    },
+    {
+      "object": "public.parts.queue_find_my_part_after_parts_delete",
+      "definition": "CREATE TRIGGER queue_find_my_part_after_parts_delete AFTER DELETE ON public.parts REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION private.queue_requests_after_parts_delete()"
+    },
+    {
+      "object": "public.parts.queue_find_my_part_after_parts_insert",
+      "definition": "CREATE TRIGGER queue_find_my_part_after_parts_insert AFTER INSERT ON public.parts REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION private.queue_requests_after_parts_insert()"
+    },
+    {
+      "object": "public.parts.queue_find_my_part_after_parts_update",
+      "definition": "CREATE TRIGGER queue_find_my_part_after_parts_update AFTER UPDATE ON public.parts REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION private.queue_requests_after_parts_update()"
+    },
+    {
+      "object": "public.parts.queue_saved_search_matches_after_insert",
+      "definition": "CREATE TRIGGER queue_saved_search_matches_after_insert AFTER INSERT ON public.parts REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION private.queue_saved_search_matches_after_insert()"
+    },
+    {
+      "object": "public.parts.queue_saved_search_matches_after_update",
+      "definition": "CREATE TRIGGER queue_saved_search_matches_after_update AFTER UPDATE ON public.parts REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION private.queue_saved_search_matches_after_update()"
+    },
+    {
+      "object": "public.profiles.ensure_profile_handle_trigger",
+      "definition": "CREATE TRIGGER ensure_profile_handle_trigger BEFORE INSERT OR UPDATE OF handle, display_name ON public.profiles FOR EACH ROW EXECUTE FUNCTION private.ensure_profile_handle()"
+    },
+    {
+      "object": "public.profiles.profiles_protect_role",
+      "definition": "CREATE TRIGGER profiles_protect_role BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION private.protect_profile_role()"
+    },
+    {
+      "object": "public.profiles.profiles_touch",
+      "definition": "CREATE TRIGGER profiles_touch BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION private.touch_updated_at()"
+    },
+    {
+      "object": "public.seller_part_request_matches.notify_matched_seller_for_part_request_trigger",
+      "definition": "CREATE TRIGGER notify_matched_seller_for_part_request_trigger AFTER INSERT ON public.seller_part_request_matches FOR EACH ROW EXECUTE FUNCTION private.notify_matched_seller_for_part_request()"
+    },
+    {
+      "object": "public.seller_payment_accounts.seller_payment_accounts_touch",
+      "definition": "CREATE TRIGGER seller_payment_accounts_touch BEFORE UPDATE ON public.seller_payment_accounts FOR EACH ROW EXECUTE FUNCTION private.touch_updated_at()"
+    },
+    {
+      "object": "public.seller_prospect_invites.seller_prospect_invites_touch",
+      "definition": "CREATE TRIGGER seller_prospect_invites_touch BEFORE UPDATE ON public.seller_prospect_invites FOR EACH ROW EXECUTE FUNCTION private.touch_updated_at()"
+    },
+    {
+      "object": "public.seller_prospects.seller_prospects_touch",
+      "definition": "CREATE TRIGGER seller_prospects_touch BEFORE UPDATE ON public.seller_prospects FOR EACH ROW EXECUTE FUNCTION private.touch_updated_at()"
+    },
+    {
+      "object": "public.seller_verification_requests.seller_verification_capture_snapshot",
+      "definition": "CREATE TRIGGER seller_verification_capture_snapshot BEFORE INSERT ON public.seller_verification_requests FOR EACH ROW EXECUTE FUNCTION private.capture_seller_verification_request_snapshot()"
+    },
+    {
+      "object": "public.sellers.protect_seller_verification_trigger",
+      "definition": "CREATE TRIGGER protect_seller_verification_trigger BEFORE INSERT OR UPDATE ON public.sellers FOR EACH ROW EXECUTE FUNCTION private.protect_seller_verification()"
+    },
+    {
+      "object": "public.sellers.seller_identity_change_cancels_pending_verification",
+      "definition": "CREATE TRIGGER seller_identity_change_cancels_pending_verification AFTER UPDATE OF business_name, seller_type, business_kind, location, postcode ON public.sellers FOR EACH ROW EXECUTE FUNCTION private.cancel_pending_seller_verification_on_identity_change()"
+    },
+    {
+      "object": "public.sellers.sellers_touch",
+      "definition": "CREATE TRIGGER sellers_touch BEFORE UPDATE ON public.sellers FOR EACH ROW EXECUTE FUNCTION private.touch_updated_at()"
+    },
+    {
+      "object": "public.transaction_case_evidence.case_evidence_cleanup_registration_guard",
+      "definition": "CREATE TRIGGER case_evidence_cleanup_registration_guard BEFORE INSERT OR UPDATE OF storage_path ON public.transaction_case_evidence FOR EACH ROW EXECUTE FUNCTION private.guard_case_evidence_cleanup_registration()"
+    },
+    {
+      "object": "public.transaction_cases.remove_reviews_for_lost_provider_dispute",
+      "definition": "CREATE TRIGGER remove_reviews_for_lost_provider_dispute AFTER UPDATE OF provider_dispute_status ON public.transaction_cases FOR EACH ROW EXECUTE FUNCTION private.remove_reviews_for_lost_provider_dispute()"
+    },
+    {
+      "object": "public.transaction_cases.transaction_case_status_audit",
+      "definition": "CREATE TRIGGER transaction_case_status_audit AFTER UPDATE OF status ON public.transaction_cases FOR EACH ROW WHEN ((old.status IS DISTINCT FROM new.status)) EXECUTE FUNCTION private.audit_transaction_case_status_change()"
+    },
+    {
+      "object": "public.transaction_cases.transaction_cases_touch",
+      "definition": "CREATE TRIGGER transaction_cases_touch BEFORE UPDATE ON public.transaction_cases FOR EACH ROW EXECUTE FUNCTION private.touch_updated_at()"
+    },
+    {
+      "object": "public.transaction_reviews.publish_review_pair_trigger",
+      "definition": "CREATE TRIGGER publish_review_pair_trigger AFTER INSERT ON public.transaction_reviews FOR EACH ROW EXECUTE FUNCTION private.publish_review_pair()"
+    },
+    {
+      "object": "public.transaction_reviews.transaction_reviews_terms_gate",
+      "definition": "CREATE TRIGGER transaction_reviews_terms_gate BEFORE INSERT ON public.transaction_reviews FOR EACH ROW EXECUTE FUNCTION private.enforce_transaction_review_terms()"
+    },
+    {
+      "object": "public.transaction_reviews.validate_transaction_review_trigger",
+      "definition": "CREATE TRIGGER validate_transaction_review_trigger BEFORE INSERT ON public.transaction_reviews FOR EACH ROW EXECUTE FUNCTION private.validate_transaction_review()"
+    },
+    {
+      "object": "public.verified_fit_feedback.verified_fit_feedback_terms_gate",
+      "definition": "CREATE TRIGGER verified_fit_feedback_terms_gate BEFORE INSERT OR UPDATE OF result, notes ON public.verified_fit_feedback FOR EACH ROW EXECUTE FUNCTION private.enforce_verified_fit_terms()"
+    }
+  ],
+  "policies": [
+    {
+      "schemaname": "public",
+      "tablename": "account_deletion_requests",
+      "policyname": "account deletion own insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((( SELECT auth.uid() AS uid) = profile_id) AND (status = 'requested'::text) AND (blocker_code IS NULL) AND (processing_started_at IS NULL) AND (completed_at IS NULL))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "account_deletion_requests",
+      "policyname": "account deletion own read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(( SELECT auth.uid() AS uid) = profile_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "categories",
+      "policyname": "categories admin delete",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "private.is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "categories",
+      "policyname": "categories admin insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "categories",
+      "policyname": "categories admin update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "private.is_admin()",
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "categories",
+      "policyname": "categories public read",
+      "roles": "{anon,authenticated}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "donor_vehicles",
+      "policyname": "donor vehicles seller delete",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "(EXISTS ( SELECT 1\n   FROM sellers s\n  WHERE ((s.id = donor_vehicles.seller_id) AND ((s.owner_id = ( SELECT auth.uid() AS uid)) OR private.is_admin()))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "donor_vehicles",
+      "policyname": "donor vehicles seller insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM sellers s\n  WHERE ((s.id = donor_vehicles.seller_id) AND ((s.owner_id = ( SELECT auth.uid() AS uid)) OR private.is_admin()))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "donor_vehicles",
+      "policyname": "donor vehicles seller read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM sellers s\n  WHERE ((s.id = donor_vehicles.seller_id) AND ((s.owner_id = ( SELECT auth.uid() AS uid)) OR private.is_admin()))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "donor_vehicles",
+      "policyname": "donor vehicles seller update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(EXISTS ( SELECT 1\n   FROM sellers s\n  WHERE ((s.id = donor_vehicles.seller_id) AND ((s.owner_id = ( SELECT auth.uid() AS uid)) OR private.is_admin()))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM sellers s\n  WHERE ((s.id = donor_vehicles.seller_id) AND ((s.owner_id = ( SELECT auth.uid() AS uid)) OR private.is_admin()))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "fitting_request_messages",
+      "policyname": "fitting messages participants read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM (fitting_requests r\n     JOIN garage_partners g ON ((g.id = r.garage_partner_id)))\n  WHERE ((r.id = fitting_request_messages.fitting_request_id) AND ((r.buyer_id = ( SELECT auth.uid() AS uid)) OR (g.owner_id = ( SELECT auth.uid() AS uid)) OR private.is_admin()))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "fitting_requests",
+      "policyname": "fitting requests participant read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((buyer_id = ( SELECT auth.uid() AS uid)) OR (EXISTS ( SELECT 1\n   FROM garage_partners g\n  WHERE ((g.id = fitting_requests.garage_partner_id) AND (g.owner_id = ( SELECT auth.uid() AS uid))))) OR private.is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "founding_seller_applications",
+      "policyname": "founding seller applications admin read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "private.is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "founding_seller_applications",
+      "policyname": "founding seller applications admin update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "private.is_admin()",
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "garage_partners",
+      "policyname": "garage partners create own",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((owner_id = ( SELECT auth.uid() AS uid)) AND (status = 'pending'::text) AND (verified_at IS NULL))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "garage_partners",
+      "policyname": "garage partners public or own read",
+      "roles": "{anon,authenticated}",
+      "cmd": "SELECT",
+      "qual": "((status = 'active'::text) OR (owner_id = ( SELECT auth.uid() AS uid)) OR private.is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "garage_partners",
+      "policyname": "garage partners update own",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "((owner_id = ( SELECT auth.uid() AS uid)) OR private.is_admin())",
+      "with_check": "((owner_id = ( SELECT auth.uid() AS uid)) OR private.is_admin())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "garage_vehicles",
+      "policyname": "garage vehicles own delete",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "(( SELECT auth.uid() AS uid) = profile_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "garage_vehicles",
+      "policyname": "garage vehicles own insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(( SELECT auth.uid() AS uid) = profile_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "garage_vehicles",
+      "policyname": "garage vehicles own read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(( SELECT auth.uid() AS uid) = profile_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "garage_vehicles",
+      "policyname": "garage vehicles own update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(( SELECT auth.uid() AS uid) = profile_id)",
+      "with_check": "(( SELECT auth.uid() AS uid) = profile_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "listing_conversation_messages",
+      "policyname": "listing conversation messages participant read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "private.can_read_listing_conversation(conversation_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "listing_conversations",
+      "policyname": "listing conversations participant read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((buyer_id = ( SELECT auth.uid() AS uid)) OR private.owns_seller(seller_id) OR private.is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "marketplace_reports",
+      "policyname": "marketplace reports admin update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "private.is_admin()",
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "marketplace_reports",
+      "policyname": "marketplace reports own insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(reporter_id = ( SELECT auth.uid() AS uid))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "marketplace_reports",
+      "policyname": "marketplace reports own read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((reporter_id = ( SELECT auth.uid() AS uid)) OR private.is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "marketplace_search_synonyms",
+      "policyname": "marketplace search synonyms admin delete",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "private.is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "marketplace_search_synonyms",
+      "policyname": "marketplace search synonyms admin insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "marketplace_search_synonyms",
+      "policyname": "marketplace search synonyms admin update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "private.is_admin()",
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "marketplace_search_synonyms",
+      "policyname": "marketplace search synonyms public read",
+      "roles": "{anon,authenticated}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "notifications",
+      "policyname": "notifications own read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(( SELECT auth.uid() AS uid) = profile_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "notifications",
+      "policyname": "notifications own update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(( SELECT auth.uid() AS uid) = profile_id)",
+      "with_check": "(( SELECT auth.uid() AS uid) = profile_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "order_events",
+      "policyname": "order events participant read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "private.can_read_order(order_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "order_items",
+      "policyname": "order items participant read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "private.can_read_order_item(id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "orders",
+      "policyname": "orders participant read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "private.can_read_order(id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "part_catalogue_fitments",
+      "policyname": "catalogue fitments anon read active",
+      "roles": "{anon}",
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM parts p\n  WHERE ((p.id = part_catalogue_fitments.part_id) AND (p.status = 'active'::listing_status))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "part_catalogue_fitments",
+      "policyname": "catalogue fitments authenticated read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(private.owns_part(part_id) OR private.is_admin() OR (EXISTS ( SELECT 1\n   FROM parts p\n  WHERE ((p.id = part_catalogue_fitments.part_id) AND (p.status = 'active'::listing_status)))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "part_catalogue_fitments",
+      "policyname": "catalogue fitments owner create",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(private.is_admin() OR (private.owns_part(part_id) AND (EXISTS ( SELECT 1\n   FROM parts p\n  WHERE ((p.id = part_catalogue_fitments.part_id) AND (p.status <> ALL (ARRAY['active'::listing_status, 'reserved'::listing_status])))))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "part_catalogue_fitments",
+      "policyname": "catalogue fitments owner delete",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "(private.is_admin() OR (private.owns_part(part_id) AND (EXISTS ( SELECT 1\n   FROM parts p\n  WHERE ((p.id = part_catalogue_fitments.part_id) AND (p.status <> ALL (ARRAY['active'::listing_status, 'reserved'::listing_status])))))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "part_catalogue_fitments",
+      "policyname": "catalogue fitments owner update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(private.is_admin() OR (private.owns_part(part_id) AND (EXISTS ( SELECT 1\n   FROM parts p\n  WHERE ((p.id = part_catalogue_fitments.part_id) AND (p.status <> ALL (ARRAY['active'::listing_status, 'reserved'::listing_status])))))))",
+      "with_check": "(private.is_admin() OR (private.owns_part(part_id) AND (EXISTS ( SELECT 1\n   FROM parts p\n  WHERE ((p.id = part_catalogue_fitments.part_id) AND (p.status <> ALL (ARRAY['active'::listing_status, 'reserved'::listing_status])))))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "part_fitments",
+      "policyname": "fitments anon read active",
+      "roles": "{anon}",
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM parts p\n  WHERE ((p.id = part_fitments.part_id) AND (p.status = 'active'::listing_status))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "part_fitments",
+      "policyname": "fitments authenticated read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(private.owns_part(part_id) OR private.is_admin() OR (EXISTS ( SELECT 1\n   FROM parts p\n  WHERE ((p.id = part_fitments.part_id) AND (p.status = 'active'::listing_status)))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "part_fitments",
+      "policyname": "fitments owner create",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(private.owns_part(part_id) OR private.is_admin())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "part_fitments",
+      "policyname": "fitments owner delete",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "(private.owns_part(part_id) OR private.is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "part_images",
+      "policyname": "images anon read active",
+      "roles": "{anon}",
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM parts p\n  WHERE ((p.id = part_images.part_id) AND (p.status = 'active'::listing_status))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "part_images",
+      "policyname": "images authenticated read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(private.owns_part(part_id) OR private.is_admin() OR (EXISTS ( SELECT 1\n   FROM parts p\n  WHERE ((p.id = part_images.part_id) AND (p.status = 'active'::listing_status)))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "part_images",
+      "policyname": "images owner create",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(private.is_admin() OR (private.owns_part(part_id) AND (EXISTS ( SELECT 1\n   FROM parts p\n  WHERE ((p.id = part_images.part_id) AND (p.status <> 'reserved'::listing_status))))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "part_images",
+      "policyname": "images owner delete",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "(private.is_admin() OR (private.owns_part(part_id) AND (EXISTS ( SELECT 1\n   FROM parts p\n  WHERE ((p.id = part_images.part_id) AND (p.status <> 'reserved'::listing_status))))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "part_images",
+      "policyname": "images owner update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(private.is_admin() OR (private.owns_part(part_id) AND (EXISTS ( SELECT 1\n   FROM parts p\n  WHERE ((p.id = part_images.part_id) AND (p.status <> 'reserved'::listing_status))))))",
+      "with_check": "(private.is_admin() OR (private.owns_part(part_id) AND (EXISTS ( SELECT 1\n   FROM parts p\n  WHERE ((p.id = part_images.part_id) AND (p.status <> 'reserved'::listing_status))))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "part_requests",
+      "policyname": "part requests own delete",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "(( SELECT auth.uid() AS uid) = profile_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "part_requests",
+      "policyname": "part requests own insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(( SELECT auth.uid() AS uid) = profile_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "part_requests",
+      "policyname": "part requests own read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(( SELECT auth.uid() AS uid) = profile_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "part_requests",
+      "policyname": "part requests own update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(( SELECT auth.uid() AS uid) = profile_id)",
+      "with_check": "(( SELECT auth.uid() AS uid) = profile_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "parts",
+      "policyname": "parts anon read active",
+      "roles": "{anon}",
+      "cmd": "SELECT",
+      "qual": "(status = 'active'::listing_status)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "parts",
+      "policyname": "parts authenticated read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((status = 'active'::listing_status) OR private.owns_seller(seller_id) OR private.is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "parts",
+      "policyname": "parts owner create",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((private.owns_seller(seller_id) AND (status <> 'reserved'::listing_status)) OR private.is_admin())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "parts",
+      "policyname": "parts owner delete",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "((private.owns_seller(seller_id) AND (status <> 'reserved'::listing_status)) OR private.is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "parts",
+      "policyname": "parts owner update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "((private.owns_seller(seller_id) AND (status <> 'reserved'::listing_status)) OR private.is_admin())",
+      "with_check": "((private.owns_seller(seller_id) AND (status <> 'reserved'::listing_status)) OR private.is_admin())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "profiles",
+      "policyname": "profiles select own",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((id = ( SELECT auth.uid() AS uid)) OR private.is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "profiles",
+      "policyname": "profiles update own",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "((id = ( SELECT auth.uid() AS uid)) OR private.is_admin())",
+      "with_check": "((id = ( SELECT auth.uid() AS uid)) OR private.is_admin())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "recently_viewed_parts",
+      "policyname": "recently viewed own delete",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "(( SELECT auth.uid() AS uid) = profile_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "recently_viewed_parts",
+      "policyname": "recently viewed own insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(( SELECT auth.uid() AS uid) = profile_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "recently_viewed_parts",
+      "policyname": "recently viewed own read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(( SELECT auth.uid() AS uid) = profile_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "recently_viewed_parts",
+      "policyname": "recently viewed own update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(( SELECT auth.uid() AS uid) = profile_id)",
+      "with_check": "(( SELECT auth.uid() AS uid) = profile_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "saved_parts",
+      "policyname": "saved parts create own",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(profile_id = ( SELECT auth.uid() AS uid))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "saved_parts",
+      "policyname": "saved parts delete own",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "(profile_id = ( SELECT auth.uid() AS uid))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "saved_parts",
+      "policyname": "saved parts select own",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(profile_id = ( SELECT auth.uid() AS uid))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "saved_searches",
+      "policyname": "saved searches own delete",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "(( SELECT auth.uid() AS uid) = profile_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "saved_searches",
+      "policyname": "saved searches own insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(( SELECT auth.uid() AS uid) = profile_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "saved_searches",
+      "policyname": "saved searches own read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(( SELECT auth.uid() AS uid) = profile_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "saved_searches",
+      "policyname": "saved searches own update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(( SELECT auth.uid() AS uid) = profile_id)",
+      "with_check": "(( SELECT auth.uid() AS uid) = profile_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "seller_inventory_imports",
+      "policyname": "seller import owner insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM sellers s\n  WHERE ((s.id = seller_inventory_imports.seller_id) AND (s.owner_id = ( SELECT auth.uid() AS uid)))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "seller_inventory_imports",
+      "policyname": "seller import owner read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((EXISTS ( SELECT 1\n   FROM sellers s\n  WHERE ((s.id = seller_inventory_imports.seller_id) AND (s.owner_id = ( SELECT auth.uid() AS uid))))) OR private.is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "seller_inventory_imports",
+      "policyname": "seller import owner update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(EXISTS ( SELECT 1\n   FROM sellers s\n  WHERE ((s.id = seller_inventory_imports.seller_id) AND (s.owner_id = ( SELECT auth.uid() AS uid)))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM sellers s\n  WHERE ((s.id = seller_inventory_imports.seller_id) AND (s.owner_id = ( SELECT auth.uid() AS uid)))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "seller_part_request_leads",
+      "policyname": "seller request leads read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(private.is_admin() OR (EXISTS ( SELECT 1\n   FROM (seller_part_request_matches m\n     JOIN sellers s ON ((s.id = m.seller_id)))\n  WHERE ((m.request_id = seller_part_request_leads.request_id) AND (m.status = 'open'::text) AND (s.owner_id = ( SELECT auth.uid() AS uid))))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "seller_part_request_matches",
+      "policyname": "seller request matches read own",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((EXISTS ( SELECT 1\n   FROM sellers s\n  WHERE ((s.id = seller_part_request_matches.seller_id) AND (s.owner_id = ( SELECT auth.uid() AS uid))))) OR private.is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "seller_payment_accounts",
+      "policyname": "seller payment account owner read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((EXISTS ( SELECT 1\n   FROM sellers s\n  WHERE ((s.id = seller_payment_accounts.seller_id) AND (s.owner_id = ( SELECT auth.uid() AS uid))))) OR private.is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "seller_prospect_activities",
+      "policyname": "seller prospect activities admin insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(private.is_admin() AND (actor_profile_id = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "seller_prospect_activities",
+      "policyname": "seller prospect activities admin read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "private.is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "seller_prospect_invites",
+      "policyname": "seller prospect invites admin insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(private.is_admin() AND (created_by = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "seller_prospect_invites",
+      "policyname": "seller prospect invites admin read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "private.is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "seller_prospect_invites",
+      "policyname": "seller prospect invites admin update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "private.is_admin()",
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "seller_prospects",
+      "policyname": "seller prospects admin insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "seller_prospects",
+      "policyname": "seller prospects admin read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "private.is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "seller_prospects",
+      "policyname": "seller prospects admin update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "private.is_admin()",
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "seller_verification_requests",
+      "policyname": "seller verification admin update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "private.is_admin()",
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "seller_verification_requests",
+      "policyname": "seller verification own insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((requester_id = ( SELECT auth.uid() AS uid)) AND (EXISTS ( SELECT 1\n   FROM sellers s\n  WHERE ((s.id = seller_verification_requests.seller_id) AND (s.owner_id = ( SELECT auth.uid() AS uid))))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "seller_verification_requests",
+      "policyname": "seller verification own read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((requester_id = ( SELECT auth.uid() AS uid)) OR private.is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "sellers",
+      "policyname": "sellers authenticated read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((account_deleted_at IS NULL) OR private.is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "sellers",
+      "policyname": "sellers create own",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((owner_id = ( SELECT auth.uid() AS uid)) AND (EXISTS ( SELECT 1\n   FROM profiles\n  WHERE ((profiles.id = ( SELECT auth.uid() AS uid)) AND (profiles.role = ANY (ARRAY['seller'::user_role, 'admin'::user_role]))))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "sellers",
+      "policyname": "sellers public read",
+      "roles": "{anon}",
+      "cmd": "SELECT",
+      "qual": "(account_deleted_at IS NULL)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "sellers",
+      "policyname": "sellers update own",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "((owner_id = ( SELECT auth.uid() AS uid)) OR private.is_admin())",
+      "with_check": "((owner_id = ( SELECT auth.uid() AS uid)) OR private.is_admin())"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "support_request_internal_notes",
+      "policyname": "support request internal notes admin read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "private.is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "support_request_messages",
+      "policyname": "support request messages participant read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM support_requests request\n  WHERE ((request.id = support_request_messages.support_request_id) AND ((request.profile_id = ( SELECT auth.uid() AS uid)) OR private.is_admin()))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "support_requests",
+      "policyname": "support requests admin update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "private.is_admin()",
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "support_requests",
+      "policyname": "support requests own insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(profile_id = ( SELECT auth.uid() AS uid))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "support_requests",
+      "policyname": "support requests own read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((profile_id = ( SELECT auth.uid() AS uid)) OR private.is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "transaction_case_evidence",
+      "policyname": "case evidence participant read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM transaction_cases c\n  WHERE ((c.id = transaction_case_evidence.case_id) AND (private.can_read_order_item(c.order_item_id) OR private.is_admin()))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "transaction_cases",
+      "policyname": "transaction cases participant read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(private.can_read_order_item(order_item_id) OR private.is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "transaction_messages",
+      "policyname": "transaction messages participant read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "private.can_read_order_item(order_item_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "transaction_reviews",
+      "policyname": "transaction reviews public visible",
+      "roles": "{anon,authenticated}",
+      "cmd": "SELECT",
+      "qual": "(((status = 'active'::text) AND (visible_at <= now())) OR (reviewer_id = ( SELECT auth.uid() AS uid)) OR private.is_admin())",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "transaction_reviews",
+      "policyname": "transaction reviews reviewer insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(reviewer_id = ( SELECT auth.uid() AS uid))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "user_blocks",
+      "policyname": "user blocks own delete",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "(blocker_id = ( SELECT auth.uid() AS uid))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "user_blocks",
+      "policyname": "user blocks own insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(blocker_id = ( SELECT auth.uid() AS uid))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "user_blocks",
+      "policyname": "user blocks own read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(blocker_id = ( SELECT auth.uid() AS uid))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_engines",
+      "policyname": "vehicle catalogue engines admin delete",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "private.is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_engines",
+      "policyname": "vehicle catalogue engines admin insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_engines",
+      "policyname": "vehicle catalogue engines admin update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "private.is_admin()",
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_engines",
+      "policyname": "vehicle catalogue engines public read",
+      "roles": "{anon,authenticated}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_imports",
+      "policyname": "vehicle catalogue imports admin delete",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "private.is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_imports",
+      "policyname": "vehicle catalogue imports admin insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_imports",
+      "policyname": "vehicle catalogue imports admin read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "private.is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_imports",
+      "policyname": "vehicle catalogue imports admin update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "private.is_admin()",
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_make_aliases",
+      "policyname": "vehicle catalogue make aliases admin delete",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "private.is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_make_aliases",
+      "policyname": "vehicle catalogue make aliases admin insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_make_aliases",
+      "policyname": "vehicle catalogue make aliases admin update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "private.is_admin()",
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_make_aliases",
+      "policyname": "vehicle catalogue make aliases public read",
+      "roles": "{anon,authenticated}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_variants",
+      "policyname": "vehicle catalogue variants admin delete",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "private.is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_variants",
+      "policyname": "vehicle catalogue variants admin insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_variants",
+      "policyname": "vehicle catalogue variants admin update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "private.is_admin()",
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_variants",
+      "policyname": "vehicle catalogue variants public read",
+      "roles": "{anon,authenticated}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_years",
+      "policyname": "vehicle catalogue years admin delete",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "private.is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_years",
+      "policyname": "vehicle catalogue years admin insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_years",
+      "policyname": "vehicle catalogue years admin update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "private.is_admin()",
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_catalogue_years",
+      "policyname": "vehicle catalogue years public read",
+      "roles": "{anon,authenticated}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_transmissions",
+      "policyname": "vehicle transmissions admin delete",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "private.is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_transmissions",
+      "policyname": "vehicle transmissions admin insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_transmissions",
+      "policyname": "vehicle transmissions admin update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "private.is_admin()",
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_transmissions",
+      "policyname": "vehicle transmissions anon read",
+      "roles": "{anon}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicle_transmissions",
+      "policyname": "vehicle transmissions authenticated read",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicles",
+      "policyname": "vehicles admin delete",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "private.is_admin()",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicles",
+      "policyname": "vehicles admin insert",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicles",
+      "policyname": "vehicles admin update",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "private.is_admin()",
+      "with_check": "private.is_admin()"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "vehicles",
+      "policyname": "vehicles public read",
+      "roles": "{anon,authenticated}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "verified_fit_feedback",
+      "policyname": "verified fit feedback buyer read own",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((buyer_id = ( SELECT auth.uid() AS uid)) OR private.is_admin())",
+      "with_check": null
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "project": "etkupijfdznljimrfyct",
+  "as_of": "2026-10-14",
+  "read_only": true,
+  "tables": [
+    {
+      "object": "public.account_deletion_requests",
+      "relrowsecurity": true,
+      "relforcerowsecurity": false,
+      "anon_select": false,
+      "authenticated_select": true,
+      "authenticated_insert": true,
+      "authenticated_update": false,
+      "authenticated_delete": false
+    },
+    {
+      "object": "public.notifications",
+      "relrowsecurity": true,
+      "relforcerowsecurity": false,
+      "anon_select": false,
+      "authenticated_select": true,
+      "authenticated_insert": false,
+      "authenticated_update": true,
+      "authenticated_delete": false
+    },
+    {
+      "object": "public.order_items",
+      "relrowsecurity": true,
+      "relforcerowsecurity": false,
+      "anon_select": false,
+      "authenticated_select": true,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false
+    },
+    {
+      "object": "public.orders",
+      "relrowsecurity": true,
+      "relforcerowsecurity": false,
+      "anon_select": false,
+      "authenticated_select": true,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false
+    },
+    {
+      "object": "public.sellers",
+      "relrowsecurity": true,
+      "relforcerowsecurity": false,
+      "anon_select": false,
+      "authenticated_select": false,
+      "authenticated_insert": true,
+      "authenticated_update": true,
+      "authenticated_delete": false
+    },
+    {
+      "object": "public.transaction_case_evidence",
+      "relrowsecurity": true,
+      "relforcerowsecurity": false,
+      "anon_select": false,
+      "authenticated_select": true,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false
+    },
+    {
+      "object": "public.transaction_cases",
+      "relrowsecurity": true,
+      "relforcerowsecurity": false,
+      "anon_select": false,
+      "authenticated_select": true,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false
+    }
+  ]
+}
