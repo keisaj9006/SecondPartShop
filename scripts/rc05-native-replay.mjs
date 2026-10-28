@@ -9,6 +9,7 @@ import { buildManifest } from "./rc04-disposable-replay.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const correctiveMigration = "supabase/migrations/20261014202700_review_ready_notifications_forward.sql";
+const auditedManifestSha256 = "d878034e22480b9c2068ff2702a2be719956e5df30eea1a74685ba9e6dccd8db";
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 const md5 = (value) => createHash("md5").update(value).digest("hex");
 
@@ -33,7 +34,11 @@ export function validateReplayManifest(manifest) {
     throw new Error("The corrective review_ready migration must not be part of the baseline replay");
   }
   if (manifest.length !== 207) throw new Error(`Expected the audited 207-unit baseline; received ${manifest.length}`);
-  return { unitCount: manifest.length };
+  const manifestSha256 = sha256(JSON.stringify(manifest.map(({ hosted_version, files }) => ({ hosted_version, files }))));
+  if (manifestSha256 !== auditedManifestSha256) {
+    throw new Error(`RC-05 manifest SHA-256 mismatch: expected ${auditedManifestSha256}, received ${manifestSha256}`);
+  }
+  return { unitCount: manifest.length, manifestSha256 };
 }
 
 export function parseDatabaseUrl(databaseUrl) {

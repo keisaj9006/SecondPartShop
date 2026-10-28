@@ -7,6 +7,7 @@ import {
   validateEnvironmentSnapshot,
   validateReplayManifest,
 } from "./rc05-native-replay.mjs";
+import { buildManifest } from "./rc04-disposable-replay.mjs";
 
 test("normalizes per-file transport transactions into one atomic replay unit", () => {
   const result = buildAtomicUnitSql(["begin;\nselect 1;\ncommit;", "BEGIN;\nselect 2;\nCOMMIT;\n"]);
@@ -84,10 +85,18 @@ test("keeps corrective review_ready outside the canonical baseline replay", () =
   );
 });
 
-test("accepts the audited 207-unit baseline manifest", () => {
+test("rejects an arbitrary 207-unit manifest even when its shape is valid", () => {
   const manifest = Array.from({ length: 207 }, (_, index) => ({
     version: String(index).padStart(14, "0"),
+    hosted_version: String(index).padStart(14, "0"),
     files: [`supabase/migrations/${index}.sql`],
   }));
-  assert.equal(validateReplayManifest(manifest).unitCount, 207);
+  assert.throws(() => validateReplayManifest(manifest), /manifest SHA-256/);
+});
+
+test("accepts only the fully pinned audited 207-unit manifest", () => {
+  assert.deepEqual(validateReplayManifest(buildManifest()), {
+    unitCount: 207,
+    manifestSha256: "d878034e22480b9c2068ff2702a2be719956e5df30eea1a74685ba9e6dccd8db",
+  });
 });

@@ -11,7 +11,7 @@ No Production, `main`, Stripe Live, hosted schema/ledger, hosted order/payment, 
 
 ## Checkpoint A — exact migration identity
 
-The exact candidate `20261014202700_review_ready_notifications_forward.sql` was applied with Supabase CLI 2.122.0 to a disposable local Supabase Docker stack after canonical schema replay. PostgreSQL reported 17.11. The ledger readback contained exactly one row:
+The exact candidate `20261014202700_review_ready_notifications_forward.sql` was applied with Supabase CLI 2.122.0 to a disposable local Supabase Docker stack after the 207-unit canonical schema replay. PostgreSQL reported 17.11. The task-only directory first reproduced all 207 hosted version/name identities and held the candidate outside startup migrations. After staging, `migration up` applied only the candidate, the ledger changed exactly 207 to 208, and final `migration list` matched all 208 local/remote versions. The candidate ledger readback contained exactly one row:
 
 | Field | Observed |
 | --- | --- |
@@ -22,7 +22,7 @@ The exact candidate `20261014202700_review_ready_notifications_forward.sql` was 
 | parsed statements SHA-256 | `87d416c7b7b56686f9c0c799cbf6012c2dc0a6041f770b18d84359c10388b2fe` |
 | function / triggers | 1 / 2 |
 
-A deliberate changed-SQL/same-version probe was skipped by the CLI (`applied: []`). The added repository validator therefore pins both source and parsed-ledger fingerprints and fails on version, name, count or hash drift.
+A deliberate changed-SQL/same-version probe was skipped by the CLI (`applied: []`). The added repository validator therefore recomputes and pins the raw parsed statement array, source and statement fingerprints, full 207-entry baseline identity hash, exact 207 to 208 delta, added identity and zero pending migrations after application. The canonical 207-unit replay manifest is independently pinned by SHA-256 rather than count alone.
 
 Fresh hosted read-only observation still reports 207 rows, head `20261008130523`, the five-function repair identity exactly once, and the candidate version/name zero times. No hosted operation was attempted.
 
