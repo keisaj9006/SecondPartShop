@@ -2,9 +2,27 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  buildAtomicUnitSql,
+  parseDatabaseUrl,
   validateEnvironmentSnapshot,
   validateReplayManifest,
 } from "./rc05-native-replay.mjs";
+
+test("normalizes per-file transport transactions into one atomic replay unit", () => {
+  const result = buildAtomicUnitSql(["begin;\nselect 1;\ncommit;", "BEGIN;\nselect 2;\nCOMMIT;\n"]);
+  assert.equal((result.sql.match(/\bbegin;/gi) ?? []).length, 1);
+  assert.equal((result.sql.match(/\bcommit;/gi) ?? []).length, 1);
+  assert.match(result.sql, /select 1;[\s\S]*select 2;/);
+  assert.deepEqual(result.transportTransactionsRemoved, [0, 1]);
+});
+
+test("keeps database passwords out of psql arguments", () => {
+  const parsed = parseDatabaseUrl("postgresql://postgres:secret-value@127.0.0.1:54322/postgres?sslmode=disable");
+  assert.equal(parsed.args.includes("secret-value"), false);
+  assert.equal(parsed.args.some((arg) => arg.includes("postgresql://")), false);
+  assert.equal(parsed.env.PGPASSWORD, "secret-value");
+  assert.equal(parsed.env.PGSSLMODE, "disable");
+});
 
 test("rejects an approximate PostgreSQL engine even when Supabase schemas exist", () => {
   assert.throws(

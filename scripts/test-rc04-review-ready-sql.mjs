@@ -16,19 +16,21 @@ test("RC-04 review-ready: transition matrix, recipient isolation, dedupe, ACL, a
     await db.exec(`
       create role anon nologin; create role authenticated nologin;
       create schema private; revoke all on schema private from public;
-      create table public.orders(id uuid primary key,buyer_id uuid not null);
+      create table public.orders(id uuid primary key,buyer_id uuid not null,payment_status text not null);
       create table public.sellers(id uuid primary key,owner_id uuid not null);
       create table public.parts(id uuid primary key,title text not null);
       create table public.order_items(
         id uuid primary key,order_id uuid not null,seller_id uuid not null,part_id uuid not null,
-        payout_status text not null,funds_released_at timestamptz,fulfilment_status text not null,note text
+        payout_status text not null,funds_released_at timestamptz,fulfilment_status text not null,
+        refunded_at timestamptz,note text
       );
+      create table public.transaction_cases(id uuid primary key,order_item_id uuid not null,status text not null);
       create table public.notifications(
         id bigint generated always as identity primary key,profile_id uuid not null,type text not null,
         title text not null,body text,href text,dedupe_key text,
         unique(profile_id,dedupe_key)
       );
-      insert into public.orders values ('${order}','${buyer}');
+      insert into public.orders values ('${order}','${buyer}','paid');
       insert into public.sellers values ('${sellerId}','${seller}');
       insert into public.parts values ('${part}','Used alternator');
     `);
@@ -41,21 +43,21 @@ test("RC-04 review-ready: transition matrix, recipient isolation, dedupe, ACL, a
       join pg_trigger t on t.tgfoid=p.oid
       where n.nspname='private' and p.proname='notify_transaction_review_ready'
     `)).rows;
-    assert.equal(metadata.length, 1);
-    assert.equal(metadata[0].prosecdef, true);
-    assert.deepEqual(metadata[0].proconfig, ['search_path=""']);
-    assert.equal(metadata[0].anon_exec, false);
-    assert.equal(metadata[0].authenticated_exec, false);
-    assert.match(metadata[0].trigger_def, /AFTER UPDATE OF payout_status, funds_released_at, fulfilment_status ON public.order_items FOR EACH ROW/);
+    assert.equal(metadata.length, 2);
+    assert.ok(metadata.every((row) => row.prosecdef === true));
+    assert.ok(metadata.every((row) => JSON.stringify(row.proconfig) === JSON.stringify(['search_path=""'])));
+    assert.ok(metadata.every((row) => row.anon_exec === false && row.authenticated_exec === false));
+    assert.ok(metadata.some((row) => /AFTER UPDATE OF payout_status, funds_released_at, fulfilment_status, refunded_at ON public.order_items FOR EACH ROW/.test(row.trigger_def)));
+    assert.ok(metadata.some((row) => /AFTER UPDATE OF status ON public.transaction_cases FOR EACH ROW/.test(row.trigger_def)));
 
     const a = id(10), b = id(11), c = id(12), d = id(13), old = id(14), later = id(15);
     await db.exec(`
       insert into public.order_items values
-        ('${a}','${order}','${sellerId}','${part}','scheduled',null,'completed',null),
-        ('${b}','${order}','${sellerId}','${part}','released',null,'completed',null),
-        ('${c}','${order}','${sellerId}','${part}','released',now(),'preparing',null),
-        ('${d}','${order}','${sellerId}','${part}','scheduled',null,'preparing',null),
-        ('${old}','${order}','${sellerId}','${part}','released',now(),'completed',null);
+        ('${a}','${order}','${sellerId}','${part}','scheduled',null,'completed',null,null),
+        ('${b}','${order}','${sellerId}','${part}','released',null,'completed',null,null),
+        ('${c}','${order}','${sellerId}','${part}','released',now(),'preparing',null,null),
+        ('${d}','${order}','${sellerId}','${part}','scheduled',null,'preparing',null,null),
+        ('${old}','${order}','${sellerId}','${part}','released',now(),'completed',null,null);
       insert into public.notifications(profile_id,type,title,href,dedupe_key)
         values ('${buyer}','account','Previously queued','/account/reviews','review-ready:${a}:buyer');
       update public.order_items set payout_status='released',funds_released_at=now() where id='${a}';
@@ -83,8 +85,8 @@ test("RC-04 review-ready: transition matrix, recipient isolation, dedupe, ACL, a
     assert.equal((await db.query("select count(*)::int n from public.notifications")).rows[0].n, 6);
 
     // Rollback rehearsal is local only. It stops future notifications and retains the audit trail.
-    await db.exec(`drop trigger transaction_review_ready_notification on public.order_items; drop function private.notify_transaction_review_ready();`);
-    await db.exec(`insert into public.order_items values ('${later}','${order}','${sellerId}','${part}','scheduled',null,'completed',null); update public.order_items set payout_status='released',funds_released_at=now() where id='${later}';`);
+    await db.exec(`drop trigger transaction_review_ready_notification on public.order_items; drop trigger transaction_case_review_ready_notification on public.transaction_cases; drop function private.notify_transaction_review_ready();`);
+    await db.exec(`insert into public.order_items values ('${later}','${order}','${sellerId}','${part}','scheduled',null,'completed',null,null); update public.order_items set payout_status='released',funds_released_at=now() where id='${later}';`);
     assert.equal((await db.query("select count(*)::int n from public.notifications")).rows[0].n, 6);
   } finally {
     await db.close();

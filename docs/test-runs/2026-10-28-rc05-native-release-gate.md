@@ -4,7 +4,7 @@
 
 **RC-05: PASS.** Two independent native Supabase/PostgreSQL 17 replays completed from empty Docker volumes. Replay A's volume was destroyed before Replay B was created. The replays have identical ordered source hashes and identical final catalog fingerprints. The hosted SecondPart project was read only throughout.
 
-**Controlled `review_ready` deployment: GO, but only after a separate explicit hosted-DDL approval.** The SQL is prepared and passed the full native test twice. Blind `db push`, migration repair, and historical ledger edits remain forbidden.
+**Controlled `review_ready` deployment: NO-GO pending migration-identity rehearsal and separate explicit hosted-DDL approval.** The corrected SQL passed native tests twice, but the proposed Management API route may assign a different version. That identity must be proven in a disposable project before a hosted change. Blind `db push`, migration repair, and historical ledger edits remain forbidden.
 
 **Commerce B–H provider execution: NO-GO in the shared Preview database without a separately approved isolated provider/data fixture.** The fail-closed harness, reduced-SQL concurrency tests and 220 focused tests pass, but no new Stripe object or shared hosted row was created in this checkpoint. Those are not full provider E2E evidence.
 
@@ -16,7 +16,7 @@
 - Windows 10 build 26200.9711; WSL 3.0.3.0, Linux kernel 6.18.54.1-1.
 - Docker Desktop 4.97.0; Docker client/server 29.9.2; Linux/amd64 engine.
 - Supabase CLI 2.122.0. Downloaded release ZIP SHA-256: `60031fd5bf050fc12a0c6aef68997600d143870f944bf13109c7765dca329af8`.
-- Official database image: `public.ecr.aws/supabase/postgres:17.11.0.006`.
+- Official database image: `public.ecr.aws/supabase/postgres:17.11.0.006`, digest `sha256:c141fd17ac6a76c4323e90b3aee8ff1a23d2e89e547c2b963cfadc309c079cc2`.
 - PostgreSQL server: 17.11; local `psql`: 17.11.
 - Node 24.20.0; Microsoft OpenJDK 21.0.12.1.
 - Native services after each replay: GoTrue Auth HTTP 200; Storage API HTTP 200.
@@ -42,10 +42,10 @@ The clean platform starts with Auth and Storage schemas and extension packages a
 
 Machine evidence:
 
-- [Replay A JSON](2026-10-28-rc05-native-replay-a.json) — SHA-256 `245085b929142e161f99eb4806198b562d885c6b616035a673910d0dd2e0c655`.
-- [Replay B JSON](2026-10-28-rc05-native-replay-b.json) — SHA-256 `245085b929142e161f99eb4806198b562d885c6b616035a673910d0dd2e0c655`.
+- [Replay A JSON](2026-10-28-rc05-native-replay-a.json) — SHA-256 `24f5fbfdc3d90ec6362bc1159dbba47c71b32619703389a7ded5e7f03b11f052`.
+- [Replay B JSON](2026-10-28-rc05-native-replay-b.json) — SHA-256 `1d72ca29f21589cd2ddc76d5009d403652c087d4d009feb8f9eedf9f11f8d985`.
 
-The two JSON evidence files are byte-identical. Explicit comparison returned zero entry differences, zero catalog-fingerprint differences and zero count differences. This proves Replay B did not merely reach a similar count; it executed the same 207 mapped units with the same hashes and produced the same definitions, triggers, policies, grants and Cron jobs.
+The JSON files differ in run ID, project ID and timestamps, as expected for independent executions. Explicit comparison returned zero ordered source/execution-hash differences, zero catalog-fingerprint differences and zero count differences. Both reports record clean-state preflight, native Auth/Storage HTTP 200, CLI/image provenance and PostgreSQL 17.11. The A volume was removed before B started; both stopped with zero matching containers/volumes. The runner strips only outer per-file BEGIN/COMMIT transport wrappers, then wraps each mapped unit in one transaction; both source and execution hashes are retained.
 
 ## Replay ↔ current hosted comparison
 
@@ -75,18 +75,18 @@ The four duplicate historical source timestamps and the repeated seller-identity
 
 Candidate: [20261014202700_review_ready_notifications_forward.sql](../../supabase/migrations/20261014202700_review_ready_notifications_forward.sql).
 
-- LF-normalized SQL SHA-256: `de915d37becb9bbecfcc99edf9c6ca220284c85673bb5c6ff3b6bf3d61f5ab94`.
+- LF-normalized SQL SHA-256: `e6dd184f94748c5a7f6ec6ba9012ab534599d2f69099c23af12f2e542f1246aa`.
 - The migration is excluded from both baseline replays and applied only by the candidate test.
 - Preflight confirmed 0 function / 0 trigger.
-- Postflight confirmed 1 function / 1 trigger.
-- Trigger: AFTER UPDATE of `payout_status`, `funds_released_at`, `fulfilment_status`.
-- Predicate: only `released` + non-null release time + `completed`, on a qualifying transition.
+- Postflight confirmed 1 function / 2 triggers: order-item eligibility and transaction-case status.
+- Predicate matches the review RPC contract: paid order, released payout with timestamp, completed fulfilment, no refund and no active case. Case closure reevaluates eligibility.
 - Recipients: exactly buyer and seller; two distinct profiles.
 - Payload: existing `account` type and `/account/reviews`; synthetic part title included.
 - Dedupe: repeated release transitions remain at two notifications.
 - ACL: anon EXECUTE false; authenticated EXECUTE false.
 - Function: SECURITY DEFINER with empty `search_path`.
-- Rollback rehearsal: 0 function / 0 trigger / 0 fixture notifications after transaction rollback.
+- Native negative cases: unpaid, refunded, cancelled, missing release time, active case, already eligible item and unrelated profile. Buyer/seller authenticated RPC visibility passed; outsider visibility remained empty.
+- Rollback rehearsal: 0 function / 0 trigger / 0 fixture notifications after transaction rollback. A second committed apply/remove rehearsal also ended at 0 function / 0 triggers.
 - No backfill exists. Previously eligible historical items intentionally remain without a proactive notification unless a separately designed and approved backfill is created.
 
 The native harness is [rc05-review-ready-native.sql](../../scripts/rc05-review-ready-native.sql). It uses synthetic rows inside a transaction and rolls back all DDL and DML.
@@ -95,9 +95,9 @@ The native harness is [rc05-review-ready-native.sql](../../scripts/rc05-review-r
 
 ### Identity and mechanism
 
-Use exactly one approved Supabase Management API `apply_migration` operation against project `etkupijfdznljimrfyct`, with name `review_ready_notifications_forward` and the exact LF-normalized SQL above. This mechanism applies one transaction and creates one new migration-ledger record without comparing, renumbering, repairing, or replaying the 207 historical rows. Do not use `supabase db push`, `migration up --include-all`, or `migration repair`.
+The desired operation is exactly one new forward-only migration against project `etkupijfdznljimrfyct`, with name `review_ready_notifications_forward` and the exact LF-normalized SQL above. Do not use `supabase db push`, `migration up --include-all`, or `migration repair`. No hosted execution mechanism is approved yet.
 
-Because the Management API assigns the ledger version, capture the returned version immediately and rename the repository file to that exact version in the same reviewed release change if it differs from the reserved `20261014202700`. The SQL hash and name must remain unchanged. Abort before application if the API cannot guarantee one migration transaction plus one ledger record.
+The Management API may assign a new ledger version rather than the reserved `20261014202700`. Before hosted approval, prove its version/name semantics and one-transaction/one-ledger-row behavior on an isolated disposable Supabase project, then reconcile the reviewed repository filename and exact SQL identity. Abort if exact identity cannot be predicted and reviewed before application.
 
 ### Read-only preflight
 
@@ -107,9 +107,10 @@ Run immediately before the separately approved operation and require every predi
 select
   current_setting('server_version_num')::int/10000 = 17 as pg17,
   to_regclass('public.order_items') is not null as order_items_present,
+  to_regclass('public.transaction_cases') is not null as transaction_cases_present,
   to_regclass('public.notifications') is not null as notifications_present,
   to_regprocedure('private.notify_transaction_review_ready()') is null as function_absent,
-  not exists(select 1 from pg_trigger where tgname='transaction_review_ready_notification' and not tgisinternal) as trigger_absent,
+  not exists(select 1 from pg_trigger where tgname in ('transaction_review_ready_notification','transaction_case_review_ready_notification') and not tgisinternal) as triggers_absent,
   exists(select 1 from pg_indexes where schemaname='public' and tablename='notifications' and indexname='notifications_profile_dedupe_unique') as dedupe_index_present,
   exists(select 1 from supabase_migrations.schema_migrations where version='20261008130523' and name='account_deletion_checkout_fitting_serialization') as repair_present,
   not exists(select 1 from supabase_migrations.schema_migrations where version='20261014202700' or name='review_ready_notifications_forward') as candidate_absent;
@@ -130,10 +131,10 @@ from pg_proc p
 join pg_namespace n on n.oid=p.pronamespace
 join pg_trigger t on t.tgfoid=p.oid and not t.tgisinternal
 where n.nspname='private' and p.proname='notify_transaction_review_ready'
-  and t.tgname='transaction_review_ready_notification';
+  and t.tgname in ('transaction_review_ready_notification','transaction_case_review_ready_notification');
 ```
 
-Expected: one row, `prosecdef=true`, `proconfig={search_path=""}`, both client EXECUTE flags false, exact three-column AFTER UPDATE trigger. Re-run function/trigger/policy/grant fingerprints and verify no unrelated delta.
+Expected: two trigger rows, `prosecdef=true`, `proconfig={search_path=""}`, both client EXECUTE flags false; exact four-column item trigger and case-status trigger. Re-run function/trigger/policy/grant fingerprints and verify no unrelated delta.
 
 ### Recovery / rollback
 
@@ -142,6 +143,7 @@ The preferred response to a code/payload defect is a second reviewed forward mig
 ```sql
 begin;
 drop trigger if exists transaction_review_ready_notification on public.order_items;
+drop trigger if exists transaction_case_review_ready_notification on public.transaction_cases;
 drop function if exists private.notify_transaction_review_ready();
 commit;
 ```
@@ -154,8 +156,8 @@ Use only a Preview/test deployment pinned to the reviewed SHA and an explicitly 
 
 ## Validation performed
 
-- New native-runner unit tests: 6/6 PASS (RED→GREEN observed).
-- RC-03/RC-04 focused migration-source tests: 9/9 PASS.
+- New native-runner unit tests: 8/8 PASS (RED→GREEN observed).
+- Combined corrected RC-03/RC-04 and runner tests: 15/15 PASS after the review fix.
 - Native replay A: 207/207 PASS.
 - Native replay B: 207/207 PASS.
 - Native `review_ready`: PASS twice.

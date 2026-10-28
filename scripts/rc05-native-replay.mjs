@@ -36,13 +36,47 @@ export function validateReplayManifest(manifest) {
   return { unitCount: manifest.length };
 }
 
+export function parseDatabaseUrl(databaseUrl) {
+  const parsed = new URL(databaseUrl);
+  const args = [
+    "--host", parsed.hostname,
+    "--port", parsed.port || "5432",
+    "--username", decodeURIComponent(parsed.username),
+    "--dbname", decodeURIComponent(parsed.pathname.replace(/^\//, "")),
+  ];
+  const env = { PGPASSWORD: decodeURIComponent(parsed.password) };
+  const sslmode = parsed.searchParams.get("sslmode");
+  if (sslmode) env.PGSSLMODE = sslmode;
+  return { args, env };
+}
+
+export function buildAtomicUnitSql(sources) {
+  const bodies = [];
+  const transportTransactionsRemoved = [];
+  sources.forEach((rawSource, index) => {
+    const source = rawSource.replaceAll("\r\n", "\n");
+    const match = source.match(/^\s*begin\s*;\s*([\s\S]*?)\s*commit\s*;\s*$/i);
+    if (match) {
+      bodies.push(match[1]);
+      transportTransactionsRemoved.push(index);
+    } else {
+      bodies.push(source);
+    }
+  });
+  return {
+    sql: `begin;\n${bodies.join("\n")}\ncommit;\n`,
+    transportTransactionsRemoved,
+  };
+}
+
 function psql({ databaseUrl, psqlPath, sql, file }) {
-  const args = ["-X", "-A", "-t", "-v", "ON_ERROR_STOP=1", "--dbname", databaseUrl];
+  const connection = parseDatabaseUrl(databaseUrl);
+  const args = ["-X", "-A", "-t", "-v", "ON_ERROR_STOP=1", ...connection.args];
   if (file) args.push("--file", file);
   else args.push("--command", sql);
   const result = spawnSync(psqlPath, args, {
     encoding: "utf8",
-    env: { ...process.env, PAGER: "" },
+    env: { ...process.env, ...connection.env, PAGER: "" },
     maxBuffer: 32 * 1024 * 1024,
   });
   if (result.status !== 0) {
@@ -124,7 +158,7 @@ function parseArgs(argv) {
   return args;
 }
 
-export function runNativeReplay({ databaseUrl, psqlPath, outPath }) {
+export function runNativeReplay({ databaseUrl, psqlPath, outPath, provenance = {} }) {
   if (!databaseUrl) throw new Error("RC05_DATABASE_URL is required");
   const options = { databaseUrl, psqlPath };
   const manifest = buildManifest();
@@ -134,15 +168,33 @@ export function runNativeReplay({ databaseUrl, psqlPath, outPath }) {
   const existingAppTables = Number(psql({ ...options, sql: "select count(*) from information_schema.tables where table_schema='public' and table_type='BASE TABLE';" }));
   if (existingAppTables !== 0) throw new Error(`Clean-state contract failed: ${existingAppTables} public base tables already exist`);
 
-  const report = { status: "RUNNING", engine: "native Supabase Docker stack", environmentPreflight: environment, platformPreflight, manifestCount: manifest.length, entries: [] };
+  const report = {
+    status: "RUNNING",
+    engine: "native Supabase Docker stack",
+    startedAt: new Date().toISOString(),
+    provenance,
+    environmentPreflight: environment,
+    platformPreflight,
+    manifestCount: manifest.length,
+    entries: [],
+  };
   const scratch = mkdtempSync(path.join(tmpdir(), "secondpart-rc05-sql-"));
   try {
     for (const [index, entry] of manifest.entries()) {
-      const source = entry.files.map((name) => readFileSync(path.join(root, name), "utf8")).join("\n").replaceAll("\r\n", "\n");
-      const detail = { index: index + 1, ...entry, sha256: sha256(source), status: "RUNNING" };
+      const sources = entry.files.map((name) => readFileSync(path.join(root, name), "utf8"));
+      const source = sources.join("\n").replaceAll("\r\n", "\n");
+      const atomicUnit = buildAtomicUnitSql(sources);
+      const detail = {
+        index: index + 1,
+        ...entry,
+        sha256: sha256(source),
+        executionSha256: sha256(atomicUnit.sql),
+        transportTransactionsRemoved: atomicUnit.transportTransactionsRemoved,
+        status: "RUNNING",
+      };
       report.entries.push(detail);
       const sqlPath = path.join(scratch, `${String(index + 1).padStart(3, "0")}-${entry.version}.sql`);
-      writeFileSync(sqlPath, `begin;\n${source}\ncommit;\n`);
+      writeFileSync(sqlPath, atomicUnit.sql);
       try {
         psql({ ...options, file: sqlPath });
         detail.status = "PASS";
@@ -161,6 +213,7 @@ export function runNativeReplay({ databaseUrl, psqlPath, outPath }) {
     }
   } finally {
     rmSync(scratch, { recursive: true, force: true });
+    report.finishedAt = new Date().toISOString();
     writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`);
   }
   return report;
@@ -170,7 +223,17 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const args = parseArgs(process.argv.slice(2));
   const outPath = path.resolve(args.get("--out") ?? path.join(root, "docs/test-runs/2026-10-28-rc05-native-replay.json"));
   const psqlPath = args.get("--psql") ?? "psql";
-  const report = runNativeReplay({ databaseUrl: process.env.RC05_DATABASE_URL, psqlPath, outPath });
+  const provenance = {
+    runId: process.env.RC05_RUN_ID ?? null,
+    projectId: process.env.RC05_PROJECT_ID ?? null,
+    sourceCommit: process.env.RC05_SOURCE_COMMIT ?? null,
+    supabaseCliVersion: process.env.RC05_SUPABASE_CLI_VERSION ?? null,
+    postgresImage: process.env.RC05_POSTGRES_IMAGE ?? null,
+    postgresImageDigest: process.env.RC05_POSTGRES_IMAGE_DIGEST ?? null,
+    authHealth: process.env.RC05_AUTH_HEALTH ?? null,
+    storageHealth: process.env.RC05_STORAGE_HEALTH ?? null,
+  };
+  const report = runNativeReplay({ databaseUrl: process.env.RC05_DATABASE_URL, psqlPath, outPath, provenance });
   console.log(JSON.stringify({ status: report.status, manifestCount: report.manifestCount, applied: report.entries.filter((entry) => entry.status === "PASS").length, outPath }, null, 2));
   if (report.status !== "PASS") process.exitCode = 1;
 }

@@ -43,20 +43,22 @@ test("five-function source pins signatures, definer search paths and execute rol
   }
 });
 
-test("forward review notification reuses the reviewed historical definition and is replay safe", () => {
+test("forward review notification preserves the historical evidence but hardens current eligibility", () => {
   const historical = read(historicalReviewPath);
   const forward = read(forwardReviewPath);
-  const body = forward.replace(/^(?:--[^\n]*\n)+\n/, "");
-  assert.equal(body, historical);
+  assert.notEqual(forward, historical);
+  assert.match(historical, /new\.payout_status='released'/);
   assert.match(forward, /create or replace function private\.notify_transaction_review_ready\(\)/);
-  assert.match(forward, /new\.payout_status='released'/);
-  assert.match(forward, /new\.fulfilment_status='completed'/);
-  assert.match(forward, /old\.payout_status is distinct from new\.payout_status/);
-  assert.match(forward, /'review-ready:'\|\|new\.id::text\|\|':buyer'/);
-  assert.match(forward, /'review-ready:'\|\|new\.id::text\|\|':seller'/);
+  assert.match(forward, /o\.payment_status='paid'/);
+  assert.match(forward, /oi\.refunded_at is null/);
+  assert.match(forward, /c\.status in \('open','seller_response','under_review','return_authorized','return_shipped','returned'\)/);
+  assert.match(forward, /'review-ready:'\|\|review_item_id::text\|\|':buyer'/);
+  assert.match(forward, /'review-ready:'\|\|review_item_id::text\|\|':seller'/);
   assert.equal((forward.match(/on conflict do nothing/g) ?? []).length, 2);
   assert.match(forward, /drop trigger if exists transaction_review_ready_notification on public\.order_items;/);
-  assert.match(forward, /after update of payout_status,funds_released_at,fulfilment_status on public\.order_items/);
+  assert.match(forward, /after update of payout_status,funds_released_at,fulfilment_status,refunded_at on public\.order_items/);
+  assert.match(forward, /drop trigger if exists transaction_case_review_ready_notification on public\.transaction_cases;/);
+  assert.match(forward, /after update of status on public\.transaction_cases/);
   assert.match(forward, /revoke all on function private\.notify_transaction_review_ready\(\) from public;/);
 });
 
