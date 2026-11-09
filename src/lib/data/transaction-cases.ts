@@ -1,5 +1,6 @@
 import "server-only";
 
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { TransactionCase } from "@/lib/types";
 
@@ -25,13 +26,13 @@ type CaseRow={
  created_at:string;
  resolved_at:string|null;
  order_items:{
+  part_id:string;
   seller_id:string;
-  parts:{title:string;slug:string}|Array<{title:string;slug:string}>|null;
   sellers:{business_name:string;slug:string}|Array<{business_name:string;slug:string}>|null;
   orders:{buyer_id:string}|Array<{buyer_id:string}>|null;
  }|Array<{
+  part_id:string;
   seller_id:string;
-  parts:{title:string;slug:string}|Array<{title:string;slug:string}>|null;
   sellers:{business_name:string;slug:string}|Array<{business_name:string;slug:string}>|null;
   orders:{buyer_id:string}|Array<{buyer_id:string}>|null;
  }>|null;
@@ -54,10 +55,10 @@ export type CaseEligiblePurchase={
 const one=<T>(value:T|T[]|null)=>Array.isArray(value)?value[0]??null:value;
 const activeCaseStatuses=["open","seller_response","under_review","return_authorized","return_shipped","returned"];
 
-const mapCaseRows=(rows:unknown[]):TransactionCase[]=>rows.flatMap(row=>{
+const mapCaseRows=(rows:unknown[],parts:Map<string,{title:string;slug:string}>):TransactionCase[]=>rows.flatMap(row=>{
  const raw=row as CaseRow;
  const item=one(raw.order_items);
- const part=item?one(item.parts):null;
+ const part=item?parts.get(item.part_id)??null:null;
  const seller=item?one(item.sellers):null;
  const order=item?one(item.orders):null;
  if(!part||!seller||!order)return [];
@@ -96,7 +97,7 @@ export async function getTransactionCasesPage(options:{offset?:number;limit?:num
  const supabase=await createSupabaseServerClient();
  let query=supabase
   .from("transaction_cases")
-  .select("id,order_item_id,case_type,reason,details,status,previous_fulfilment_status,seller_response,resolution,resolution_notes,return_tracking_carrier,return_tracking_number,return_authorized_at,return_shipped_at,return_received_at,provider_dispute_id,provider_dispute_status,provider_dispute_reason,created_at,resolved_at,order_items!inner(seller_id,parts(title,slug),sellers(business_name,slug),orders!inner(buyer_id))")
+   .select("id,order_item_id,case_type,reason,details,status,previous_fulfilment_status,seller_response,resolution,resolution_notes,return_tracking_carrier,return_tracking_number,return_authorized_at,return_shipped_at,return_received_at,provider_dispute_id,provider_dispute_status,provider_dispute_reason,created_at,resolved_at,order_items!inner(part_id,seller_id,sellers(business_name,slug),orders!inner(buyer_id))")
   .order("created_at",{ascending:false})
   .order("id",{ascending:false});
  if(options.buyerId)query=query.eq("order_items.orders.buyer_id",options.buyerId);
@@ -106,8 +107,22 @@ export async function getTransactionCasesPage(options:{offset?:number;limit?:num
  const {data,error}=await query.range(offset,offset+limit);
  if(error)throw new Error("Transaction cases are temporarily unavailable.");
  const raw=data??[];
+ const partIds=[...new Set(raw.flatMap(row=>{
+  const item=one((row as unknown as CaseRow).order_items);
+  return item?[item.part_id]:[];
+ }))];
+ const partMap=new Map<string,{title:string;slug:string}>();
+ if(partIds.length){
+  // The participant-scoped case query above is authoritative for access. Hydrate
+  // sold/archived listing labels separately so public listing RLS cannot hide an
+  // otherwise readable transaction case from its buyer or seller.
+  const admin=createSupabaseAdminClient();
+  const {data:partRows,error:partError}=await admin.from("parts").select("id,title,slug").in("id",partIds);
+  if(partError)throw new Error("Transaction case listings are temporarily unavailable.");
+  for(const part of partRows??[])partMap.set(part.id,{title:part.title,slug:part.slug});
+ }
  const hasMore=raw.length>limit;
- return {items:mapCaseRows(raw.slice(0,limit) as unknown[]),hasMore,offset,limit};
+ return {items:mapCaseRows(raw.slice(0,limit) as unknown[],partMap),hasMore,offset,limit};
 }
 
 export async function getBuyerTransactionCasesPage(profileId:string,options:{offset?:number;limit?:number}={}){

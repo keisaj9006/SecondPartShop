@@ -27,7 +27,7 @@ const criticalDispatchFiles=[
  "src/app/api/mobile/v1/fitting-requests/[requestId]/messages/route.ts",
  "src/app/inbox/start-actions.ts",
  "src/app/inbox/actions.ts",
- "src/app/api/mobile/v1/listings/[partId]/question/route.ts",
+ "src/app/api/mobile/v1/listings/[slug]/question/route.ts",
  "src/app/api/mobile/v1/inbox/[conversationId]/route.ts",
  "src/app/admin/commerce/actions.ts",
  "src/app/account/orders/checkout-actions.ts"
