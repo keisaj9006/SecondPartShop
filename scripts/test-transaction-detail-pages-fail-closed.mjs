@@ -196,10 +196,11 @@ test("Buyer Cases selected purchase lookup failure is not silently treated as no
 
 test("getBuyerCaseOrderItem distinguishes Supabase failure from a genuine missing purchase",async()=>{
  const exports={};
+ let queryError=backendError;
  const query={
   select(){return this;},
   eq(){return this;},
-  async maybeSingle(){return {data:null,error:backendError};}
+  async maybeSingle(){return {data:null,error:queryError};}
  };
  vm.runInNewContext(compile("src/lib/data/transaction-cases.ts"),{
   exports,
@@ -207,6 +208,9 @@ test("getBuyerCaseOrderItem distinguishes Supabase failure from a genuine missin
   process:{env:{}},
   require(name){
    if(name==="server-only")return {};
+   if(name==="@/lib/supabase/admin")return {
+    createSupabaseAdminClient(){throw new Error("Detail lookup must not invoke admin hydration");}
+   };
    if(name==="@/lib/supabase/server")return {
     async createSupabaseServerClient(){return {from(){return query;}};}
    };
@@ -218,4 +222,6 @@ test("getBuyerCaseOrderItem distinguishes Supabase failure from a genuine missin
   exports.getBuyerCaseOrderItem("buyer_test","22222222-2222-4222-8222-222222222222"),
   /temporarily unavailable/i
  );
+ queryError=null;
+ assert.equal(await exports.getBuyerCaseOrderItem("buyer_test","22222222-2222-4222-8222-222222222222"),null);
 });
