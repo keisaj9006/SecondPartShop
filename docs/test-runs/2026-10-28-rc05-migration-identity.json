@@ -1,0 +1,93 @@
+{
+  "status": "PASS",
+  "environment": {
+    "kind": "disposable local Supabase Docker stack",
+    "projectId": "secondpart-rc05-identity-20261028",
+    "postgres": "17.11",
+    "supabaseCli": "2.122.0",
+    "databasePort": 55322,
+    "hostedSecondPartMutated": false
+  },
+  "source": {
+    "file": "supabase/migrations/20261014202700_review_ready_notifications_forward.sql",
+    "sha256Lf": "e6dd184f94748c5a7f6ec6ba9012ab534599d2f69099c23af12f2e542f1246aa"
+  },
+  "ledger": {
+    "version": "20261014202700",
+    "name": "review_ready_notifications_forward",
+    "statementCount": 6,
+    "statementsSha256": "87d416c7b7b56686f9c0c799cbf6012c2dc0a6041f770b18d84359c10388b2fe",
+    "rowCount": 1,
+    "statements": [
+      "-- RC-05 forward-only repair of the absent hosted review-ready notification path.\n-- The historical source at 20260906225000 exists but is not in the hosted ledger.\n-- This definition follows the current eligibility contract in\n-- get_review_opportunities() and submit_transaction_review().\n\ncreate or replace function private.notify_transaction_review_ready()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path=''\nas $$\ndeclare\n  review_item_id uuid;\n  buyer_profile uuid;\n  seller_profile uuid;\n  part_title text;\nbegin\n  if tg_table_schema='public' and tg_table_name='order_items' then\n    if not (\n      old.payout_status is distinct from new.payout_status\n      or old.funds_released_at is distinct from new.funds_released_at\n      or old.fulfilment_status is distinct from new.fulfilment_status\n      or old.refunded_at is distinct from new.refunded_at\n    ) then\n      return new;\n    end if;\n    review_item_id:=new.id;\n  elsif tg_table_schema='public' and tg_table_name='transaction_cases' then\n    if old.status not in ('open','seller_response','under_review','return_authorized','return_shipped','returned')\n       or new.status in ('open','seller_response','under_review','return_authorized','return_shipped','returned') then\n      return new;\n    end if;\n    review_item_id:=new.order_item_id;\n  else\n    return new;\n  end if;\n\n  select o.buyer_id,s.owner_id,p.title\n    into buyer_profile,seller_profile,part_title\n  from public.order_items oi\n  join public.orders o on o.id=oi.order_id\n  join public.sellers s on s.id=oi.seller_id\n  join public.parts p on p.id=oi.part_id\n  where oi.id=review_item_id\n    and o.payment_status='paid'\n    and oi.payout_status='released'\n    and oi.funds_released_at is not null\n    and oi.fulfilment_status='completed'\n    and oi.refunded_at is null\n    and not exists(\n      select 1\n      from public.transaction_cases c\n      where c.order_item_id=oi.id\n        and c.status in ('open','seller_response','under_review','return_authorized','return_shipped','returned')\n    );\n\n  if buyer_profile is not null then\n    insert into public.notifications(profile_id,type,title,body,href,dedupe_key)\n    values(\n      buyer_profile,\n      'account',\n      'Your verified review is ready',\n      left('Rate your completed purchase: '||coalesce(part_title,'SecondPart transaction'),240),\n      '/account/reviews',\n      'review-ready:'||review_item_id::text||':buyer'\n    )\n    on conflict do nothing;\n  end if;\n\n  if seller_profile is not null then\n    insert into public.notifications(profile_id,type,title,body,href,dedupe_key)\n    values(\n      seller_profile,\n      'account',\n      'Your verified review is ready',\n      left('Rate the buyer from your completed sale: '||coalesce(part_title,'SecondPart transaction'),240),\n      '/account/reviews',\n      'review-ready:'||review_item_id::text||':seller'\n    )\n    on conflict do nothing;\n  end if;\n\n  return new;\nend;\n$$",
+      "drop trigger if exists transaction_review_ready_notification on public.order_items",
+      "create trigger transaction_review_ready_notification\nafter update of payout_status,funds_released_at,fulfilment_status,refunded_at on public.order_items\nfor each row execute function private.notify_transaction_review_ready()",
+      "drop trigger if exists transaction_case_review_ready_notification on public.transaction_cases",
+      "create trigger transaction_case_review_ready_notification\nafter update of status on public.transaction_cases\nfor each row execute function private.notify_transaction_review_ready()",
+      "revoke all on function private.notify_transaction_review_ready() from public"
+    ],
+    "delta": {
+      "beforeCount": 207,
+      "afterCount": 208,
+      "beforeIdentitySha256": "e87fa8b35d0836b7b99d5a090010dc01a84da6a1ebed38c638eee5d072c1f3ae",
+      "afterIdentitySha256": "e0d49af3310b156453ccf30a96713a40ae3764a6808e516f9e8701c2bb40826e",
+      "added": [
+        {
+          "version": "20261014202700",
+          "name": "review_ready_notifications_forward"
+        }
+      ],
+      "removed": [],
+      "pendingBefore": [
+        {
+          "version": "20261014202700",
+          "name": "review_ready_notifications_forward"
+        }
+      ],
+      "appliedByMigrationUp": [
+        {
+          "version": "20261014202700",
+          "name": "review_ready_notifications_forward"
+        }
+      ],
+      "pendingAfter": []
+    }
+  },
+  "postflight": {
+    "functionCount": 1,
+    "triggerCount": 2,
+    "migrationListLocal": "20261014202700",
+    "migrationListRemote": "20261014202700",
+    "ledgerCount": 208,
+    "ledgerHead": "20261014202700"
+  },
+  "hostedReadback": {
+    "projectId": "etkupijfdznljimrfyct",
+    "observedAt": "2026-10-28",
+    "ledgerCount": 207,
+    "ledgerHead": "20261008130523",
+    "repairIdentityCount": 1,
+    "candidateVersionCount": 0,
+    "candidateNameCount": 0,
+    "readOnly": true
+  },
+  "driftProbe": {
+    "changedSourceSha256": "67d4420654288401acb143aefa362f8829acd8272601d5c6dd7d27df1a9acbd8",
+    "secondMigrationUpApplied": [],
+    "finding": "Supabase CLI skips an already applied version without comparing changed SQL bytes; the repository validator must pin source and parsed-ledger hashes."
+  },
+  "rehearsal": {
+    "baselinePlaceholders": 207,
+    "candidateHeldOutUntilCanonicalReplay": true,
+    "canonicalReplay": "207/207 PASS",
+    "migrationListBefore": "207 baseline local/remote identities matched; candidate remained held outside the directory",
+    "migrationUpApplied": [
+      {
+        "version": "20261014202700",
+        "name": "review_ready_notifications_forward"
+      }
+    ],
+    "migrationListAfter": "208 local/remote identities matched; zero pending",
+    "hostedSecondPartMutated": false
+  }
+}

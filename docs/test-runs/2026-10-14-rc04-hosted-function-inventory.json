@@ -1,0 +1,759 @@
+{
+  "project": "etkupijfdznljimrfyct",
+  "as_of": "2026-10-14",
+  "read_only": true,
+  "functions": [
+    {
+      "signature": "private.account_deletion_blocker(p_profile_id uuid)",
+      "definition_md5": "c52ca34390038932de34708400303fc6"
+    },
+    {
+      "signature": "private.audit_transaction_case_status_change()",
+      "definition_md5": "d8f38eabf2373923cd988fa647ce6d67"
+    },
+    {
+      "signature": "private.can_read_case_evidence_object(p_name text)",
+      "definition_md5": "64d0c82f049a16fc1f6913b9a8c0e717"
+    },
+    {
+      "signature": "private.can_read_listing_conversation(p_conversation_id uuid)",
+      "definition_md5": "84ac257d826a2c02260cbbbf1435b726"
+    },
+    {
+      "signature": "private.can_read_order(requested_order uuid)",
+      "definition_md5": "d873232798102a2d5a38272f8f8589c0"
+    },
+    {
+      "signature": "private.can_read_order_item(requested_item uuid)",
+      "definition_md5": "2e13fd8d79e66a2b20f7628c965c1d43"
+    },
+    {
+      "signature": "private.can_upload_case_evidence_object(p_name text)",
+      "definition_md5": "4d658449401cc78364ca42fcf72a7b00"
+    },
+    {
+      "signature": "private.can_upload_part_image(p_path text)",
+      "definition_md5": "1d5c5b79cf2f34e20506540b5c765d67"
+    },
+    {
+      "signature": "private.cancel_pending_seller_verification_on_identity_change()",
+      "definition_md5": "0c2c361f46509e5ba873914e177ac1c0"
+    },
+    {
+      "signature": "private.capture_seller_verification_request_snapshot()",
+      "definition_md5": "4ac34a6de30463dd9747fdc86bca6269"
+    },
+    {
+      "signature": "private.cleanup_vehicle_lookup_state()",
+      "definition_md5": "97c9787166a7ac5606c18e05ff230982"
+    },
+    {
+      "signature": "private.close_fulfilled_part_requests()",
+      "definition_md5": "45455027e64e0175d3be9264c8f27cfd"
+    },
+    {
+      "signature": "private.enforce_listing_activation_readiness()",
+      "definition_md5": "4b195dc063ac955a84ab96cfeacf15e6"
+    },
+    {
+      "signature": "private.enforce_transaction_review_terms()",
+      "definition_md5": "8e922a15e518359e81b766a6d9d5d900"
+    },
+    {
+      "signature": "private.enforce_verified_fit_terms()",
+      "definition_md5": "1048406fabbbf55390960c64d2cfdcb3"
+    },
+    {
+      "signature": "private.enqueue_mobile_push()",
+      "definition_md5": "c4dafe4483804e475e7f0f2a7880fadc"
+    },
+    {
+      "signature": "private.enqueue_part_request_refresh_for_part_signals(p_category_ids uuid[], p_oems text[], p_part_ids uuid[])",
+      "definition_md5": "861d3ec67917677892640965208c5761"
+    },
+    {
+      "signature": "private.ensure_profile_handle()",
+      "definition_md5": "7c38d7de673896d1e86a16b6bf5457be"
+    },
+    {
+      "signature": "private.expire_stale_checkout_orders()",
+      "definition_md5": "f0816e190a845fa32f00fe4bbe96dcb2"
+    },
+    {
+      "signature": "private.guard_case_evidence_cleanup_registration()",
+      "definition_md5": "5b228bf1981008bea8456a1357e3b2c4"
+    },
+    {
+      "signature": "private.guard_part_image_attachment()",
+      "definition_md5": "e854874cbcff00c6cc6ede001e3e7536"
+    },
+    {
+      "signature": "private.handle_new_user()",
+      "definition_md5": "89f9d3fcc390d689a26cc80edf1c94d7"
+    },
+    {
+      "signature": "private.has_current_marketplace_terms(p_profile_id uuid)",
+      "definition_md5": "10a093f1898efa74b0e12e60a034dab6"
+    },
+    {
+      "signature": "private.is_admin()",
+      "definition_md5": "c906fac3d2f5453e78045563ffc33119"
+    },
+    {
+      "signature": "private.limit_active_checkout_orders()",
+      "definition_md5": "b5fd3973807e34d95c8032f7e2161799"
+    },
+    {
+      "signature": "private.mark_part_request_match_responded()",
+      "definition_md5": "5e94e4da4f786c4fe39b3f2b6e49d39e"
+    },
+    {
+      "signature": "private.marketplace_users_blocked(p_a uuid, p_b uuid)",
+      "definition_md5": "66cbb3753352ffa9ce8658ff8614fab5"
+    },
+    {
+      "signature": "private.notify_buyer_for_request_listing()",
+      "definition_md5": "c57617e73fdcac792d0f26a132543762"
+    },
+    {
+      "signature": "private.notify_matched_seller_for_part_request()",
+      "definition_md5": "4ed128f25901558f60aab239ef8b2717"
+    },
+    {
+      "signature": "private.notify_saved_search_matches_for_part(p_part_id uuid)",
+      "definition_md5": "656b5e1591435b286cf90435a634713f"
+    },
+    {
+      "signature": "private.notify_sellers_for_part_request()",
+      "definition_md5": "427ab3d7cf53144698f8a3340b566dcf"
+    },
+    {
+      "signature": "private.owns_part(requested_part uuid)",
+      "definition_md5": "0e0d9842110c7aea8a01f053c8abb27a"
+    },
+    {
+      "signature": "private.owns_seller(requested_seller uuid)",
+      "definition_md5": "6ec995c304ef940541f70c39f3af108e"
+    },
+    {
+      "signature": "private.prevent_duplicate_active_part_reservation()",
+      "definition_md5": "f14b441e9036937d101cb48521ecd43f"
+    },
+    {
+      "signature": "private.prevent_last_active_listing_image_delete()",
+      "definition_md5": "07af2c5f09c16cfef6767640ae211a10"
+    },
+    {
+      "signature": "private.process_part_request_refresh_queue(p_limit integer)",
+      "definition_md5": "db7d42f4901c5f140d8d4e96dcfb3fdc"
+    },
+    {
+      "signature": "private.process_saved_search_match_queue(p_limit integer)",
+      "definition_md5": "06129de2bf9508de733f79a8cf41c652"
+    },
+    {
+      "signature": "private.protect_garage_partner_review()",
+      "definition_md5": "a1bebb82feb1499c55cbd5ada30bee0b"
+    },
+    {
+      "signature": "private.protect_profile_role()",
+      "definition_md5": "395499e83a8331f7e984b7d55f63c53a"
+    },
+    {
+      "signature": "private.protect_seller_verification()",
+      "definition_md5": "a96da75518e71bb772a26309957270ba"
+    },
+    {
+      "signature": "private.publish_review_pair()",
+      "definition_md5": "394cdb984e62145058f99dc7c2212a4d"
+    },
+    {
+      "signature": "private.queue_part_images_before_parent_delete()",
+      "definition_md5": "b7661e36b7779ee57babac54c0bae223"
+    },
+    {
+      "signature": "private.queue_requests_after_donors_delete()",
+      "definition_md5": "4fc935ae857efc152185a407d4e1dbb9"
+    },
+    {
+      "signature": "private.queue_requests_after_donors_insert()",
+      "definition_md5": "386fcd142d8e1fbfaf00da8d0dbf0df4"
+    },
+    {
+      "signature": "private.queue_requests_after_donors_update()",
+      "definition_md5": "4a3545d2934090240059834b73c7c9d9"
+    },
+    {
+      "signature": "private.queue_requests_after_fitments_change()",
+      "definition_md5": "880392b187cf97bc3093b73e76db2cb8"
+    },
+    {
+      "signature": "private.queue_requests_after_fitments_delete()",
+      "definition_md5": "071ee9faf1019925b9ac3c34e4fadf9e"
+    },
+    {
+      "signature": "private.queue_requests_after_fitments_insert()",
+      "definition_md5": "23756316799a9780679dc7628c23103d"
+    },
+    {
+      "signature": "private.queue_requests_after_parts_delete()",
+      "definition_md5": "e95c43f103ca750b245ae8794bb2b10a"
+    },
+    {
+      "signature": "private.queue_requests_after_parts_insert()",
+      "definition_md5": "f08a04d6238767fe032e8f873eea1231"
+    },
+    {
+      "signature": "private.queue_requests_after_parts_update()",
+      "definition_md5": "e2a0e9f027f754059a08a78608fb751f"
+    },
+    {
+      "signature": "private.queue_saved_search_matches_after_insert()",
+      "definition_md5": "a5cc2c00002ddd9995156073730d7223"
+    },
+    {
+      "signature": "private.queue_saved_search_matches_after_update()",
+      "definition_md5": "c0074a0f4686daea40e350c7aad55e8f"
+    },
+    {
+      "signature": "private.recompute_order_status(p_order_id uuid)",
+      "definition_md5": "792fdee0944c18c2146f5d519d3f727e"
+    },
+    {
+      "signature": "private.refresh_seller_part_request_matches(p_request_id uuid)",
+      "definition_md5": "1bf1289aa316a4a4547ab9041a7771f0"
+    },
+    {
+      "signature": "private.remove_reviews_for_failed_order_item()",
+      "definition_md5": "e4a073aad850fadcd3ca36e3dfd041b5"
+    },
+    {
+      "signature": "private.remove_reviews_for_lost_provider_dispute()",
+      "definition_md5": "bb6b46bbd2e6c4236b79d5fd10552ca9"
+    },
+    {
+      "signature": "private.route_part_request_trigger()",
+      "definition_md5": "ec3d40267baf66742867a83873190250"
+    },
+    {
+      "signature": "private.saved_search_match_queue_stats()",
+      "definition_md5": "dae1d8c702210cd4de3a63904ab1923b"
+    },
+    {
+      "signature": "private.sync_seller_part_request_lead()",
+      "definition_md5": "f72671adb8d48e3b53ddb04e745cc083"
+    },
+    {
+      "signature": "private.touch_updated_at()",
+      "definition_md5": "719d3840bb50c6aad79bc2878d64c204"
+    },
+    {
+      "signature": "private.validate_transaction_review()",
+      "definition_md5": "f6d1440ef73d3d816abf379ab6fc1a9a"
+    },
+    {
+      "signature": "public.abandon_empty_order_item_payout_release_claim(p_order_item_id uuid)",
+      "definition_md5": "e1e00e2c95ad9a565f819fb3cbe67a85"
+    },
+    {
+      "signature": "public.accept_current_marketplace_terms()",
+      "definition_md5": "637d1148b69308ad66000b205d04f96c"
+    },
+    {
+      "signature": "public.admin_active_listing_checkout_readiness()",
+      "definition_md5": "af9f7db85c84d2b67bfa6655a4d71024"
+    },
+    {
+      "signature": "public.admin_add_support_request_note(p_support_request_id uuid, p_note text)",
+      "definition_md5": "4a152fe296143f2042412ca569b6b1f2"
+    },
+    {
+      "signature": "public.admin_authorize_transaction_return(p_case_id uuid, p_notes text)",
+      "definition_md5": "726574fbb8bb4af0cd4ae8e67b6a4335"
+    },
+    {
+      "signature": "public.admin_find_my_part_metrics(p_since timestamp with time zone)",
+      "definition_md5": "821bcb959a104e285b5e961a356d9003"
+    },
+    {
+      "signature": "public.admin_next_best_seller_prospects(p_limit integer)",
+      "definition_md5": "f3a74f53a677d18cadb2c8c60cdc4fdd"
+    },
+    {
+      "signature": "public.admin_prepare_returnless_refund(p_case_id uuid, p_notes text)",
+      "definition_md5": "e9bc78413c1e09bcfaac3f7cc1d994d3"
+    },
+    {
+      "signature": "public.admin_prepare_transaction_case_refund(p_case_id uuid, p_notes text)",
+      "definition_md5": "10cc4bc72b12757806cc04a9a6fdccd0"
+    },
+    {
+      "signature": "public.admin_reject_transaction_case(p_case_id uuid, p_notes text)",
+      "definition_md5": "87a6a547b86762cb4de89cfdb2a54d5d"
+    },
+    {
+      "signature": "public.admin_reply_to_support_request(p_support_request_id uuid, p_message text, p_next_status text)",
+      "definition_md5": "a5c4d540256bb70896d04d5698ea4296"
+    },
+    {
+      "signature": "public.admin_review_seller_verification(p_request_id uuid, p_approve boolean, p_review_note text)",
+      "definition_md5": "c4b8dc7f3b5a47d38c0cd5259857835b"
+    },
+    {
+      "signature": "public.admin_start_unverified_delivery_release_window(p_order_item_id uuid)",
+      "definition_md5": "afd557ad75894a1d9eadbeea25d5cfee"
+    },
+    {
+      "signature": "public.admin_update_marketplace_report(p_report_id uuid, p_status text)",
+      "definition_md5": "a024a2bd2a6ba58e82d1da72daa89e36"
+    },
+    {
+      "signature": "public.admin_update_support_request_status(p_support_request_id uuid, p_status text)",
+      "definition_md5": "5205f9fc34d51617461a3c4ec6b1d59d"
+    },
+    {
+      "signature": "public.block_marketplace_user(p_blocked_profile_id uuid)",
+      "definition_md5": "f41ead5b848ae25b4f7ff6b6d2c0558a"
+    },
+    {
+      "signature": "public.buyer_mark_order_item_received(p_order_item_id uuid, p_accept_now boolean)",
+      "definition_md5": "5f8652ff4dcf20a5ce1610936818e8bf"
+    },
+    {
+      "signature": "public.buyer_mark_transaction_return_shipped(p_case_id uuid, p_carrier text, p_tracking_number text)",
+      "definition_md5": "1bd97912da4992ae2e94087d09c80a42"
+    },
+    {
+      "signature": "public.buyer_part_request_match_counts()",
+      "definition_md5": "d08e4d3b69c3689ead30e5b8d3485cb6"
+    },
+    {
+      "signature": "public.buyer_part_request_match_counts_for_ids(request_ids uuid[])",
+      "definition_md5": "eaeb03f33ac3968d1c421d7bd82f2147"
+    },
+    {
+      "signature": "public.buyer_respond_fitting_quote(p_request_id uuid, p_action text)",
+      "definition_md5": "685c990493161bf3f8ed9e271ef802ae"
+    },
+    {
+      "signature": "public.cancel_checkout_order(p_order_id uuid, p_event_id text, p_event_type text)",
+      "definition_md5": "c496119dd5d6224aed04e8aa29ac64df"
+    },
+    {
+      "signature": "public.cancel_checkout_order_from_provider_event(p_order_id uuid, p_session_id text, p_event_id text, p_event_type text)",
+      "definition_md5": "7a0fd6911496254a7920badabfe61a6c"
+    },
+    {
+      "signature": "public.cancel_checkout_order_if_session_matches(p_order_id uuid, p_expected_session_id text, p_buyer_id uuid, p_event_id text, p_event_type text)",
+      "definition_md5": "fa8513b7a42c4e1db41ab9750520f243"
+    },
+    {
+      "signature": "public.cancel_own_account_deletion_request()",
+      "definition_md5": "5cc49bada0184e599fbd37eead5c7561"
+    },
+    {
+      "signature": "public.category_descendant_ids(p_category_id uuid)",
+      "definition_md5": "88b8cffd9e780124df50b6af2668daa2"
+    },
+    {
+      "signature": "public.claim_account_deletion_request(p_request_id uuid)",
+      "definition_md5": "3e58f123a5a006f2fac0b17d3eee8e60"
+    },
+    {
+      "signature": "public.claim_mobile_push_outbox(p_limit integer)",
+      "definition_md5": "b025ca7651e99c0d8bf5b512b8900551"
+    },
+    {
+      "signature": "public.claim_order_item_payout_release(p_order_item_id uuid)",
+      "definition_md5": "5c4ff02a944444e011ca83e7367128be"
+    },
+    {
+      "signature": "public.claim_provider_dispute_reversal(p_dispute_id text)",
+      "definition_md5": "5ecad08d9265d16aeb2ffed568039fe0"
+    },
+    {
+      "signature": "public.close_listing_conversation(p_conversation_id uuid)",
+      "definition_md5": "c431690f2a88e746edf96ddf6930243a"
+    },
+    {
+      "signature": "public.close_provider_payment_dispute(p_event_id text, p_dispute_id text, p_status text, p_transfer_reversal_id text)",
+      "definition_md5": "16e44691fd857778b9a1bbdecf8b7970"
+    },
+    {
+      "signature": "public.complete_account_deletion_request(p_request_id uuid)",
+      "definition_md5": "27e219e978d30c9d2ceab11630aab30f"
+    },
+    {
+      "signature": "public.complete_case_evidence_cleanup(p_storage_path text)",
+      "definition_md5": "de492d30e7000ef89b1436f5b3858fb5"
+    },
+    {
+      "signature": "public.complete_part_image_cleanup(p_storage_path text)",
+      "definition_md5": "ebf13e4867aa6e4816a0e71c900180ef"
+    },
+    {
+      "signature": "public.confirm_checkout_paid(p_order_id uuid, p_event_id text, p_checkout_session_id text, p_payment_intent_id text, p_charge_id text, p_shipping_name text, p_shipping_address jsonb)",
+      "definition_md5": "12fd1b3cc5919bb88b0022ad6445543c"
+    },
+    {
+      "signature": "public.consume_ai_listing_quota()",
+      "definition_md5": "97221c092ed012aa0f07d42aeab2a52f"
+    },
+    {
+      "signature": "public.consume_ops_client_error_rate_limit(p_key_hash text, p_limit integer, p_window_seconds integer)",
+      "definition_md5": "7800aaf2af43536b18f519351466561a"
+    },
+    {
+      "signature": "public.consume_vehicle_lookup_rate_limit(p_key_hash text, p_limit integer, p_window_seconds integer)",
+      "definition_md5": "bef191b9dac4a640fcbc0fe543f4d819"
+    },
+    {
+      "signature": "public.dismiss_seller_part_request_match(p_request_id uuid)",
+      "definition_md5": "1dfb01a55166d2a2a63a78b392bda0be"
+    },
+    {
+      "signature": "public.fail_account_deletion_request(p_request_id uuid, p_error text)",
+      "definition_md5": "f284772455c779107fb3c3c4ec5f8762"
+    },
+    {
+      "signature": "public.fail_case_evidence_cleanup(p_storage_path text)",
+      "definition_md5": "406cd571734f1be9e7d397c0df6a34fc"
+    },
+    {
+      "signature": "public.fail_part_image_cleanup(p_storage_path text)",
+      "definition_md5": "120928fd23623e8ea7321acfbc80cf98"
+    },
+    {
+      "signature": "public.finalize_order_item_payout_transfer_rollback(p_order_item_id uuid, p_transfer_id text, p_reversal_id text)",
+      "definition_md5": "e875ab3444808532c63a2a8f7b348418"
+    },
+    {
+      "signature": "public.finalize_transaction_case_refund(p_case_id uuid, p_refund_id text, p_refund_pence integer, p_transfer_reversal_id text)",
+      "definition_md5": "9aca2d7ee1538525d2950603fb3309a1"
+    },
+    {
+      "signature": "public.find_garage_partners_nearby(p_lat double precision, p_lon double precision, p_query text, p_limit integer, p_offset integer)",
+      "definition_md5": "3fcb8776d53f1dbc84bce4de5ec109ed"
+    },
+    {
+      "signature": "public.garage_respond_fitting_request(p_request_id uuid, p_action text, p_quote_pence integer, p_note text)",
+      "definition_md5": "aef7f027fe4c83e0b80c911ddc656dec"
+    },
+    {
+      "signature": "public.get_account_deletion_part_image_paths(p_request_id uuid, p_after text, p_limit integer)",
+      "definition_md5": "97ff3c86c614994184ad9038e91b4439"
+    },
+    {
+      "signature": "public.get_account_deletion_processing_queue(p_limit integer)",
+      "definition_md5": "ca3679237fef40b8709bd13181b02742"
+    },
+    {
+      "signature": "public.get_case_evidence_cleanup_queue(p_limit integer, p_storage_path text)",
+      "definition_md5": "bdadd9ef08984dc5119985428e40513c"
+    },
+    {
+      "signature": "public.get_due_payout_order_items(p_limit integer)",
+      "definition_md5": "b6c48c25a94c90dd5b1e8e18364b2959"
+    },
+    {
+      "signature": "public.get_existing_csv_inventory_references(p_references text[])",
+      "definition_md5": "1bdef25e99ea87e802505c2c9dcaf922"
+    },
+    {
+      "signature": "public.get_expired_unpaid_orders(p_limit integer)",
+      "definition_md5": "dd6428b3b1855e26bb5a73abd9bae6c3"
+    },
+    {
+      "signature": "public.get_own_seller_profile_private()",
+      "definition_md5": "01c27f0179b7de9a2b6fcd4f296b00fc"
+    },
+    {
+      "signature": "public.get_part_image_cleanup_queue(p_limit integer, p_storage_path text)",
+      "definition_md5": "6aa6e2b73860c95528a5760e23b8a2de"
+    },
+    {
+      "signature": "public.get_part_passport_evidence(p_part_id uuid)",
+      "definition_md5": "4b6ec122eb5d40f51245742ad938b9bb"
+    },
+    {
+      "signature": "public.get_part_verified_fit_summary(p_part_id uuid, p_variant_id uuid, p_year smallint, p_fuel text, p_engine integer)",
+      "definition_md5": "ae3f99eb42d1a19908dfc833f5064c4e"
+    },
+    {
+      "signature": "public.get_public_member_profile(p_handle text)",
+      "definition_md5": "b4caa1c28e2fbb5e3aa2172458cadc4e"
+    },
+    {
+      "signature": "public.get_public_member_profile_by_id(p_profile_id uuid)",
+      "definition_md5": "d7f9ff71e4420b435078c4f2cd062de3"
+    },
+    {
+      "signature": "public.get_public_member_reviews(p_profile_id uuid, p_limit integer)",
+      "definition_md5": "7ad3c8e1e54e49171b16e11bc5a4d1fe"
+    },
+    {
+      "signature": "public.get_public_seller_inventory_summary(p_seller_id uuid)",
+      "definition_md5": "c84561f03da41fa772be7d844e97ca08"
+    },
+    {
+      "signature": "public.get_releasing_payout_order_items(p_limit integer)",
+      "definition_md5": "1b4ca882898d7d7cdae83fc7197fa5a8"
+    },
+    {
+      "signature": "public.get_review_opportunities()",
+      "definition_md5": "69a5db27b31b5a3ade10129c004f4c47"
+    },
+    {
+      "signature": "public.get_review_opportunities_page(p_limit integer, p_offset integer)",
+      "definition_md5": "244aad1e3adf77e044eb768ab74d242b"
+    },
+    {
+      "signature": "public.get_seller_directory_page(p_limit integer, p_offset integer)",
+      "definition_md5": "fac7b178e491f81351e69ddfd4a21084"
+    },
+    {
+      "signature": "public.get_unverified_delivery_payout_reviews(p_limit integer)",
+      "definition_md5": "18f6f62914503da6a3b23914d215f88d"
+    },
+    {
+      "signature": "public.get_verified_fit_opportunities()",
+      "definition_md5": "02d4c57fc0d03af0ea168921163e6897"
+    },
+    {
+      "signature": "public.get_verified_fit_opportunities_page(p_limit integer, p_offset integer)",
+      "definition_md5": "c9370b6eb64b8676a11fd2dc223d237c"
+    },
+    {
+      "signature": "public.import_vehicle_catalogue_batch(p_provider text, p_variants jsonb, p_years jsonb, p_engines jsonb)",
+      "definition_md5": "f783d66aa3b2bef5695817670e5cb180"
+    },
+    {
+      "signature": "public.is_marketplace_user_blocked(p_profile_id uuid)",
+      "definition_md5": "02cf13a8cb9ce1e92e4f034fb96f9b18"
+    },
+    {
+      "signature": "public.mark_order_item_payout_released(p_order_item_id uuid, p_transfer_id text)",
+      "definition_md5": "64e3c6c17aa897c5bbbf7829583e1fc1"
+    },
+    {
+      "signature": "public.mark_order_item_payout_rollback_required(p_order_item_id uuid, p_transfer_id text)",
+      "definition_md5": "cdc7283248755957c36be138d76d6a16"
+    },
+    {
+      "signature": "public.marketplace_browse_cursor_page(p_category_ids uuid[], p_condition text, p_min_price_pence integer, p_max_price_pence integer, p_collection_only boolean, p_after_created_at timestamp with time zone, p_after_id uuid, p_limit integer)",
+      "definition_md5": "795272e042bd3bf1ce8282f20d9684d3"
+    },
+    {
+      "signature": "public.marketplace_browse_cursor_page_v2(p_sort text, p_category_ids uuid[], p_condition text, p_min_price_pence integer, p_max_price_pence integer, p_collection_only boolean, p_after_created_at timestamp with time zone, p_after_id uuid, p_after_sort_value integer, p_limit integer)",
+      "definition_md5": "8ff73c6c35f3bd45e3bf15ae2a7c90dc"
+    },
+    {
+      "signature": "public.marketplace_catalogue_compatibility(p_variant_id uuid, p_year smallint, p_fuel text, p_engine integer, p_part_id uuid)",
+      "definition_md5": "61fb654a2b1d2e20383a71b53a83e8af"
+    },
+    {
+      "signature": "public.marketplace_catalogue_cursor_page_v1(p_variant_id uuid, p_year smallint, p_fuel text, p_engine integer, p_category_ids uuid[], p_condition text, p_min_price_pence integer, p_max_price_pence integer, p_collection_only boolean, p_compatible_only boolean, p_after_confidence_rank integer, p_after_created_at timestamp with time zone, p_after_id uuid, p_limit integer)",
+      "definition_md5": "ec3aafe2586d2dfea6d2a29c7d46d328"
+    },
+    {
+      "signature": "public.marketplace_catalogue_distance_page(p_variant_id uuid, p_year smallint, p_buyer_lat double precision, p_buyer_lon double precision, p_fuel text, p_engine integer, p_part_ids uuid[], p_category_ids uuid[], p_condition text, p_min_price_pence integer, p_max_price_pence integer, p_collection_only boolean, p_compatible_only boolean, p_limit integer, p_offset integer)",
+      "definition_md5": "9df4cc8db48d54e68e46e539f310cdcb"
+    },
+    {
+      "signature": "public.marketplace_catalogue_distance_page_v2(p_variant_id uuid, p_year smallint, p_buyer_lat double precision, p_buyer_lon double precision, p_fuel text, p_engine integer, p_part_ids uuid[], p_category_ids uuid[], p_condition text, p_min_price_pence integer, p_max_price_pence integer, p_collection_only boolean, p_compatible_only boolean, p_limit integer, p_offset integer)",
+      "definition_md5": "72ef20ad25bc4fbbeacd3aa450ddc5d2"
+    },
+    {
+      "signature": "public.marketplace_catalogue_page(p_variant_id uuid, p_year smallint, p_fuel text, p_engine integer, p_part_ids uuid[], p_category_ids uuid[], p_condition text, p_min_price_pence integer, p_max_price_pence integer, p_collection_only boolean, p_compatible_only boolean, p_limit integer, p_offset integer)",
+      "definition_md5": "33ed3aad28f6221cbccd18b71370546f"
+    },
+    {
+      "signature": "public.marketplace_catalogue_sorted_page(p_variant_id uuid, p_year smallint, p_fuel text, p_engine integer, p_part_ids uuid[], p_category_ids uuid[], p_condition text, p_min_price_pence integer, p_max_price_pence integer, p_collection_only boolean, p_compatible_only boolean, p_sort text, p_limit integer, p_offset integer)",
+      "definition_md5": "20c520e89182137a75d251199a97d2e7"
+    },
+    {
+      "signature": "public.marketplace_distance_page(p_buyer_lat double precision, p_buyer_lon double precision, p_part_ids uuid[], p_category_ids uuid[], p_condition text, p_min_price_pence integer, p_max_price_pence integer, p_collection_only boolean, p_limit integer, p_offset integer)",
+      "definition_md5": "9fec8794f7ad038e9e3b6d09b5997e98"
+    },
+    {
+      "signature": "public.marketplace_distance_page_v2(p_buyer_lat double precision, p_buyer_lon double precision, p_part_ids uuid[], p_category_ids uuid[], p_condition text, p_min_price_pence integer, p_max_price_pence integer, p_collection_only boolean, p_limit integer, p_offset integer)",
+      "definition_md5": "ff9305bedcf4304444002c40e2654c02"
+    },
+    {
+      "signature": "public.marketplace_legacy_vehicle_compatibility(p_vehicle_id uuid, p_part_id uuid)",
+      "definition_md5": "3cc7257373d06ec8d47bbd47069950aa"
+    },
+    {
+      "signature": "public.marketplace_search_page_v1(p_query text, p_sort text, p_category_ids uuid[], p_condition text, p_min_price_pence integer, p_max_price_pence integer, p_collection_only boolean, p_variant_id uuid, p_year smallint, p_fuel text, p_engine integer, p_vehicle_id uuid, p_compatible_only boolean, p_buyer_lat double precision, p_buyer_lon double precision, p_part_ids uuid[], p_limit integer, p_offset integer)",
+      "definition_md5": "16ce009248b5d3891c37bf75b638e7e1"
+    },
+    {
+      "signature": "public.marketplace_search_part_ids(p_query text)",
+      "definition_md5": "8894498dfb55824d8d4f3c70370faf85"
+    },
+    {
+      "signature": "public.marketplace_search_part_ids_limited(p_query text, p_limit integer)",
+      "definition_md5": "bf14e15adc64c2a1f2709ce7aba72d71"
+    },
+    {
+      "signature": "public.open_provider_payment_dispute(p_event_id text, p_dispute_id text, p_charge_id text, p_status text, p_reason text)",
+      "definition_md5": "0344fa059d6e66a842a5da021f952d01"
+    },
+    {
+      "signature": "public.open_transaction_case(p_order_item_id uuid, p_case_type text, p_reason text, p_details text)",
+      "definition_md5": "5ba1f4e9c0e9cae4de2582f1139bccf6"
+    },
+    {
+      "signature": "public.prepare_checkout_order(p_part_id uuid, p_quantity integer, p_delivery_method text)",
+      "definition_md5": "2a7aa5c2f3d1de0882235d4c96e9664e"
+    },
+    {
+      "signature": "public.prepare_checkout_order_v2(p_part_id uuid, p_quantity integer, p_delivery_method text, p_vehicle_variant_id uuid, p_vehicle_year smallint, p_vehicle_fuel text, p_vehicle_engine integer, p_vehicle_registration text)",
+      "definition_md5": "aca027667e6cae44bd5ddc4a883186d5"
+    },
+    {
+      "signature": "public.prepare_claimed_account_deletion(p_request_id uuid, p_profile_id uuid)",
+      "definition_md5": "8c7d1eb6ddebea87502eb9acafa8bae5"
+    },
+    {
+      "signature": "public.prune_ops_client_error_rate_limits()",
+      "definition_md5": "af62a3e28ce3fd2036f7f0db6bd26581"
+    },
+    {
+      "signature": "public.publish_ready_import_batch(p_batch_id uuid)",
+      "definition_md5": "5f01b34d53822f13fa5eb7ed84eb036d"
+    },
+    {
+      "signature": "public.queue_orphan_case_evidence_cleanup(p_case_id uuid, p_uploader_id uuid, p_storage_path text)",
+      "definition_md5": "6588d5e1f82926e0a7f5e0ed20fd8213"
+    },
+    {
+      "signature": "public.queue_orphan_part_image_cleanup(p_owner_id uuid, p_part_id uuid, p_storage_path text)",
+      "definition_md5": "7ca2896bc5ad3ef3705faed31986a297"
+    },
+    {
+      "signature": "public.record_provider_dispute_reversal(p_dispute_id text, p_transfer_id text, p_reversal_id text, p_amount_pence integer)",
+      "definition_md5": "c5338cbb64bca7730f68bb88ff49e6ea"
+    },
+    {
+      "signature": "public.recover_order_item_payout_transfer(p_order_item_id uuid, p_transfer_id text)",
+      "definition_md5": "82dc3b365c3b0339b0a294449152e1b9"
+    },
+    {
+      "signature": "public.register_transaction_case_evidence(p_case_id uuid, p_storage_path text, p_original_name text, p_mime_type text)",
+      "definition_md5": "ca6d6bd257102ae90b1d3eab48e2687e"
+    },
+    {
+      "signature": "public.replace_part_catalogue_fitments(p_part_id uuid, p_fitments jsonb)",
+      "definition_md5": "ba017a46523925d0c4f64f05018b13c7"
+    },
+    {
+      "signature": "public.reply_to_support_request(p_support_request_id uuid, p_message text)",
+      "definition_md5": "e343f41e220ffcd7eacb5b1f67b1d23f"
+    },
+    {
+      "signature": "public.request_part_fitting_quote(p_part_id uuid, p_garage_partner_id uuid, p_vehicle_variant_id uuid, p_vehicle_year smallint, p_vehicle_fuel text, p_vehicle_engine integer, p_vehicle_registration text, p_notes text)",
+      "definition_md5": "f6d36fe6679a3dda7b9c8f63bb5b4ab1"
+    },
+    {
+      "signature": "public.reset_order_item_payout_release_claim(p_order_item_id uuid)",
+      "definition_md5": "1bbe8eaaad721600ebf434ab52d83438"
+    },
+    {
+      "signature": "public.save_garage_vehicle_v1(p_operation text, p_registration text, p_make text, p_model text, p_year integer, p_fuel text, p_engine integer, p_colour text, p_nickname text, p_catalogue_variant_id uuid, p_garage_vehicle_id uuid)",
+      "definition_md5": "c87761e4a7c820e51876728de429fddb"
+    },
+    {
+      "signature": "public.seller_checkout_ready(p_seller_id uuid)",
+      "definition_md5": "0ceae368218906646e14030693dd99f5"
+    },
+    {
+      "signature": "public.seller_confirm_transaction_return_received(p_case_id uuid)",
+      "definition_md5": "a5eaa9f6a88285ecf59de59d29ad0da7"
+    },
+    {
+      "signature": "public.seller_import_batch_readiness(p_batch_id uuid)",
+      "definition_md5": "e5ae21dd9a66334dba2a27af34de0681"
+    },
+    {
+      "signature": "public.seller_import_batch_work_queue(p_batch_id uuid, p_need text, p_limit integer, p_offset integer)",
+      "definition_md5": "b1624cd56180aef38dbaa2eab26ea8c4"
+    },
+    {
+      "signature": "public.seller_inventory_cursor_page(p_seller_id uuid, p_after_updated_at timestamp with time zone, p_after_id uuid, p_limit integer)",
+      "definition_md5": "6fa12422abf133005d8f7d472edc7313"
+    },
+    {
+      "signature": "public.seller_part_request_lead(p_request_id uuid)",
+      "definition_md5": "02def6db9e800ef74196b453497dc8a8"
+    },
+    {
+      "signature": "public.seller_ranked_part_request_leads(p_limit integer, p_offset integer)",
+      "definition_md5": "3db3c55c4a1907219deb2a138ff899c6"
+    },
+    {
+      "signature": "public.seller_respond_transaction_case(p_case_id uuid, p_response text)",
+      "definition_md5": "3bbd0c71711fa8a3cb77d48c00147612"
+    },
+    {
+      "signature": "public.seller_set_order_item_fulfilment(p_order_item_id uuid, p_action text, p_carrier text, p_tracking_number text)",
+      "definition_md5": "a5862eac32c80745040f57c6f50de4d1"
+    },
+    {
+      "signature": "public.send_fitting_request_message(p_request_id uuid, p_body text)",
+      "definition_md5": "9e80d7ad723d78539624fed72561e305"
+    },
+    {
+      "signature": "public.send_listing_conversation_message(p_conversation_id uuid, p_body text)",
+      "definition_md5": "3b94115d76cdee968ff7440854eb425d"
+    },
+    {
+      "signature": "public.send_transaction_message(p_order_item_id uuid, p_body text)",
+      "definition_md5": "acb9b776041209915f202029c0e0e8e9"
+    },
+    {
+      "signature": "public.start_listing_conversation(p_part_id uuid, p_body text)",
+      "definition_md5": "d7805d47b2687bd189de6b2dc78ac820"
+    },
+    {
+      "signature": "public.submit_transaction_review(p_order_item_id uuid, p_overall_rating smallint, p_item_as_described_rating smallint, p_dispatch_rating smallint, p_communication_rating smallint, p_buyer_conduct_rating smallint, p_comment text)",
+      "definition_md5": "206fe4a412ba296717feab83e13a077e"
+    },
+    {
+      "signature": "public.submit_verified_fit_feedback(p_order_item_id uuid, p_result text, p_notes text)",
+      "definition_md5": "8115e6c969f35c282ab05ab68a3b7f8c"
+    },
+    {
+      "signature": "public.unblock_marketplace_user(p_blocked_profile_id uuid)",
+      "definition_md5": "ff48d23f01a423f3caf33392b14cef54"
+    },
+    {
+      "signature": "public.upgrade_account_to_seller()",
+      "definition_md5": "720261121a2966ebb8a65a551d624392"
+    },
+    {
+      "signature": "public.vehicle_catalogue_makes()",
+      "definition_md5": "1473119c6a82fa2ff9fdcfe34db5923c"
+    },
+    {
+      "signature": "public.vehicle_catalogue_model_map()",
+      "definition_md5": "e7256aecc0258ead0d37362e671ea044"
+    },
+    {
+      "signature": "public.vehicle_catalogue_model_map_json()",
+      "definition_md5": "05c3050a38f8fdb05d83d485ec081ae3"
+    },
+    {
+      "signature": "public.vehicle_catalogue_models(p_make text)",
+      "definition_md5": "a564700f8bd57619160b894b1a447865"
+    },
+    {
+      "signature": "public.vehicle_catalogue_variants_for_model_year(p_make text, p_model text, p_year smallint)",
+      "definition_md5": "b67b20844383303596985c1ccbc6ff80"
+    },
+    {
+      "signature": "public.vehicle_catalogue_years_for_model(p_make text, p_model text)",
+      "definition_md5": "424963d678ae3303d5de06fede442c91"
+    }
+  ]
+}

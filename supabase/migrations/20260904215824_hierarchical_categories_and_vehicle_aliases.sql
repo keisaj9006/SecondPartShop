@@ -409,3 +409,44 @@ $$;
 create or replace function public.vehicle_catalogue_variants_for_model_year(p_make text,p_model text,p_year smallint) returns table(id uuid,variant text) language sql stable set search_path='' as $$
  select distinct v.id,v.variant from public.vehicle_catalogue_variants v left join public.vehicle_catalogue_make_aliases a on a.provider=v.provider and a.source_make=v.make join public.vehicle_catalogue_years y on y.variant_id=v.id where v.provider='dft' and v.body_type='Cars' and coalesce(a.canonical_make,v.make)=p_make and v.model_family=p_model and y.year_first_used=p_year order by v.variant;
 $$;
+
+-- RC-04: exact alias-aware selector definitions from hosted migration 20260904215824.
+-- Preserve the 191-category source seed; the hosted historical statement seeded four.
+-- This source correction is repository-only and must not be reapplied to the hosted database.
+
+create or replace function public.vehicle_catalogue_makes()
+returns table(make text)
+language sql stable security invoker set search_path=''
+as $$
+  select distinct coalesce(a.canonical_make, v.make)
+  from public.vehicle_catalogue_variants v
+  left join public.vehicle_catalogue_make_aliases a
+    on a.provider=v.provider and a.source_make=v.make
+  where v.provider='dft' and v.body_type='Cars'
+  order by 1;
+$$;
+
+create or replace function public.vehicle_catalogue_models(p_make text)
+returns table(model_family text)
+language sql stable security invoker set search_path=''
+as $$
+  select distinct v.model_family
+  from public.vehicle_catalogue_variants v
+  left join public.vehicle_catalogue_make_aliases a
+    on a.provider=v.provider and a.source_make=v.make
+  where v.provider='dft' and v.body_type='Cars'
+    and coalesce(a.canonical_make, v.make)=p_make
+  order by v.model_family;
+$$;
+
+create or replace function public.vehicle_catalogue_model_map()
+returns table(make text, model_family text)
+language sql stable security invoker set search_path=''
+as $$
+  select distinct coalesce(a.canonical_make, v.make), v.model_family
+  from public.vehicle_catalogue_variants v
+  left join public.vehicle_catalogue_make_aliases a
+    on a.provider=v.provider and a.source_make=v.make
+  where v.provider='dft' and v.body_type='Cars'
+  order by 1, 2;
+$$;

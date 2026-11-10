@@ -1,0 +1,332 @@
+{
+  "project": "etkupijfdznljimrfyct",
+  "read_only": true,
+  "as_of": "2026-10-14",
+  "queries": {
+    "metadata": [
+      {
+        "server_version": "17.6",
+        "migration_rows": 207,
+        "public_policies": 135,
+        "public_triggers": 50,
+        "app_functions": 188
+      }
+    ],
+    "functions": [
+      {
+        "signature": "private.guard_case_evidence_cleanup_registration()",
+        "definition_md5": "5b228bf1981008bea8456a1357e3b2c4",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": false
+      },
+      {
+        "signature": "public.cancel_checkout_order(p_order_id uuid, p_event_id text, p_event_type text)",
+        "definition_md5": "c496119dd5d6224aed04e8aa29ac64df",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": true
+      },
+      {
+        "signature": "public.cancel_checkout_order_from_provider_event(p_order_id uuid, p_session_id text, p_event_id text, p_event_type text)",
+        "definition_md5": "7a0fd6911496254a7920badabfe61a6c",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": true
+      },
+      {
+        "signature": "public.cancel_checkout_order_if_session_matches(p_order_id uuid, p_expected_session_id text, p_buyer_id uuid, p_event_id text, p_event_type text)",
+        "definition_md5": "fa8513b7a42c4e1db41ab9750520f243",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": true
+      },
+      {
+        "signature": "public.claim_account_deletion_request(p_request_id uuid)",
+        "definition_md5": "3e58f123a5a006f2fac0b17d3eee8e60",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": true
+      },
+      {
+        "signature": "public.claim_order_item_payout_release(p_order_item_id uuid)",
+        "definition_md5": "5c4ff02a944444e011ca83e7367128be",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": true
+      },
+      {
+        "signature": "public.claim_provider_dispute_reversal(p_dispute_id text)",
+        "definition_md5": "5ecad08d9265d16aeb2ffed568039fe0",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": true
+      },
+      {
+        "signature": "public.close_provider_payment_dispute(p_event_id text, p_dispute_id text, p_status text, p_transfer_reversal_id text)",
+        "definition_md5": "16e44691fd857778b9a1bbdecf8b7970",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": true
+      },
+      {
+        "signature": "public.complete_account_deletion_request(p_request_id uuid)",
+        "definition_md5": "27e219e978d30c9d2ceab11630aab30f",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": true
+      },
+      {
+        "signature": "public.complete_case_evidence_cleanup(p_storage_path text)",
+        "definition_md5": "de492d30e7000ef89b1436f5b3858fb5",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": true
+      },
+      {
+        "signature": "public.confirm_checkout_paid(p_order_id uuid, p_event_id text, p_checkout_session_id text, p_payment_intent_id text, p_charge_id text, p_shipping_name text, p_shipping_address jsonb)",
+        "definition_md5": "12fd1b3cc5919bb88b0022ad6445543c",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": true
+      },
+      {
+        "signature": "public.fail_case_evidence_cleanup(p_storage_path text)",
+        "definition_md5": "406cd571734f1be9e7d397c0df6a34fc",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": true
+      },
+      {
+        "signature": "public.finalize_order_item_payout_transfer_rollback(p_order_item_id uuid, p_transfer_id text, p_reversal_id text)",
+        "definition_md5": "e875ab3444808532c63a2a8f7b348418",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": true
+      },
+      {
+        "signature": "public.get_case_evidence_cleanup_queue(p_limit integer, p_storage_path text)",
+        "definition_md5": "bdadd9ef08984dc5119985428e40513c",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": true
+      },
+      {
+        "signature": "public.mark_order_item_payout_released(p_order_item_id uuid, p_transfer_id text)",
+        "definition_md5": "64e3c6c17aa897c5bbbf7829583e1fc1",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": true
+      },
+      {
+        "signature": "public.open_provider_payment_dispute(p_event_id text, p_dispute_id text, p_charge_id text, p_status text, p_reason text)",
+        "definition_md5": "0344fa059d6e66a842a5da021f952d01",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": true
+      },
+      {
+        "signature": "public.prepare_checkout_order(p_part_id uuid, p_quantity integer, p_delivery_method text)",
+        "definition_md5": "2a7aa5c2f3d1de0882235d4c96e9664e",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": true,
+        "service_exec": true
+      },
+      {
+        "signature": "public.prepare_claimed_account_deletion(p_request_id uuid, p_profile_id uuid)",
+        "definition_md5": "8c7d1eb6ddebea87502eb9acafa8bae5",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": true
+      },
+      {
+        "signature": "public.queue_orphan_case_evidence_cleanup(p_case_id uuid, p_uploader_id uuid, p_storage_path text)",
+        "definition_md5": "6588d5e1f82926e0a7f5e0ed20fd8213",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": true
+      },
+      {
+        "signature": "public.record_provider_dispute_reversal(p_dispute_id text, p_transfer_id text, p_reversal_id text, p_amount_pence integer)",
+        "definition_md5": "c5338cbb64bca7730f68bb88ff49e6ea",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": true
+      },
+      {
+        "signature": "public.recover_order_item_payout_transfer(p_order_item_id uuid, p_transfer_id text)",
+        "definition_md5": "82dc3b365c3b0339b0a294449152e1b9",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": false,
+        "service_exec": true
+      },
+      {
+        "signature": "public.seller_checkout_ready(p_seller_id uuid)",
+        "definition_md5": "0ceae368218906646e14030693dd99f5",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "anon_exec": false,
+        "authenticated_exec": true,
+        "service_exec": true
+      }
+    ],
+    "triggers": [
+      {
+        "object": "public.order_items.order_items_prevent_duplicate_active_reservation",
+        "definition": "CREATE TRIGGER order_items_prevent_duplicate_active_reservation BEFORE INSERT ON public.order_items FOR EACH ROW EXECUTE FUNCTION private.prevent_duplicate_active_part_reservation()"
+      },
+      {
+        "object": "public.order_items.remove_reviews_for_failed_order_item",
+        "definition": "CREATE TRIGGER remove_reviews_for_failed_order_item AFTER UPDATE OF refunded_at, fulfilment_status, payout_status ON public.order_items FOR EACH ROW EXECUTE FUNCTION private.remove_reviews_for_failed_order_item()"
+      },
+      {
+        "object": "public.orders.close_fulfilled_part_requests_trigger",
+        "definition": "CREATE TRIGGER close_fulfilled_part_requests_trigger AFTER UPDATE OF payment_status ON public.orders FOR EACH ROW EXECUTE FUNCTION private.close_fulfilled_part_requests()"
+      },
+      {
+        "object": "public.orders.orders_limit_active_checkout_reservations",
+        "definition": "CREATE TRIGGER orders_limit_active_checkout_reservations BEFORE INSERT ON public.orders FOR EACH ROW EXECUTE FUNCTION private.limit_active_checkout_orders()"
+      },
+      {
+        "object": "public.orders.orders_touch",
+        "definition": "CREATE TRIGGER orders_touch BEFORE UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION private.touch_updated_at()"
+      },
+      {
+        "object": "public.transaction_cases.remove_reviews_for_lost_provider_dispute",
+        "definition": "CREATE TRIGGER remove_reviews_for_lost_provider_dispute AFTER UPDATE OF provider_dispute_status ON public.transaction_cases FOR EACH ROW EXECUTE FUNCTION private.remove_reviews_for_lost_provider_dispute()"
+      },
+      {
+        "object": "public.transaction_cases.transaction_case_status_audit",
+        "definition": "CREATE TRIGGER transaction_case_status_audit AFTER UPDATE OF status ON public.transaction_cases FOR EACH ROW WHEN ((old.status IS DISTINCT FROM new.status)) EXECUTE FUNCTION private.audit_transaction_case_status_change()"
+      },
+      {
+        "object": "public.transaction_cases.transaction_cases_touch",
+        "definition": "CREATE TRIGGER transaction_cases_touch BEFORE UPDATE ON public.transaction_cases FOR EACH ROW EXECUTE FUNCTION private.touch_updated_at()"
+      }
+    ],
+    "notifications": [
+      {
+        "kind": "index",
+        "name": "notifications_pkey",
+        "cmd": null,
+        "detail": "CREATE UNIQUE INDEX notifications_pkey ON public.notifications USING btree (id)"
+      },
+      {
+        "kind": "index",
+        "name": "notifications_profile_created_idx",
+        "cmd": null,
+        "detail": "CREATE INDEX notifications_profile_created_idx ON public.notifications USING btree (profile_id, created_at DESC)"
+      },
+      {
+        "kind": "index",
+        "name": "notifications_profile_dedupe_unique",
+        "cmd": null,
+        "detail": "CREATE UNIQUE INDEX notifications_profile_dedupe_unique ON public.notifications USING btree (profile_id, dedupe_key) WHERE (dedupe_key IS NOT NULL)"
+      },
+      {
+        "kind": "index",
+        "name": "notifications_profile_unread_created_idx",
+        "cmd": null,
+        "detail": "CREATE INDEX notifications_profile_unread_created_idx ON public.notifications USING btree (profile_id, created_at DESC, id) WHERE (read_at IS NULL)"
+      },
+      {
+        "kind": "policy",
+        "name": "notifications own read",
+        "cmd": "SELECT",
+        "detail": "{authenticated}"
+      },
+      {
+        "kind": "policy",
+        "name": "notifications own update",
+        "cmd": "UPDATE",
+        "detail": "{authenticated}"
+      }
+    ]
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "project": "etkupijfdznljimrfyct",
+  "as_of": "2026-10-14",
+  "read_only": true,
+  "functions": [
+    {
+      "signature": "private.remove_reviews_for_failed_order_item()",
+      "definition_md5": "e4a073aad850fadcd3ca36e3dfd041b5",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_exec": true,
+      "authenticated_exec": true,
+      "service_exec": true
+    },
+    {
+      "signature": "public.finalize_transaction_case_refund(p_case_id uuid, p_refund_id text, p_refund_pence integer, p_transfer_reversal_id text)",
+      "definition_md5": "9aca2d7ee1538525d2950603fb3309a1",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_exec": false,
+      "authenticated_exec": false,
+      "service_exec": true
+    },
+    {
+      "signature": "public.garage_respond_fitting_request(p_request_id uuid, p_action text, p_quote_pence integer, p_note text)",
+      "definition_md5": "aef7f027fe4c83e0b80c911ddc656dec",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_exec": false,
+      "authenticated_exec": true,
+      "service_exec": true
+    },
+    {
+      "signature": "public.get_review_opportunities()",
+      "definition_md5": "69a5db27b31b5a3ade10129c004f4c47",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_exec": false,
+      "authenticated_exec": true,
+      "service_exec": true
+    },
+    {
+      "signature": "public.register_transaction_case_evidence(p_case_id uuid, p_storage_path text, p_original_name text, p_mime_type text)",
+      "definition_md5": "ca6d6bd257102ae90b1d3eab48e2687e",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_exec": false,
+      "authenticated_exec": true,
+      "service_exec": true
+    },
+    {
+      "signature": "public.request_part_fitting_quote(p_part_id uuid, p_garage_partner_id uuid, p_vehicle_variant_id uuid, p_vehicle_year smallint, p_vehicle_fuel text, p_vehicle_engine integer, p_vehicle_registration text, p_notes text)",
+      "definition_md5": "f6d36fe6679a3dda7b9c8f63bb5b4ab1",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_exec": false,
+      "authenticated_exec": true,
+      "service_exec": true
+    },
+    {
+      "signature": "public.send_fitting_request_message(p_request_id uuid, p_body text)",
+      "definition_md5": "9e80d7ad723d78539624fed72561e305",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_exec": false,
+      "authenticated_exec": true,
+      "service_exec": true
+    },
+    {
+      "signature": "public.submit_transaction_review(p_order_item_id uuid, p_overall_rating smallint, p_item_as_described_rating smallint, p_dispatch_rating smallint, p_communication_rating smallint, p_buyer_conduct_rating smallint, p_comment text)",
+      "definition_md5": "206fe4a412ba296717feab83e13a077e",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "anon_exec": false,
+      "authenticated_exec": true,
+      "service_exec": true
+    }
+  ]
+}
