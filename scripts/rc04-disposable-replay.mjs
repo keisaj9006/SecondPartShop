@@ -128,11 +128,11 @@ async function run() {
       await db.exec("BEGIN");
       await db.exec(candidate);
       await db.exec("COMMIT");
-      report.candidateReadback = (await db.query("select (select count(*)::int from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='private' and p.proname='notify_transaction_review_ready') function_count,(select count(*)::int from pg_trigger where tgname='transaction_review_ready_notification' and not tgisinternal) trigger_count,(select count(*)::int from pg_indexes where schemaname='public' and tablename='notifications' and indexname='notifications_profile_dedupe_unique') dedupe_index_count")).rows[0];
+      report.candidateReadback = (await db.query("select (select count(*)::int from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='private' and p.proname='notify_transaction_review_ready') function_count,(select count(*)::int from pg_trigger where tgname in ('transaction_review_ready_notification','transaction_case_review_ready_notification') and not tgisinternal) trigger_count,(select count(*)::int from pg_indexes where schemaname='public' and tablename='notifications' and indexname='notifications_profile_dedupe_unique') dedupe_index_count")).rows[0];
       await db.exec("BEGIN");
-      await db.exec("drop trigger transaction_review_ready_notification on public.order_items; drop function private.notify_transaction_review_ready();");
+      await db.exec("drop trigger transaction_review_ready_notification on public.order_items; drop trigger transaction_case_review_ready_notification on public.transaction_cases; drop function private.notify_transaction_review_ready();");
       await db.exec("COMMIT");
-      report.rollbackReadback = (await db.query("select (select count(*)::int from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='private' and p.proname='notify_transaction_review_ready') function_count,(select count(*)::int from pg_trigger where tgname='transaction_review_ready_notification' and not tgisinternal) trigger_count")).rows[0];
+      report.rollbackReadback = (await db.query("select (select count(*)::int from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='private' and p.proname='notify_transaction_review_ready') function_count,(select count(*)::int from pg_trigger where tgname in ('transaction_review_ready_notification','transaction_case_review_ready_notification') and not tgisinternal) trigger_count")).rows[0];
     }
   } catch (error) {
     report.status = "FAIL";

@@ -7,6 +7,7 @@ import { PGlite } from "@electric-sql/pglite";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const migration = readFileSync(path.join(root, "supabase/migrations/20261014202700_review_ready_notifications_forward.sql"), "utf8");
+const runner = readFileSync(path.join(root, "scripts/rc04-disposable-replay.mjs"), "utf8");
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const buyer = id(1), seller = id(2), outsider = id(3), order = id(4), sellerId = id(5), part = id(6);
 
@@ -50,6 +51,11 @@ test("RC-04 review-ready: transition matrix, recipient isolation, dedupe, ACL, a
     assert.ok(metadata.some((row) => /AFTER UPDATE OF payout_status, funds_released_at, fulfilment_status, refunded_at ON public.order_items FOR EACH ROW/.test(row.trigger_def)));
     assert.ok(metadata.some((row) => /AFTER UPDATE OF status ON public.transaction_cases FOR EACH ROW/.test(row.trigger_def)));
 
+    // Exercise the runner's actual SQL, not a separately maintained rollback copy.
+    const candidateReadback = runner.match(/report\.candidateReadback = \(await db\.query\("([^"]+)"\)\)/)?.[1];
+    assert.ok(candidateReadback, "disposable runner must expose its candidate readback SQL");
+    assert.equal((await db.query(candidateReadback)).rows[0].trigger_count, 2);
+
     const a = id(10), b = id(11), c = id(12), d = id(13), old = id(14), later = id(15);
     await db.exec(`
       insert into public.order_items values
@@ -85,7 +91,12 @@ test("RC-04 review-ready: transition matrix, recipient isolation, dedupe, ACL, a
     assert.equal((await db.query("select count(*)::int n from public.notifications")).rows[0].n, 6);
 
     // Rollback rehearsal is local only. It stops future notifications and retains the audit trail.
-    await db.exec(`drop trigger transaction_review_ready_notification on public.order_items; drop trigger transaction_case_review_ready_notification on public.transaction_cases; drop function private.notify_transaction_review_ready();`);
+    const rollback = runner.match(/await db\.exec\("(drop trigger transaction_review_ready_notification[^"]+)"\)/)?.[1];
+    assert.ok(rollback, "disposable runner must expose its rollback SQL");
+    await db.exec(rollback);
+    const rollbackReadback = runner.match(/report\.rollbackReadback = \(await db\.query\("([^"]+)"\)\)/)?.[1];
+    assert.ok(rollbackReadback, "disposable runner must expose its rollback readback SQL");
+    assert.deepEqual((await db.query(rollbackReadback)).rows[0], { function_count: 0, trigger_count: 0 });
     await db.exec(`insert into public.order_items values ('${later}','${order}','${sellerId}','${part}','scheduled',null,'completed',null,null); update public.order_items set payout_status='released',funds_released_at=now() where id='${later}';`);
     assert.equal((await db.query("select count(*)::int n from public.notifications")).rows[0].n, 6);
   } finally {
