@@ -7,8 +7,8 @@ export const runtime="nodejs";
 
 export function OPTIONS(request:Request){return mobileOptions(request);}
 
-export async function POST(request:Request,{params}:{params:Promise<{partId:string}>}){
- const {partId}=await params;
+export async function POST(request:Request,{params}:{params:Promise<{slug:string}>}){
+ const {slug:partId}=await params;
  if(!isUuid(partId))return mobileJson(request,{ok:false,error:"invalid_part"},400);
 
  const auth=await requireMobileUser(request);
