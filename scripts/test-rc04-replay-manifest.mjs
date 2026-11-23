@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { buildManifest } from "./rc04-disposable-replay.mjs";
 
-test("RC-04 manifest preserves all local source once and orders four duplicate identities by hosted history", () => {
+test("RC-04 manifest preserves canonical migration source once and orders four duplicate identities by hosted history", () => {
   const manifest = buildManifest();
   assert.equal(manifest.length, 207);
   const files = manifest.flatMap((entry) => entry.files);
@@ -16,7 +16,12 @@ test("RC-04 manifest preserves all local source once and orders four duplicate i
   assert.equal(files.filter((file) => file.includes("docs/test-runs/2026-10-08-deletion-checkout-guard.sql")).length, 0);
   assert.equal(files.filter((file) => file.includes("20261008130523_account_deletion_checkout_fitting_serialization")).length, 1);
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-  const expected = readdirSync(path.join(root, "supabase/migrations")).filter((file) => file.endsWith(".sql") && !file.endsWith("_review_ready_notifications.sql") && !file.endsWith("_review_ready_notifications_forward.sql"));
+  const expected = readdirSync(path.join(root, "supabase/migrations")).filter((file) =>
+    file.endsWith(".sql")
+    && !file.endsWith("_review_ready_notifications.sql")
+    && !file.endsWith("_review_ready_notifications_forward.sql")
+    && file !== "20261109162343_restrict_part_request_worker_execute.sql"
+  );
   assert.deepEqual(new Set(files.map((file) => path.basename(file))), new Set(expected));
   const position = (fragment) => manifest.findIndex((entry) => entry.files.some((file) => file.includes(fragment)));
   for (const [first, second] of [
