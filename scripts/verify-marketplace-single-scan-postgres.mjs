@@ -53,7 +53,8 @@ function explain(name,input){
 psql(`do $$ begin if not exists(select 1 from pg_roles where rolname='service_role') then create role service_role nologin nosuperuser nobypassrls; end if; end $$;`,{tuples:false});
 psql(fs.readFileSync(migrationPath,"utf8"),{tuples:false});
 
-const definition=psql(`select pg_get_functiondef('public.marketplace_search_page_v1(text,text,uuid[],text,integer,integer,boolean,uuid,smallint,text,integer,uuid,boolean,double precision,double precision,uuid[],integer,integer)'::regprocedure);`);
+// Windows psql emits CRLF even when the stored definition uses LF.
+const definition=psql(`select pg_get_functiondef('public.marketplace_search_page_v1(text,text,uuid[],text,integer,integer,boolean,uuid,smallint,text,integer,uuid,boolean,double precision,double precision,uuid[],integer,integer)'::regprocedure);`).replaceAll("\r\n","\n");
 const candidateStart=definition.indexOf("candidate_ids as (");
 const candidateEnd=definition.indexOf("),\n documents as (",candidateStart);
 assert.ok(candidateStart>=0&&candidateEnd>candidateStart,"patched function retains candidate_ids before documents");
