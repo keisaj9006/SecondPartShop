@@ -39,24 +39,24 @@ export default async function FoundingSellersPage({searchParams}:{searchParams:P
  return <><Header/><main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
   <section className="overflow-hidden rounded-[34px] bg-[#173c31] p-6 text-white sm:p-9 lg:p-11">
    <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[.18em] text-[#d4f44d]"><Rocket size={16}/>Founding Seller Programme</p>
-   <h1 className="mt-4 max-w-4xl text-4xl font-black tracking-[-.05em] sm:text-6xl">Bring your parts inventory to SecondPart before the wider marketplace launch.</h1>
-   <p className="mt-5 max-w-3xl text-base leading-7 text-white/72 sm:text-lg">For UK breakers, ATFs, garages and established parts businesses that want a structured route from existing stock to searchable, compatibility-aware SecondPart listings.</p>
+   <h1 className="mt-4 max-w-4xl text-4xl font-black tracking-[-.05em] sm:text-6xl">Sell your parts with zero seller fees during your 90-day pilot.</h1>
+   <p className="mt-5 max-w-3xl text-base leading-7 text-white/72 sm:text-lg">Up to 50 UK breakers, dismantlers, garages and parts businesses can join in stages. Set your own prices and keep the full part price. Buyers pay the SecondPart service fee.</p>
    <div className="mt-7 flex flex-wrap gap-2"><a href="#apply" className="rounded-xl bg-[#d4f44d] px-5 py-3 font-black text-[#173c31]">Apply now</a><Link href="/sell" className="rounded-xl border border-white/20 bg-white/10 px-5 py-3 font-black text-white">See seller tools</Link></div>
   </section>
 
   <section className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
    {[
-    [FileSpreadsheet,"Bulk inventory","CSV import creates drafts first, with validation and remediation queues before publication."],
-    [Sparkles,"AI listing assistance","Draft titles and descriptions from seller-provided facts and photos while keeping identifiers human-verified."],
-    [ShieldCheck,"Compatibility evidence","Donor vehicles, OE/OEM data and confirmed fitments feed listing trust and Part Passport evidence."],
-    [Wrench,"Buy + Fit network","Eligible workshops can separately apply as garage partners to quote fitting labour."]
+    [FileSpreadsheet,"Free first import","We check a sample of your CSV and help you import up to 500 parts as drafts. We agree the next batch after reviewing the first."],
+    [Sparkles,"Keep your sales channels","Carry on selling on eBay, on your website and in your workshop. Agree who will update your SecondPart stock when a part sells elsewhere."],
+    [ShieldCheck,"Your 90-day pilot","Your pilot starts when your first listings go live. Joining, listing and selling are free throughout the pilot."],
+    [Wrench,"You choose whether to continue","We give you at least 30 days’ notice of new terms. You decide whether to continue after the pilot."]
    ].map(([Icon,title,body])=><article key={String(title)} className="rounded-3xl border border-black/10 bg-white p-5"><Icon size={21} className="text-[#287154]"/><h2 className="mt-5 text-lg font-black">{String(title)}</h2><p className="mt-2 text-sm leading-6 text-[#63706a]">{String(body)}</p></article>)}
   </section>
 
   <section className="mt-10 grid gap-7 lg:grid-cols-[.8fr_1.2fr] lg:items-start">
    <div>
     <p className="text-xs font-black uppercase tracking-[.18em] text-[#287154]">How onboarding works</p>
-    <h2 className="mt-2 text-3xl font-black tracking-[-.04em]">A defined path, not a blank seller dashboard.</h2>
+    <h2 className="mt-2 text-3xl font-black tracking-[-.04em]">From your first application to your first listings</h2>
     <div className="mt-6 grid gap-3">
      {[
       ["1","Seller profile","Set the correct business type and public identity."],
